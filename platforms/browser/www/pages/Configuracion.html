@@ -1,0 +1,72 @@
+<div class="page" data-name="configuracion">
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link" onclick="ir_atras_boton();">
+					<i class="icon icon-back"></i>
+					<span class="ios-only">Back</span>
+				</a>
+			</div>
+			<div class="title">Configuración General</div>
+		</div>
+	</div>
+
+
+	<div class="page-content" >
+
+		<form class="list" id="my-form">
+			<ul>
+				<li>
+					<div class="item-content">
+			        <div class="item-inner">
+			          <div class="item-title">Tema Oscuro</div>
+			          <div class="item-after">
+			            <label class="toggle toggle-init">
+			              <input type="checkbox" name="toggle" id="check_oscuro" ><i class="toggle-icon"></i>
+			            </label>
+			          </div>
+			        </div>
+			      </div>
+				</li>
+
+				<li>
+					<div class="item-content item-input" style="display: none;">
+						<div class="item-inner">
+							<div class="item-title">Nombre Impresora Predeterminada: </div>
+							<div class="item-input-wrap">
+								<input type="text" id="tx_impresora"name="impresora" placeholder="" onchange="cambiar_nombre_impresora()" style="display: inline;" value="TM-P80">
+							</div>
+						</div>
+					</div>
+				</li>
+
+				<li>
+					<div class="item-content item-input" style="display: none;">
+						<div class="item-inner">
+							<div class="item-title">Número impresora Predeterminada: </div>
+							<div class="item-input-wrap">
+								<input type="text" id="tx_impresora_numero"name="impresora_numero" placeholder="" onchange="cambiar_numero_impresora()" style="display: inline;">
+							</div>
+						</div>
+					</div>
+				</li>
+
+				<li>
+					<div class="item-content item-input">
+						<div class="item-inner">
+							<div class="item-title">Dirección servidor web: </div>
+							<div class="item-input-wrap">
+								<input type="text" id="tx_direccion_servidor"name="servidor_nuevo" placeholder="" disabled="disabled" style="display: inline;">
+							</div>
+							<div class="item-input-wrap">
+								<a id="btn_cambiar_direccion" href="#" onclick="cambiar_direccion_servidor_web();" class="col button button-big button-raised button-fill">Cambiar dirección servidor web</a>
+							</div>
+						</div>
+					</div>
+				</li>
+				
+
+			</ul>
+		</form>	
+	</div>
+</div>

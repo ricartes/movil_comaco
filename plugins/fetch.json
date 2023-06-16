@@ -1,0 +1,138 @@
+{
+  "cordova-plugin-network-information": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-network-information@^2.0.1"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-geolocation": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-geolocation@^4.0.2"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-insomnia": {
+    "source": {
+      "type": "registry",
+      "id": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-inappbrowser": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-inappbrowser@^3.1.0"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-btprinter": {
+    "source": {
+      "type": "registry",
+      "id": "github:CesarBalzer/Cordova-Plugin-BTPrinter"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-device": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-device@~2.0.1"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-app-version": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-app-version@^0.1.12"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-ip-mac-address": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-ip-mac-address@^1.0.1"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-vibration": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-vibration@^3.1.1"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-device-motion": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-device-motion@^1.2.5"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-pdf-generator": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-pdf-generator@^2.1.1"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-sqlite-storage": {
+    "source": {
+      "type": "registry",
+      "id": "https://github.com/storesafe/cordova-sqlite-storage"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-androidx": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-androidx"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-file": {
+    "source": {
+      "type": "registry",
+      "id": "https://github.com/apache/cordova-plugin-file"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-file-transfer": {
+    "source": {
+      "type": "registry",
+      "id": "https://github.com/apache/cordova-plugin-file-transfer"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-camera": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-camera@6.0.0"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-advanced-background-mode": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-advanced-background-mode"
+    },
+    "is_top_level": true,
+    "variables": {}
+  }
+}

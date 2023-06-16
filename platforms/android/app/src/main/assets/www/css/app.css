@@ -1,0 +1,77 @@
+/* Your app styles here */
+
+/* Left Panel right border when it is visible by breakpoint */
+.panel-left.panel-visible-by-breakpoint:before {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  background: rgba(0,0,0,0.1);
+  content: '';
+  z-index: 6000;
+}
+
+/* Hide navbar link which opens left panel when it is visible by breakpoint */
+.panel-left.panel-visible-by-breakpoint ~ .view .navbar .panel-open[data-panel="left"] {
+  display: none;
+}
+
+/*
+  Extra borders for main view and left panel for iOS theme when it behaves as panel (before breakpoint size)
+*/
+.ios .panel-left:not(.panel-visible-by-breakpoint).panel-active ~ .view-main:before,
+.ios .panel-left:not(.panel-visible-by-breakpoint).panel-closing ~ .view-main:before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  background: rgba(0,0,0,0.1);
+  content: '';
+  z-index: 6000;
+}
+
+/*.page-content {
+  background-color: #BDBDBD;
+}*/
+
+:root {
+  --f7-theme-color: #f00;
+  --f7-theme-color-shade: #d60000;
+  --f7-theme-color-tint: #ff2929;
+  --f7-theme-color-rgb: 255, 0, 0;
+}
+
+
+.subrayado {
+  width: 100%;
+  background-color: #fcfcfc;
+  border: 0;
+  border-bottom: 2px solid lightgrey;
+  padding: 10px;
+}
+
+.cuadro_guia{
+  border-color: red;
+  border-style: solid;
+}
+
+.label_titulo{
+  color: black;
+  text-align: center;
+}
+
+.fecha_titulo{
+  color: black;
+}
+
+.titulo_item{
+  color: black;
+  margin-left: 2%;
+}
+
+.cuadro_guia_negro{
+  border-color: black;
+  border-style: solid;
+}

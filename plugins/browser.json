@@ -1,0 +1,63 @@
+{
+  "prepare_queue": {
+    "installed": [],
+    "uninstalled": []
+  },
+  "config_munge": {
+    "files": {}
+  },
+  "installed_plugins": {
+    "cordova-plugin-network-information": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-geolocation": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-insomnia": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-inappbrowser": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-btprinter": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-app-version": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-ip-mac-address": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-vibration": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-device-motion": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-sqlite-storage": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-pdf-generator": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-androidx": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-file": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-file-transfer": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-camera": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-device": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    }
+  },
+  "dependent_plugins": {}
+}

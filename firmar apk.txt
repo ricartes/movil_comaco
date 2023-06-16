@@ -1,0 +1,13 @@
+.\keytool -genkey -v -keystore llave_gfe_comaco.keystore -alias gfe_comaco_firmado -keyalg RSA -keysize 2048 -validity 9125
+
+
+
+cd C:\Program Files\Java\jdk1.8.0_251\bin
+
+.\jarsigner.exe -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore D:\Trabajos\GFE\movil_comaco\movil_comaco\llave_gfe_comaco.keystore D:\Trabajos\GFE\movil_comaco\movil_comaco\platforms\android\app\build\outputs\bundle\release\app-release.aab gfe_comaco_firmado 
+
+
+cd C:\Users\Ricardo\AppData\Local\Android\Sdk\build-tools\30.0.1
+
+
+.\zipalign.exe -v 4 D:\Trabajos\GFE\movil_comaco\movil_comaco\platforms\android\app\build\outputs\apk\release\app-release-unsigned.apk D:\Trabajos\GFE\movil_comaco\movil_comaco\platforms\android\app\build\outputs\apk\release\app-release-unsigned_2.apk

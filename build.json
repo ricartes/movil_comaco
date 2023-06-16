@@ -1,0 +1,20 @@
+{
+    "android": {
+        "debug": {
+            "keystore": "llave_gfe_comaco_2.keystore",
+            "storePassword": "123456",
+            "alias": "key0",
+            "password" : "123456",
+            "keystoreType": "",
+            "packageType": "apk"
+        },
+        "release": {
+            "keystore": "llave_gfe_comaco_2.keystore",
+            "storePassword": "123456",
+            "alias": "key0",
+            "password" : "123456",
+            "keystoreType": "",
+            "packageType": "bundle"
+        }
+    }
+}

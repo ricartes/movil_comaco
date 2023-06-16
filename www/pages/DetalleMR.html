@@ -1,0 +1,157 @@
+<div class="page" data-name="detalle-pulpable">
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link" onclick="volver_encabezadoMR()">
+					<i class="icon icon-back"></i>
+					<span class="ios-only">Back</span>
+				</a>
+			</div>
+			<div class="title">Detalle MR</div>
+		</div>
+	</div>
+
+
+
+	<div class="page-content" >
+
+
+
+		<div class="data-table data-table-init card">
+			<div class="list no-hairlines-md">
+				<ul>
+					<li class="item-content item-input">
+
+						<div class="item-inner">
+							<div class="item-title item">Largo (Metros)</div>
+							<div class="item-input-wrap">
+								<input type="number" id="largomr" disabled>
+								
+							</div>
+						</div>
+					</li>
+
+
+					<li class="item-content item-input">
+						
+						<div class="item-inner">
+							<div class="item-title item">Precio ($)</div>
+							<div class="item-input-wrap">
+								<input type="number" disabled placeholder="Precio" id="preciomr" value="0">
+								
+							</div>
+						</div>
+					</li>
+				</ul>
+
+			</div>
+
+
+
+		</div>
+
+		<div class="data-table data-table-init card">
+
+			<div class="card-content" id="tabla_faena">
+
+				<form id="my-form"> 
+
+					<div class="block"> 
+
+						<div class="card data-table">
+							<table>
+								<thead>
+									<tr>
+										<th class="numeric-cell" style="width: 5%;   " ></th>
+										<th class="numeric-cell" style="width: 25%;  " >Ancho</th>
+										<th class="numeric-cell" style="width: 25%;  ">H.Izq</th>
+										<th class="numeric-cell" style="width: 25%;  ">H.Der</th>
+										<th class="numeric-cell" style="width: 20%;  ">Vol</th>
+
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%;  height: 40px;font-size: 26px;" >1</td>
+										<td class="numeric-cell" style="width: 25%; "  ><input type='number' maxlength='5' class='ancho' value='' id='ancho1' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%; " ><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq1' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%; " ><input type='number' maxlength='5' class='alturader' value='' id='alturader1' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell" id="volMR1"style="width: 20%;height: 40px;font-size: 26px;" ></td>
+										
+									</tr>
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%; height: 40px;font-size: 26px; " >2</td>
+										<td class="numeric-cell" style="width: 25%; "><input type='number' maxlength='5' class='ancho' value='' id='ancho2' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;" ><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq2' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;" ><input type='number' maxlength='5' class='alturader' value='' id='alturader2' style='width:100%;border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell" id="volMR2"style="width: 20%;height: 40px;font-size: 26px;"></td>
+
+									</tr>
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%;height: 40px;font-size: 26px;  ">3</td>
+										<td class="numeric-cell" style="width: 25%;" ><input type='number' maxlength='5' class='ancho' value='' id='ancho3' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq3' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;" ><input type='number' maxlength='5' class='alturader' value='' id='alturader3' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell" id="volMR3" style="width: 20%;height: 40px;font-size: 26px;"></td>
+
+									</tr>
+
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%;height: 40px;font-size: 26px; " >4</td>
+										<td class="numeric-cell"style="width: 25%;" > <input type='number' maxlength='5' class='ancho' value='' id='ancho4' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq4' style='width:100%;border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='alturader' value='' id='alturader4' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell" id="volMR4"style="width: 20%;height: 40px;font-size: 26px;"></td>
+
+									</tr>
+
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%;height: 40px;font-size: 26px; ">5</td>
+										<td class="numeric-cell"style="width: 25%;" ><input type='number' maxlength='5' class='ancho' value='' id='ancho5' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq5' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell"style="width: 25%;" ><input type='number' maxlength='5' class='alturader' value='' id='alturader5' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell" id="volMR5" style="width: 20%;height: 40px;font-size: 26px;"></td>
+
+									</tr>
+
+									<tr>
+										<td class="banco numeric-cell" style="width: 5%;font-size: 26px; " >6</td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='ancho' value='' id='ancho6' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell"style="width: 25%;" ><input type='number' maxlength='5' class='alturaizq' value='' id='alturaizq6' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="numeric-cell" style="width: 25%;"><input type='number' maxlength='5' class='alturader' value='' id='alturader6' style='width:100%; border: 1px solid white;height: 40px;font-size: 26px;'/> </td>
+										<td class="volumen numeric-cell"id="volMR6" style="width: 20%; height: 40px;font-size: 26px;"></td>
+
+									</tr>
+
+								</tbody>
+							</table>
+
+
+
+
+						</div>
+					</div>
+
+					<div class="block" style="font-size: 26px;"> 
+						Total Volumen MR:   <input type="number" style=" display: inline;border: 1px solid lightgrey;font-size: 26px;"  maxlength="5" id="total_volmr" value="">
+					</div>
+
+					<div class="block"> 
+						
+						Total Guía: $<label style="display: inline;" id="total_guiamr">0</label>
+					</div>
+
+				</form>
+			</div>
+		</div>
+		<p class="row">         
+			<a onclick="pagina_comentarios()" data-view=".view-main" class="col button button-big button-raised button-fill">Continuar
+			</a>
+
+			<!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+		</p>
+	</div>
+
+
+
+</div>
