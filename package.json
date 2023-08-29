@@ -1,66 +1,66 @@
 {
-  "name": "helloworld",
-  "displayName": "HelloCordova",
-  "version": "1.0.0",
-  "description": "A sample Apache Cordova application that responds to the deviceready event.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Apache Cordova Team",
-  "license": "Apache-2.0",
-  "dependencies": {
-    "cordova-browser": "^5.0.3",
-    "cordova-epos-plugin": "git+https://github.com/jhonylucas74/epson-cordova.git",
-    "cordova-import-npm": "^1.0.33",
-    "cordova-plugin-app-version": "^0.1.12",
-    "cordova-plugin-device-motion": "^1.2.5",
-    "cordova-plugin-geolocation": "^4.0.2",
-    "cordova-plugin-inappbrowser": "^3.1.0",
-    "cordova-plugin-ip-mac-address": "^1.0.1",
-    "cordova-plugin-network-information": "^2.0.1",
-    "cordova-plugin-vibration": "^3.1.1",
-    "esm": "^3.2.25",
-    "geodesy": "^2.2.1"
-  },
-  "cordova": {
-    "plugins": {
-      "cordova-plugin-network-information": {},
-      "cordova-plugin-device": {},
-      "cordova-plugin-geolocation": {},
-      "cordova-plugin-insomnia": {},
-      "cordova-plugin-inappbrowser": {},
-      "cordova-plugin-btprinter": {},
-      "cordova-plugin-ip-mac-address": {},
-      "cordova-plugin-vibration": {},
-      "cordova-plugin-app-version": {},
-      "cordova-plugin-device-motion": {},
-      "cordova-pdf-generator": {},
-      "cordova-sqlite-storage": {},
-      "cordova-plugin-androidx": {},
-      "cordova-plugin-file": {},
-      "cordova-plugin-file-transfer": {},
-      "cordova-plugin-camera": {
-        "ANDROIDX_CORE_VERSION": "1.6.+"
-      },
-      "cordova-plugin-advanced-background-mode": {}
+    "name": "origenes",
+    "displayName": "Origenes",
+    "version": "1.0.0",
+    "description": "Orígnes Comaco",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "platforms": [
-      "browser",
-      "android"
-    ]
-  },
-  "devDependencies": {
-    "cordova-android": "^11.0.0",
-    "cordova-pdf-generator": "^2.1.1",
-    "cordova-plugin-advanced-background-mode": "^1.1.1",
-    "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",
-    "cordova-plugin-androidx": "^3.0.0",
-    "cordova-plugin-btprinter": "github:CesarBalzer/Cordova-Plugin-BTPrinter",
-    "cordova-plugin-camera": "^6.0.0",
-    "cordova-plugin-file": "github:apache/cordova-plugin-file",
-    "cordova-plugin-file-transfer": "github:apache/cordova-plugin-file-transfer",
-    "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
-    "cordova-sqlite-storage": "github:storesafe/cordova-sqlite-storage"
-  }
+    "author": "Apache Cordova Team",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "cordova-browser": "^5.0.3",
+        "cordova-epos-plugin": "git+https://github.com/jhonylucas74/epson-cordova.git",
+        "cordova-import-npm": "^1.0.33",
+        "cordova-plugin-app-version": "^0.1.12",
+        "cordova-plugin-device-motion": "^1.2.5",
+        "cordova-plugin-geolocation": "^4.0.2",
+        "cordova-plugin-inappbrowser": "^3.1.0",
+        "cordova-plugin-ip-mac-address": "^1.0.1",
+        "cordova-plugin-network-information": "^2.0.1",
+        "cordova-plugin-vibration": "^3.1.1",
+        "esm": "^3.2.25",
+        "geodesy": "^2.2.1"
+    },
+    "cordova": {
+        "plugins": {
+            "cordova-plugin-network-information": {},
+            "cordova-plugin-device": {},
+            "cordova-plugin-geolocation": {},
+            "cordova-plugin-insomnia": {},
+            "cordova-plugin-inappbrowser": {},
+            "cordova-plugin-btprinter": {},
+            "cordova-plugin-ip-mac-address": {},
+            "cordova-plugin-vibration": {},
+            "cordova-plugin-app-version": {},
+            "cordova-plugin-device-motion": {},
+            "cordova-pdf-generator": {},
+            "cordova-sqlite-storage": {},
+            "cordova-plugin-androidx": {},
+            "cordova-plugin-file": {},
+            "cordova-plugin-file-transfer": {},
+            "cordova-plugin-camera": {
+                "ANDROIDX_CORE_VERSION": "1.6.+"
+            },
+            "cordova-plugin-advanced-background-mode": {}
+        },
+        "platforms": [
+            "browser",
+            "android"
+        ]
+    },
+    "devDependencies": {
+        "cordova-android": "^11.0.0",
+        "cordova-pdf-generator": "^2.1.1",
+        "cordova-plugin-advanced-background-mode": "^1.1.1",
+        "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",
+        "cordova-plugin-androidx": "^3.0.0",
+        "cordova-plugin-btprinter": "github:CesarBalzer/Cordova-Plugin-BTPrinter",
+        "cordova-plugin-camera": "^6.0.0",
+        "cordova-plugin-file": "github:apache/cordova-plugin-file",
+        "cordova-plugin-file-transfer": "github:apache/cordova-plugin-file-transfer",
+        "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
+        "cordova-sqlite-storage": "github:storesafe/cordova-sqlite-storage"
+    }
 }

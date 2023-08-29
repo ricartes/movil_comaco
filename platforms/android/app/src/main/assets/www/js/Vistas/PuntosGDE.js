@@ -23,10 +23,6 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
 
     DATOS_seleccionar_puntosGDE(id_gde_actual, function (gde_result) {
 
-
-
-
-
         $$("#tx_latitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_X);
         $$("#tx_longitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_Y);
         $$("#tx_latitud_final").val(gde_result.GDE_COORDENADA_FINAL_X);
@@ -34,7 +30,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
 
 
 
-        if (gde_result.GDE_HORA_PUNTO_INICIO == null || gde_result.GDE_HORA_PUNTO_INICIO == undefined || gde_result.GDE_HORA_PUNTO_INICIO == "") {
+        if (gde_result.GDE_HORA_PUNTO_INICIO == undefined || gde_result.GDE_HORA_PUNTO_INICIO == null || gde_result.GDE_HORA_PUNTO_INICIO == "") {
             $$("#btn_punto_final").css('display', 'none');
             $$("#btn_punto_final").css('display', 'none');
             $$("#btn_camion_cargado").css('display', 'none');
@@ -44,10 +40,8 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
             $$("#btn_punto_final").css('display', 'block');
         }
 
-        if (gde_result.GDE_HORA_PUNTO_FINAL == null || gde_result.GDE_HORA_PUNTO_FINAL == undefined || gde_result.GDE_HORA_PUNTO_FINAL == "") {
-
+        if (gde_result.GDE_HORA_PUNTO_FINAL == undefined || gde_result.GDE_HORA_PUNTO_FINAL == null || gde_result.GDE_HORA_PUNTO_FINAL == "") {
             $$("#btn_camion_cargado").css('display', 'none');
-
         } else {
             $$("#btn_punto_final").css('display', 'none');
         }
@@ -158,8 +152,6 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
         DATOS_Actualiza_PuntoFinal(id_gde_actual, latitud, longitud, function (result) {
             $$("#tx_latitud_final").val(latitud);
             $$("#tx_longitud_final").val(longitud);
-            $$("#btn_camion_cargado").css('display', 'block');
-
             if (valida_geocerca == 1) {
                 DATOS_Obtener_Geocerca(proyecto, 1, function (geocerca) {
                     var dentro_geocerca = compruebaGeocerca(geocerca, latitud, longitud);
@@ -181,11 +173,17 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
 
 
 
-
+/**
+ * 
+ * @param {*} geocerca 
+ */
 function alerta_geocerca_punto_final(geocerca) {
     if (geocerca.flag == 1) {
+        ///al haber bloqueo por geocerca, se oculta el boton, hasta que tome un punto que corresponda
+        $$("#btn_camion_cargado").css('display', 'none');
         bloqueo_geocerca_punto_final = 1;
     } else {
+        $$("#btn_camion_cargado").css('display', 'block');
         bloqueo_geocerca_punto_final = 0;
     }
     alerta(17);
@@ -200,12 +198,9 @@ function obtener_punto_final() {
             app.dialog.alert("Primero debe obtener el punto inicial", "GFE");
             return false;
 
-
         } else {
 
-
             DATOS_seleccionar_Parametro_general(1, 10, function (result_param) {
-
                 var fecha_hora_inicial = new Date(gde_result.GDE_HORA_PUNTO_INICIO);
                 var fecha_hora_actual = new Date();
 
