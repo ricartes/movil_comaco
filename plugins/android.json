@@ -44,9 +44,6 @@
     "cordova-plugin-vibration": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-sqlite-storage": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-camera": {
       "ANDROIDX_CORE_VERSION": "1.6.+",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
@@ -55,6 +52,9 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-sqlite-spatialite-evplus-ext-common-free": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },

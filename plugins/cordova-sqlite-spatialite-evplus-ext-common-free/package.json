@@ -1,0 +1,45 @@
+{
+  "name": "cordova-sqlite-spatialite-evplus-ext-common-free",
+  "version": "0.0.1-dev",
+  "description": "Cordova/PhoneGap sqlite storage - free evplus enterprise version with premium stability and performance improvements including workaround for large SELECT results on Android (version with external sqlite3 dependencies)",
+  "cordova": {
+    "id": "cordova-sqlite-spatialite-evplus-ext-common-free",
+    "platforms": [
+      "android",
+      "ios",
+      "osx",
+      "windows"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/litehelpers/cordova-plugin-sqlite-evplus-ext-common-free.git"
+  },
+  "keywords": [
+    "sqlite",
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios",
+    "cordova-osx",
+    "cordova-windows"
+  ],
+  "author": "various",
+  "license": "GPL-3.0 OR Commercial",
+  "bugs": {
+    "url": "https://github.com/litehelpers/cordova-plugin-sqlite-evplus-ext-common-free/issues"
+  },
+  "homepage": "https://github.com/litehelpers/cordova-plugin-sqlite-evplus-ext-common-free",
+  "dependencies": {
+    "cordova-sqlite-evplus-ext-free-dependencies": "github:brodybits/cordova-sqlite-evplus-ext-free-dependencies#0.1.0-rc01"
+  },
+  "scripts": {
+    "clean-spec": "rm -rf spec/[mnp]* && git cl spec/config.xml && git status --ignored",
+    "prepare-js": "coffee -p SQLitePlugin.coffee.md > www/SQLitePlugin.js",
+    "prepare-spec": "node scripts/prepareSpec.js"
+  },
+  "devDependencies": {
+    "coffeescript": "1",
+    "cross-spawn": "^6.0.5",
+    "fs-extra": "^8.1.0"
+  }
+}

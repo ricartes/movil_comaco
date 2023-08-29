@@ -109,6 +109,7 @@ ext {
 }
 
 // PLUGIN GRADLE EXTENSIONS START
+apply from: "../cordova-sqlite-spatialite-evplus-ext-common-free/gfe_comaco-jitpack-support.gradle"
 // PLUGIN GRADLE EXTENSIONS END
 
 def hasBuildExtras1 = file('build-extras.gradle').exists()
@@ -297,6 +298,7 @@ dependencies {
     implementation(project(path: ":CordovaLib"))
     implementation "androidx.webkit:webkit:1.4.0"
     implementation "androidx.core:core:1.6.+"
+    implementation "com.github.sevar83:android-spatialite:2.0.1"
     // SUB-PROJECT DEPENDENCIES END
 }
 

@@ -87,14 +87,6 @@
     "is_top_level": true,
     "variables": {}
   },
-  "cordova-sqlite-storage": {
-    "source": {
-      "type": "registry",
-      "id": "https://github.com/storesafe/cordova-sqlite-storage"
-    },
-    "is_top_level": true,
-    "variables": {}
-  },
   "cordova-plugin-androidx": {
     "source": {
       "type": "registry",
@@ -131,6 +123,14 @@
     "source": {
       "type": "registry",
       "id": "cordova-plugin-advanced-background-mode"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-sqlite-spatialite-evplus-ext-common-free": {
+    "source": {
+      "type": "registry",
+      "id": "https://gitlab.com/ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx.git"
     },
     "is_top_level": true,
     "variables": {}

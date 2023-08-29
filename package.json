@@ -36,14 +36,14 @@
             "cordova-plugin-app-version": {},
             "cordova-plugin-device-motion": {},
             "cordova-pdf-generator": {},
-            "cordova-sqlite-storage": {},
             "cordova-plugin-androidx": {},
             "cordova-plugin-file": {},
             "cordova-plugin-file-transfer": {},
             "cordova-plugin-camera": {
                 "ANDROIDX_CORE_VERSION": "1.6.+"
             },
-            "cordova-plugin-advanced-background-mode": {}
+            "cordova-plugin-advanced-background-mode": {},
+            "cordova-sqlite-spatialite-evplus-ext-common-free": {}
         },
         "platforms": [
             "browser",
@@ -61,6 +61,6 @@
         "cordova-plugin-file": "github:apache/cordova-plugin-file",
         "cordova-plugin-file-transfer": "github:apache/cordova-plugin-file-transfer",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
-        "cordova-sqlite-storage": "github:storesafe/cordova-sqlite-storage"
+        "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx"
     }
 }

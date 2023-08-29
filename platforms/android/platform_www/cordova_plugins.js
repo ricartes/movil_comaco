@@ -296,14 +296,6 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       ]
     },
     {
-      "id": "cordova-sqlite-storage.SQLitePlugin",
-      "file": "plugins/cordova-sqlite-storage/www/SQLitePlugin.js",
-      "pluginId": "cordova-sqlite-storage",
-      "clobbers": [
-        "SQLitePlugin"
-      ]
-    },
-    {
       "id": "cordova-plugin-camera.Camera",
       "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
       "pluginId": "cordova-plugin-camera",
@@ -351,6 +343,14 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
         "cordova.plugins.backgroundMode",
         "plugin.backgroundMode"
       ]
+    },
+    {
+      "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
+      "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
+      "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
+      "clobbers": [
+        "SQLitePlugin"
+      ]
     }
   ];
   module.exports.metadata = {
@@ -366,9 +366,9 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova-plugin-ip-mac-address": "1.0.1",
     "cordova-plugin-network-information": "2.0.1",
     "cordova-plugin-vibration": "3.1.1",
-    "cordova-sqlite-storage": "6.0.1-dev",
     "cordova-plugin-camera": "6.0.0",
     "cordova-plugin-device": "2.0.3",
-    "cordova-plugin-advanced-background-mode": "1.1.1"
+    "cordova-plugin-advanced-background-mode": "1.1.1",
+    "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev"
   };
 });

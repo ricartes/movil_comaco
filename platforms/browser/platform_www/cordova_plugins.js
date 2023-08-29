@@ -367,26 +367,6 @@ module.exports = [
         "runs": true
     },
     {
-        "file": "plugins/cordova-sqlite-storage/www/SQLitePlugin.js",
-        "id": "cordova-sqlite-storage.SQLitePlugin",
-        "pluginId": "cordova-sqlite-storage",
-        "clobbers": [
-            "SQLitePlugin"
-        ]
-    },
-    {
-        "file": "plugins/cordova-sqlite-storage/node_modules/cordova-sqlite-storage-dependencies/sql-asm-memory-growth.js",
-        "id": "cordova-sqlite-storage.sql",
-        "pluginId": "cordova-sqlite-storage",
-        "runs": true
-    },
-    {
-        "file": "plugins/cordova-sqlite-storage/src/browser/SQLiteProxy.js",
-        "id": "cordova-sqlite-storage.SQLiteProxy",
-        "pluginId": "cordova-sqlite-storage",
-        "runs": true
-    },
-    {
         "file": "plugins/cordova-pdf-generator/www/pdf.js",
         "id": "cordova-pdf-generator.pdf",
         "pluginId": "cordova-pdf-generator",
@@ -657,6 +637,14 @@ module.exports = [
         "id": "cordova-plugin-advanced-background-mode.BackgroundMode.Proxy",
         "pluginId": "cordova-plugin-advanced-background-mode",
         "runs": true
+    },
+    {
+        "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
+        "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
+        "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
+        "clobbers": [
+            "SQLitePlugin"
+        ]
     }
 ];
 module.exports.metadata = 
@@ -671,14 +659,14 @@ module.exports.metadata =
     "cordova-plugin-ip-mac-address": "1.0.1",
     "cordova-plugin-vibration": "3.1.1",
     "cordova-plugin-app-version": "0.1.12",
-    "cordova-sqlite-storage": "6.0.0",
     "cordova-pdf-generator": "2.1.1",
     "cordova-plugin-androidx": "3.0.0",
     "cordova-plugin-file": "7.0.0",
     "cordova-plugin-file-transfer": "2.0.0-dev",
     "cordova-plugin-camera": "6.0.0",
     "cordova-plugin-device": "2.0.3",
-    "cordova-plugin-advanced-background-mode": "1.1.1"
+    "cordova-plugin-advanced-background-mode": "1.1.1",
+    "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev"
 }
 // BOTTOM OF METADATA
 });

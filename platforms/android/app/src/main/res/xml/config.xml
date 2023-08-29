@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.gestionasi.gfe_comaco" version="9210" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="io.gestionasi.gfe_comaco" version="10000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <feature name="PDFService">
         <param name="android-package" value="com.pdf.generator.PDFGenerator" />
     </feature>
@@ -35,9 +35,6 @@
     <feature name="NetworkStatus">
         <param name="android-package" value="org.apache.cordova.networkinformation.NetworkManager" />
     </feature>
-    <feature name="SQLitePlugin">
-        <param name="android-package" value="io.sqlc.SQLitePlugin" />
-    </feature>
     <feature name="Camera">
         <param name="android-package" value="org.apache.cordova.camera.CameraLauncher" />
     </feature>
@@ -50,12 +47,15 @@
     <feature name="BackgroundModeExt">
         <param name="android-package" value="de.einfachhans.BackgroundMode.BackgroundModeExt" />
     </feature>
+    <feature name="SQLitePlugin">
+        <param name="android-package" value="io.sqlc.SQLitePlugin" />
+    </feature>
     <name>Control de Origen (Proveedores)</name>
     <description>
         Emisión guia electronica Proveedores Comaco
     </description>
     <author email="aandaur@gestionasi.cl" href="http://cordova.io">
-       GESTIONASI
+        GESTIONASI
     </author>
     <content src="index.html" />
     <access origin="*" />

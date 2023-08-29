@@ -52,10 +52,6 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
 
 	DATOS_seleccionar_gde_proveedor(id_gde, function(result) {
 		gde_actual=result;
-
-
-		
-		//alert(gde_actual.GDE_ESTADO_MOVIL);
 		if(gde_actual.GDE_ESTADO_MOVIL=='I' || gde_actual.GDE_ESTADO_MOVIL=='E' || gde_actual.GDE_ESTADO_MOVIL=='N'){
 			$$("#rut_receptor").text(gde_actual.GDE_COD_CLIENTE);
 			$$("#razon_social_receptor").text(gde_actual.GDE_NOMBRE_CLIENTE.toUpperCase());
@@ -89,7 +85,7 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
 			var anio = newDate[0];
 			var mes = newDate[1];
 			var dia = newDate[2];
-			//alert(dia);
+            
 			
 			/*pequeña condicion cuando las guias lleguen de vuelta*/
 			if(dia.includes("T")){
@@ -126,7 +122,9 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
 
 
 		 	$$("#nombre_producto").text(gde_actual.GDE_NOMBRE_PRODUCTO.toUpperCase());
-			//$$("#precio_producto").text("$"+new Intl.NumberFormat('es-CL').format( formatear_precio(gde_actual.GDE_PRECIO_UNITARIO)));
+			
+            
+            generarQrGuia(gde_actual.ID_UNICO_MOVIL);
 
 
 
@@ -191,6 +189,21 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
 	});
 	
 });
+
+function generarQrGuia(idUnico){
+    DATOS_seleccionar_Parametro_movil_por_nombre(1,"DIRECCION_SERVIDOR", function(result_param) {
+        const urlServer = result_param.PAG_VALOR;
+        const urlPdf = urlServer+"/Mantenedores/PDF/"+idUnico+".pdf";
+         new QRCode("qrcode", {
+            text: urlPdf,
+            width: 192,
+            height: 192,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    });
+}   
 
 
 function calcula_iva(valor){

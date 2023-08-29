@@ -29,11 +29,11 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 98
+              "count": 124
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 98
+              "count": 124
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
@@ -41,7 +41,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 98
+              "count": 124
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -153,10 +153,6 @@
               "count": 1
             },
             {
-              "xml": "<feature name=\"SQLitePlugin\"><param name=\"android-package\" value=\"io.sqlc.SQLitePlugin\" /></feature>",
-              "count": 1
-            },
-            {
               "xml": "<feature name=\"Camera\"><param name=\"android-package\" value=\"org.apache.cordova.camera.CameraLauncher\" /></feature>",
               "count": 1
             },
@@ -174,6 +170,10 @@
             },
             {
               "xml": "<preference name=\"KeepRunning\" value=\"true\" />",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"SQLitePlugin\"><param name=\"android-package\" value=\"io.sqlc.SQLitePlugin\" /></feature>",
               "count": 1
             }
           ]
@@ -219,9 +219,6 @@
     "cordova-plugin-vibration": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-sqlite-storage": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-camera": {
       "ANDROIDX_CORE_VERSION": "1.6.+",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
@@ -230,6 +227,9 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-sqlite-spatialite-evplus-ext-common-free": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
@@ -531,14 +531,6 @@
       ]
     },
     {
-      "id": "cordova-sqlite-storage.SQLitePlugin",
-      "file": "plugins/cordova-sqlite-storage/www/SQLitePlugin.js",
-      "pluginId": "cordova-sqlite-storage",
-      "clobbers": [
-        "SQLitePlugin"
-      ]
-    },
-    {
       "id": "cordova-plugin-camera.Camera",
       "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
       "pluginId": "cordova-plugin-camera",
@@ -586,6 +578,14 @@
         "cordova.plugins.backgroundMode",
         "plugin.backgroundMode"
       ]
+    },
+    {
+      "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
+      "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
+      "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
+      "clobbers": [
+        "SQLitePlugin"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -601,9 +601,9 @@
     "cordova-plugin-ip-mac-address": "1.0.1",
     "cordova-plugin-network-information": "2.0.1",
     "cordova-plugin-vibration": "3.1.1",
-    "cordova-sqlite-storage": "6.0.1-dev",
     "cordova-plugin-camera": "6.0.0",
     "cordova-plugin-device": "2.0.3",
-    "cordova-plugin-advanced-background-mode": "1.1.1"
+    "cordova-plugin-advanced-background-mode": "1.1.1",
+    "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev"
   }
 }
