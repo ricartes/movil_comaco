@@ -274,6 +274,29 @@ document.addEventListener("deviceready", async function () {
         await Tablas_crear_tablas(); //ok
         await comprobarActualizarEsquema();
 
+        this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
+
+        this.db.transaction(function (tr) {
+            tr.executeSql(
+                "SELECT ST_Distance(ST_GeomFromText('POINT(10 10)'), ST_GeomFromText('POINT(20 20)')) as distance",
+                [],
+                function (tr, rs) { // Función de éxito
+                    if (rs.rows.length) {
+                        var distance = rs.rows.item(0).distance;
+                        alert("Distance: " + distance);
+                        typeof callback == "function" && callback(distance);
+                    } else {
+                        alert("No result returned.");
+                    }
+                },
+                function (tr, error) { // Función de error
+                    alert("SQL Error: " + error.message);
+                    return true; // Devolver true para detener la propagación del error
+                }
+            );
+        });
+
+
     } catch (error) {
         app.dialog.alert("Error al crear las tablas:", JSON.stringify(error), "GFE");
     }
