@@ -33,7 +33,7 @@ function validarGeocerca(rol) {
 }
 
 
-function validarCierreControl(validacionGeocerca, id_gde) {
+function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
     let resultado = {
         cierra: true,
         advertencia: false,
@@ -56,7 +56,7 @@ function validarCierreControl(validacionGeocerca, id_gde) {
                 resultado.advertencia = true;
                 resultado.mensaje = "Ubicación se encuentra fuera del radio permitido. Sin embargo podrá continuar generando el Despacho";
                 if (id_gde != "-1") {
-                    DATOS_GuardaAlertaGeocerca(id_gde, 1, 1, function (result) {
+                    DATOS_GuardaAlertaGeocerca(id_gde, tipoPunto, 1, function (result) {
                         resolve(resultado);
                     });
                 } else {

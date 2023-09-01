@@ -1777,11 +1777,11 @@ function ws_cargaGeocercas(rut, empresa, porcentaje_actual, callback) {
                     let geocercas = data.DATA;
                     var tamano = geocercas.length;
                     var conta = 0;
-
                     if (tamano == 0) {
                         typeof callback == "function" && callback(0);
                     } else {
                         DATOS_borrar_geocercas(function (result) {
+                           
                             geocercas.forEach(function (geocercaData) {
                                 var geocerca = new CL_Geocerca(geocercaData.ROL_PREDIO, geocercaData.GEOCERCA, geocercaData.FLAG_CONTROL);
                                 DATOS_nuevo_geocerca(geocerca, function (result) {
