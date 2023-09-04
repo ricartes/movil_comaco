@@ -633,27 +633,21 @@ function alerta_geocerca_punto_inicial(geocerca) {
 function cambia_proyecto(codproyecto, rol) {
 
     app.dialog.preloader("Cargando...");
-
     gdeRol = rol;
-
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
         validarGeocerca(rol).then((resultado) => {
 
             let resultadoValidacion = resultado.validacion;
             validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
-                
+
                 //si debe cerrar control
                 if (resultado.cierra) {
                     ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I").then((anula) => {
                         if (anula) {
-                            (async () => {
-
-                                app.dialog.close();
-                                app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                    mainView.router.navigate("/");
-                                });
-
-                            })();
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
                         }
 
                     });
@@ -661,17 +655,11 @@ function cambia_proyecto(codproyecto, rol) {
                 else {
                     combo_productos(codproyecto, 0);
                     if (resultado.advertencia) {
-
-                        (async () => {
-
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE");
-
-                        })();
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE");
                     } else {
                         app.dialog.close();
                     }
-
                 }
 
             });
