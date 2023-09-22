@@ -29,11 +29,11 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 143
+              "count": 145
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 143
+              "count": 145
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
@@ -41,7 +41,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 143
+              "count": 145
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
