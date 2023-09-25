@@ -1691,7 +1691,6 @@ function enviar_evidencias_proveedor(bandera, callback) {
 
 function enviar_imagenes(bandera, callback) {
 
-
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
 
         ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Imagen';

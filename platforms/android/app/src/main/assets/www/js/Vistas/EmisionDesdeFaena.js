@@ -401,6 +401,7 @@ function guardar_datos_guia(latitud, longitud) {
             gde.GDE_ROL_COMUNA = proveedor.Rol_comuna;
             gde.GDE_ROL = proveedor.Rol;
             gde.GDE_NOMBRE_PRODUCTO = proveedor.Description;
+            gde.GDE_COD_ORIGEN = proveedor.NumAtCard;
             gde.ID_UNICO_MOVIL = "gde_pro" + obtener_IDUNICO();
             gde.GDE_ESTADO_MOVIL = "B";
 
@@ -448,7 +449,7 @@ function tabla_proveedores(id_gde) {
 
         for (i = 0; i < result.length; i++) {
             htmls +=
-                '<tr> <td><label class="radio"  onclick="cambia_proyecto(\'' + result[i].project + '\',\'' + result[i].Rol + '\');"> ';
+                '<tr> <td><label class="radio"  onclick="cambia_proyecto(\'' + result[i].project + '\',\'' + result[i].NumAtCard + '\');"> ';
 
             htmls += "<input type='radio' class='t_proveedores' name='radio_gde_prov' value='" +
                 result[i].DocEntry +
@@ -631,15 +632,12 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 
 function cambia_proyecto(codproyecto, rol) {
-
     app.dialog.preloader("Cargando...");
     gdeRol = rol;
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
         validarGeocerca(rol).then((resultado) => {
-
             let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
-
+            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
                 //si debe cerrar control
                 if (resultado.cierra) {
                     ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I").then((anula) => {

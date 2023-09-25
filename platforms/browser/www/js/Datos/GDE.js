@@ -684,6 +684,7 @@ function DATOS_seleccionar_gde_proveedor(id_gde, callback){
 					gde.GDE_HORA_PUNTO_INICIO=rs_datos.GDE_HORA_PUNTO_INICIO;
 					gde.GDE_HORA_PUNTO_FINAL=rs_datos.GDE_HORA_PUNTO_FINAL;
 					gde.GDE_ACTUALIZA_NUM_GUIA=rs_datos.GDE_ACTUALIZA_NUM_GUIA;
+                    gde.GDE_COD_ORIGEN=rs_datos.GDE_ACTUALIZA_NUM_GUIA;
 				
 
 
