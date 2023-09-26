@@ -126,6 +126,7 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
 
     //punto inicial
     if (argumento == 1) {
+        
         asignar_puntos_inicio(latitud, longitud);
     }
 

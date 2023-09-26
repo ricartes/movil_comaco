@@ -613,7 +613,7 @@ function valida() {
 
 
 function obtener_punto_inicial() {
-    getLocation(1);
+    getLocation(1, 0, gdeRol);
 }
 
 
