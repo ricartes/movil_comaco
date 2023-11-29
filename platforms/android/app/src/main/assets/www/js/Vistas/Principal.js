@@ -12,7 +12,7 @@ var ejecuta = setInterval(function () {
 
 //var url_server_nuevo = "http://200.54.71.116:8095";
 //var url_server_nuevo = "http://araucaria.mcondor.cl:5901/origenes";
-var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
+var url_server_nuevo = "http://araucaria.mcondor.cl:5901/origenes2";
 //var url_server="http://200.68.26.100";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 

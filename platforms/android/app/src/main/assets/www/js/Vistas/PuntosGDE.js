@@ -177,7 +177,6 @@ function obtener_punto_final() {
                 var tiempo = result_param.PAG_VALOR;
 
                 if (minutes >= tiempo) {
-                    alert(gde_actual_puntos_gde.GDE_COD_ORIGEN);
                     getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_ORIGEN);
                 } else {
                     app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara obtener el punto final, debe esperar " + tiempo + " minutos...", "GFE");
