@@ -11,6 +11,23 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       ]
     },
     {
+      "id": "cordova-plugin-device.device",
+      "file": "plugins/cordova-plugin-device/www/device.js",
+      "pluginId": "cordova-plugin-device",
+      "clobbers": [
+        "device"
+      ]
+    },
+    {
+      "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
+      "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
+      "pluginId": "cordova-plugin-advanced-background-mode",
+      "clobbers": [
+        "cordova.plugins.backgroundMode",
+        "plugin.backgroundMode"
+      ]
+    },
+    {
       "id": "cordova-plugin-app-version.AppVersionPlugin",
       "file": "plugins/cordova-plugin-app-version/www/AppVersionPlugin.js",
       "pluginId": "cordova-plugin-app-version",
@@ -24,6 +41,38 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       "pluginId": "cordova-plugin-btprinter",
       "clobbers": [
         "BTPrinter"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.Camera",
+      "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "Camera"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.CameraPopoverOptions",
+      "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "CameraPopoverOptions"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.camera",
+      "file": "plugins/cordova-plugin-camera/www/Camera.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "navigator.camera"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.CameraPopoverHandle",
+      "file": "plugins/cordova-plugin-camera/www/CameraPopoverHandle.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "CameraPopoverHandle"
       ]
     },
     {
@@ -296,55 +345,6 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       ]
     },
     {
-      "id": "cordova-plugin-camera.Camera",
-      "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "Camera"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.CameraPopoverOptions",
-      "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "CameraPopoverOptions"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.camera",
-      "file": "plugins/cordova-plugin-camera/www/Camera.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "navigator.camera"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.CameraPopoverHandle",
-      "file": "plugins/cordova-plugin-camera/www/CameraPopoverHandle.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "CameraPopoverHandle"
-      ]
-    },
-    {
-      "id": "cordova-plugin-device.device",
-      "file": "plugins/cordova-plugin-device/www/device.js",
-      "pluginId": "cordova-plugin-device",
-      "clobbers": [
-        "device"
-      ]
-    },
-    {
-      "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
-      "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
-      "pluginId": "cordova-plugin-advanced-background-mode",
-      "clobbers": [
-        "cordova.plugins.backgroundMode",
-        "plugin.backgroundMode"
-      ]
-    },
-    {
       "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
       "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
       "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
@@ -355,8 +355,11 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
   ];
   module.exports.metadata = {
     "cordova-pdf-generator": "2.1.1",
+    "cordova-plugin-device": "2.0.3",
+    "cordova-plugin-advanced-background-mode": "1.1.1",
     "cordova-plugin-app-version": "0.1.12",
     "cordova-plugin-btprinter": "0.1.0-dev",
+    "cordova-plugin-camera": "6.0.0",
     "cordova-plugin-device-motion": "1.2.5",
     "cordova-plugin-file": "7.0.1-dev",
     "cordova-plugin-file-transfer": "2.0.0-dev",
@@ -366,9 +369,6 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova-plugin-ip-mac-address": "1.0.1",
     "cordova-plugin-network-information": "2.0.1",
     "cordova-plugin-vibration": "3.1.1",
-    "cordova-plugin-camera": "6.0.0",
-    "cordova-plugin-device": "2.0.3",
-    "cordova-plugin-advanced-background-mode": "1.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev"
   };
 });

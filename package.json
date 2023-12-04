@@ -51,7 +51,7 @@
         ]
     },
     "devDependencies": {
-        "cordova-android": "^11.0.0",
+        "cordova-android": "^12.0.0",
         "cordova-pdf-generator": "^2.1.1",
         "cordova-plugin-advanced-background-mode": "^1.1.1",
         "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",

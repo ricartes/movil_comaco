@@ -1,13 +1,25 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.gestionasi.gfe_comaco" version="20000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="io.gestionasi.gfe_comaco" version="20001" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <feature name="PDFService">
         <param name="android-package" value="com.pdf.generator.PDFGenerator" />
+    </feature>
+    <feature name="Device">
+        <param name="android-package" value="org.apache.cordova.device.Device" />
+    </feature>
+    <feature name="BackgroundMode">
+        <param name="android-package" value="de.einfachhans.BackgroundMode.BackgroundMode" />
+    </feature>
+    <feature name="BackgroundModeExt">
+        <param name="android-package" value="de.einfachhans.BackgroundMode.BackgroundModeExt" />
     </feature>
     <feature name="AppVersion">
         <param name="android-package" value="uk.co.whiteoctober.cordova.AppVersion" />
     </feature>
     <feature name="BluetoothPrinter">
         <param name="android-package" value="br.com.cordova.printer.bluetooth.BluetoothPrinter" />
+    </feature>
+    <feature name="Camera">
+        <param name="android-package" value="org.apache.cordova.camera.CameraLauncher" />
     </feature>
     <feature name="Accelerometer">
         <param name="android-package" value="org.apache.cordova.devicemotion.AccelListener" />
@@ -34,18 +46,6 @@
     </feature>
     <feature name="NetworkStatus">
         <param name="android-package" value="org.apache.cordova.networkinformation.NetworkManager" />
-    </feature>
-    <feature name="Camera">
-        <param name="android-package" value="org.apache.cordova.camera.CameraLauncher" />
-    </feature>
-    <feature name="Device">
-        <param name="android-package" value="org.apache.cordova.device.Device" />
-    </feature>
-    <feature name="BackgroundMode">
-        <param name="android-package" value="de.einfachhans.BackgroundMode.BackgroundMode" />
-    </feature>
-    <feature name="BackgroundModeExt">
-        <param name="android-package" value="de.einfachhans.BackgroundMode.BackgroundModeExt" />
     </feature>
     <feature name="SQLitePlugin">
         <param name="android-package" value="io.sqlc.SQLitePlugin" />
@@ -79,5 +79,5 @@
     <preference name="loglevel" value="DEBUG" />
     <preference name="KeepRunning" value="true" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    <preference name="android-targetSdkVersion" value="31" />
+    <preference name="android-targetSdkVersion" value="33" />
 </widget>

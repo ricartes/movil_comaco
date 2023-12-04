@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.gestionasi.gfe_comaco" version="20000" xmlns="http://www.w3.org/ns/widgets"
+<widget id="io.gestionasi.gfe_comaco" version="20001" xmlns="http://www.w3.org/ns/widgets"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Control de Origen (Proveedores)</name>
@@ -15,7 +15,7 @@
     <allow-intent href="https://*/*" />
     <allow-navigation href="*" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    <preference name="android-targetSdkVersion" value="31" />
+    <preference name="android-targetSdkVersion" value="33" />
     <platform name="android">
         <allow-intent href="market:*" />
         <icon density="ldpi" src="res/icon/android/comaco36.png" />

@@ -17,6 +17,7 @@
                 "android:hardwareAccelerated": "true",
                 "android:icon": "@mipmap/ic_launcher",
                 "android:label": "@string/app_name",
+                "android:networkSecurityConfig": "@xml/network_security_config",
                 "android:supportsRtl": "true",
                 "android:usesCleartextTraffic": "true"
               }
@@ -29,19 +30,19 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 177
+              "count": 10
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 177
-            },
-            {
-              "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 9
+              "count": 10
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 177
+              "count": 10
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
+              "count": 1
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -49,10 +50,6 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.VIBRATE\" />",
-              "count": 1
-            },
-            {
-              "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
               "count": 1
             }
           ],
@@ -72,6 +69,10 @@
               "count": 2
             },
             {
+              "xml": "<queries><intent><action android:name=\"android.media.action.IMAGE_CAPTURE\" /></intent><intent><action android:name=\"android.intent.action.GET_CONTENT\" /></intent><intent><action android:name=\"android.intent.action.PICK\" /></intent><intent><action android:name=\"com.android.camera.action.CROP\" /><data android:mimeType=\"image/*\" android:scheme=\"content\" /></intent></queries>",
+              "count": 1
+            },
+            {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
               "count": 1
             },
@@ -86,10 +87,6 @@
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
               "count": 1
-            },
-            {
-              "xml": "<queries><intent><action android:name=\"android.media.action.IMAGE_CAPTURE\" /></intent><intent><action android:name=\"android.intent.action.GET_CONTENT\" /></intent><intent><action android:name=\"android.intent.action.PICK\" /></intent><intent><action android:name=\"com.android.camera.action.CROP\" /><data android:mimeType=\"image/*\" android:scheme=\"content\" /></intent></queries>",
-              "count": 1
             }
           ],
           "application": [
@@ -97,8 +94,7 @@
               "xml": "<provider android:authorities=\"${applicationId}.cordova.plugin.camera.provider\" android:exported=\"false\" android:grantUriPermissions=\"true\" android:name=\"org.apache.cordova.camera.FileProvider\"><meta-data android:name=\"android.support.FILE_PROVIDER_PATHS\" android:resource=\"@xml/camera_provider_paths\" /></provider>",
               "count": 1
             }
-          ],
-          "queries": []
+          ]
         }
       },
       "res/xml/config.xml": {
@@ -109,11 +105,31 @@
               "count": 1
             },
             {
+              "xml": "<feature name=\"Device\"><param name=\"android-package\" value=\"org.apache.cordova.device.Device\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"BackgroundMode\"><param name=\"android-package\" value=\"de.einfachhans.BackgroundMode.BackgroundMode\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"BackgroundModeExt\"><param name=\"android-package\" value=\"de.einfachhans.BackgroundMode.BackgroundModeExt\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<preference name=\"KeepRunning\" value=\"true\" />",
+              "count": 1
+            },
+            {
               "xml": "<feature name=\"AppVersion\"><param name=\"android-package\" value=\"uk.co.whiteoctober.cordova.AppVersion\" /></feature>",
               "count": 1
             },
             {
               "xml": "<feature name=\"BluetoothPrinter\"><param name=\"android-package\" value=\"br.com.cordova.printer.bluetooth.BluetoothPrinter\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Camera\"><param name=\"android-package\" value=\"org.apache.cordova.camera.CameraLauncher\" /></feature>",
               "count": 1
             },
             {
@@ -153,26 +169,6 @@
               "count": 1
             },
             {
-              "xml": "<feature name=\"Camera\"><param name=\"android-package\" value=\"org.apache.cordova.camera.CameraLauncher\" /></feature>",
-              "count": 1
-            },
-            {
-              "xml": "<feature name=\"Device\"><param name=\"android-package\" value=\"org.apache.cordova.device.Device\" /></feature>",
-              "count": 1
-            },
-            {
-              "xml": "<feature name=\"BackgroundMode\"><param name=\"android-package\" value=\"de.einfachhans.BackgroundMode.BackgroundMode\" /></feature>",
-              "count": 1
-            },
-            {
-              "xml": "<feature name=\"BackgroundModeExt\"><param name=\"android-package\" value=\"de.einfachhans.BackgroundMode.BackgroundModeExt\" /></feature>",
-              "count": 1
-            },
-            {
-              "xml": "<preference name=\"KeepRunning\" value=\"true\" />",
-              "count": 1
-            },
-            {
               "xml": "<feature name=\"SQLitePlugin\"><param name=\"android-package\" value=\"io.sqlc.SQLitePlugin\" /></feature>",
               "count": 1
             }
@@ -185,10 +181,20 @@
     "cordova-pdf-generator": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
+    "cordova-plugin-device": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
     "cordova-plugin-app-version": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-btprinter": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-camera": {
+      "ANDROIDX_CORE_VERSION": "1.6.+",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-device-motion": {
@@ -219,16 +225,6 @@
     "cordova-plugin-vibration": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-camera": {
-      "ANDROIDX_CORE_VERSION": "1.6.+",
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-device": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-advanced-background-mode": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-sqlite-spatialite-evplus-ext-common-free": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
@@ -246,6 +242,23 @@
       ]
     },
     {
+      "id": "cordova-plugin-device.device",
+      "file": "plugins/cordova-plugin-device/www/device.js",
+      "pluginId": "cordova-plugin-device",
+      "clobbers": [
+        "device"
+      ]
+    },
+    {
+      "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
+      "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
+      "pluginId": "cordova-plugin-advanced-background-mode",
+      "clobbers": [
+        "cordova.plugins.backgroundMode",
+        "plugin.backgroundMode"
+      ]
+    },
+    {
       "id": "cordova-plugin-app-version.AppVersionPlugin",
       "file": "plugins/cordova-plugin-app-version/www/AppVersionPlugin.js",
       "pluginId": "cordova-plugin-app-version",
@@ -259,6 +272,38 @@
       "pluginId": "cordova-plugin-btprinter",
       "clobbers": [
         "BTPrinter"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.Camera",
+      "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "Camera"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.CameraPopoverOptions",
+      "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "CameraPopoverOptions"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.camera",
+      "file": "plugins/cordova-plugin-camera/www/Camera.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "navigator.camera"
+      ]
+    },
+    {
+      "id": "cordova-plugin-camera.CameraPopoverHandle",
+      "file": "plugins/cordova-plugin-camera/www/CameraPopoverHandle.js",
+      "pluginId": "cordova-plugin-camera",
+      "clobbers": [
+        "CameraPopoverHandle"
       ]
     },
     {
@@ -531,55 +576,6 @@
       ]
     },
     {
-      "id": "cordova-plugin-camera.Camera",
-      "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "Camera"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.CameraPopoverOptions",
-      "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "CameraPopoverOptions"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.camera",
-      "file": "plugins/cordova-plugin-camera/www/Camera.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "navigator.camera"
-      ]
-    },
-    {
-      "id": "cordova-plugin-camera.CameraPopoverHandle",
-      "file": "plugins/cordova-plugin-camera/www/CameraPopoverHandle.js",
-      "pluginId": "cordova-plugin-camera",
-      "clobbers": [
-        "CameraPopoverHandle"
-      ]
-    },
-    {
-      "id": "cordova-plugin-device.device",
-      "file": "plugins/cordova-plugin-device/www/device.js",
-      "pluginId": "cordova-plugin-device",
-      "clobbers": [
-        "device"
-      ]
-    },
-    {
-      "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
-      "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
-      "pluginId": "cordova-plugin-advanced-background-mode",
-      "clobbers": [
-        "cordova.plugins.backgroundMode",
-        "plugin.backgroundMode"
-      ]
-    },
-    {
       "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
       "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
       "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
@@ -590,8 +586,11 @@
   ],
   "plugin_metadata": {
     "cordova-pdf-generator": "2.1.1",
+    "cordova-plugin-device": "2.0.3",
+    "cordova-plugin-advanced-background-mode": "1.1.1",
     "cordova-plugin-app-version": "0.1.12",
     "cordova-plugin-btprinter": "0.1.0-dev",
+    "cordova-plugin-camera": "6.0.0",
     "cordova-plugin-device-motion": "1.2.5",
     "cordova-plugin-file": "7.0.1-dev",
     "cordova-plugin-file-transfer": "2.0.0-dev",
@@ -601,9 +600,6 @@
     "cordova-plugin-ip-mac-address": "1.0.1",
     "cordova-plugin-network-information": "2.0.1",
     "cordova-plugin-vibration": "3.1.1",
-    "cordova-plugin-camera": "6.0.0",
-    "cordova-plugin-device": "2.0.3",
-    "cordova-plugin-advanced-background-mode": "1.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev"
   }
 }
