@@ -284,27 +284,20 @@ document.addEventListener("deviceready", async function () {
         //alert("borra1")
     });
 
-    if (Obtener_dato_local("actualiza_direccion") == 0) {
-        DATOS_borra_parametro_movil_por_nombre(
-            "DIRECCION_SERVIDOR",
-            function (result_param) {
-                DATOS_ingresar_Parametro_movil(
-                    1,
-                    "DIRECCION_SERVIDOR",
-                    url_server_nuevo,
-                    function (result_ingresa) {
-                        Guardar_dato_local("actualiza_direccion", 1);
-                    }
-                );
-            }
-        );
-    }
+    DATOS_borra_parametro_movil_por_nombre(
+        "DIRECCION_SERVIDOR",
+        function (result_param) {
+            DATOS_ingresar_Parametro_movil(
+                1,
+                "DIRECCION_SERVIDOR",
+                url_server_nuevo,
+                function (result_ingresa) {
+                    Guardar_dato_local("actualiza_direccion", 1);
+                }
+            );
+        }
+    );
 
-
-    DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-
-        $$("#serv_web").text(result_param.PAG_VALOR);
-    });
 
     //var ls = app.loginScreen.create({ el: '.login-screen' });
 
