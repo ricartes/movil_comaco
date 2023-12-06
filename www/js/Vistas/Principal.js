@@ -10,10 +10,8 @@ var ejecuta = setInterval(function () {
     EnvioAutomatico(1, 0);
 }, 10000);
 
-//var url_server_nuevo = "http://200.54.71.116:8095";
-//var url_server_nuevo = "http://araucaria.mcondor.cl:5901/origenes";
-var url_server_nuevo = "http://araucaria.mcondor.cl:5901/origenes2";
-//var url_server="http://200.68.26.100";
+
+var url_server_nuevo = "http://araucaria.mcondor.cl:5901/trazabilidad";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
@@ -253,6 +251,9 @@ document.addEventListener("deviceready", async function () {
         Guardar_dato_local("actualiza_direccion", 0);
     }
 
+
+
+
     //
     cordova.plugins.backgroundMode.enable();
 
@@ -298,6 +299,12 @@ document.addEventListener("deviceready", async function () {
             }
         );
     }
+
+
+    DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
+
+        $$("#serv_web").text(result_param.PAG_VALOR);
+    });
 
     //var ls = app.loginScreen.create({ el: '.login-screen' });
 
@@ -395,6 +402,15 @@ document.addEventListener("deviceready", async function () {
         });
     });
 });
+
+
+function cargarUrlServidorWeb() {
+
+    DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
+
+        $$("#serv_web").text(result_param.PAG_VALOR);
+    });
+}
 
 function boton_atras() {
     // Confirm

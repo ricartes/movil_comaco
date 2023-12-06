@@ -30,15 +30,15 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 10
+              "count": 21
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 10
+              "count": 21
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 10
+              "count": 21
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
