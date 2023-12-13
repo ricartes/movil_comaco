@@ -377,11 +377,11 @@ function alerta(opcion){
     break;
 
     case 17:
-     app.dialog.alert("Ubicación se encuentra fuera del radio permitido.","GFE");
+     app.dialog.alert("Ubicación se encuentra fuera del KMZ permitido.","GFE");
     break;
 
     case 18:
-       app.dialog.alert("No se puede continuar debido a que la ubicación se encuentra fuera del radio permitido.","GFE");
+       app.dialog.alert("No se puede continuar debido a que la ubicación se encuentra fuera del KMZ.","GFE");
     break;
    
 
@@ -687,3 +687,12 @@ function daysBetween(first, second) {
     // Round down.
     return Math.floor(days);
 }
+
+
+/**
+ * 
+ */
+function permisosCamara() {
+    cordova.plugins.permissions.requestPermission(cordova.plugins.permissions.READ_MEDIA_IMAGES);
+    cordova.plugins.permissions.requestPermission(cordova.plugins.permissions.READ_MEDIA_VIDEO );
+  }

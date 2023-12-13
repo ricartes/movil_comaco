@@ -29,6 +29,7 @@ var freetext;
 var anio_plantacion_asignado;
 var plan_manejo_asignado;
 var patente_excepcion_permitida = 0;
+var gdeRol = null;
 
 var options_gps = {
     enableHighAccuracy: true,
@@ -400,6 +401,7 @@ function guardar_datos_guia(latitud, longitud) {
             gde.GDE_ROL_COMUNA = proveedor.Rol_comuna;
             gde.GDE_ROL = proveedor.Rol;
             gde.GDE_NOMBRE_PRODUCTO = proveedor.Description;
+            gde.GDE_COD_ORIGEN = proveedor.NumAtCard;
             gde.ID_UNICO_MOVIL = "gde_pro" + obtener_IDUNICO();
             gde.GDE_ESTADO_MOVIL = "B";
 
@@ -443,12 +445,23 @@ function tabla_proveedores(id_gde) {
 
     DATOS_seleccionar_datos_proveedores("1", fecha_hora, function (result) {
 
-
-
         var htmls = "";
 
         for (i = 0; i < result.length; i++) {
-            htmls += "<tr> <td><label class='radio' onclick='cambia_proyecto(" + result[i].project + ");'> <input type='radio' class='t_proveedores' name='radio_gde_prov' value='" + result[i].DocEntry + "'><i class='icon-radio'></i></label> </td><td>" + result[i].Rol + "-" + result[i].Predio + "</td><td class='label-cell'>" + result[i].SN_Nombre + "-" + result[i].SN_Destino + "</td> </tr>";
+            htmls +=
+                '<tr> <td><label class="radio"  onclick="cambia_proyecto(\'' + result[i].project + '\',\'' + result[i].NumAtCard + '\');"> ';
+
+            htmls += "<input type='radio' class='t_proveedores' name='radio_gde_prov' value='" +
+                result[i].DocEntry +
+                "'><i class='icon-radio'></i></label> </td><td>" +
+                result[i].Rol +
+                "-" +
+                result[i].Predio +
+                "</td><td class='label-cell'>" +
+                result[i].SN_Nombre +
+                "-" +
+                result[i].SN_Destino +
+                "</td> </tr>";
         }
 
         $$("#tbody_tabla_proveedores").html(htmls);
@@ -600,7 +613,7 @@ function valida() {
 
 
 function obtener_punto_inicial() {
-    getLocation(1);
+    getLocation(1, 0, gdeRol);
 }
 
 
@@ -618,8 +631,53 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 
 
-function cambia_proyecto(codproyecto) {
-    combo_productos(codproyecto, 0);
+function cambia_proyecto(codproyecto, rol) {
+    app.dialog.preloader("Cargando...");
+    gdeRol = rol;
+    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
+        validarGeocerca(rol).then((resultado) => {
+            let resultadoValidacion = resultado.validacion;
+            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+                //si debe cerrar control
+                if (resultado.cierra) {
+                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I").then((anula) => {
+                        if (anula) {
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
+                        }
+
+                    });
+                }
+                else {
+                    combo_productos(codproyecto, 0);
+                    if (resultado.advertencia) {
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE");
+                    } else {
+                        app.dialog.close();
+                    }
+                }
+
+            });
+
+
+        }).catch((e) => {
+            app.dialog.close();
+            app.dialog.alert(e, "GFE")
+            reject(e);
+        });
+
+    } else {
+        app.dialog.close();
+        combo_productos(codproyecto, 0);
+    }
+
+
+
+
+    //combo_productos(codproyecto, 0);
 
 
 }

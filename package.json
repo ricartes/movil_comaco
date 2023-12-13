@@ -39,11 +39,12 @@
             "cordova-plugin-androidx": {},
             "cordova-plugin-file": {},
             "cordova-plugin-file-transfer": {},
+            "cordova-plugin-advanced-background-mode": {},
+            "cordova-sqlite-spatialite-evplus-ext-common-free": {},
+            "cordova-plugin-android-permissions": {},
             "cordova-plugin-camera": {
                 "ANDROIDX_CORE_VERSION": "1.6.+"
-            },
-            "cordova-plugin-advanced-background-mode": {},
-            "cordova-sqlite-spatialite-evplus-ext-common-free": {}
+            }
         },
         "platforms": [
             "browser",
@@ -55,9 +56,10 @@
         "cordova-pdf-generator": "^2.1.1",
         "cordova-plugin-advanced-background-mode": "^1.1.1",
         "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",
+        "cordova-plugin-android-permissions": "^1.1.5",
         "cordova-plugin-androidx": "^3.0.0",
         "cordova-plugin-btprinter": "github:CesarBalzer/Cordova-Plugin-BTPrinter",
-        "cordova-plugin-camera": "^6.0.0",
+        "cordova-plugin-camera": "github:jalios/cordova-plugin-camera",
         "cordova-plugin-file": "github:apache/cordova-plugin-file",
         "cordova-plugin-file-transfer": "github:apache/cordova-plugin-file-transfer",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",

@@ -298,9 +298,9 @@ dependencies {
 
     // SUB-PROJECT DEPENDENCIES START
     implementation(project(path: ":CordovaLib"))
-    implementation "androidx.core:core:1.6.+"
     implementation "androidx.webkit:webkit:1.4.0"
     implementation "com.github.sevar83:android-spatialite:2.0.1"
+    implementation "androidx.core:core:1.6.+"
     // SUB-PROJECT DEPENDENCIES END
 }
 

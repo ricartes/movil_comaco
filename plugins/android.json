@@ -19,10 +19,6 @@
     "cordova-plugin-btprinter": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-camera": {
-      "ANDROIDX_CORE_VERSION": "1.6.+",
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-device": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
@@ -55,6 +51,13 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-sqlite-spatialite-evplus-ext-common-free": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-android-permissions": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-camera": {
+      "ANDROIDX_CORE_VERSION": "1.6.+",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },

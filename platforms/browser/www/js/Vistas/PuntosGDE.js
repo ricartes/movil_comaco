@@ -21,7 +21,9 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
 
 
 
-    DATOS_seleccionar_puntosGDE(id_gde_actual, function (gde_result) {
+    DATOS_seleccionar_gde_proveedor(id_gde, function (gde_result) {
+        gde_actual_puntos_gde = gde_result;
+    
 
         $$("#tx_latitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_X);
         $$("#tx_longitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_Y);
@@ -45,12 +47,6 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
         } else {
             $$("#btn_punto_final").css('display', 'none');
         }
-
-
-        DATOS_seleccionar_gde_proveedor(id_gde, function (result_gde) {
-            gde_actual_puntos_gde = result_gde;
-        });
-
 
     });
 
@@ -130,43 +126,15 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
 
     //punto inicial
     if (argumento == 1) {
+        
         asignar_puntos_inicio(latitud, longitud);
-
-        if (valida_geocerca == 1) {
-            DATOS_Obtener_Geocerca(proyecto, 1, function (geocerca) {
-                var dentro_geocerca = compruebaGeocerca(geocerca, latitud, longitud);
-                if (dentro_geocerca == false) {
-                    DATOS_GuardaAlertaGeocerca(id_gde_actual, 1, 1, function (resGuardado) {
-                        alerta_geocerca_punto_inicial(geocerca);
-                    });
-                } else {
-                    DATOS_GuardaAlertaGeocerca(id_gde_actual, 1, 0, function (resGuardado) {
-                    });
-                }
-
-            });
-        }
     }
 
     if (argumento == 2) {
         DATOS_Actualiza_PuntoFinal(id_gde_actual, latitud, longitud, function (result) {
             $$("#tx_latitud_final").val(latitud);
             $$("#tx_longitud_final").val(longitud);
-            if (valida_geocerca == 1) {
-                DATOS_Obtener_Geocerca(proyecto, 1, function (geocerca) {
-                    var dentro_geocerca = compruebaGeocerca(geocerca, latitud, longitud);
-                    if (dentro_geocerca == false) {
-                        DATOS_GuardaAlertaGeocerca(id_gde_actual, 2, 1, function (resGuardado) {
-                            alerta_geocerca_punto_final(geocerca);
-                        });
-                    } else {
-                        DATOS_GuardaAlertaGeocerca(id_gde_actual, 2, 0, function (resGuardado) {
-                        });
-                    }
-                });
-            }
-
-
+            $$("#btn_camion_cargado").css('display', 'block');
         });
     }
 }
@@ -209,7 +177,7 @@ function obtener_punto_final() {
                 var tiempo = result_param.PAG_VALOR;
 
                 if (minutes >= tiempo) {
-                    getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_PROYECTO);
+                    getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_ORIGEN);
                 } else {
                     app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara obtener el punto final, debe esperar " + tiempo + " minutos...", "GFE");
 
@@ -232,47 +200,65 @@ function obtener_punto_final() {
 
 
 
-function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
-    bloqueo_geocerca_punto_final = 0;
-    app.dialog.preloader("Obteniendo ubicación");
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-
-            app.dialog.close();
-
-            if (argumento == 1 || argumento == 2) {
-                guardar_punto_ubicacion(position.coords.latitude, position.coords.longitude, argumento, valida_geocerca, proyecto);
-            }
-            if (argumento == 3) {
-                emitir_guia(position.coords.latitude, position.coords.longitude);
-            }
-
-        }, function (err) {
-            app.dialog.close();
-            app.dialog.alert("Coordenadas no obtenidas. Favor revisar la configuración de GPS", "GFE");
-            if (argumento == 3) {
-                emitir_guia(0, 0);
-            }
-            else {
-                if (argumento == 2) {
-                    bloqueo_geocerca_punto_final = 1;
-                }
-            }
+async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
 
 
-        }, options_gps);
-    }
-    else {
-        app.dialog.close();
-        app.dialog.alert("Coordenadas no obtenidas. Favor revisar la configuración de GPS", "GFE");
-        if (argumento == 3) {
-            emitir_guia(0, 0);
+    app.dialog.preloader("Obteniendo punto...")
+
+    //obtiene puntos
+    const datosUbicacion = await getLocation2();
+
+    if (datosUbicacion.status) {
+        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoFinal) {
+            validarGeocerca(proyecto).then((resultadoGeocerca) => {
+                let resultadoValidacion = resultadoGeocerca.validacion;
+                validarCierreControl(resultadoValidacion, id_gde_actual, 2).then((resultado) => {
+                    //si debe cerrar control
+                    if (resultado.cierra) {
+                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
+                            if (anula) {
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    mainView.router.navigate("/");
+                                });
+                            }
+                        });
+                    }
+                    else {
+
+                        if (resultado.advertencia) {
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                guardar_punto_ubicacion(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, argumento, valida_geocerca, proyecto);
+                            });
+
+                        } else {
+                            app.dialog.close();
+                            guardar_punto_ubicacion(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, argumento, valida_geocerca, proyecto);
+                        }
+
+                    }
+
+                });
+
+
+            }).catch((e) => {
+                app.dialog.close();
+                app.dialog.alert(e, "GFE")
+                reject(e);
+            });
+
+
+
         } else {
-            if (argumento == 2) {
-                bloqueo_geocerca_punto_final = 1;
-            }
+            app.dialog.close();
+            guardar_punto_ubicacion(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, argumento, valida_geocerca, proyecto);
         }
 
-
+    } else {
+        app.dialog.close();
+        app.dialog.alert("Servicios de ubicación se encuentran desactivados. Favor activar para continuar", "GFE");
+        return false;
     }
+
 }

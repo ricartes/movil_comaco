@@ -254,6 +254,8 @@ document.addEventListener("deviceready", async function () {
 
 
 
+    permisosCamara();
+
     //
     cordova.plugins.backgroundMode.enable();
 

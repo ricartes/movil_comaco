@@ -5,9 +5,17 @@ var version1Esquema = {
     ]
 }
 
+var version2Esquema = {
+    versionNumber: 2,
+    queries: [
+        "ALTER TABLE GDE ADD COLUMN GDE_COD_ORIGEN TEXT",
+    ]
+}
+
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
-    version1Esquema
+    version1Esquema,
+    version2Esquema
 ];
 
 

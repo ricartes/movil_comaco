@@ -37,7 +37,7 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
     let resultado = {
         cierra: true,
         advertencia: false,
-        mensaje: "No se puede continuar debido a que la ubicación se encuentra fuera del radio permitido."
+        mensaje: "No se puede continuar debido a que la ubicación se encuentra fuera del KMZ."
     }
     return new Promise((resolve, reject) => {
 
@@ -54,7 +54,7 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
             if (validacionGeocerca.pertenece == 0 && validacionGeocerca.flagControl == 0) {
                 resultado.cierra = false;
                 resultado.advertencia = true;
-                resultado.mensaje = "Ubicación se encuentra fuera del radio permitido. Sin embargo podrá continuar generando el Despacho";
+                resultado.mensaje = "Ubicación se encuentra fuera del KMZ. Sin embargo podrá continuar generando el Despacho";
                 if (id_gde != "-1") {
                     DATOS_GuardaAlertaGeocerca(id_gde, tipoPunto, 1, function (result) {
                         resolve(resultado);
