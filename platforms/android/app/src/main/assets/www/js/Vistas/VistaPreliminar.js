@@ -69,9 +69,6 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
             $$("#volumen_proveedor").text(gde_actual.GDE_VOLUMEN_PROVEEDOR);
             $$("#destino").text(gde_actual.GDE_DESTINO);
             $$("#anio_cosecha").text(gde_actual.GDE_ANO_COSECHA);
-            //$$("#nro_guia").text(gde_actual.GDE_COD_DESPACHADOR+""+gde_actual.ROWID);
-            //$$("#razon_social_emisor").text(empresa_actual.EMP_RAZON_SOCIAL.toUpperCase());
-
             $$("#observacion").text(gde_actual.GDE_COMENTARIO);
             $$("#coordenada_x_inicial").text(gde_actual.GDE_COORDENADA_INICIAL_X);
             $$("#coordenada_y_inicial").text(gde_actual.GDE_COORDENADA_INICIAL_Y);
@@ -80,7 +77,6 @@ $$(document).on('page:init', '.page[data-name="vista-preliminar"]', function (e,
 
 
             var newDate = gde_actual.GDE_FECHA_EMISION.split(' ');
-            //alert(newDate);
             newDate = newDate[0].split('-');
             var anio = newDate[0];
             var mes = newDate[1];

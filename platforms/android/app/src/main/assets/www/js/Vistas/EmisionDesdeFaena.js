@@ -41,15 +41,7 @@ var options_gps = {
 
 
 $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function (e, page) {
-
-
-
-
-
-
     crear_autocompletar();
-
-
     if (Obtener_dato_local("tema_oscuro") == "si") {
         $$("#lb_patente").css("border", "1px solid white");
         $$("#tx_patente_carro").css("border", "1px solid white");
@@ -58,23 +50,12 @@ $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function 
         $$("#lb_cod_transportista").css("border", "1px solid white");
         $$("#tx_rut_chofer").css("border", "1px solid white");
         $$("#tx_nom_chofer").css("border", "1px solid white");
-
     }
-
-
-
-
     rut_valido = 1;
-
-
-
     idgde_acutal = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
     //cargar_datos_usuario(1);
-
     tabla_proveedores(idgde_acutal);
-
-
     $$('#combo_producto').change(function () {
 
         var seleccionado = $$("#combo_producto").val();
@@ -327,7 +308,6 @@ function recargarr_datos_gde(id_gde) {
     if (id_gde != "-1") {
         DATOS_seleccionar_gde_proveedor(id_gde, function (result) {
 
-
             gde_actual = result;
             $$('#autocomplete-standalone-popup').find('.item-after').text(gde_actual.GDE_PATENTE_CAMION);
             $$('#autocomplete-standalone-popup').find('input').val(gde_actual.GDE_PATENTE_CAMION);
@@ -390,7 +370,7 @@ function guardar_datos_guia(latitud, longitud) {
         }
 
 
-        DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, function (proveedor) {
+        DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, gde.GDE_COD_PRODUCTO, function (proveedor) {
 
 
             gde.GDE_COD_CLIENTE = proveedor.C_codigo;
@@ -440,17 +420,12 @@ function abrir_detalles(id_gde, opcion) {
 
 
 function tabla_proveedores(id_gde) {
-
     var fecha_hora = fecha_actual();
-
     DATOS_seleccionar_datos_proveedores("1", fecha_hora, function (result) {
-
         var htmls = "";
-
         for (i = 0; i < result.length; i++) {
             htmls +=
                 '<tr> <td><label class="radio"  onclick="cambia_proyecto(\'' + result[i].project + '\',\'' + result[i].NumAtCard + '\');"> ';
-
             htmls += "<input type='radio' class='t_proveedores' name='radio_gde_prov' value='" +
                 result[i].DocEntry +
                 "'><i class='icon-radio'></i></label> </td><td>" +
