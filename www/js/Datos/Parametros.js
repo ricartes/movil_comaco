@@ -106,7 +106,7 @@ function nuevo_orden_compra(ordencompra, callback) {
     alert(ordencompra.PRECIO_FLETE);*/
     //alert(ordencompra.GROUNUM);
     this.db.transaction(function (tr) {
-        tr.executeSql("INSERT INTO ORDEN_COMPRA VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [ordencompra.DocEntry, ordencompra.C_codigo, ordencompra.SN_Nombre, ordencompra.SN_Destino, ordencompra.project, ordencompra.NumAtCard, ordencompra.ItemCode, ordencompra.Description, ordencompra.U_ClienteDestino, ordencompra.Rol, ordencompra.Predio, ordencompra.Rol_comuna, ordencompra.Fec_fin, ordencompra.latitud_geocerca, ordencompra.longitud_geocerca, ordencompra.radio_geocerca, ordencompra.flag_geocerca], function (tr, rs) {
+        tr.executeSql("INSERT INTO ORDEN_COMPRA (DocEntry, C_codigo, SN_Nombre, SN_Destino, project, NumAtCard, ItemCode, Description, U_ClienteDestino, Rol, Predio, Rol_comuna, Fec_fin, latitud_geocerca, longitud_geocerca, radio_geocerca, flag_geocerca, tiempo_espera_carguio) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [ordencompra.DocEntry, ordencompra.C_codigo, ordencompra.SN_Nombre, ordencompra.SN_Destino, ordencompra.project, ordencompra.NumAtCard, ordencompra.ItemCode, ordencompra.Description, ordencompra.U_ClienteDestino, ordencompra.Rol, ordencompra.Predio, ordencompra.Rol_comuna, ordencompra.Fec_fin, ordencompra.latitud_geocerca, ordencompra.longitud_geocerca, ordencompra.radio_geocerca, ordencompra.flag_geocerca, ordencompra.tiempo_espera_carguio], function (tr, rs) {
             typeof callback == "function" && callback(rs);
         });
     });

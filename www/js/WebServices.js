@@ -162,7 +162,7 @@ function cargar_orden_compra(cod_proveedor, empresa, porcentaje_actual, callback
                                 orden_compra.longitud_geocerca = $(this).find('longitud_geocerca').text();
                                 orden_compra.radio_geocerca = $(this).find('radio_geocerca').text();
                                 orden_compra.flag_geocerca = $(this).find('flag_geocerca').text();
-
+                                orden_compra.tiempo_espera_carguio = $(this).find('tiempo_espera_carguio').text();
 
                                 nuevo_orden_compra(orden_compra, function (result) {
 

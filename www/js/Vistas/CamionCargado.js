@@ -47,6 +47,8 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', function (e,pa
 
 function capturar_evidencia_camion_cargado(tipo_evidencia){
 
+    //TODO: BUSCAR LA ULTIMA EVIDENCIA CAMION VACIO DE LA GUIA Y A PARTIR DE ESAS FECHA CALCULAR LA HORA
+
 	if(tipo_evidencia==2){
 		capturePhotoWithFile(id_gde_actual, tipo_evidencia);
 	}

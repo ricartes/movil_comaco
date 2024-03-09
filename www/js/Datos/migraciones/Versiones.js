@@ -12,10 +12,22 @@ var version2Esquema = {
     ]
 }
 
+var version3Esquema = {
+    versionNumber: 3,
+    queries: [
+        "ALTER TABLE ORDEN_COMPRA ADD COLUMN tiempo_espera_carguio INTEGER",
+        "ALTER TABLE GDE ADD GDE_HORA_CARGUIO_INICIO TEXT",
+        "ALTER TABLE GDE ADD GDE_HORA_CARGUIO_TERMINO TEXT",
+        "ALTER TABLE GDE ADD GDE_ALERTA_CARGUIO INTEGER DEFAULT 0"
+    ]
+}
+
+
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
     version1Esquema,
-    version2Esquema
+    version2Esquema,
+    version3Esquema
 ];
 
 
