@@ -215,7 +215,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
                 validarCierreControl(resultadoValidacion, id_gde_actual, 2).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
-                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
+                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", constantes.mensajeGeocercaNoValida).then((anula) => {
                             if (anula) {
                                 app.dialog.close();
                                 app.dialog.alert(resultado.mensaje, "GFE", function () {

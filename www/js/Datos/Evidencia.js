@@ -161,12 +161,19 @@ function DATOS_existe_evidencia(folio, callback) {
 
 function DATOS_guardar_evidencia_guia(evidencia, callback) {
 
-
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     this.db.transaction(function (tr) {
         tr.executeSql("INSERT INTO GDE_EVIDENCIA (ID_UNICO_MOVIL, ID_GDE, ID_UNICO_MOVIL_GDE, FECHA_EVIDENCIA, OBSERVACION, ARCHIVO, ENVIADO, GDE_COD_DESPACHADOR, GDE_ESTADO_MOVIL, EVIDENCIA_COORDENADA_X, EVIDENCIA_COORDENADA_Y, TIPO_EVIDENCIA) VALUES(?,?,?, datetime('now','localtime'),?,?,?,?,?,?,?,?)", [evidencia.ID_UNICO_MOVIL, evidencia.ID_GDE, evidencia.ID_UNICO_MOVIL_GDE, evidencia.OBSERVACION, evidencia.ARCHIVO, evidencia.ENVIADO, Obtener_dato_local("rut_activo"), evidencia.GDE_ESTADO_MOVIL, evidencia.EVIDENCIA_COORDENADA_X, evidencia.EVIDENCIA_COORDENADA_Y, evidencia.TIPO_EVIDENCIA], function (tr, rs) {
-            typeof callback == "function" && callback(rs);
 
+            //vacio 1, vacio 2
+            if (evidencia_actual.TIPO_EVIDENCIA == 1 || evidencia_actual.TIPO_EVIDENCIA == 3) {
+                tr.executeSql("UPDATE GDE SET GDE_HORA_CARGUIO_INICIO = datetime('now','localtime') WHERE ROWID=?", [evidencia.ID_GDE], function (tr, rs) {
+                    typeof callback == "function" && callback(rs);
+                });
+
+            } else {
+                typeof callback == "function" && callback(rs);
+            }
         });
     });
 
@@ -175,8 +182,6 @@ function DATOS_guardar_evidencia_guia(evidencia, callback) {
 
 
 function DATOS_borra_evidencia_guia(evidencia, callback) {
-
-
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     this.db.transaction(function (tr) {
         tr.executeSql("DELETE FROM GDE_EVIDENCIA WHERE ID_GDE=? AND TIPO_EVIDENCIA=?", [evidencia.ID_GDE, evidencia.TIPO_EVIDENCIA], function (tr, rs) {
@@ -184,7 +189,6 @@ function DATOS_borra_evidencia_guia(evidencia, callback) {
 
         });
     });
-
 }
 
 
