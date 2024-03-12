@@ -6,8 +6,6 @@ var gde_actual = null;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
-
-
     const gde = await seleccionarGdeProveedor(id_gde_actual);
     gde_actual = gde;
 
@@ -53,8 +51,6 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
 
 function capturar_evidencia_camion_vacio(tipo_evidencia) {
-    alert("entra");
-    alert(JSON.stringify(gde_actual));
     if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
 
         if (tipo_evidencia == 1) {
