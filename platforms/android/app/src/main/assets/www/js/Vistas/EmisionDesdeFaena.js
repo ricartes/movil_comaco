@@ -615,7 +615,7 @@ function cambia_proyecto(codproyecto, rol) {
             validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
                 //si debe cerrar control
                 if (resultado.cierra) {
-                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I").then((anula) => {
+                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
                         if (anula) {
                             app.dialog.close();
                             app.dialog.alert(resultado.mensaje, "GFE", function () {

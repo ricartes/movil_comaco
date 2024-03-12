@@ -1,19 +1,11 @@
 var id_gde_actual;
 var tipo_evidencia_camion_cargado = 2;
 var tipo_evidencia_camion_cargado_2 = 4;
-$$(document).on('page:init', '.page[data-name="camion-cargado"]', function (e, page) {
+$$(document).on('page:init', '.page[data-name="camion-cargado"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
 
 
-    if (!validacionHoraInicioTerminoCarguio(id_gde_actual)) {
-        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "CARGUIO", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {
-            app.dialog.close();
-            app.dialog.alert("Fecha captura camión cargado fuera de los rangos establecidos", "GFE", function () {
-                mainView.router.navigate("/");
-            });
-        });
-    }
 
 
 
@@ -53,16 +45,30 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', function (e, p
 });
 
 
-function capturar_evidencia_camion_cargado(tipo_evidencia) {
+async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
-    if (tipo_evidencia == 2) {
-        capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+    const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
+    if (!estadoValidacion) {
+        app.dialog.preloader("Cargando...");
+        getLocation2().then((coordenadas) => {
+            ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "F", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {
+                app.dialog.close();
+                app.dialog.alert("Fecha captura camión cargado fuera de los rangos establecidos", "GFE", function () {
+                    mainView.router.navigate("/");
+                });
+            });
+
+        });
+    } else {
+        if (tipo_evidencia == 2) {
+            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+        }
+
+        if (tipo_evidencia == 4) {
+            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+        }
+
     }
-
-    if (tipo_evidencia == 4) {
-        capturePhotoWithFile(id_gde_actual, tipo_evidencia);
-    }
-
 }
 
 

@@ -1,5 +1,5 @@
 const configuracionGeocercas = {
-    habilitado: true,
+    habilitado: false,
     habilitadoPorAccion: {
         seleccionPredio: true,
         puntoInicial: true,

@@ -572,6 +572,10 @@ function DATOS_seleccionar_gde_proveedor_por_estado_lista_PRUEBA(estado, fecha_i
                     gde.RUT_USUARIO_PROV = Obtener_dato_local("user_activo");
                     gde.NOMBRE_USUARIO_PROV = Obtener_dato_local("nombre_activo");
                     gde.GDE_COD_ORIGEN = rs_datos.GDE_COD_ORIGEN;
+                    gde.GDE_HORA_CARGUIO_INICIO = rs_datos.GDE_HORA_CARGUIO_INICIO;
+                    gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
+                    gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
+                    gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
                     ar.push(gde);
 
 
@@ -683,7 +687,10 @@ function DATOS_seleccionar_gde_proveedor(id_gde, callback) {
                 gde.GDE_HORA_PUNTO_FINAL = rs_datos.GDE_HORA_PUNTO_FINAL;
                 gde.GDE_ACTUALIZA_NUM_GUIA = rs_datos.GDE_ACTUALIZA_NUM_GUIA;
                 gde.GDE_COD_ORIGEN = rs_datos.GDE_COD_ORIGEN;
-
+                gde.GDE_HORA_CARGUIO_INICIO = rs_datos.GDE_HORA_CARGUIO_INICIO;
+                gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
+                gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
+                gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
                 typeof callback == "function" && callback(gde);
             }
         });
@@ -795,7 +802,10 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
                     gde.GDE_ALERTA_PUNTO_INICIAL = rs_datos.GDE_ALERTA_PUNTO_INICIAL;
                     gde.GDE_ALERTA_PUNTO_FINAL = rs_datos.GDE_ALERTA_PUNTO_FINAL;
                     gde.GDE_COD_ORIGEN = rs_datos.GDE_COD_ORIGEN;
-
+                    gde.GDE_HORA_CARGUIO_INICIO = rs_datos.GDE_HORA_CARGUIO_INICIO;
+                    gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
+                    gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
+                    gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
                     gde.VERSION_APP = Obtener_dato_local("version_app");
                     ar.push(gde);
                 }
@@ -842,9 +852,6 @@ function DATOS_seleccionar_gde_actualizada_por_enviar(estado, callback) {
 
 function DATOS_asigna_coordenadas(GDE, callback) {
     //alert("a guardar gdep");
-
-
-
     //alert(GDE.GDE_COORDENADA_X+" "+GDE.GDE_COORDENADA_Y)
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     this.db.transaction(function (tr) {
@@ -854,6 +861,20 @@ function DATOS_asigna_coordenadas(GDE, callback) {
         });
     });
 
+}
+
+
+function DATOS_cambiaEstadoCamionVacio(idGde, valor) {
+    return new Promise((resolve, reject) => {
+        this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
+        this.db.transaction(function (tr) {
+            tr.executeSql("UPDATE GDE SET GDE_CAPTURA_FOTO_CAMION_VACIO=? WHERE ROWID=? ", [valor, idGde], function (tr, rs) {
+                resolve(rs);
+            }, function (tr, error) {
+                reject(error);
+            });
+        });
+    });
 }
 
 
