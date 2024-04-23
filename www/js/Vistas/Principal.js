@@ -11,7 +11,7 @@ var ejecuta = setInterval(function () {
 }, 10000);
 
 
-var url_server_nuevo = "http://araucaria.mcondor.cl:5901/trazabilidad";
+var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
