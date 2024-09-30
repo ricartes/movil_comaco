@@ -377,6 +377,81 @@ module.exports = [
         ]
     },
     {
+        "file": "plugins/cordova-plugin-device/www/device.js",
+        "id": "cordova-plugin-device.device",
+        "pluginId": "cordova-plugin-device",
+        "clobbers": [
+            "device"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-device/src/browser/DeviceProxy.js",
+        "id": "cordova-plugin-device.DeviceProxy",
+        "pluginId": "cordova-plugin-device",
+        "runs": true
+    },
+    {
+        "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
+        "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
+        "pluginId": "cordova-plugin-advanced-background-mode",
+        "clobbers": [
+            "cordova.plugins.backgroundMode",
+            "plugin.backgroundMode"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-advanced-background-mode/src/browser/BackgroundModeProxy.js",
+        "id": "cordova-plugin-advanced-background-mode.BackgroundMode.Proxy",
+        "pluginId": "cordova-plugin-advanced-background-mode",
+        "runs": true
+    },
+    {
+        "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
+        "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
+        "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
+        "clobbers": [
+            "SQLitePlugin"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-android-permissions/www/permissions-dummy.js",
+        "id": "cordova-plugin-android-permissions.Permissions",
+        "pluginId": "cordova-plugin-android-permissions",
+        "clobbers": [
+            "cordova.plugins.permissions"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
+        "id": "cordova-plugin-camera.Camera",
+        "pluginId": "cordova-plugin-camera",
+        "clobbers": [
+            "Camera"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
+        "id": "cordova-plugin-camera.CameraPopoverOptions",
+        "pluginId": "cordova-plugin-camera",
+        "clobbers": [
+            "CameraPopoverOptions"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-camera/www/Camera.js",
+        "id": "cordova-plugin-camera.camera",
+        "pluginId": "cordova-plugin-camera",
+        "clobbers": [
+            "navigator.camera"
+        ]
+    },
+    {
+        "file": "plugins/cordova-plugin-camera/src/browser/CameraProxy.js",
+        "id": "cordova-plugin-camera.CameraProxy",
+        "pluginId": "cordova-plugin-camera",
+        "runs": true
+    },
+    {
         "file": "plugins/cordova-plugin-file/www/DirectoryEntry.js",
         "id": "cordova-plugin-file.DirectoryEntry",
         "pluginId": "cordova-plugin-file",
@@ -578,81 +653,6 @@ module.exports = [
         "clobbers": [
             "window.FileTransfer"
         ]
-    },
-    {
-        "file": "plugins/cordova-plugin-device/www/device.js",
-        "id": "cordova-plugin-device.device",
-        "pluginId": "cordova-plugin-device",
-        "clobbers": [
-            "device"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-device/src/browser/DeviceProxy.js",
-        "id": "cordova-plugin-device.DeviceProxy",
-        "pluginId": "cordova-plugin-device",
-        "runs": true
-    },
-    {
-        "file": "plugins/cordova-plugin-advanced-background-mode/www/background-mode.js",
-        "id": "cordova-plugin-advanced-background-mode.BackgroundMode",
-        "pluginId": "cordova-plugin-advanced-background-mode",
-        "clobbers": [
-            "cordova.plugins.backgroundMode",
-            "plugin.backgroundMode"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-advanced-background-mode/src/browser/BackgroundModeProxy.js",
-        "id": "cordova-plugin-advanced-background-mode.BackgroundMode.Proxy",
-        "pluginId": "cordova-plugin-advanced-background-mode",
-        "runs": true
-    },
-    {
-        "file": "plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js",
-        "id": "cordova-sqlite-spatialite-evplus-ext-common-free.SQLitePlugin",
-        "pluginId": "cordova-sqlite-spatialite-evplus-ext-common-free",
-        "clobbers": [
-            "SQLitePlugin"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-android-permissions/www/permissions-dummy.js",
-        "id": "cordova-plugin-android-permissions.Permissions",
-        "pluginId": "cordova-plugin-android-permissions",
-        "clobbers": [
-            "cordova.plugins.permissions"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-camera/www/CameraConstants.js",
-        "id": "cordova-plugin-camera.Camera",
-        "pluginId": "cordova-plugin-camera",
-        "clobbers": [
-            "Camera"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-camera/www/CameraPopoverOptions.js",
-        "id": "cordova-plugin-camera.CameraPopoverOptions",
-        "pluginId": "cordova-plugin-camera",
-        "clobbers": [
-            "CameraPopoverOptions"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-camera/www/Camera.js",
-        "id": "cordova-plugin-camera.camera",
-        "pluginId": "cordova-plugin-camera",
-        "clobbers": [
-            "navigator.camera"
-        ]
-    },
-    {
-        "file": "plugins/cordova-plugin-camera/src/browser/CameraProxy.js",
-        "id": "cordova-plugin-camera.CameraProxy",
-        "pluginId": "cordova-plugin-camera",
-        "runs": true
     }
 ];
 module.exports.metadata = 
@@ -669,13 +669,13 @@ module.exports.metadata =
     "cordova-plugin-app-version": "0.1.12",
     "cordova-pdf-generator": "2.1.1",
     "cordova-plugin-androidx": "3.0.0",
-    "cordova-plugin-file": "7.0.0",
-    "cordova-plugin-file-transfer": "2.0.0-dev",
     "cordova-plugin-device": "2.0.3",
     "cordova-plugin-advanced-background-mode": "1.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev",
     "cordova-plugin-android-permissions": "1.1.5",
-    "cordova-plugin-camera": "6.0.1-dev"
+    "cordova-plugin-camera": "7.0.0",
+    "cordova-plugin-file": "8.0.0",
+    "cordova-plugin-file-transfer": "2.0.0"
 }
 // BOTTOM OF METADATA
 });

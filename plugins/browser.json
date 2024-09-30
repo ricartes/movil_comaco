@@ -40,12 +40,6 @@
     "cordova-plugin-androidx": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-file": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-file-transfer": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-device": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
@@ -59,6 +53,12 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-camera": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-file": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },

@@ -22,8 +22,8 @@ cordova.define("cordova-plugin-file.androidFileSystem", function(require, export
 
 module.exports = {
     __format__: function (fullPath, nativeUrl) {
-        var path;
-        var contentUrlMatch = /^content:\/\//.exec(nativeUrl);
+        let path;
+        const contentUrlMatch = /^content:\/\//.exec(nativeUrl);
         if (contentUrlMatch) {
             // When available, use the path from a native content URL, which was already encoded by Android.
             // This is necessary because JavaScript's encodeURI() does not encode as many characters as
@@ -36,7 +36,7 @@ module.exports = {
                 path = '/' + path;
             }
 
-            var m = /\?.*/.exec(nativeUrl);
+            const m = /\?.*/.exec(nativeUrl);
             if (m) {
                 path += m[0];
             }

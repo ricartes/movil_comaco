@@ -20,7 +20,7 @@ cordova.define("cordova-plugin-file-transfer.FileTransfer", function(require, ex
  *
  */
 
-/* global cordova, FileSystem */
+/* global FileSystem */
 
 const argscheck = require('cordova/argscheck');
 const exec = require('cordova/exec');
@@ -63,20 +63,6 @@ function getBasicAuthHeader (urlString) {
     }
 
     return header;
-}
-
-function convertHeadersToArray (headers) {
-    const result = [];
-    for (const header in headers) {
-        if (Object.prototype.hasOwnProperty.call(headers, header)) {
-            const headerValue = headers[header];
-            result.push({
-                name: header,
-                value: headerValue.toString()
-            });
-        }
-    }
-    return result;
 }
 
 let idCounter = 0;
@@ -140,11 +126,6 @@ FileTransfer.prototype.upload = function (filePath, server, successCallback, err
         }
     }
 
-    if (cordova.platformId === 'windowsphone') {
-        headers = headers && convertHeadersToArray(headers);
-        params = params && convertHeadersToArray(params);
-    }
-
     const fail =
         errorCallback &&
         function (e) {
@@ -204,10 +185,6 @@ FileTransfer.prototype.download = function (source, target, successCallback, err
     let headers = null;
     if (options) {
         headers = options.headers || null;
-    }
-
-    if (cordova.platformId === 'windowsphone' && headers) {
-        headers = convertHeadersToArray(headers);
     }
 
     const win = function (result) {

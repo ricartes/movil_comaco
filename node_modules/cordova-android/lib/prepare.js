@@ -21,6 +21,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const nopt = require('nopt');
 const glob = require('fast-glob');
+const dedent = require('dedent');
 const events = require('cordova-common').events;
 const AndroidManifest = require('./AndroidManifest');
 const xmlHelpers = require('cordova-common').xmlHelpers;
@@ -109,7 +110,10 @@ function getUserGradleConfig (configXml) {
         { xmlKey: 'AndroidXWebKitVersion', gradleKey: 'ANDROIDX_WEBKIT_VERSION', type: String },
         { xmlKey: 'GradlePluginGoogleServicesVersion', gradleKey: 'GRADLE_PLUGIN_GOOGLE_SERVICES_VERSION', type: String },
         { xmlKey: 'GradlePluginGoogleServicesEnabled', gradleKey: 'IS_GRADLE_PLUGIN_GOOGLE_SERVICES_ENABLED', type: Boolean },
-        { xmlKey: 'GradlePluginKotlinEnabled', gradleKey: 'IS_GRADLE_PLUGIN_KOTLIN_ENABLED', type: Boolean }
+        { xmlKey: 'GradlePluginKotlinEnabled', gradleKey: 'IS_GRADLE_PLUGIN_KOTLIN_ENABLED', type: Boolean },
+        { xmlKey: 'AndroidJavaSourceCompatibility', gradleKey: 'JAVA_SOURCE_COMPATIBILITY', type: Number },
+        { xmlKey: 'AndroidJavaTargetCompatibility', gradleKey: 'JAVA_TARGET_COMPATIBILITY', type: Number },
+        { xmlKey: 'AndroidKotlinJVMTarget', gradleKey: 'KOTLIN_JVM_TARGET', type: String }
     ];
 
     return configXmlToGradleMapping.reduce((config, mapping) => {
@@ -377,10 +381,24 @@ function updateProjectSplashScreen (platformConfig, locations) {
     const themes = xmlHelpers.parseElementtreeSync(locations.themes);
     const splashScreenTheme = themes.find('style[@name="Theme.App.SplashScreen"]');
 
+    let splashBg = platformConfig.getPreference('AndroidWindowSplashScreenBackground', this.platform);
+    if (!splashBg) {
+        splashBg = platformConfig.getPreference('SplashScreenBackgroundColor', this.platform);
+    }
+    if (!splashBg) {
+        splashBg = platformConfig.getPreference('BackgroundColor', this.platform);
+    }
+
+    // use the user defined value for "colors.xml"
+    updateProjectSplashScreenBackgroundColor(splashBg, locations);
+
+    // force the themes value to `@color/cdv_splashscreen_background`
+    const splashBgNode = splashScreenTheme.find('item[@name="windowSplashScreenBackground"]');
+    splashBgNode.text = '@color/cdv_splashscreen_background';
+
     [
         'windowSplashScreenAnimatedIcon',
         'windowSplashScreenAnimationDuration',
-        'windowSplashScreenBackground',
         'android:windowSplashScreenBrandingImage',
         'windowSplashScreenIconBackgroundColor',
         'postSplashScreenTheme'
@@ -391,14 +409,6 @@ function updateProjectSplashScreen (platformConfig, locations) {
         let themeTargetNode = splashScreenTheme.find(`item[@name="${themeKey}"]`);
 
         switch (themeKey) {
-        case 'windowSplashScreenBackground':
-            // use the user defined value for "colors.xml"
-            updateProjectSplashScreenBackgroundColor(cdvConfigPrefValue, locations);
-
-            // force the themes value to `@color/cdv_splashscreen_background`
-            themeTargetNode.text = '@color/cdv_splashscreen_background';
-            break;
-
         case 'windowSplashScreenAnimatedIcon':
             // handle here the cases of "png" vs "xml" (drawable)
             // If "png":
@@ -747,9 +757,24 @@ function updateIconResourceForAdaptive (preparedIcons, resourceMap, platformReso
         foreground = android_icons[density].foreground;
         monochrome = android_icons[density].monochrome;
 
-        const isAdaptiveIcon = background && foreground;
-        const isMonochromeIcon = monochrome && isAdaptiveIcon;
-        if (!isMonochromeIcon || !isAdaptiveIcon) {
+        const hasAdaptiveIcons = !!background && !!foreground;
+        let hasMonochromeIcon = !!monochrome;
+
+        if (hasMonochromeIcon && !hasAdaptiveIcons) {
+            // If we have a monochrome icon, but no adaptive icons,
+            // then warn that in order to use monochrome, the adaptive icons
+            // must be supplied. We will ignore monochrome and proceed with the
+            // icon preparation however.
+            hasMonochromeIcon = false;
+            monochrome = undefined;
+            events.emit('warn', dedent`
+                Monochrome icon found but without adaptive properties.
+                Monochrome icon requires the adaptive background and foreground assets.
+                See https://cordova.apache.org/docs/en/latest/config_ref/images.html fore more information.
+            `);
+        }
+
+        if (!hasAdaptiveIcons) {
             // This icon isn't an adaptive icon, so skip it
             continue;
         }
@@ -780,7 +805,7 @@ function updateIconResourceForAdaptive (preparedIcons, resourceMap, platformReso
             resourceMap[targetPathForeground] = android_icons[density].foreground;
         }
 
-        if (monochrome) {
+        if (hasMonochromeIcon) {
             if (path.extname(path.basename(monochrome)) === '.xml') {
                 // Vector Use Case
                 targetPathMonochrome = getAdaptiveImageResourcePath(platformResourcesDir, 'mipmap', density, 'ic_launcher_monochrome.xml', path.basename(android_icons[density].monochrome));
@@ -794,19 +819,23 @@ function updateIconResourceForAdaptive (preparedIcons, resourceMap, platformReso
 
         // create an XML for DPI and set color
         let icLauncherTemplate = '';
-        if (monochrome) {
-            icLauncherTemplate = `<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="` + backgroundVal + `" />
-    <foreground android:drawable="` + foregroundVal + `" />
-    <monochrome android:drawable="` + monochromeVal + `" />
-</adaptive-icon>`;
+        if (hasMonochromeIcon) {
+            icLauncherTemplate = dedent`
+                <?xml version="1.0" encoding="utf-8"?>
+                <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                    <background android:drawable="${backgroundVal}" />
+                    <foreground android:drawable="${foregroundVal}" />
+                    <monochrome android:drawable="${monochromeVal}" />
+                </adaptive-icon>
+            `;
         } else {
-            icLauncherTemplate = `<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="` + backgroundVal + `" />
-    <foreground android:drawable="` + foregroundVal + `" />
-</adaptive-icon>`;
+            icLauncherTemplate = dedent`
+                <?xml version="1.0" encoding="utf-8"?>
+                <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                    <background android:drawable="${backgroundVal}" />
+                    <foreground android:drawable="${foregroundVal}" />
+                </adaptive-icon>
+            `;
         }
 
         const launcherXmlPath = path.join(platformResourcesDir, 'mipmap-' + density + '-v26', 'ic_launcher.xml');
