@@ -72,12 +72,57 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 }
 
 
-function cargar_evidencia_camion_cargado(evidencia, tipo) {
+async function cargar_evidencia_camion_cargado(evidencia, tipo) {
+    app.dialog.preloader("Cargando...");
+
+
+
     if (tipo == 2) {
         $$("#imagen_camion_cargado").attr("src", evidencia.ARCHIVO);
     }
     if (tipo == 4) {
         $$("#imagen_camion_cargado_2").attr("src", evidencia.ARCHIVO);
+    }
+
+    if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado1 && tipo == 2)
+        || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado2 && tipo == 4)) {
+
+        validarGeocerca(gde_actual.GDE_ROL).then((resultadoGeocerca) => {
+
+            let resultadoValidacion = resultadoGeocerca.validacion;
+            validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                //si debe cerrar control
+                if (resultado.cierra) {
+                    ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                            mainView.router.navigate("/");
+                        });
+
+
+                    });
+                }
+                else {
+
+                    if (resultado.advertencia) {
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE");
+                    } else {
+                        app.dialog.close();
+                    }
+                }
+
+            });
+
+
+        }).catch((e) => {
+            app.dialog.close();
+            app.dialog.alert(e, "GFE");
+            reject(e);
+        });
+
+    } else {
+        app.dialog.close();
     }
 }
 

@@ -1702,7 +1702,7 @@ function enviar_imagenes(bandera, callback) {
                 var tamano = result.length;
                 for (i = 0; i < tamano; i++) {
 
-                    uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, function (result2) {
+                    uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
                         conta++;
                         //alert(conta+"tamano");
                         if (confirma_guardado_parametro(conta, tamano) == 1) {
@@ -1720,7 +1720,7 @@ function enviar_imagenes(bandera, callback) {
 
 
 
-function uploadPhoto(imageURI, id, num, total, ruta, callback) {
+function uploadPhoto(imageURI, id, num, total, ruta, cambiaEstado = false, callback) {
     var id_imagen = id;
     var options = new FileUploadOptions();
     options.fileKey = "file";
@@ -1743,12 +1743,17 @@ function uploadPhoto(imageURI, id, num, total, ruta, callback) {
         //alert(response);
         //var valor =$(response).find('string').text();
 
-        DATOS_cambiar_estado_envio_foto_gde_evidencia(id_imagen, 1, function (result) {
+        if (cambiaEstado === true) {
+            DATOS_cambiar_estado_envio_foto_gde_evidencia(id_imagen, 1, function (result) {
+                typeof callback == "function" && callback(1);
+            });
+        } else {
             typeof callback == "function" && callback(1);
-        });
+        }
 
 
-        confirma_carga_imagen(id_imagen, imageURI);
+
+        //confirma_carga_imagen(id_imagen, imageURI);
 
     }, function (error) {
 
@@ -1780,7 +1785,7 @@ function ws_cargaGeocercas(rut, empresa, porcentaje_actual, callback) {
                         typeof callback == "function" && callback(0);
                     } else {
                         DATOS_borrar_geocercas(function (result) {
-                           
+
                             geocercas.forEach(function (geocercaData) {
                                 var geocerca = new CL_Geocerca(geocercaData.ROL_PREDIO, geocercaData.GEOCERCA, geocercaData.FLAG_CONTROL);
                                 DATOS_nuevo_geocerca(geocerca, function (result) {
