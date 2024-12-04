@@ -230,7 +230,8 @@ function guarda_evidencia_foto(latitud, longitud){
     });
   }else{
       DATOS_guardar_evidencia_guia(evidencia_actual, function(result_guardado) {
-        cargar_datos_evidencia(evidencia_actual.ID_GDE);
+        confirmaCargaEvidencia(evidencia_actual.ID_GDE);
+        //cargar_datos_evidencia(evidencia_actual.ID_GDE);
     });
   }
 

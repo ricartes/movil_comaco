@@ -10,20 +10,26 @@
     "cordova-pdf-generator": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
+    "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-android-permissions": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
     "cordova-plugin-app-version": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-btprinter": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
+    "cordova-plugin-camera": {
+      "ANDROIDX_CORE_VERSION": "1.6.+",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-device": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
     "cordova-plugin-device-motion": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-file": {
-      "ANDROIDX_WEBKIT_VERSION": "1.4.0",
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-geolocation": {
@@ -44,17 +50,14 @@
     "cordova-plugin-vibration": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-sqlite-storage": {
+    "cordova-sqlite-spatialite-evplus-ext-common-free": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-camera": {
-      "ANDROIDX_CORE_VERSION": "1.6.+",
+    "cordova-plugin-file": {
+      "ANDROIDX_WEBKIT_VERSION": "1.4.0",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-device": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
-    "cordova-plugin-advanced-background-mode": {
+    "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },

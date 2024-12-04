@@ -10,9 +10,8 @@ function listado_guias(fecha_inicial, fecha_final,numero_guia){
 	var estado=-1;
 	DATOS_seleccionar_gde_proveedor_por_estado_lista_PRUEBA(estado, fecha_inicial, fecha_final,numero_guia, function(result) {
 		var htmls="";
-		
-		
-        //alert(json1);
+        
+    
 
 		for(i=0;i<result.length;i++){
 			var estado_string="";

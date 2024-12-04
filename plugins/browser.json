@@ -34,28 +34,31 @@
     "cordova-plugin-device-motion": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-sqlite-storage": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-pdf-generator": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-androidx": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-file": {
+    "cordova-plugin-device": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-file-transfer": {
+    "cordova-plugin-advanced-background-mode": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-sqlite-spatialite-evplus-ext-common-free": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-android-permissions": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-camera": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-device": {
+    "cordova-plugin-file": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-advanced-background-mode": {
+    "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
