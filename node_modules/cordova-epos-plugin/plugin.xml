@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="epos.cordova.eposplugin" version="1.0.0">
+    <name>ePOSPrinter</name>
+    <description>pluging to use ePOS printer</description>
+
+    <engines>
+        <engine name="cordova" version=">=3.4.0"/>
+    </engines>
+
+    <js-module src="www/EPOSPrinter.js" name="EPOSPrinter">
+        <clobbers target="window.plugins.EPOSPrinter" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+
+        <source-file src="src/android/EPOSPrinter.java" target-dir="src/epos/cordova" />
+        <source-file src="src/android/lib/ePOS-Print.jar" target-dir="libs" />
+        <source-file src="src/android/lib/ePOSEasySelect.jar" target-dir="libs" />
+        <source-file src="src/android/lib/libeposprint.so" target-dir="libs/armeabi" />
+        <source-file src="src/android/lib/libeposeasyselect.so" target-dir="libs/armeabi" />
+      
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="EPOSPrinter">
+                <param name="android-package" value="epos.cordova.EPOSPrinter"/>
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*" />
+
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.BLUETOOTH" />
+        </config-file>
+      
+    </platform>
+</plugin>

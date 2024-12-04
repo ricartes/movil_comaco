@@ -1,0 +1,6 @@
+{
+  "geodesy": {
+    "from": ["", "latlon-spherical.js"],
+    "to": ["js", "res", "latlon-spherical.js"]
+  }
+}

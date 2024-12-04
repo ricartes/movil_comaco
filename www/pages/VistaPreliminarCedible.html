@@ -1,0 +1,106 @@
+<div class="page" data-name="vista-preliminar-cedible">
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link" onclick="volver_impresion()">
+					<i class="icon icon-back"></i>
+					<span class="ios-only">Back</span>
+				</a>
+			</div>
+			<div class="title">Vista Preliminar</div>
+		</div>
+	</div>
+
+
+	<div class="page-content" style="background: white;" >
+
+		<div id="contenido_guia">
+			<div  style="border-color: red;border-style: solid;"> 
+				<h3 style="color: black;text-align: center;">RUT <label id="rut_empresa">XX.XXX.XXX-X</label> </h3>
+				<h3 style="color: black;text-align: center;">GUÍA DE DESPACHO ELECTRÓNICA</h3>
+				<h3 style="color: black;text-align: center;">N° <label id="nro_guia">  </label></h3>
+				</div>
+			<h3 style="color: black;text-align: center;">S.I.I <label id="unidad_sii"></label></h3>
+			<h3 style="color: black;"> <label id="ciudad_emisor"></label>, <label id="dia_emision"></label> de <label id="mes_emision"></label> de <label id="anio_emision"></label>  </h3>
+
+			<div style=" border-color: black;border-style: solid;"> 
+				<h3 style="color: black;margin-left: 2%;" >DATOS DEL EMISOR</h3>
+			</div>
+
+			<h4 style="color: black;margin-left: 2%;"> RAZÓN SOCIAL: <label id="razon_social_emisor"></label></h4>
+			<h4 style="color: black;margin-left: 2%;">GIRO: <label id="giro_emisor"></label>  </h4>
+			<h4 style="color: black;margin-left: 2%;"> DIRECCIÓN: <label id="direccion_emisor"></label></h4>
+			<h4 style="color: black;margin-left: 2%;">EMAIL: <label id="email_emisor"></label> </h4>
+			<h4 style="color: black;margin-left: 2%;">TELÉFONO: <label id="telefono_emisor"></label> </h4>
+
+			<div style="border-color: black;border-style: solid;"> 
+				<h3 style="color: black;margin-left: 2%;" >DATOS DEL RECEPTOR</h3>
+			</div>
+
+			<h4 style="color: black;margin-left: 2%;" >RUT:  <label id="rut_receptor"></label> </h4>
+			<h4 style="color: black;margin-left: 2%;" >RAZÓN SOCIAL: <label id="razon_social_receptor"></label></h4>
+			<h4 style="color: black;margin-left: 2%;" >GIRO: <label id="giro_receptor"></label></h4>
+			<h4 style="color: black;margin-left: 2%;" >DIRECCIÓN: <label id="direccion_receptor"></label></h4>
+			<h4 style="color: black;margin-left: 2%;" >TELÉFONO: <label id="telefono_receptor"> </h4>
+
+			<table style="width: 100%; border-style: solid;border-color: black;">
+				<tr>
+                	<td width="25%" ><h3  style="color: black;margin-left: 2%;">DETALLE </h3> </td>
+                    <td width="25%" ><h3  style="color: black;margin-left: 2%;">PRECIO</h3> </td>
+                    <td width="25%" ><h3  style="color: black;margin-left: 2%;">VOLUMEN</h3> </td>
+                    <td width="25%" ><h3  style="color: black;margin-left: 2%;">VALOR </h3> </td>
+                </tr>        
+			</table>
+
+			<table style="width: 100%;">
+				 <tr>
+                	<td colspan="4" style=" line-height: 1.5;" ><h4  style="color: black;margin-left: 2%;"><label id="nombre_producto"></label> </h4> </td>
+                </tr>
+                <tr>
+                	<td width="25%" ><h4  style="color: black;margin-left: 2%;"><label id="en_blanco"></label></h4> </td>
+                	<td width="25%" ><h4  style="color: black;margin-left: 2%;"><label id="precio_producto"></label></h4> </td>
+                    <td width="25%" ><h4  style="color: black;margin-left: 2%;"><label id="volumen_producto"></label> </h4> </td>
+                    <td width="25%" ><h4  style="color: black;margin-left: 2%;"><label id="valor_producto"></label> </h4> </td>
+                </tr>
+			</table>
+
+			<div id="div_totales"align="right">
+				<h4 style="color: black;margin-right: 5%;" >SUBTOTAL:  <label id="subtotal"></label> </h4>
+				<h4 style="color: black;margin-right: 5%;" >AFECTO:  <label id="afecto"></label> </h4>
+				<h4 style="color: black;margin-right: 5%;" >IVA:  <label id="iva"></label> </h4>
+				<h4 style="color: black;margin-right: 5%;" >TOTAL:  <label id="total"></label> </h4>
+			</div>
+
+			<div id="div_timbre" align="center">
+				<canvas id="barcode" style="width: 100%;" ></canvas>
+				<img src="" id="mi_timbre "style="width: 100%;">
+
+				<h4 style="color: black;" align="center">Timbre Electrónico S.I.I</h4>
+			</div>
+
+			<div id="div_cedible" align="center">
+			
+
+				<h4 style="color: black;" align="center">CEDIBLE</h4>
+			</div>
+
+		</div>
+			
+			<p class="row">         
+				<a onclick="generar_pdf_cedible()" class="col button button-big button-raised button-fill">Generar PDF
+				</a>
+					<!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+			</p>
+
+
+
+
+
+	</div>
+
+
+
+
+</div>
+
+
