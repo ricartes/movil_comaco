@@ -1,13 +1,12 @@
 var id_gde_actual;
 var tipo_evidencia_camion_cargado = 2;
 var tipo_evidencia_camion_cargado_2 = 4;
+var gde_actual = null;
 $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
-
-
-
-
+    const gde = await seleccionarGdeProveedor(id_gde_actual);
+    gde_actual = gde;
 
 
     DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
@@ -48,6 +47,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
     const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
+    
     if (!estadoValidacion) {
         app.dialog.preloader("Cargando...");
         getLocation2().then((coordenadas) => {
@@ -87,23 +87,22 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado1 && tipo == 2)
         || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado2 && tipo == 4)) {
 
-        validarGeocerca(gde_actual.GDE_ROL).then((resultadoGeocerca) => {
-
-            let resultadoValidacion = resultadoGeocerca.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+        validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
+            let resultadoValidacion = resultado.validacion;
+            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
                 //si debe cerrar control
                 if (resultado.cierra) {
-                    ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
-                        app.dialog.close();
-                        app.dialog.alert(resultado.mensaje, "GFE", function () {
-                            mainView.router.navigate("/");
-                        });
-
+                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
+                        if (anula) {
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
+                        }
 
                     });
                 }
                 else {
-
                     if (resultado.advertencia) {
                         app.dialog.close();
                         app.dialog.alert(resultado.mensaje, "GFE");
@@ -117,7 +116,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
 
         }).catch((e) => {
             app.dialog.close();
-            app.dialog.alert(e, "GFE");
+            app.dialog.alert(e, "GFE")
             reject(e);
         });
 

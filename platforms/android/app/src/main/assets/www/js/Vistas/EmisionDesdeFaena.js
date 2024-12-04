@@ -372,6 +372,7 @@ function guardar_datos_guia(latitud, longitud) {
 
         DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, gde.GDE_COD_PRODUCTO, function (proveedor) {
 
+           
 
             gde.GDE_COD_CLIENTE = proveedor.C_codigo;
             gde.GDE_NOMBRE_CLIENTE = proveedor.SN_Nombre
@@ -607,6 +608,7 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 
 function cambia_proyecto(codproyecto, rol) {
+
     app.dialog.preloader("Cargando...");
     gdeRol = rol;
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {

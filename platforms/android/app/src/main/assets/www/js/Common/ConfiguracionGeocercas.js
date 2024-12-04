@@ -12,9 +12,9 @@ const configuracionGeocercas = {
         camionCargado1: true,
         camionCargado2: true,
         avanzaHaciaPadron: false,
-        padronVehiculo: false,
+        padronVehiculo: true,
         avanzaHaciaEvidencia: false,
-        evidenciaOtros: false,
+        evidenciaOtros: true,
         informarDespacho: true,
     }
 }

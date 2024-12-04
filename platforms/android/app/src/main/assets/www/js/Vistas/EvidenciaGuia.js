@@ -21,6 +21,8 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', function (e, p
     DATOS_seleccionar_gde_proveedor(id_gde_actual, async function (result) {
         gde_actual = result;
 
+        cargar_datos_evidencia(id_gde);
+        cargar_datos_usuario(1);
         $$("#btn_nueva_evidencia").click(function () {
             capturePhotoWithFile(id_gde, tipo_evidencia_general);
         });
@@ -28,29 +30,66 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', function (e, p
         $$("#btn_emitir").click(function () {
 
             app.dialog.confirm('¿Está seguro que desea informar despacho?', "GFE Proveedores", function () {
-                emitir_guia();
+
+
+                if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.informarDespacho) {
+
+                    validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
+                        let resultadoValidacion = resultado.validacion;
+                        validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+                            //si debe cerrar control
+                            if (resultado.cierra) {
+                                ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
+                                    if (anula) {
+                                        app.dialog.close();
+                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                            mainView.router.navigate("/");
+                                        });
+                                    }
+
+                                });
+                            }
+                            else {
+
+                                if (resultado.advertencia) {
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        app.dialog.preloader("Informando despacho...")
+                                        emitir_guia();
+                                    });
+                                } else {
+                                    app.dialog.close();
+                                    emitir_guia();
+                                }
+                            }
+
+                        });
+
+
+                    }).catch((e) => {
+                        app.dialog.close();
+                        app.dialog.alert(e, "GFE")
+                        reject(e);
+                    });
+
+                } else {
+                    emitir_guia();
+                }
+
+
             });
 
         });
 
-        cargar_datos_evidencia(id_gde);
-        cargar_datos_usuario(1);
+
 
 
     });
-
-
-
-
-
-
-
-
-
-
-
-
 });
+
+
+
+
 
 
 
@@ -73,6 +112,7 @@ async function emitir_guia() {
         confirmEmisionDespacho(id_gde_actual, gde);
     }
 }
+
 
 
 function confirmEmisionDespacho(id_gde, gde) {
@@ -269,6 +309,56 @@ function volver_padron_vehiculo() {
     mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
 }
 
+
+
+async function confirmaCargaEvidencia(id_gde) {
+    app.dialog.preloader("Cargando...")
+
+
+
+    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.evidenciaOtros) {
+
+
+        validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
+            let resultadoValidacion = resultado.validacion;
+            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+                //si debe cerrar control
+                if (resultado.cierra) {
+                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
+                        if (anula) {
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
+                        }
+
+                    });
+                }
+                else {
+                    cargar_datos_evidencia(id_gde);
+                    if (resultado.advertencia) {
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE");
+                    } else {
+                        app.dialog.close();
+                    }
+                }
+
+            });
+
+
+        }).catch((e) => {
+            app.dialog.close();
+            app.dialog.alert(e, "GFE")
+            reject(e);
+        });
+
+
+    } else {
+        cargar_datos_evidencia(id_gde);
+        app.dialog.close();
+    }
+}
 
 
 
