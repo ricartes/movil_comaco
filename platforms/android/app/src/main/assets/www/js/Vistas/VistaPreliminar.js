@@ -251,6 +251,25 @@ function cambiar_texto_gde_proveedor(valor) {
     $$("#guia_proveedor").text(valor);
 }
 
+async function reenviarFotos() {
+    app.dialog.progress("Reenviando imágenes...");
+    try {
+        const evidencias = await reenviarImagenes(id_gde);
+        alert(evidencias);
+        if (evidencias === 1) {
+            app.dialog.alert("No se han encontrado archivos de evidencias para reenviar");
+        } else {
+            app.dialog.alert(`Evidencias reenviadas correctamente. Se enviaron ${evidencias} archivos`);
+        }
+    } catch (ex) {
+        const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
+        app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`);
+    } finally {
+        app.dialog.close();
+    }
+}
+
+
 
 function cambiar_numero_guia() {
     app.dialog.prompt('Ingrese nuevo número de guía', "GFE", function (nro_guia) {

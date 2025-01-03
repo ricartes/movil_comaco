@@ -33,7 +33,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', function (e, p
 
 
                 if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.informarDespacho) {
-
+                    app.dialog.preloader("Cargando...");
                     validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
                         let resultadoValidacion = resultado.validacion;
                         validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
