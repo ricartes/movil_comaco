@@ -48,7 +48,7 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
     const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
     
-    if (estadoValidacion) {//TODO: REVERTIR
+    if (!estadoValidacion) {
         app.dialog.preloader("Cargando...");
         getLocation2().then((coordenadas) => {
             ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "F", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {

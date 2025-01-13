@@ -30,12 +30,10 @@ if(checkConnection()!="No network connection"){
 				
 
 				enviar_guias_proveedor("0", function(result_guias) {
-					
 					//lert(result_guias);
 					if(result_guias==1 || result_guias==0){
 
 						enviar_evidencias_proveedor("0", function(result_evidencias) {
-
 							enviar_imagenes("0", function(result_imagenes) {
 								Guardar_dato_local("bloqueado",0);
 								envio_automatico_activado=1;

@@ -22,12 +22,12 @@
             <div style="border-color: red;border-style: solid; width: 100%;">
                 <h3 style="color: black;text-align: center;">INFORME DESPACHO</h3>
                 <h3 style="color: black;text-align: center;"><label id="nro_guia"> </label></h3>
-                
+
             </div>
             <div style="text-align: center;" class="margin-top">
                 <div id="qrcode"></div>
             </div>
-           
+
             <!--<h3 style="color: black;text-align: center;">S.I.I <label id="unidad_sii"></label></h3>-->
             <h3 style="color: black;"> <label id="ciudad_emisor"></label>, <label id="dia_emision"></label> de <label
                     id="mes_emision"></label> de <label id="anio_emision"></label> </h3>
@@ -129,6 +129,10 @@
         <p class="row">
             <a id="btn_cambiar_numero_guia" data-view=".view-main" onclick="cambiar_numero_guia()"
                 class="col button button-big button-raised button-fill">CAMBIAR NÚMERO GUÍA
+            </a>
+
+            <a id="btn_reenviar_fotos" data-view=".view-main" onclick="reenviarFotos()"
+                class="col button button-big button-raised button-fill">REENVIAR FOTOS
             </a>
         </p>
 

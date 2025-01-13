@@ -1546,9 +1546,7 @@ function enviar_guias_proveedor(bandera, callback) {
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
         ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia';
 
-
         DATOS_seleccionar_gde_proveedor_por_enviar("0", function (result) {
-            //alert(result);
             if (result == -1) {
                 typeof callback == "function" && callback(0);
             } else {
@@ -1688,28 +1686,83 @@ function enviar_evidencias_proveedor(bandera, callback) {
 }
 
 
+async function reenviarImagenes(idGde) {
+    try {
+        // Envolver DATOS_seleccionar_Parametro_movil_por_nombre en una Promesa
+        const result_param = await new Promise((resolve, reject) => {
+            DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result) {
+                if (result) {
+                    resolve(result);
+                } else {
+                    reject(new Error("Error obteniendo parámetro móvil"));
+                }
+            });
+        });
+
+        //const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Imagen';
+        const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Fotos';
+        const evidencias = await DATOS_seleccionar_evidencia_por_guia(idGde);
+
+        if (evidencias === -1) {
+            return 0;
+        } else {
+            let conta = 0;
+            const tamano = evidencias.length;
+
+            // Esperar que todas las fotos se suban
+            for (let i = 0; i < tamano; i++) {
+                //await uploadPhoto(evidencias[i].ARCHIVO, evidencias[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true);
+                await uploadPhotoV2(evidencias[i].ARCHIVO, ruta);
+                conta++;
+            }
+
+            return conta;
+        }
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+
 
 function enviar_imagenes(bandera, callback) {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
 
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Imagen';
-        DATOS_seleccionar_evidencias_FOTOS_Por_enviar(0, function (result) {
+        const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Fotos';
+        DATOS_seleccionar_evidencias_FOTOS_Por_enviar(0, async function (result) {
             if (result == -1) {
                 typeof callback == "function" && callback(0);
             } else {
                 var conta = 0;
                 var tamano = result.length;
                 for (i = 0; i < tamano; i++) {
+                    const response = await uploadPhotoV2(result[i].ARCHIVO, ruta);
+                    if (response.STATUS == true) {
+                        DATOS_cambiar_estado_envio_foto_gde_evidencia(result[i].ID_UNICO_MOVIL, 1, function (result) {
+                            conta++;
+                            if (confirma_guardado_parametro(conta, tamano) == 1) {
+                                typeof callback == "function" && callback(1);
+                            }
 
-                    uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
+                        });
+
+                    } else {
+                        conta++;
+                        if (confirma_guardado_parametro(conta, tamano) == 1) {
+                            typeof callback == "function" && callback(1);
+                        }
+                    }
+
+                    /*uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
                         conta++;
                         //alert(conta+"tamano");
                         if (confirma_guardado_parametro(conta, tamano) == 1) {
                             typeof callback == "function" && callback(1);
                         }
 
-                    });
+                    });*/
 
                 }
             }
@@ -1717,6 +1770,70 @@ function enviar_imagenes(bandera, callback) {
     });
 
 }
+
+
+async function uploadPhotoV2(path, ruta) {
+
+
+    try {
+        const nombre = path.substr(path.lastIndexOf('/') + 1);
+        const base64Image = await getFileContentAsBase64(path);
+        const cadenaParam = `base64String=${encodeURIComponent(base64Image)}&nombre=${encodeURIComponent(nombre)}`;
+        return await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', ruta, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject({
+                        MENSAJE: xhr.statusText,
+                        ERROR_MSJ: xhr.status,
+                    });
+                }
+            };
+
+            xhr.onerror = function () {
+                reject({
+                    MENSAJE: 'Error en la conexión',
+                    ERROR_MSJ: xhr.status,
+                });
+            };
+
+            xhr.send(cadenaParam);
+        });
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+
+function getFileContentAsBase64(path) {
+    return new Promise((resolve, reject) => {
+        window.resolveLocalFileSystemURL(path, gotFile, fail);
+
+        function fail(e) {
+            reject(new Error('No se pudo encontrar el archivo solicitado'));
+        }
+
+        function gotFile(fileEntry) {
+            fileEntry.file(function (file) {
+                const reader = new FileReader();
+                reader.onloadend = function () {
+                    resolve(this.result);
+                };
+                reader.onerror = function () {
+                    reject(new Error('Error al leer el archivo'));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    });
+}
+
 
 
 

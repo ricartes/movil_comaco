@@ -35,13 +35,54 @@ function DATOS_seleccionar_evidencia_guia(id_gde, tipo_evidencia, callback) {
 }
 
 
+async function DATOS_seleccionar_evidencia_por_guia(id_gde) {
+    this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
+
+    return new Promise((resolve, reject) => {
+        this.db.transaction(function (tr) {
+            tr.executeSql(
+                "SELECT e.*, e.rowid, strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ID_GDE=? ORDER BY FECHA_EVIDENCIA ASC",
+                [id_gde],
+                function (tr, rs) {
+                    var n = rs.rows.length;
+                    if (n == 0) {
+                        resolve(-1);
+                    } else {
+                        var ar = [];
+                        for (let i = 0; i < n; i++) {
+                            var rs_datos = rs.rows.item(i);
+                            var cb = new CL_GDE_Evidencia();
+                            cb.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                            cb.ROWID = rs_datos.rowid;
+                            cb.ID_GDE = rs_datos.ID_GDE;
+                            cb.FECHA_FORMAT = rs_datos.fecha_format;
+                            cb.ID_UNICO_MOVIL_GDE = rs_datos.ID_UNICO_MOVIL_GDE;
+                            cb.FECHA_EVIDENCIA = rs_datos.FECHA_EVIDENCIA;
+                            cb.OBSERVACION = rs_datos.OBSERVACION;
+                            cb.ARCHIVO = rs_datos.ARCHIVO;
+                            cb.TIPO_EVIDENCIA = rs_datos.TIPO_EVIDENCIA;
+                            cb.ENVIADO = rs_datos.ENVIADO;
+                            ar.push(cb);
+                        }
+                        resolve(ar);
+                    }
+                },
+                function (error) {
+                    reject(error);
+                }
+            );
+        });
+    });
+}
+
+
 
 
 function DATOS_seleccionar_evidencias_por_enviar(estado, callback) {
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     //alert("entro a guardar gde");
     this.db.transaction(function (tr) {
-        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL =? ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I"], function (tr, rs) {
+        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL IN(?,?) ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I", "N"], function (tr, rs) {
             var n = rs.rows.length;
             if (n == 0) {
                 typeof callback == "function" && callback(-1);
@@ -82,7 +123,7 @@ function DATOS_seleccionar_evidencias_FOTOS_Por_enviar(estado, callback) {
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     //alert("entro a guardar gde");
     this.db.transaction(function (tr) {
-        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO_FOTO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL =?  ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I"], function (tr, rs) {
+        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO_FOTO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL IN (?,?)  ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I", "N"], function (tr, rs) {
             var n = rs.rows.length;
             if (n == 0) {
                 typeof callback == "function" && callback(-1);
