@@ -255,8 +255,7 @@ async function reenviarFotos() {
     app.dialog.progress("Reenviando imágenes...");
     try {
         const evidencias = await reenviarImagenes(id_gde);
-        alert(evidencias);
-        if (evidencias === 1) {
+        if (evidencias === 0) {
             app.dialog.alert("No se han encontrado archivos de evidencias para reenviar");
         } else {
             app.dialog.alert(`Evidencias reenviadas correctamente. Se enviaron ${evidencias} archivos`);

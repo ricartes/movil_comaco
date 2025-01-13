@@ -576,6 +576,7 @@ function DATOS_seleccionar_gde_proveedor_por_estado_lista_PRUEBA(estado, fecha_i
                     gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
                     gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
                     gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
+                    gde.ENVIADO = rs_datos.ENVIADO;
                     ar.push(gde);
 
 

@@ -1546,9 +1546,7 @@ function enviar_guias_proveedor(bandera, callback) {
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
         ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia';
 
-
         DATOS_seleccionar_gde_proveedor_por_enviar("0", function (result) {
-            //alert(result);
             if (result == -1) {
                 typeof callback == "function" && callback(0);
             } else {
@@ -1732,7 +1730,7 @@ function enviar_imagenes(bandera, callback) {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
 
-        const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Imagen';
+        const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Fotos';
         DATOS_seleccionar_evidencias_FOTOS_Por_enviar(0, async function (result) {
             if (result == -1) {
                 typeof callback == "function" && callback(0);
@@ -1740,17 +1738,31 @@ function enviar_imagenes(bandera, callback) {
                 var conta = 0;
                 var tamano = result.length;
                 for (i = 0; i < tamano; i++) {
-                    //await uploadPhotoV2(result[i].ARCHIVO, ruta);
+                    const response = await uploadPhotoV2(result[i].ARCHIVO, ruta);
+                    if (response.STATUS == true) {
+                        DATOS_cambiar_estado_envio_foto_gde_evidencia(result[i].ID_UNICO_MOVIL, 1, function (result) {
+                            conta++;
+                            if (confirma_guardado_parametro(conta, tamano) == 1) {
+                                typeof callback == "function" && callback(1);
+                            }
 
+                        });
 
-                    uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
+                    } else {
+                        conta++;
+                        if (confirma_guardado_parametro(conta, tamano) == 1) {
+                            typeof callback == "function" && callback(1);
+                        }
+                    }
+
+                    /*uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
                         conta++;
                         //alert(conta+"tamano");
                         if (confirma_guardado_parametro(conta, tamano) == 1) {
                             typeof callback == "function" && callback(1);
                         }
 
-                    });
+                    });*/
 
                 }
             }
@@ -1761,17 +1773,12 @@ function enviar_imagenes(bandera, callback) {
 
 
 async function uploadPhotoV2(path, ruta) {
-    alert(path);
-    const nombre = path.substr(path.lastIndexOf('/') + 1);
 
-
-    alert(nombre);
-    alert(ruta);
 
     try {
+        const nombre = path.substr(path.lastIndexOf('/') + 1);
         const base64Image = await getFileContentAsBase64(path);
         const cadenaParam = `base64String=${encodeURIComponent(base64Image)}&nombre=${encodeURIComponent(nombre)}`;
-
         return await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', ruta, true);

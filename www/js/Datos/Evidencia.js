@@ -82,7 +82,7 @@ function DATOS_seleccionar_evidencias_por_enviar(estado, callback) {
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     //alert("entro a guardar gde");
     this.db.transaction(function (tr) {
-        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL =? ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I"], function (tr, rs) {
+        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL IN(?,?) ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I", "N"], function (tr, rs) {
             var n = rs.rows.length;
             if (n == 0) {
                 typeof callback == "function" && callback(-1);
@@ -123,7 +123,7 @@ function DATOS_seleccionar_evidencias_FOTOS_Por_enviar(estado, callback) {
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     //alert("entro a guardar gde");
     this.db.transaction(function (tr) {
-        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO_FOTO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL =?  ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I"], function (tr, rs) {
+        tr.executeSql("SELECT e.*,e.rowid,  strftime('%d-%m-%Y %H:%M', e.FECHA_EVIDENCIA) as fecha_format FROM GDE_EVIDENCIA e WHERE e.ENVIADO_FOTO=? AND e.GDE_COD_DESPACHADOR=? AND e.GDE_ESTADO_MOVIL IN (?,?)  ORDER BY FECHA_EVIDENCIA ASC", [estado, Obtener_dato_local("rut_activo"), "I", "N"], function (tr, rs) {
             var n = rs.rows.length;
             if (n == 0) {
                 typeof callback == "function" && callback(-1);

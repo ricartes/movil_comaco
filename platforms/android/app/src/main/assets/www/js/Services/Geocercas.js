@@ -9,7 +9,7 @@ function validarGeocerca(rol) {
 
         if (rol != null) {
             getLocation2().then((coordenadas) => {
-                if (coordenadas.GPS_LON == 0 || coordenadas.GPS_LAT == 0) {
+                if (!coordenadas || ( coordenadas && (coordenadas.GPS_LON == 0 || coordenadas.GPS_LAT == 0))) {
                     reject("Ubicación no activada o aplicación sin permisos para obtenerla...")
                 } else {
                     resultadoGeocerca.latitud = coordenadas.GPS_LAT;
