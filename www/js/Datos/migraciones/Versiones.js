@@ -24,11 +24,20 @@ var version3Esquema = {
 }
 
 
+var version4Esquema = {
+    versionNumber: 4,
+    queries: [
+        "CREATE TABLE IF NOT EXISTS LOG_USUARIO(ID INTEGER PRIMARY KEY AUTOINCREMENT, USU_USUARIO_SISTEMA VARCHAR(40) NOT NULL, fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP, DATOS TEXT);"
+    ]
+}
+
+
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
     version1Esquema,
     version2Esquema,
-    version3Esquema
+    version3Esquema,
+    version4Esquema
 ];
 
 

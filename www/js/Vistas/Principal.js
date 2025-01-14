@@ -6,9 +6,7 @@ var ip_interna = null;
 var ip_externa = null;
 var usuario_activo;
 var hay_parametro;
-var ejecuta = setInterval(function () {
-    EnvioAutomatico(1, 0);
-}, 10000);
+
 
 
 var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
@@ -154,21 +152,11 @@ function EnvioAutomatico(segundo_plano, automatico) {
 }
 
 function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
-    var bloqueado = Obtener_dato_local("bloqueado");
-    //alert(bloqueado);
 
-    var mensaje = "";
-    var error_aserrable = 0;
-    var error_pulpable = 0;
     Guardar_dato_local("bloqueado", 1);
+    const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
 
-    if (segundo_plano == 1) {
-        /*cordova.plugins.backgroundMode.configure({
-                    title: 'GFE',
-                    icon: 'ldpi',
-                    text: 'Enviando...'
-                });*/
-    }
+
 
     if (checkConnection() != "No network connection") {
         comprueba_conexion("0", function (result_conexion) {
@@ -191,33 +179,45 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
                         });
                     });
                 });
+
+
+
             } else {
                 Guardar_dato_local("bloqueado", 0);
-
-                $$("#ESTADO_").text("Conexión no establecida con el servidor");
-
-                if (segundo_plano == 1) {
-                    /*cordova.plugins.backgroundMode.configure({
-                                      title: 'GFE',
-                                      icon: 'ldpi',
-                                      text: 'Conexión no establecida con el servidor'
-                                  });*/
-                }
             }
         });
     } else {
         Guardar_dato_local("bloqueado", 0);
-
-        $$("#ESTADO_").text("Conexión a Internet no detectada");
-
-        if (segundo_plano == 1) {
-            /*cordova.plugins.backgroundMode.configure({
-                          title: 'GFE',
-                          icon: 'ldpi',
-                          text: 'Conexión a Internet no detectada'
-                      });*/
-        }
     }
+
+    if (bloqueadoTraza === 0) {
+        alert("ppasa");
+        compruebaEnviaTrazabilidad().then((resultadoTrazabilidad) => {
+        }).catch((error) => { });
+    }
+}
+
+function compruebaEnviaTrazabilidad() {
+    let respuesta = new ResponseDTO();
+    return new Promise(async (resolve, reject) => {
+
+        Guardar_dato_local("bloqueado-traza", 1);
+        try {
+
+            resultTrazabilidad = await listarTrazabilidad();
+            if (resultTrazabilidad.status) {
+                const listaTrazabilidad = resultTrazabilidad.data.listaTrazabilidad;
+                const resultEnvioTrazabilidad = await enviarListadoTrazabilidad(listaTrazabilidad);
+                Guardar_dato_local("bloqueado-traza", 0);
+            } else {
+                Guardar_dato_local("bloqueado-traza", 0);
+                reject(resultTrazabilidad.error);
+            }
+        } catch (e) {
+            Guardar_dato_local("bloqueado-traza", 0);
+            reject(e);
+        }
+    });
 }
 
 function onActivate() {
@@ -246,6 +246,7 @@ function onActivate() {
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
     Guardar_dato_local("bloqueado", 1);
+    Guardar_dato_local("bloqueado-traza", 0);
 
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
@@ -561,14 +562,25 @@ function login() {
                                         ok_login(result);
                                     });
                                 } else {
-                                    //$$('#btn_login').prop('disabled', false);
-                                    $$("#lb_estado").css("color", "red");
-                                    $$("#lb_estado").html("Usuario y/o password incorrectos");
-                                }
+                                    (async () => {
+                                        let datos = await generarDataTrazabilidad(
+                                            TipoAccionTypes.INICIO_SESION_INCORRECTO,
+                                            $$("#input_username").val().toLowerCase().trim()
+                                        );
 
-                                setTimeout(function () {
-                                    app.dialog.close();
-                                }, 0);
+                                        await obtenerUbicacionEInsertarLog(
+                                            $$("#input_username").val().toLowerCase().trim(),
+                                            datos
+                                        );
+                                        $$("#lb_estado").css("color", "red");
+                                        $$("#lb_estado").html("Usuario y/o password incorrectos");
+
+                                        setTimeout(function () {
+                                            app.dialog.close();
+                                        }, 800);
+
+                                    })();
+                                }
                             });
                         } else {
                             app.dialog.close();
@@ -589,11 +601,27 @@ function login() {
                         });
                     } else {
                         if (contador != -1) {
-                            if (us.rut == "0") {
-                                $$("#lb_estado").css("color", "red");
-                                $$("#btn_login").prop("disabled", false);
-                                $$("#lb_estado").html("Usuario y/o password incorrectos");
-                            }
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.INICIO_SESION_INCORRECTO,
+                                    $$("#input_username").val().toLowerCase().trim()
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    $$("#input_username").val().toLowerCase().trim(),
+                                    datos
+                                );
+                                if (us.rut == "0") {
+                                    $$("#lb_estado").css("color", "red");
+                                    $$("#btn_login").prop("disabled", false);
+                                    $$("#lb_estado").html("Usuario y/o password incorrectos");
+                                }
+
+                                setTimeout(function () {
+                                    app.dialog.close();
+                                }, 800);
+
+                            })();
                         } else {
                             $$("#lb_estado").css("color", "red");
                             $$("#btn_login").prop("disabled", false);
@@ -614,10 +642,23 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
-            Borrar_dato_local("user_activo");
-            Borrar_dato_local("rut_activo");
-            Borrar_dato_local("empresa_activo");
-            ls.open(false);
+            (async () => {
+                let datos = await generarDataTrazabilidad(
+                    TipoAccionTypes.CIERRE_SESION,
+                    Obtener_dato_local('user_activo'),
+                );
+
+                await obtenerUbicacionEInsertarLog(
+                    Obtener_dato_local('user_activo'),
+                    datos
+                );
+
+                Borrar_dato_local("user_activo");
+                Borrar_dato_local("rut_activo");
+                Borrar_dato_local("empresa_activo");
+                ls.open(false);
+
+            })();
         }
     );
 
@@ -627,6 +668,23 @@ function logout() {
 function ok_login(usuario) {
     usuario_activo = usuario;
     var ls = app.loginScreen.create({ el: ".login-screen" });
+
+    (async () => {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.INICIO_SESION_CORRECTO,
+            $$("#input_username").val().toLowerCase().trim()
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            $$("#input_username").val().toLowerCase().trim(),
+            datos
+        );
+
+        setTimeout(function () {
+            app.dialog.close();
+        }, 800);
+
+    })();
     ls.close(false);
 }
 
