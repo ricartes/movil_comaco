@@ -41,32 +41,52 @@ var options_gps = {
 
 
 $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function (e, page) {
-    crear_autocompletar();
-    if (Obtener_dato_local("tema_oscuro") == "si") {
-        $$("#lb_patente").css("border", "1px solid white");
-        $$("#tx_patente_carro").css("border", "1px solid white");
-        $$("#lb_rut_transportista").css("border", "1px solid white");
-        $$("#lb_nombre_transportista").css("border", "1px solid white");
-        $$("#lb_cod_transportista").css("border", "1px solid white");
-        $$("#tx_rut_chofer").css("border", "1px solid white");
-        $$("#tx_nom_chofer").css("border", "1px solid white");
-    }
+
     rut_valido = 1;
     idgde_acutal = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
-    //cargar_datos_usuario(1);
-    tabla_proveedores(idgde_acutal);
-    $$('#combo_producto').change(function () {
-
-        var seleccionado = $$("#combo_producto").val();
-        var seleccionado_texto = $("#combo_producto :selected").text();
-        seleccionado_texto = seleccionado_texto.replace(/(\r\n|\n|\r)/gm, "");
-        var label = '<label" >' + seleccionado_texto + ' </label>';
-        var texto = label.concat('<div class="item-title" style="width: 100%;"></div>');
-        $$("#texto_producto").html(texto);
-    });
 
 
+    (async () => {
+        const accion = idgde_acutal != "-1" ? TipoAccionTypes.INICIA_INFORMAR_DESPACHO_BORRADOR : TipoAccionTypes.INICIA_INFORMAR_DESPACHO;
+        app.dialog.preloader("Cargando...")
+        let datos = await generarDataTrazabilidad(
+            accion,
+            Obtener_dato_local('user_activo')
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
+
+
+        crear_autocompletar();
+        if (Obtener_dato_local("tema_oscuro") == "si") {
+            $$("#lb_patente").css("border", "1px solid white");
+            $$("#tx_patente_carro").css("border", "1px solid white");
+            $$("#lb_rut_transportista").css("border", "1px solid white");
+            $$("#lb_nombre_transportista").css("border", "1px solid white");
+            $$("#lb_cod_transportista").css("border", "1px solid white");
+            $$("#tx_rut_chofer").css("border", "1px solid white");
+            $$("#tx_nom_chofer").css("border", "1px solid white");
+        }
+
+
+        //cargar_datos_usuario(1);
+        tabla_proveedores(idgde_acutal);
+        app.dialog.close();
+        $$('#combo_producto').change(function () {
+
+            var seleccionado = $$("#combo_producto").val();
+            var seleccionado_texto = $("#combo_producto :selected").text();
+            seleccionado_texto = seleccionado_texto.replace(/(\r\n|\n|\r)/gm, "");
+            var label = '<label" >' + seleccionado_texto + ' </label>';
+            var texto = label.concat('<div class="item-title" style="width: 100%;"></div>');
+            $$("#texto_producto").html(texto);
+        });
+
+    })();
 
 });
 
@@ -290,13 +310,87 @@ function limpiar_datos_transporte() {
 
 
 
-function guardar_guia() {
+async function guardar_guia() {
 
     if (valida()) {
-        guardar_datos_guia(0, 0);
+        app.dialog.preloader("Guadando...");
+        const datosUbicacion = await getLocation2();
+
+        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaCamionVacio) {
+
+            validarGeocerca(gdeRol).then((resultadoGeocerca) => {
+                let resultadoValidacion = resultadoGeocerca.validacion;
+                validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                    //si debe cerrar control
+                    if (resultado.cierra) {
+                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
+                            if (anula) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        { rol: gdeRol }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
+
+                            }
+                        });
+                    }
+                    else {
+
+                        if (resultado.advertencia) {
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                    Obtener_dato_local('user_activo'),
+                                    { rol: gdeRol }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+
+                                });
+
+                            })();
+
+
+                        } else {
+                            app.dialog.close();
+                            guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                        }
+                    }
+
+                });
+
+
+            }).catch((e) => {
+                app.dialog.close();
+                app.dialog.alert(e, "GFE")
+                reject(e);
+            });
+
+
+        } else {
+            app.dialog.close();
+            guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+
+        }
     }
-
-
 }
 
 
@@ -372,7 +466,7 @@ function guardar_datos_guia(latitud, longitud) {
 
         DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, gde.GDE_COD_PRODUCTO, function (proveedor) {
 
-           
+
 
             gde.GDE_COD_CLIENTE = proveedor.C_codigo;
             gde.GDE_NOMBRE_CLIENTE = proveedor.SN_Nombre
@@ -588,8 +682,113 @@ function valida() {
 
 
 
-function obtener_punto_inicial() {
-    getLocation(1, 0, gdeRol);
+async function obtener_punto_inicial() {
+    //punto inicial
+    app.dialog.preloader("Obteniendo Punto...");
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESA_PUNTO_INICIAL,
+        Obtener_dato_local('user_activo'),
+        { rol: gdeRol }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
+    //obtiene puntos
+    const datosUbicacion = await getLocation2();
+
+    if (datosUbicacion.status) {
+
+        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoInicial) {
+            validarGeocerca(gdeRol).then((resultadoGeocerca) => {
+
+                let resultadoValidacion = resultadoGeocerca.validacion;
+                validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                    //si debe cerrar control
+                    if (resultado.cierra) {
+                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
+                            if (anula) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        { rol: gdeRol }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
+
+                            }
+                        });
+                    }
+                    else {
+
+                        if (resultado.advertencia) {
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                    Obtener_dato_local('user_activo'),
+                                    { rol: gdeRol }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                                });
+
+                            })();
+
+                        } else {
+                            app.dialog.close();
+                            asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                        }
+
+                    }
+
+                });
+
+
+            }).catch((e) => {
+                app.dialog.close();
+                app.dialog.alert(e, "GFE")
+                reject(e);
+            });
+
+        } else {
+            app.dialog.close();
+            asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+        }
+
+    } else {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.UBICACION_DESACTIVADA,
+            Obtener_dato_local('user_activo'),
+            { despacho: gde_actual_puntos_gde }
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
+        app.dialog.close();
+        app.dialog.alert("Servicios de ubicación se encuentran desactivados. Favor activar para continuar", "GFE");
+        return false;
+    }
+
 }
 
 
@@ -607,9 +806,22 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 
 
-function cambia_proyecto(codproyecto, rol) {
+async function cambia_proyecto(codproyecto, rol) {
+
 
     app.dialog.preloader("Cargando...");
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.SELECCION_PCR,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: rol,
+            codproyecto: codproyecto
+        }
+    );
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
     gdeRol = rol;
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
         validarGeocerca(rol).then((resultado) => {
@@ -619,10 +831,23 @@ function cambia_proyecto(codproyecto, rol) {
                 if (resultado.cierra) {
                     ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
                         if (anula) {
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                mainView.router.navigate("/");
-                            });
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_INVALIDA,
+                                    Obtener_dato_local('user_activo'),
+                                    { rol: rol }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    mainView.router.navigate("/");
+                                });
+
+                            })();
                         }
 
                     });
@@ -630,8 +855,21 @@ function cambia_proyecto(codproyecto, rol) {
                 else {
                     combo_productos(codproyecto, 0);
                     if (resultado.advertencia) {
-                        app.dialog.close();
-                        app.dialog.alert(resultado.mensaje, "GFE");
+                        (async () => {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                Obtener_dato_local('user_activo'),
+                                { rol: rol }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE");
+
+                        })();
                     } else {
                         app.dialog.close();
                     }

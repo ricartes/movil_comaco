@@ -191,7 +191,6 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
     }
 
     if (bloqueadoTraza === 0) {
-        alert("ppasa");
         compruebaEnviaTrazabilidad().then((resultadoTrazabilidad) => {
         }).catch((error) => { });
     }
@@ -647,7 +646,6 @@ function logout() {
                     TipoAccionTypes.CIERRE_SESION,
                     Obtener_dato_local('user_activo'),
                 );
-
                 await obtenerUbicacionEInsertarLog(
                     Obtener_dato_local('user_activo'),
                     datos
