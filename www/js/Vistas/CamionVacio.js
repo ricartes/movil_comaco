@@ -9,6 +9,18 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
     const gde = await seleccionarGdeProveedor(id_gde_actual);
     gde_actual = gde;
 
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESO_CAMION_VACIO,
+        Obtener_dato_local('user_activo'),
+        { despacho: gde_actual, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
+
     DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_vacio, function (datos_evidencia) {
         if (datos_evidencia != "-1") {
             $$("#imagen_camion_vacio").attr("src", datos_evidencia[0].ARCHIVO);
@@ -74,6 +86,17 @@ function capturar_evidencia_camion_vacio(tipo_evidencia) {
 async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
     app.dialog.preloader("Cargando...");
+    const accion = tipo == 1 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO2;
+    let datos = await generarDataTrazabilidad(
+        accion,
+        Obtener_dato_local('user_activo'),
+        { despacho: gde_actual, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
 
     if (tipo == 1) {
         $$("#imagen_camion_vacio").attr("src", evidencia.ARCHIVO);

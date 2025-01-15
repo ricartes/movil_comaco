@@ -107,18 +107,18 @@ function enviarTrazabilidad(trazabilidad) {
     let respuesta = new ResponseDTO();
     return new Promise((resolve, reject) => {
         enviarTrazabilidadWebService(trazabilidad).then(async (response) => {
-            if (response.status) {
+            if (response.STATUS) {
                 await Datos_eliminarLogUsuario(trazabilidad.ID);
                 respuesta.data = trazabilidad;
                 respuesta.status = true;
                 resolve(respuesta);
 
             } else {
-                respuesta.error = error.mensaje;
+                respuesta.error = error.ERROR_MSJ;
                 resolve(respuesta);
             }
         }).catch((error) => {
-            respuesta.error = error.mensaje;
+            respuesta.error = error.message;
             resolve(respuesta);
         });
 

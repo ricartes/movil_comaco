@@ -42,51 +42,40 @@ var options_gps = {
 
 $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function (e, page) {
 
+
     rut_valido = 1;
     idgde_acutal = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
 
 
-    (async () => {
-        const accion = idgde_acutal != "-1" ? TipoAccionTypes.INICIA_INFORMAR_DESPACHO_BORRADOR : TipoAccionTypes.INICIA_INFORMAR_DESPACHO;
-        app.dialog.preloader("Cargando...")
-        let datos = await generarDataTrazabilidad(
-            accion,
-            Obtener_dato_local('user_activo')
-        );
-
-        await obtenerUbicacionEInsertarLog(
-            Obtener_dato_local('user_activo'),
-            datos
-        );
 
 
-        crear_autocompletar();
-        if (Obtener_dato_local("tema_oscuro") == "si") {
-            $$("#lb_patente").css("border", "1px solid white");
-            $$("#tx_patente_carro").css("border", "1px solid white");
-            $$("#lb_rut_transportista").css("border", "1px solid white");
-            $$("#lb_nombre_transportista").css("border", "1px solid white");
-            $$("#lb_cod_transportista").css("border", "1px solid white");
-            $$("#tx_rut_chofer").css("border", "1px solid white");
-            $$("#tx_nom_chofer").css("border", "1px solid white");
-        }
+    crear_autocompletar();
+    if (Obtener_dato_local("tema_oscuro") == "si") {
+        $$("#lb_patente").css("border", "1px solid white");
+        $$("#tx_patente_carro").css("border", "1px solid white");
+        $$("#lb_rut_transportista").css("border", "1px solid white");
+        $$("#lb_nombre_transportista").css("border", "1px solid white");
+        $$("#lb_cod_transportista").css("border", "1px solid white");
+        $$("#tx_rut_chofer").css("border", "1px solid white");
+        $$("#tx_nom_chofer").css("border", "1px solid white");
+    }
 
 
-        //cargar_datos_usuario(1);
-        tabla_proveedores(idgde_acutal);
-        app.dialog.close();
-        $$('#combo_producto').change(function () {
+    //cargar_datos_usuario(1);
+    tabla_proveedores(idgde_acutal);
+    app.dialog.close();
+    $$('#combo_producto').change(function () {
 
-            var seleccionado = $$("#combo_producto").val();
-            var seleccionado_texto = $("#combo_producto :selected").text();
-            seleccionado_texto = seleccionado_texto.replace(/(\r\n|\n|\r)/gm, "");
-            var label = '<label" >' + seleccionado_texto + ' </label>';
-            var texto = label.concat('<div class="item-title" style="width: 100%;"></div>');
-            $$("#texto_producto").html(texto);
-        });
+        var seleccionado = $$("#combo_producto").val();
+        var seleccionado_texto = $("#combo_producto :selected").text();
+        seleccionado_texto = seleccionado_texto.replace(/(\r\n|\n|\r)/gm, "");
+        var label = '<label" >' + seleccionado_texto + ' </label>';
+        var texto = label.concat('<div class="item-title" style="width: 100%;"></div>');
+        $$("#texto_producto").html(texto);
+    });
 
-    })();
+
 
 });
 
@@ -320,7 +309,7 @@ async function guardar_guia() {
 
             validarGeocerca(gdeRol).then((resultadoGeocerca) => {
                 let resultadoValidacion = resultadoGeocerca.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
@@ -329,7 +318,7 @@ async function guardar_guia() {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
                                         Obtener_dato_local('user_activo'),
-                                        { rol: gdeRol }
+                                        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                                     );
 
                                     await obtenerUbicacionEInsertarLog(
@@ -353,7 +342,7 @@ async function guardar_guia() {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: gdeRol }
+                                    { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -396,13 +385,26 @@ async function guardar_guia() {
 
 
 
-function recargarr_datos_gde(id_gde) {
+async function recargarr_datos_gde(id_gde) {
 
-
+    let datos = await generarDataTrazabilidad(
+        accion,
+        Obtener_dato_local('user_activo')
+    );
     if (id_gde != "-1") {
-        DATOS_seleccionar_gde_proveedor(id_gde, function (result) {
+        DATOS_seleccionar_gde_proveedor(id_gde, async function (result) {
 
             gde_actual = result;
+            datos.despacho = gde_actual;
+            datos.id_unico_movil_gde = gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null;
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+
+
+
+
             $$('#autocomplete-standalone-popup').find('.item-after').text(gde_actual.GDE_PATENTE_CAMION);
             $$('#autocomplete-standalone-popup').find('input').val(gde_actual.GDE_PATENTE_CAMION);
             $$("#tx_latitud_inicial").val(gde_actual.GDE_COORDENADA_INICIAL_X);
@@ -423,6 +425,11 @@ function recargarr_datos_gde(id_gde) {
 
         });
 
+    } else {
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
     }
 
 }
@@ -610,11 +617,23 @@ function recargar_combo_transportista2() {
 
 function volver_menu() {
 
-
-
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
-        mainView.router.navigate('/');
+        (async () => {
+            app.dialog.preloader("Cargando...");
+            let datos = await generarDataTrazabilidad(
+                TipoAccionTypes.SALIR_INFORME_DESPACHO,
+                Obtener_dato_local('user_activo'),
+                { id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+            );
 
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+            app.dialog.close();
+            mainView.router.navigate("/");
+
+        })();
     });
 
 }
@@ -683,18 +702,21 @@ function valida() {
 
 
 async function obtener_punto_inicial() {
-    //punto inicial
+
     app.dialog.preloader("Obteniendo Punto...");
     let datos = await generarDataTrazabilidad(
         TipoAccionTypes.INGRESA_PUNTO_INICIAL,
         Obtener_dato_local('user_activo'),
-        { rol: gdeRol }
+        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
     );
+
+
 
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
         datos
     );
+
 
     //obtiene puntos
     const datosUbicacion = await getLocation2();
@@ -703,10 +725,12 @@ async function obtener_punto_inicial() {
 
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoInicial) {
             validarGeocerca(gdeRol).then((resultadoGeocerca) => {
-
                 let resultadoValidacion = resultadoGeocerca.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+
+
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                     //si debe cerrar control
+
                     if (resultado.cierra) {
                         ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
                             if (anula) {
@@ -714,7 +738,7 @@ async function obtener_punto_inicial() {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
                                         Obtener_dato_local('user_activo'),
-                                        { rol: gdeRol }
+                                        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                                     );
 
                                     await obtenerUbicacionEInsertarLog(
@@ -738,7 +762,7 @@ async function obtener_punto_inicial() {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: gdeRol }
+                                    { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -777,7 +801,7 @@ async function obtener_punto_inicial() {
         let datos = await generarDataTrazabilidad(
             TipoAccionTypes.UBICACION_DESACTIVADA,
             Obtener_dato_local('user_activo'),
-            { despacho: gde_actual_puntos_gde }
+            { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
         );
 
         await obtenerUbicacionEInsertarLog(
@@ -815,7 +839,9 @@ async function cambia_proyecto(codproyecto, rol) {
         Obtener_dato_local('user_activo'),
         {
             rol: rol,
-            codproyecto: codproyecto
+            codproyecto: codproyecto,
+            id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null,
+            despacho: gde_actual ? gde_actual : null
         }
     );
     await obtenerUbicacionEInsertarLog(
@@ -823,10 +849,11 @@ async function cambia_proyecto(codproyecto, rol) {
         datos
     );
     gdeRol = rol;
+
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
         validarGeocerca(rol).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                 //si debe cerrar control
                 if (resultado.cierra) {
                     ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
@@ -835,7 +862,7 @@ async function cambia_proyecto(codproyecto, rol) {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_INVALIDA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: rol }
+                                    { rol: rol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -859,7 +886,7 @@ async function cambia_proyecto(codproyecto, rol) {
                             let datos = await generarDataTrazabilidad(
                                 TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                 Obtener_dato_local('user_activo'),
-                                { rol: rol }
+                                { rol: rol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
                             );
 
                             await obtenerUbicacionEInsertarLog(
