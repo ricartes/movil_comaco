@@ -53,6 +53,8 @@ async function validacionHoraInicioTerminoCarguio(idGde) {
         const tiempoMaximoAcumulado = tiempoMaximoEspera + tiempoEsperaAdicional;
 
 
+        alert(tiempoMinimoEspera);
+        alert(tiempoMaximoAcumulado);
         const esValido = validarRangoFecha(gde.GDE_HORA_CARGUIO_INICIO, tiempoMinimoEspera, tiempoMaximoAcumulado);
 
         return esValido;
