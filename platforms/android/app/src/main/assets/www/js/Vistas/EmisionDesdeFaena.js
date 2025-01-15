@@ -318,7 +318,11 @@ async function guardar_guia() {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
                                         Obtener_dato_local('user_activo'),
-                                        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                        {
+                                            rol: gdeRol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
                                     );
 
                                     await obtenerUbicacionEInsertarLog(
@@ -342,7 +346,11 @@ async function guardar_guia() {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                    {
+                                        rol: gdeRol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -386,22 +394,27 @@ async function guardar_guia() {
 
 
 async function recargarr_datos_gde(id_gde) {
+    const accion = idgde_acutal != "-1" ? TipoAccionTypes.INICIA_INFORMAR_DESPACHO_BORRADOR : TipoAccionTypes.INICIA_INFORMAR_DESPACHO;
 
     let datos = await generarDataTrazabilidad(
         accion,
         Obtener_dato_local('user_activo')
     );
-    if (id_gde != "-1") {
-        DATOS_seleccionar_gde_proveedor(id_gde, async function (result) {
+    datos.metadata.rol = gdeRol;
 
-            gde_actual = result;
-            datos.despacho = gde_actual;
-            datos.id_unico_movil_gde = gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null;
+    if (id_gde != "-1") {
+        app.dialog.progress("Cargando...")
+
+        try {
+            gde_actual = await seleccionarGdeProveedor(id_gde);
+
+            datos.metadata.rol = gde_actual?.GDE_COD_ORIGEN ?? null;
+            datos.metadata.despacho = gde_actual;
+            datos.metadata.id_unico_movil_gde = gde_actual?.ID_UNICO_MOVIL ?? null;
             await obtenerUbicacionEInsertarLog(
                 Obtener_dato_local('user_activo'),
                 datos
             );
-
 
 
 
@@ -420,10 +433,12 @@ async function recargarr_datos_gde(id_gde) {
 
             combo_productos(gde_actual.GDE_COD_PROYECTO, 1);
             recargar_combo_transportista2();
+        } catch (ex) {
+            app.dialog.alert("Ha ocurrido un error al cargar los datos en borrrador");
+        } finally {
+            app.dialog.close();
+        }
 
-
-
-        });
 
     } else {
         await obtenerUbicacionEInsertarLog(
@@ -623,7 +638,11 @@ function volver_menu() {
             let datos = await generarDataTrazabilidad(
                 TipoAccionTypes.SALIR_INFORME_DESPACHO,
                 Obtener_dato_local('user_activo'),
-                { id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                {
+                    rol: gdeRol,
+                    despacho: gde_actual,
+                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                }
             );
 
             await obtenerUbicacionEInsertarLog(
@@ -707,7 +726,11 @@ async function obtener_punto_inicial() {
     let datos = await generarDataTrazabilidad(
         TipoAccionTypes.INGRESA_PUNTO_INICIAL,
         Obtener_dato_local('user_activo'),
-        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+        {
+            rol: gdeRol,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
     );
 
 
@@ -738,7 +761,11 @@ async function obtener_punto_inicial() {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
                                         Obtener_dato_local('user_activo'),
-                                        { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                        {
+                                            rol: gdeRol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
                                     );
 
                                     await obtenerUbicacionEInsertarLog(
@@ -762,7 +789,11 @@ async function obtener_punto_inicial() {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                    {
+                                        rol: gdeRol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -801,7 +832,11 @@ async function obtener_punto_inicial() {
         let datos = await generarDataTrazabilidad(
             TipoAccionTypes.UBICACION_DESACTIVADA,
             Obtener_dato_local('user_activo'),
-            { rol: gdeRol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+            {
+                rol: gdeRol,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            }
         );
 
         await obtenerUbicacionEInsertarLog(
@@ -840,8 +875,8 @@ async function cambia_proyecto(codproyecto, rol) {
         {
             rol: rol,
             codproyecto: codproyecto,
-            id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null,
-            despacho: gde_actual ? gde_actual : null
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
     );
     await obtenerUbicacionEInsertarLog(
@@ -862,7 +897,11 @@ async function cambia_proyecto(codproyecto, rol) {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_INVALIDA,
                                     Obtener_dato_local('user_activo'),
-                                    { rol: rol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                    {
+                                        rol: rol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(
@@ -886,7 +925,11 @@ async function cambia_proyecto(codproyecto, rol) {
                             let datos = await generarDataTrazabilidad(
                                 TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                 Obtener_dato_local('user_activo'),
-                                { rol: rol, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null, despacho: gde_actual ? gde_actual : null }
+                                {
+                                    rol: rol,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                }
                             );
 
                             await obtenerUbicacionEInsertarLog(

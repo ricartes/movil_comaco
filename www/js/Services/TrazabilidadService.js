@@ -42,7 +42,7 @@ async function obtenerUbicacionEInsertarLog(userUsuario, datos, obtieneUbicacion
 
 
 
-async function generarDataTrazabilidad(accionParametro, userParametro, metadata = null) {
+async function generarDataTrazabilidad(accionParametro, userParametro, metadata = {}) {
     let resultado = null;
     try {
         resultado = await getPublicIPAddress();

@@ -5,16 +5,34 @@ var gde_actual = null;
 $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
+    app.dialog.progress("Cargando...")
     const gde = await seleccionarGdeProveedor(id_gde_actual);
     gde_actual = gde;
 
 
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESO_CAMION_CARGADO,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
+
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+    app.dialog.close();
     DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
 
         if (datos_evidencia != "-1") {
             $$("#imagen_camion_cargado").attr("src", datos_evidencia[0].ARCHIVO);
         }
         DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado_2, function (datos_evidencia_2) {
+            
             if (datos_evidencia_2 != "-1") {
                 $$("#imagen_camion_cargado_2").attr("src", datos_evidencia_2[0].ARCHIVO);
             }
@@ -47,7 +65,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
     const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
-    
+
     if (!estadoValidacion) {
         app.dialog.preloader("Cargando...");
         getLocation2().then((coordenadas) => {
@@ -75,6 +93,18 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     app.dialog.preloader("Cargando...");
 
+
+    const accion = tipo == 2 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO2;
+    let datos = await generarDataTrazabilidad(
+        accion,
+        Obtener_dato_local('user_activo'),
+        { despacho: gde_actual, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
 
 
     if (tipo == 2) {

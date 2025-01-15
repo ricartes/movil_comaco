@@ -10,7 +10,7 @@ var gde_actual_puntos_gde;
 var bloqueo_geocerca_punto_final = 0;
 
 
-$$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page) {
+$$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e, page) {
 
 
 
@@ -19,37 +19,50 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
     id_gde_actual = id_gde;
 
+    app.dialog.progress("Cargando...")
+    gde_actual_puntos_gde = await seleccionarGdeProveedor(id_gde);
 
 
-    DATOS_seleccionar_gde_proveedor(id_gde, function (gde_result) {
-        gde_actual_puntos_gde = gde_result;
-    
-
-        $$("#tx_latitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_X);
-        $$("#tx_longitud_inicial").val(gde_result.GDE_COORDENADA_INICIAL_Y);
-        $$("#tx_latitud_final").val(gde_result.GDE_COORDENADA_FINAL_X);
-        $$("#tx_longitud_final").val(gde_result.GDE_COORDENADA_FINAL_Y);
-
-
-
-        if (gde_result.GDE_HORA_PUNTO_INICIO == undefined || gde_result.GDE_HORA_PUNTO_INICIO == null || gde_result.GDE_HORA_PUNTO_INICIO == "") {
-            $$("#btn_punto_final").css('display', 'none');
-            $$("#btn_punto_final").css('display', 'none');
-            $$("#btn_camion_cargado").css('display', 'none');
-
-        } else {
-            $$("#btn_punto_inicial").css('display', 'none');
-            $$("#btn_punto_final").css('display', 'block');
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESO_PUNTOS_GDE,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual_puntos_gde,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
 
-        if (gde_result.GDE_HORA_PUNTO_FINAL == undefined || gde_result.GDE_HORA_PUNTO_FINAL == null || gde_result.GDE_HORA_PUNTO_FINAL == "") {
-            $$("#btn_camion_cargado").css('display', 'none');
-        } else {
-            $$("#btn_punto_final").css('display', 'none');
-        }
+    );
 
-    });
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
 
+    app.dialog.close();
+
+    $$("#tx_latitud_inicial").val(gde_actual_puntos_gde.GDE_COORDENADA_INICIAL_X);
+    $$("#tx_longitud_inicial").val(gde_actual_puntos_gde.GDE_COORDENADA_INICIAL_Y);
+    $$("#tx_latitud_final").val(gde_actual_puntos_gde.GDE_COORDENADA_FINAL_X);
+    $$("#tx_longitud_final").val(gde_actual_puntos_gde.GDE_COORDENADA_FINAL_Y);
+
+
+
+    if (gde_actual_puntos_gde.GDE_HORA_PUNTO_INICIO == undefined || gde_actual_puntos_gde.GDE_HORA_PUNTO_INICIO == null || gde_actual_puntos_gde.GDE_HORA_PUNTO_INICIO == "") {
+        $$("#btn_punto_final").css('display', 'none');
+        $$("#btn_punto_final").css('display', 'none');
+        $$("#btn_camion_cargado").css('display', 'none');
+
+    } else {
+        $$("#btn_punto_inicial").css('display', 'none');
+        $$("#btn_punto_final").css('display', 'block');
+    }
+
+    if (gde_actual_puntos_gde.GDE_HORA_PUNTO_FINAL == undefined || gde_actual_puntos_gde.GDE_HORA_PUNTO_FINAL == null || gde_actual_puntos_gde.GDE_HORA_PUNTO_FINAL == "") {
+        $$("#btn_camion_cargado").css('display', 'none');
+    } else {
+        $$("#btn_punto_final").css('display', 'none');
+    }
 
 
 
@@ -83,7 +96,82 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
 
                             if (minutes >= tiempo) {
 
-                                mainView.router.navigate('/CamionCargado/' + 0 + '/' + id_gde_actual + '/' + 0);
+                                if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaCamionCargado) {
+                                    app.dialog.preloader("Guardando...");
+                                    validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
+
+                                        let resultadoValidacion = resultadoGeocerca.validacion;
+                                        validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                                            //si debe cerrar control
+                                            if (resultado.cierra) {
+                                                ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
+                                                    (async () => {
+                                                        let datos = await generarDataTrazabilidad(
+                                                            TipoAccionTypes.GEOCERCA_INVALIDA,
+                                                            Obtener_dato_local('user_activo'),
+                                                            {
+                                                                rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                despacho: gde_actual_puntos_gde,
+                                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                                            }
+
+                                                        );
+
+                                                        await obtenerUbicacionEInsertarLog(
+                                                            Obtener_dato_local('user_activo'),
+                                                            datos
+                                                        );
+                                                        app.dialog.close();
+                                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                                            mainView.router.navigate("/");
+                                                        });
+
+                                                    })();
+                                                });
+                                            }
+                                            else {
+                                                if (resultado.advertencia) {
+                                                    (async () => {
+                                                        let datos = await generarDataTrazabilidad(
+                                                            TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                                            Obtener_dato_local('user_activo'),
+                                                            {
+                                                                rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                despacho: gde_actual_puntos_gde,
+                                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                                            }
+
+                                                        );
+
+                                                        await obtenerUbicacionEInsertarLog(
+                                                            Obtener_dato_local('user_activo'),
+                                                            datos
+                                                        );
+                                                        app.dialog.close();
+
+                                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                                            mainView.router.navigate('/CamionCargado/' + 0 + '/' + id_gde_actual + '/' + 0);
+                                                        });
+
+                                                    })();
+                                                } else {
+                                                    app.dialog.close();
+                                                    mainView.router.navigate('/CamionCargado/' + 0 + '/' + id_gde_actual + '/' + 0);
+                                                }
+                                            }
+
+                                        });
+
+
+                                    }).catch((e) => {
+                                        app.dialog.close();
+                                        app.dialog.alert(e, "GFE");
+                                        reject(e);
+                                    });
+
+                                } else {
+                                    mainView.router.navigate('/CamionCargado/' + 0 + '/' + id_gde_actual + '/' + 0);
+                                }
                             } else {
                                 app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara obtener el punto final, debe esperar " + tiempo + " minutos...", "GFE");
                                 return false;
@@ -91,12 +179,6 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', function (e, page)
 
                         });
                     }
-
-
-
-
-
-
 
                 }
 
@@ -126,7 +208,7 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
 
     //punto inicial
     if (argumento == 1) {
-        
+
         asignar_puntos_inicio(latitud, longitud);
     }
 
@@ -168,7 +250,7 @@ function obtener_punto_final() {
 
         } else {
 
-            DATOS_seleccionar_Parametro_general(1, 10, function (result_param) {
+            DATOS_seleccionar_Parametro_general(1, 10, async function (result_param) {
                 var fecha_hora_inicial = new Date(gde_result.GDE_HORA_PUNTO_INICIO);
                 var fecha_hora_actual = new Date();
 
@@ -177,9 +259,30 @@ function obtener_punto_final() {
                 var tiempo = result_param.PAG_VALOR;
 
                 if (minutes >= tiempo) {
-                    getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_ORIGEN);
+                    getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_PROYECTO);
                 } else {
-                    app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara obtener el punto final, debe esperar " + tiempo + " minutos...", "GFE");
+                    app.dialog.progress("Cargando...")
+                    const mensaje = `Actualmente lleva ${minutes} minutos desde que obtuvo el punto inicial. 
+                    Para obtener el punto final, debe esperar ${tiempo} minutos...`;
+
+                    let datos = await generarDataTrazabilidad(
+                        TipoAccionTypes.ALERTA_ESPERA_PUNTO_FINAL,
+                        Obtener_dato_local('user_activo'),
+                        {
+                            rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                            despacho: gde_actual_puntos_gde,
+                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                            mensajeMostrado: mensaje
+                        }
+
+                    );
+
+                    await obtenerUbicacionEInsertarLog(
+                        Obtener_dato_local('user_activo'),
+                        datos
+                    );
+                    app.dialog.close();
+                    app.dialog.alert(mensaje, "GFE");
 
                 }
 
@@ -205,32 +308,84 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
 
     app.dialog.preloader("Obteniendo punto...")
 
+    //trazabilidad
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESA_PUNTO_FINAL,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual_puntos_gde,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
+
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
     //obtiene puntos
     const datosUbicacion = await getLocation2();
 
     if (datosUbicacion.status) {
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoFinal) {
-            validarGeocerca(proyecto).then((resultadoGeocerca) => {
+            validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
                 let resultadoValidacion = resultadoGeocerca.validacion;
                 validarCierreControl(resultadoValidacion, id_gde_actual, 2).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", constantes.mensajeGeocercaNoValida).then((anula) => {
                             if (anula) {
-                                app.dialog.close();
-                                app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                    mainView.router.navigate("/");
-                                });
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                            despacho: gde_actual_puntos_gde,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
                             }
                         });
                     }
                     else {
 
                         if (resultado.advertencia) {
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                guardar_punto_ubicacion(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, argumento, valida_geocerca, proyecto);
-                            });
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                        despacho: gde_actual_puntos_gde,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
+
+                                );
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    guardar_punto_ubicacion(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, argumento, valida_geocerca, proyecto);
+                                });
+
+                            })();
 
                         } else {
                             app.dialog.close();
@@ -256,6 +411,21 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
         }
 
     } else {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.UBICACION_DESACTIVADA,
+            Obtener_dato_local('user_activo'),
+            {
+                rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual_puntos_gde,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            }
+
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
         app.dialog.close();
         app.dialog.alert("Servicios de ubicación se encuentran desactivados. Favor activar para continuar", "GFE");
         return false;
