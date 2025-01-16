@@ -362,6 +362,7 @@ document.addEventListener("deviceready", async function () {
                         borra_transporte(function (result) {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
+                                    app.dialog.progress("Cargando...");
                                     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
                                         if (result_fecha == 0) {
                                             app.dialog.alert(
@@ -377,6 +378,7 @@ document.addEventListener("deviceready", async function () {
                         });
                     });
                 } else {
+                    app.dialog.progress("Cargando...");
                     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
                         if (result_fecha == 0) {
                             app.dialog.alert(
@@ -600,6 +602,7 @@ function login() {
                     } else {
                         if (contador != -1) {
                             (async () => {
+                                app.dialog.progress("Iniciando sesión...");
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.INICIO_SESION_INCORRECTO,
                                     $$("#input_username").val().toLowerCase().trim()
@@ -640,6 +643,7 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
+            app.dialog.progress("Cargando...");
             (async () => {
                 let datos = await generarDataTrazabilidad(
                     TipoAccionTypes.CIERRE_SESION,
@@ -649,6 +653,7 @@ function logout() {
                     Obtener_dato_local('user_activo'),
                     datos
                 );
+                app.dialog.close();
 
                 Borrar_dato_local("user_activo");
                 Borrar_dato_local("rut_activo");
@@ -707,7 +712,7 @@ function envio_guias_automatico() {
 }
 
 function obtener_informacion_movil() {
-    app.dialog.close();
+    //app.dialog.close();
     if (
         Obtener_dato_local("fecha_hora_carga_parametros") != undefined &&
         Obtener_dato_local("fecha_hora_carga_parametros") != null

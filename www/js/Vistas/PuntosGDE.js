@@ -101,7 +101,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                     validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
 
                                         let resultadoValidacion = resultadoGeocerca.validacion;
-                                        validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                                        validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                                             //si debe cerrar control
                                             if (resultado.cierra) {
                                                 ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
@@ -332,7 +332,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoFinal) {
             validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
                 let resultadoValidacion = resultadoGeocerca.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual, 2).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", constantes.mensajeGeocercaNoValida).then((anula) => {

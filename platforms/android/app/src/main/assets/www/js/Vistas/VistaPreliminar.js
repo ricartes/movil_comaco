@@ -274,7 +274,24 @@ function cambiar_numero_guia() {
     app.dialog.prompt('Ingrese nuevo número de guía', "GFE", function (nro_guia) {
         if (nro_guia != "") {
 
-            DATOS_actualiza_num_guia(id_gde, nro_guia, 1, function (result) {
+            DATOS_actualiza_num_guia(id_gde, nro_guia, 1, async function (result) {
+
+
+                let datos = await generarDataTrazabilidad(
+                    TipoAccionTypes.CAMBIA_NRO_GUIA,
+                    Obtener_dato_local('user_activo'),
+                    {
+                        rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                        despacho: gde_actual,
+                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                    }
+                );
+
+                await obtenerUbicacionEInsertarLog(
+                    Obtener_dato_local('user_activo'),
+                    datos
+                );
+
                 app.dialog.alert("Número de Guía Cambiado correctamente.", "GFE", function () {
                     cambiar_texto_gde_proveedor(nro_guia);
                 });

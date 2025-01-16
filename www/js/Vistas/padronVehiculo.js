@@ -12,7 +12,11 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
     let datos = await generarDataTrazabilidad(
         TipoAccionTypes.INGRESO_PADRON_VEHICULO,
         Obtener_dato_local('user_activo'),
-        { despacho: gde_actual }
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+        }
     );
 
     await obtenerUbicacionEInsertarLog(
@@ -41,7 +45,7 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
                     validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
 
                         let resultadoValidacion = resultadoGeocerca.validacion;
-                        validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                        validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                             //si debe cerrar control
                             if (resultado.cierra) {
                                 ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
@@ -49,7 +53,11 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
                                         let datos = await generarDataTrazabilidad(
                                             TipoAccionTypes.GEOCERCA_INVALIDA,
                                             Obtener_dato_local('user_activo'),
-                                            { despacho: gde_actual }
+                                            {
+                                                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                despacho: gde_actual,
+                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                            }
                                         );
 
                                         await obtenerUbicacionEInsertarLog(
@@ -70,7 +78,11 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
                                         let datos = await generarDataTrazabilidad(
                                             TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                             Obtener_dato_local('user_activo'),
-                                            { despacho: gde_actual }
+                                            {
+                                                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                despacho: gde_actual,
+                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                            }
                                         );
 
                                         await obtenerUbicacionEInsertarLog(
@@ -125,15 +137,19 @@ function capturar_evidencia_padron(tipo_evidencia) {
 
 
 async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
-    app.dialog.preloader("Cargando...");
+
     if (tipo == 5) {
         $$("#imagen_padron").attr("src", evidencia.ARCHIVO);
 
-        app.dialog.preloader("Cargando...");
+        app.dialog.progress("Cargando...");
         let datos = await generarDataTrazabilidad(
             TipoAccionTypes.CAPTURA_EVIDENCIA_PADRON_VEHICULO,
             Obtener_dato_local('user_activo'),
-            { despacho: gde_actual }
+            {
+                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+            }
         );
 
         await obtenerUbicacionEInsertarLog(
@@ -141,11 +157,12 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
             datos
         );
 
+
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.padronVehiculo) {
 
             validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
                 let resultadoValidacion = resultado.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
@@ -154,7 +171,11 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
                                         Obtener_dato_local('user_activo'),
-                                        { despacho: gde_actual }
+                                        {
+                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        }
                                     );
 
                                     await obtenerUbicacionEInsertarLog(
@@ -177,7 +198,11 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                                 let datos = await generarDataTrazabilidad(
                                     TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                     Obtener_dato_local('user_activo'),
-                                    { despacho: gde_actual }
+                                    {
+                                        rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                    }
                                 );
 
                                 await obtenerUbicacionEInsertarLog(

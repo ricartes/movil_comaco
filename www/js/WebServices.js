@@ -1528,7 +1528,7 @@ function comparar_fecha_hora_ws(fecha_hora, callback) {
             },
             error: function (err) {
                 // handle your error logic here
-                alert("errr llamado al ws" + err);
+                //alert("errr llamado al ws" + err);
                 typeof callback == "function" && callback(-1);
             }
         });

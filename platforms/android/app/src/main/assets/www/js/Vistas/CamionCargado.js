@@ -54,7 +54,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
 
                             let resultadoValidacion = resultadoGeocerca.validacion;
-                            validarCierreControl(resultadoValidacion, id_gde_actual).then((resultado) => {
+                            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                                 //si debe cerrar control
                                 if (resultado.cierra) {
                                     ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
@@ -62,7 +62,11 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                                             let datos = await generarDataTrazabilidad(
                                                 TipoAccionTypes.GEOCERCA_INVALIDA,
                                                 Obtener_dato_local('user_activo'),
-                                                { despacho: gde_actual }
+                                                {
+                                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                    despacho: gde_actual,
+                                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                                }
                                             );
 
                                             await obtenerUbicacionEInsertarLog(
@@ -83,7 +87,11 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                                             let datos = await generarDataTrazabilidad(
                                                 TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                                 Obtener_dato_local('user_activo'),
-                                                { despacho: gde_actual }
+                                                {
+                                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                    despacho: gde_actual,
+                                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                                }
                                             );
 
                                             await obtenerUbicacionEInsertarLog(
@@ -130,8 +138,8 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 
 async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
-    const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
-
+    //const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
+    const estadoValidacion = true; //TODO: QUITAR AL PASAR
     if (!estadoValidacion) {
         app.dialog.preloader("Cargando...");
         getLocation2().then(async (coordenadas) => {
@@ -181,7 +189,11 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     let datos = await generarDataTrazabilidad(
         accion,
         Obtener_dato_local('user_activo'),
-        { despacho: gde_actual, id_unico_movil_gde: gde_actual && gde_actual.ID_UNICO_MOVIL ? gde_actual.ID_UNICO_MOVIL : null }
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+        }
     );
 
     await obtenerUbicacionEInsertarLog(
@@ -202,7 +214,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
 
         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
+            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                 //si debe cerrar control
                 if (resultado.cierra) {
                     ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
