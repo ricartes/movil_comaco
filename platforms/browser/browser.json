@@ -79,6 +79,9 @@
     },
     "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "verify-automatic-date-time-zone": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {},
@@ -736,6 +739,14 @@
       "clobbers": [
         "window.FileTransfer"
       ]
+    },
+    {
+      "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+      "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+      "pluginId": "verify-automatic-date-time-zone",
+      "clobbers": [
+        "VerifyAutomaticDateTimeZone"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -756,6 +767,7 @@
     "cordova-plugin-android-permissions": "1.1.5",
     "cordova-plugin-camera": "7.0.0",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev"
   }
 }

@@ -53,6 +53,9 @@
     <feature name="FileTransfer">
         <param name="android-package" value="org.apache.cordova.filetransfer.FileTransfer" />
     </feature>
+    <feature name="VerifyAutomaticDateTimeZone">
+        <param name="android-package" value="com.edsonhoraciojunior.verifyautomaticdatetimezone.VerifyAutomaticDateTimeZone" />
+    </feature>
     <name>Control de Origen (Proveedores)</name>
     <description>
         Emisión guia electronica Proveedores Comaco

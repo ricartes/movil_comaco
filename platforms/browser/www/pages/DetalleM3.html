@@ -1,0 +1,88 @@
+<div class="page" data-name="detalle-aserrable">
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link" onclick="volver_encabezadoM3()">
+					<i class="icon icon-back"></i>
+					<span class="ios-only">Back</span>
+				</a>
+			</div>
+			<div class="title">Detalle M3</div>
+		</div>
+	</div>
+
+
+
+	<div class="page-content" >
+
+		<div class="data-table data-table-init card">
+			<div class="list no-hairlines-md">
+				<ul>
+					<li class="item-content item-input">
+
+						<div class="item-inner">
+							<div class="item-title item">Largo (Metros)</div>
+							<div class="item-input-wrap">
+								<input type="text" id="largom3" disabled>
+							</div>
+						</div>
+					</li>
+
+
+					<li class="item-content item-input">
+						
+						<div class="item-inner">
+							<div class="item-title item">Precio</div>
+							<div class="item-input-wrap">
+								<input type="text" disabled  id="preciom3">								
+							</div>
+						</div>
+					</li>
+				</ul>
+			</div>
+		</div>
+
+
+
+
+
+
+
+	
+		<div class="data-table data-table-init card">
+
+			<div class="card-content" id="tabla_faena">
+
+				<form id="my-form"> 
+
+					<div class="block" style="width: 90%;"> 
+
+						<div class="card data-table">
+							<table id="tabla_m3">
+								<tbody id="datos_m3">
+								</tbody>
+							</table>
+						</div>
+
+					</div>
+
+					<div class="block"> 
+						Total Volumen M3: <label style="display: inline;" id="total_vol">0</label>
+						
+					</div>
+
+					<div class="block"> 
+						
+						Total Guía: $ <label style="display: inline;" id="total_guia">0</label>
+					</div>
+				</form>
+			</div>
+		</div>
+		<p class="row">         
+			<a onclick="pagina_comentarios_m3()" data-view=".view-main" class="col button button-big button-raised button-fill">Continuar
+			</a>
+
+			<!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+		</p>
+	</div>
+</div>

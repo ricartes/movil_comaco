@@ -359,6 +359,14 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       "clobbers": [
         "window.FileTransfer"
       ]
+    },
+    {
+      "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+      "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+      "pluginId": "verify-automatic-date-time-zone",
+      "clobbers": [
+        "VerifyAutomaticDateTimeZone"
+      ]
     }
   ];
   module.exports.metadata = {
@@ -378,6 +386,7 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova-plugin-vibration": "3.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev"
   };
 });

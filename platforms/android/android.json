@@ -29,19 +29,19 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 160
+              "count": 183
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 160
+              "count": 183
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 160
+              "count": 183
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 160
+              "count": 183
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
@@ -200,6 +200,10 @@
             {
               "xml": "<feature name=\"FileTransfer\"><param name=\"android-package\" value=\"org.apache.cordova.filetransfer.FileTransfer\" /></feature>",
               "count": 1
+            },
+            {
+              "xml": "<feature name=\"VerifyAutomaticDateTimeZone\"><param name=\"android-package\" value=\"com.edsonhoraciojunior.verifyautomaticdatetimezone.VerifyAutomaticDateTimeZone\" /></feature>",
+              "count": 1
             }
           ]
         }
@@ -258,6 +262,9 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-file-transfer": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "verify-automatic-date-time-zone": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
@@ -622,6 +629,14 @@
       "clobbers": [
         "window.FileTransfer"
       ]
+    },
+    {
+      "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+      "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+      "pluginId": "verify-automatic-date-time-zone",
+      "clobbers": [
+        "VerifyAutomaticDateTimeZone"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -641,6 +656,7 @@
     "cordova-plugin-vibration": "3.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev"
   }
 }

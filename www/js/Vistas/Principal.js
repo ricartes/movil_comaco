@@ -243,6 +243,12 @@ function onActivate() {
 
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
+
+    Borrar_dato_local("user_activo");
+    Borrar_dato_local("rut_activo");
+    Borrar_dato_local("nombre_activo");
+    Borrar_dato_local("empresa_activo");
+
     Guardar_dato_local("bloqueado", 1);
     Guardar_dato_local("bloqueado-traza", 0);
 
@@ -250,6 +256,19 @@ document.addEventListener("deviceready", async function () {
         Guardar_dato_local("actualiza_direccion", 0);
     }
 
+
+
+    document.addEventListener("timeChangeDetected", function (e) {
+        const { horaCorrecta } = e.detail; // Accede a los datos adicionales
+        mostarOcultarMenuPrincipal(horaCorrecta);
+
+        if (!horaCorrecta) {
+            app.dialog.alert(
+                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. Validar si tiene habilitada la hora automática en la configuración.",
+                "GFE"
+            );
+        }
+    });
 
 
 
@@ -365,10 +384,13 @@ document.addEventListener("deviceready", async function () {
                                     app.dialog.progress("Cargando...");
                                     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
                                         if (result_fecha == 0) {
+                                            mostarOcultarMenuPrincipal(false);
                                             app.dialog.alert(
-                                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador",
+                                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
                                                 "GFE"
                                             );
+                                        } else {
+                                            mostarOcultarMenuPrincipal(true);
                                         }
 
                                         obtener_informacion_movil();
@@ -381,10 +403,13 @@ document.addEventListener("deviceready", async function () {
                     app.dialog.progress("Cargando...");
                     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
                         if (result_fecha == 0) {
+                            mostarOcultarMenuPrincipal(false);
                             app.dialog.alert(
-                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador",
+                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
                                 "GFE"
                             );
+                        } else {
+                            mostarOcultarMenuPrincipal(true);
                         }
 
                         obtener_informacion_movil();
@@ -397,9 +422,46 @@ document.addEventListener("deviceready", async function () {
             }
         });
     });
+
+
+
+
+    if (typeof initializeResumeHandler === "function") {
+        initializeResumeHandler();
+    } else {
+        alert("La función initializeResumeHandler no está disponible.");
+    }
 });
 
 
+function mostarOcultarMenuPrincipal(visible) {
+    if (visible) {
+        $$('#page_guias').removeClass("disabled");
+        $$('#btn_canchaGuiaIndex').removeClass("disabled");
+        $$('#btnControlFaenas').removeClass("disabled");
+        $$('#btn_consultaGuiaIndex').removeClass("disabled");
+        $$('#btn_login').removeClass("disabled");
+        $$('#item_zonas').removeClass("disabled");
+        $$('#item_cargar_folios').removeClass("disabled");
+        $$('#item_liberar_folios').removeClass("disabled");
+        $$('#item_enviar_guias').removeClass("disabled");
+        $$('#item_enviar_cfaena').removeClass("disabled");
+        $$("#item_configuracion").removeClass("disabled");
+    } else {
+        $$('#page_guias').addClass("disabled");
+        $$('#btn_canchaGuiaIndex').addClass("disabled");
+        $$('#btnControlFaenas').addClass("disabled");
+        $$('#btn_consultaGuiaIndex').addClass("disabled");
+        $$('#item_zonas').addClass("disabled");
+        $$('#item_cargar_folios').addClass("disabled");
+        $$('#item_liberar_folios').addClass("disabled");
+        $$('#item_enviar_guias').addClass("disabled");
+        $$('#item_enviar_cfaena').addClass("disabled");
+        $$("#item_configuracion").addClass("disabled");
+        //$$('#btn_login').addClass("disabled");
+    }
+
+}
 function cargarUrlServidorWeb() {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {

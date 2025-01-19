@@ -1,0 +1,118 @@
+<div class="page" data-name="impresion">
+    <div class="navbar">
+        <div class="navbar-inner sliding">
+            <div class="left">
+                <a href="#" class="link" onclick="volver_comentarios()">
+                    <i class="icon icon-back"></i>
+                    <span class="ios-only">Back</span>
+                </a>
+            </div>
+            <div class="title">Impresion</div>
+        </div>
+    </div>
+
+
+    <div class="page-content" id="contenido">
+
+
+        <div class="block">
+            <p class="row">
+                <label style="float: left;display: inline;" id="usuario1">USUARIO</label>
+                <label style="float: right; display: inline;" id="zona1">ZONA</label>
+            </p>
+        </div>
+
+
+
+        <div class="block">
+            <p class="row">
+
+                <a onclick="vista_preliminar(1)" data-view=".view-main"
+                    class="col button button-big button-raised button-fill" id="page_guias">Ver/Imprimir Guía
+                </a>
+
+
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+            <p class="row" id="row_cedible">
+                <a onclick="vista_preliminar_cedible(1)" data-view=".view-main"
+                    class="col button button-big button-raised button-fill" id="page_guias">Ver/Imprimir Guía Cedible
+                </a>
+            </p>
+
+            <p class="row" id="row_borrador">
+                <a onclick="guardar_borrador()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Guardar Borrador
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+
+            <p class="row" id="row_borra_borrador">
+                <a onclick="descartar_borrador()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Descartar Borrador
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+
+            <p class="row" id="row_emitir">
+                <a onclick="emitir_guia()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Emitir Guía
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+            <p class="row" id="row_anular">
+                <a onclick="anular_guia()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Anular Guía
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+            <p class="row" id="row_imprimir">
+                <a onclick="generar_guia_imprimible()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Emitir Guía
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+            <p class="row" id="row_reimprimir" style="display: none;">
+                <a data-view=".view-main" class="col button button-big button-raised button-fill">Reimprimir Guía
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+
+            <p class="row">
+                <a onclick="ir_menu_principal()" data-view=".view-main"
+                    class="col button button-big button-raised button-fill">Volver a Menú Principal
+                </a>
+                <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+            </p>
+
+        </div>
+
+        <div id="row_reenviar_fotos">
+
+            <div class="block-title">¿Fotos estancadas?</div>
+            <div class="block block-strong inset">
+                <p>Pulse el siguiente botón para reenviar las fotos. </p>
+                <a onclick="reenviarFotos()" data-view=".view-main"
+                    class="button button-big button-raised button-fill">Reenviar fotos
+                </a>
+            </div>
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+</div>

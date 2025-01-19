@@ -59,6 +59,9 @@
     },
     "cordova-plugin-file-transfer": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "verify-automatic-date-time-zone": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {}
