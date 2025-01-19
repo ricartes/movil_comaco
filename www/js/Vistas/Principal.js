@@ -257,16 +257,46 @@ document.addEventListener("deviceready", async function () {
     }
 
 
-
-    document.addEventListener("timeChangeDetected", function (e) {
-        const { horaCorrecta } = e.detail; // Accede a los datos adicionales
+    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
+        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
         mostarOcultarMenuPrincipal(horaCorrecta);
+    });
 
+
+    document.addEventListener("timeChangeDetected", async function (e) {
+        const { horaCorrecta, mensaje } = e.detail; // Accede a los datos adicionales
+        mostarOcultarMenuPrincipal(horaCorrecta);
         if (!horaCorrecta) {
             app.dialog.alert(
                 "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. Validar si tiene habilitada la hora automática en la configuración.",
-                "GFE"
-            );
+                "GFE",
+                async function () {
+                    if (!horaCorrecta) {
+                        app.dialog.progress("Cargando...");
+                        try {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                Obtener_dato_local("user_activo"),
+                                {
+                                    mensaje: mensaje
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local("user_activo"),
+                                datos
+                            );
+                        } catch (ex) {
+
+                        } finally {
+                            app.dialog.close();
+                        }
+
+
+                    }
+                });
+
+
         }
     });
 
@@ -382,13 +412,32 @@ document.addEventListener("deviceready", async function () {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
                                     app.dialog.progress("Cargando...");
-                                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+                                    comparar_fecha_hora_ws(fecha_hora, async function (result_fecha) {
                                         if (result_fecha == 0) {
                                             mostarOcultarMenuPrincipal(false);
                                             app.dialog.alert(
                                                 "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
                                                 "GFE"
                                             );
+                                            //app.dialog.progress("Cargando...");
+                                            try {
+                                                let datos = await generarDataTrazabilidad(
+                                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                                    Obtener_dato_local("user_activo"),
+                                                    {
+                                                        mensaje: mensaje
+                                                    }
+                                                );
+
+                                                await obtenerUbicacionEInsertarLog(
+                                                    Obtener_dato_local("user_activo"),
+                                                    datos
+                                                );
+                                            } catch (ex) {
+
+                                            } finally {
+                                                app.dialog.close();
+                                            }
                                         } else {
                                             mostarOcultarMenuPrincipal(true);
                                         }
@@ -401,13 +450,33 @@ document.addEventListener("deviceready", async function () {
                     });
                 } else {
                     app.dialog.progress("Cargando...");
-                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+                    comparar_fecha_hora_ws(fecha_hora, async function (result_fecha) {
                         if (result_fecha == 0) {
                             mostarOcultarMenuPrincipal(false);
                             app.dialog.alert(
                                 "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
                                 "GFE"
                             );
+                            //app.dialog.progress("Cargando...");
+                            try {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                    Obtener_dato_local("user_activo"),
+                                    {
+                                        mensaje: mensaje
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local("user_activo"),
+                                    datos
+                                );
+                            } catch (ex) {
+
+                            } finally {
+                                app.dialog.close();
+                            }
+
                         } else {
                             mostarOcultarMenuPrincipal(true);
                         }

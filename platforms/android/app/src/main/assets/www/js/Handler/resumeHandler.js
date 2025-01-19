@@ -15,7 +15,6 @@ function initializeResumeHandler() {
 // Función para manejar el cambio de hora
 function handleTimeChange() {
     const fecha_hora = FechaHoraActual();
-
     // Validar contra el servidor
     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
         if (result_fecha == 0) {
@@ -45,7 +44,11 @@ function validateAutomaticDateTimeZone(callback) {
 }
 
 // Función para disparar eventos personalizados
-function dispatchTimeChangeEvent(horaCorrecta, mensaje) {
+async function dispatchTimeChangeEvent(horaCorrecta, mensaje) {
+
+
+    Guardar_dato_local("horaCorrecta", horaCorrecta);
+
     const event = new CustomEvent("timeChangeDetected", {
         detail: {
             horaCorrecta: horaCorrecta,
@@ -56,4 +59,6 @@ function dispatchTimeChangeEvent(horaCorrecta, mensaje) {
     document.dispatchEvent(event);
     console.log(`Evento disparado: ${mensaje}`);
 }
+
+
 
