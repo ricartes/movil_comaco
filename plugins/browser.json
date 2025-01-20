@@ -63,6 +63,9 @@
     },
     "verify-automatic-date-time-zone": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova.plugins.diagnostic": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {}

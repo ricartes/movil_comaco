@@ -506,6 +506,7 @@ function guardar_datos_guia(latitud, longitud) {
 
                 DATOS_actualiza_gde_proveedor(gde, idgde_acutal, function (result_guardado) {
 
+
                     abrir_detalles(idgde_acutal, 2);
 
                 });
@@ -514,6 +515,9 @@ function guardar_datos_guia(latitud, longitud) {
 
                 DATOS_guarda_gde_proveedor(gde, function (result_guardado) {
 
+                    Guardar_dato_local("id_proceso_activo", result_guardado.insertId);
+                    Guardar_dato_local("id_unico_proceso_activo", gde.ID_UNICO_MOVIL);
+                    Guardar_dato_local("hora_inicio_proceso", Date.now());
                     abrir_detalles(result_guardado.insertId, 2);
 
                 });
@@ -634,6 +638,7 @@ function volver_menu() {
 
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
         (async () => {
+            inicializarDatosGde();
             app.dialog.preloader("Cargando...");
             let datos = await generarDataTrazabilidad(
                 TipoAccionTypes.SALIR_INFORME_DESPACHO,
@@ -703,16 +708,6 @@ function valida() {
         alerta(3);
         return false;
     }
-
-
-
-
-
-
-
-
-
-
 
     return res;
 }

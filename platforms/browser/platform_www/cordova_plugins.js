@@ -684,7 +684,8 @@ module.exports.metadata =
     "cordova-plugin-camera": "7.0.0",
     "cordova-plugin-file": "8.0.0",
     "cordova-plugin-file-transfer": "2.0.0",
-    "verify-automatic-date-time-zone": "1.0.0-dev"
+    "verify-automatic-date-time-zone": "1.0.0-dev",
+    "cordova.plugins.diagnostic": "7.2.3"
 }
 // BOTTOM OF METADATA
 });

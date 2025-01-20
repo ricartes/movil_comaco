@@ -638,11 +638,7 @@ function volver_menu() {
 
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
         (async () => {
-
-
             inicializarDatosGde();
-
-
             app.dialog.preloader("Cargando...");
             let datos = await generarDataTrazabilidad(
                 TipoAccionTypes.SALIR_INFORME_DESPACHO,

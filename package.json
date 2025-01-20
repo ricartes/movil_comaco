@@ -47,7 +47,8 @@
                 "ANDROIDX_WEBKIT_VERSION": "1.4.0"
             },
             "cordova-plugin-file-transfer": {},
-            "verify-automatic-date-time-zone": {}
+            "verify-automatic-date-time-zone": {},
+            "cordova.plugins.diagnostic": {}
         },
         "platforms": [
             "browser",
@@ -67,6 +68,7 @@
         "cordova-plugin-file-transfer": "^2.0.0",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
         "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
+        "cordova.plugins.diagnostic": "^7.2.3",
         "verify-automatic-date-time-zone": "^1.0.3-dev"
     }
 }

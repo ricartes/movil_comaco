@@ -7,11 +7,13 @@ function ControlServiceAnular(id = null, latitud, longitud, tipoCoordenada, mens
                     DATOS_motivo_anulacion_gde(id, mensaje, function (result3) {
                         if (tipoCoordenada == "F") {
                             DATOS_Actualiza_PuntoFinal(id, latitud, longitud, function (result) {
+                                inicializarDatosGde();
                                 resolve(true);
                             });
                         }
                         if (tipoCoordenada == "I") {
                             DATOS_Actualiza_PuntoInicial(id, latitud, longitud, function (result) {
+                                inicializarDatosGde();
                                 resolve(true);
                             });
                         }

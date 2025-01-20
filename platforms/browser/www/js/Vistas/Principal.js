@@ -243,13 +243,102 @@ function onActivate() {
 
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
-    Guardar_dato_local("bloqueado", 1);
-    Guardar_dato_local("bloqueado-traza", 0);
 
+
+    inicializarVariables();
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
     }
 
+
+    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
+        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
+        mostarOcultarMenuPrincipal(horaCorrecta);
+    });
+
+
+    document.addEventListener("timeChangeDetected", async function (e) {
+        const { horaCorrecta, mensaje } = e.detail; // Accede a los datos adicionales
+        mostarOcultarMenuPrincipal(horaCorrecta);
+        if (!horaCorrecta) {
+            app.dialog.alert(
+                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. Validar si tiene habilitada la hora automática en la configuración.",
+                "GFE",
+                async function () {
+
+                    if (!horaCorrecta) {
+
+                        app.dialog.progress("Cargando...");
+                        const procesoActual = Obtener_dato_local("id_proceso_activo");
+                        if (procesoActual && procesoActual != "") {
+                            const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+                            const datosUbicacion = await getLocation2();
+
+
+
+                            ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F").then((anula) => {
+                                (async () => {
+                                    try {
+
+                                        let datos = await generarDataTrazabilidad(
+                                            TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                            Obtener_dato_local('user_activo'),
+                                            {
+                                                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                despacho: gde_actual,
+                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                            }
+                                        );
+
+                                        await obtenerUbicacionEInsertarLog(
+                                            Obtener_dato_local('user_activo'),
+                                            datos
+                                        );
+
+
+                                    } catch (ex) { } finally {
+                                        inicializarDatosGde();
+                                        app.dialog.close();
+                                        mainView.router.navigate("/");
+                                    }
+
+
+                                })();
+                            });
+
+
+
+
+
+                        } else {
+
+                            try {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                    Obtener_dato_local("user_activo"),
+                                    {
+                                        mensaje: mensaje
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local("user_activo"),
+                                    datos
+                                );
+                            } catch (ex) {
+
+                            } finally {
+
+                                app.dialog.close();
+                            }
+                        }
+
+                    }
+                });
+
+
+        }
+    });
 
 
 
@@ -363,38 +452,20 @@ document.addEventListener("deviceready", async function () {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
                                     app.dialog.progress("Cargando...");
-                                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
-                                        if (result_fecha == 0) {
-                                            mostarOcultarMenuPrincipal(false);
-                                            app.dialog.alert(
-                                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
-                                                "GFE"
-                                            );
-                                        }else{
-                                            mostarOcultarMenuPrincipal(true);
-                                        }
+                                    handleTimeChange();
+                                    app.dialog.close();
+                                    obtener_informacion_movil();
 
-                                        obtener_informacion_movil();
-                                    });
                                 });
                             });
                         });
                     });
                 } else {
                     app.dialog.progress("Cargando...");
-                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
-                        if (result_fecha == 0) {
-                            mostarOcultarMenuPrincipal(false);
-                            app.dialog.alert(
-                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
-                                "GFE"
-                            );
-                        }else{
-                            mostarOcultarMenuPrincipal(true);
-                        }
+                    handleTimeChange();
+                    app.dialog.close();
+                    obtener_informacion_movil();
 
-                        obtener_informacion_movil();
-                    });
                 }
 
                 Guardar_dato_local("ultimo_activo", result.user);
