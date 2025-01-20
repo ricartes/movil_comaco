@@ -269,11 +269,13 @@ document.addEventListener("deviceready", async function () {
                     if (!horaCorrecta) {
 
                         app.dialog.progress("Cargando...");
-                        const procesoActual = Obtener_dato_local("id_proceso_activo"); //TODO: PROBAR FUNCIONALIDAD
-                        alert(procesoActual);
+                        const procesoActual = Obtener_dato_local("id_proceso_activo");
                         if (procesoActual && procesoActual != "") {
                             const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
                             const datosUbicacion = await getLocation2();
+
+
+
                             ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F").then((anula) => {
                                 (async () => {
                                     try {
@@ -295,7 +297,7 @@ document.addEventListener("deviceready", async function () {
 
 
                                     } catch (ex) { } finally {
-
+                                        inicializarDatosGde();
                                         app.dialog.close();
                                         mainView.router.navigate("/");
                                     }
@@ -303,6 +305,11 @@ document.addEventListener("deviceready", async function () {
 
                                 })();
                             });
+
+
+
+
+
                         } else {
 
                             try {
@@ -321,6 +328,7 @@ document.addEventListener("deviceready", async function () {
                             } catch (ex) {
 
                             } finally {
+
                                 app.dialog.close();
                             }
                         }
@@ -444,77 +452,20 @@ document.addEventListener("deviceready", async function () {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
                                     app.dialog.progress("Cargando...");
-                                    comparar_fecha_hora_ws(fecha_hora, async function (result_fecha) {
-                                        if (result_fecha == 0) {
-                                            mostarOcultarMenuPrincipal(false);
-                                            app.dialog.alert(
-                                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
-                                                "GFE"
-                                            );
-                                            //app.dialog.progress("Cargando...");
-                                            try {
-                                                let datos = await generarDataTrazabilidad(
-                                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                                    Obtener_dato_local("user_activo"),
-                                                    {
-                                                        mensaje: mensaje
-                                                    }
-                                                );
+                                    handleTimeChange();
+                                    app.dialog.close();
+                                    obtener_informacion_movil();
 
-                                                await obtenerUbicacionEInsertarLog(
-                                                    Obtener_dato_local("user_activo"),
-                                                    datos
-                                                );
-                                            } catch (ex) {
-
-                                            } finally {
-                                                app.dialog.close();
-                                            }
-                                        } else {
-                                            mostarOcultarMenuPrincipal(true);
-                                        }
-
-                                        obtener_informacion_movil();
-                                    });
                                 });
                             });
                         });
                     });
                 } else {
                     app.dialog.progress("Cargando...");
-                    comparar_fecha_hora_ws(fecha_hora, async function (result_fecha) {
-                        if (result_fecha == 0) {
-                            mostarOcultarMenuPrincipal(false);
-                            app.dialog.alert(
-                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. En caso de tener una hora incorrecta, reconfigurar y volver a iniciar sesión",
-                                "GFE"
-                            );
-                            //app.dialog.progress("Cargando...");
-                            try {
-                                let datos = await generarDataTrazabilidad(
-                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                    Obtener_dato_local("user_activo"),
-                                    {
-                                        mensaje: mensaje
-                                    }
-                                );
+                    handleTimeChange();
+                    app.dialog.close();
+                    obtener_informacion_movil();
 
-                                await obtenerUbicacionEInsertarLog(
-                                    Obtener_dato_local("user_activo"),
-                                    datos
-                                );
-                            } catch (ex) {
-
-                            } finally {
-                                app.dialog.close();
-                            }
-
-                        } else {
-                            mostarOcultarMenuPrincipal(true);
-                        }
-
-                        obtener_informacion_movil();
-                    });
                 }
 
                 Guardar_dato_local("ultimo_activo", result.user);
