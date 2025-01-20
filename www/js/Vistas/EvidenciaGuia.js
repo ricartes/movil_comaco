@@ -179,6 +179,7 @@ async function emitir_guia() {
 
 
 function confirmEmisionDespacho(id_gde, gde) {
+    inicializarDatosGde();
     const estado = "I";
     DATOS_cambiar_estado_gde_proveedores(id_gde, estado, function (result1) {
         DATOS_cambiar_estado_gde_evidencia(id_gde, estado, function (result2) {
