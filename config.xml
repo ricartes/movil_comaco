@@ -15,7 +15,7 @@
     <allow-intent href="https://*/*" />
     <allow-navigation href="*" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    <preference name="android-targetSdkVersion" value="33" />
+    <preference name="android-targetSdkVersion" value="34" />
     <platform name="android">
         <allow-intent href="market:*" />
         <icon density="ldpi" src="res/icon/android/comaco36.png" />

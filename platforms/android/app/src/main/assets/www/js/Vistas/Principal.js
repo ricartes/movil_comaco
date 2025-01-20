@@ -241,6 +241,8 @@ function onActivate() {
     }, 10000);
 }
 
+
+
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
 
@@ -249,97 +251,6 @@ document.addEventListener("deviceready", async function () {
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
     }
-
-
-    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
-        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
-        mostarOcultarMenuPrincipal(horaCorrecta);
-    });
-
-
-    document.addEventListener("timeChangeDetected", async function (e) {
-        const { horaCorrecta, mensaje } = e.detail; // Accede a los datos adicionales
-        mostarOcultarMenuPrincipal(horaCorrecta);
-        if (!horaCorrecta) {
-            app.dialog.alert(
-                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. Validar si tiene habilitada la hora automática en la configuración.",
-                "GFE",
-                async function () {
-
-                    if (!horaCorrecta) {
-
-                        app.dialog.progress("Cargando...");
-                        const procesoActual = Obtener_dato_local("id_proceso_activo");
-                        if (procesoActual && procesoActual != "") {
-                            const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
-                            const datosUbicacion = await getLocation2();
-
-
-
-                            ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F").then((anula) => {
-                                (async () => {
-                                    try {
-
-                                        let datos = await generarDataTrazabilidad(
-                                            TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                            Obtener_dato_local('user_activo'),
-                                            {
-                                                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                                despacho: gde_actual,
-                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-                                            }
-                                        );
-
-                                        await obtenerUbicacionEInsertarLog(
-                                            Obtener_dato_local('user_activo'),
-                                            datos
-                                        );
-
-
-                                    } catch (ex) { } finally {
-                                        inicializarDatosGde();
-                                        app.dialog.close();
-                                        mainView.router.navigate("/");
-                                    }
-
-
-                                })();
-                            });
-
-
-
-
-
-                        } else {
-
-                            try {
-                                let datos = await generarDataTrazabilidad(
-                                    TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                    Obtener_dato_local("user_activo"),
-                                    {
-                                        mensaje: mensaje
-                                    }
-                                );
-
-                                await obtenerUbicacionEInsertarLog(
-                                    Obtener_dato_local("user_activo"),
-                                    datos
-                                );
-                            } catch (ex) {
-
-                            } finally {
-
-                                app.dialog.close();
-                            }
-                        }
-
-                    }
-                });
-
-
-        }
-    });
-
 
 
     permisosCamara();
@@ -481,8 +392,26 @@ document.addEventListener("deviceready", async function () {
     if (typeof initializeResumeHandler === "function") {
         initializeResumeHandler();
     } else {
-        alert("La función initializeResumeHandler no está disponible.");
+        app.dialog.alert("La función initializeResumeHandler no está disponible.");
     }
+
+    if (typeof inicializarGpsDiagnosticHandler === "function") {
+        inicializarGpsDiagnosticHandler();
+    } else {
+        app.dialog.alert("La función initializeResumeHandler no está disponible.");
+    }
+
+
+
+    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
+        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
+        mostarOcultarMenuPrincipal(horaCorrecta);
+        validaGpsVista();
+
+    });
+
+
+
 });
 
 
@@ -608,12 +537,35 @@ function boton_atras() {
     }
 }
 
-function clickEmisionFaena() {
+async function clickEmisionFaena() {
     if (hay_parametro == 0) {
         app.dialog.alert("No se han cargado los parámetros", "Emisión desde faena");
         return false;
     } else {
-        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+
+        try {
+           
+            const estadoGPS = await verificarEstadoGPS();
+            mostarOcultarMenuPrincipal(estadoGPS);
+            if (!estadoGPS) {
+                const event = new CustomEvent("gpsOffDetected", {
+                    detail: {
+                        timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                    },
+                });
+                document.dispatchEvent(event);
+            } else {
+                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+            }
+
+        } catch (ex) {
+            app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación");
+        }
+        finally {
+            mostarOcultarMenuPrincipal(false);
+        }
+
+
     }
 }
 

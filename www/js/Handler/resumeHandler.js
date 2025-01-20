@@ -80,7 +80,7 @@ document.addEventListener("timeChangeDetected", async function (e) {
 
 
 
-                        ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F").then((anula) => {
+                        ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F", "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO").then((anula) => {
                             (async () => {
                                 try {
 
@@ -129,6 +129,13 @@ document.addEventListener("timeChangeDetected", async function (e) {
                                 Obtener_dato_local("user_activo"),
                                 datos
                             );
+
+                            const rutaActual = mainView.router.currentRoute.path;
+                            alert(rutaActual);
+                            if (rutaActual != "/") {
+                                mainView.router.navigate("/");
+                            }
+
                         } catch (ex) {
 
                         } finally {

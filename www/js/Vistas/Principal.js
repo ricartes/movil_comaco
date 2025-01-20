@@ -241,6 +241,8 @@ function onActivate() {
     }, 10000);
 }
 
+
+
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
 
@@ -249,15 +251,6 @@ document.addEventListener("deviceready", async function () {
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
     }
-
-
-    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
-        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
-        mostarOcultarMenuPrincipal(horaCorrecta);
-    });
-
-
-
 
 
     permisosCamara();
@@ -407,6 +400,18 @@ document.addEventListener("deviceready", async function () {
     } else {
         app.dialog.alert("La función initializeResumeHandler no está disponible.");
     }
+
+
+
+    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
+        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
+        mostarOcultarMenuPrincipal(horaCorrecta);
+        validaGpsVista();
+
+    });
+
+
+
 });
 
 
@@ -532,12 +537,35 @@ function boton_atras() {
     }
 }
 
-function clickEmisionFaena() {
+async function clickEmisionFaena() {
     if (hay_parametro == 0) {
         app.dialog.alert("No se han cargado los parámetros", "Emisión desde faena");
         return false;
     } else {
-        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+
+        try {
+           
+            const estadoGPS = await verificarEstadoGPS();
+            mostarOcultarMenuPrincipal(estadoGPS);
+            if (!estadoGPS) {
+                const event = new CustomEvent("gpsOffDetected", {
+                    detail: {
+                        timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                    },
+                });
+                document.dispatchEvent(event);
+            } else {
+                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+            }
+
+        } catch (ex) {
+            app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación");
+        }
+        finally {
+            mostarOcultarMenuPrincipal(false);
+        }
+
+
     }
 }
 

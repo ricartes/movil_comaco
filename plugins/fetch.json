@@ -154,7 +154,7 @@
   "cordova.plugins.diagnostic": {
     "source": {
       "type": "registry",
-      "id": "cordova.plugins.diagnostic@^7.2.3"
+      "id": "cordova.plugins.diagnostic"
     },
     "is_top_level": true,
     "variables": {}
