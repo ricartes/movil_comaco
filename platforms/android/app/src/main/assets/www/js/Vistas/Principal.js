@@ -362,9 +362,6 @@ document.addEventListener("deviceready", async function () {
                         borra_transporte(function (result) {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
-                                    app.dialog.progress("Cargando...");
-                                    handleTimeChange();
-                                    app.dialog.close();
                                     obtener_informacion_movil();
 
                                 });
@@ -372,11 +369,7 @@ document.addEventListener("deviceready", async function () {
                         });
                     });
                 } else {
-                    app.dialog.progress("Cargando...");
-                    handleTimeChange();
-                    app.dialog.close();
                     obtener_informacion_movil();
-
                 }
 
                 Guardar_dato_local("ultimo_activo", result.user);
@@ -544,28 +537,39 @@ async function clickEmisionFaena() {
     } else {
 
         try {
-           
+
             const estadoGPS = await verificarEstadoGPS();
-            mostarOcultarMenuPrincipal(estadoGPS);
             if (!estadoGPS) {
-                const event = new CustomEvent("gpsOffDetected", {
-                    detail: {
-                        timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
-                    },
-                });
-                document.dispatchEvent(event);
+                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo`);
             } else {
-                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+
+                const fecha_hora = FechaHoraActual();
+                app.dialog.progress("Espere por favor...");
+                comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+                    app.dialog.close();
+                    if (result_fecha == 0) {
+                        // Hora incorrecta según el servidor
+                        app.dialog.alert(`Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`);
+
+                    } else if (result_fecha === -1) {
+                        // No hay conexión: Validar configuración automática
+                        validateAutomaticDateTimeZone((isAutomatic) => {
+                            if (isAutomatic) {
+                                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                            } else {
+                                app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`);
+                            }
+                        });
+                    } else {
+                        // Hora correcta según el servidor
+                        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                    }
+                });
             }
 
         } catch (ex) {
             app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación");
         }
-        finally {
-            mostarOcultarMenuPrincipal(false);
-        }
-
-
     }
 }
 
@@ -709,24 +713,22 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
-            app.dialog.progress("Cargando...");
+
+            const usuarioActivo = Obtener_dato_local('user_activo');
+            Borrar_dato_local("user_activo");
+            Borrar_dato_local("rut_activo");
+            Borrar_dato_local("empresa_activo");
             (async () => {
                 let datos = await generarDataTrazabilidad(
                     TipoAccionTypes.CIERRE_SESION,
-                    Obtener_dato_local('user_activo'),
+                    usuarioActivo,
                 );
                 await obtenerUbicacionEInsertarLog(
-                    Obtener_dato_local('user_activo'),
+                    usuarioActivo,
                     datos
                 );
-                app.dialog.close();
-
-                Borrar_dato_local("user_activo");
-                Borrar_dato_local("rut_activo");
-                Borrar_dato_local("empresa_activo");
-                ls.open(false);
-
             })();
+            ls.open(false);
         }
     );
 

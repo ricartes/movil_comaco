@@ -17,6 +17,14 @@ function handleGpsStateChange(state) {
             },
         });
         document.dispatchEvent(event);
+    } else {
+        const event = new CustomEvent("gpsOnDetected", {
+            detail: {
+                timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                locationMode: state, // Incluye el estado del GPS para información adicional
+            },
+        });
+        document.dispatchEvent(event);
     }
 }
 
@@ -39,9 +47,54 @@ function verificarEstadoGPS() {
 }
 
 
+document.addEventListener("gpsOnDetected", async function (e) {
+
+    const manejarTrazabilidadYLogs = async (adicional = {}) => {
+        try {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.DETECCION_GPS_ENCENDIDO,
+                Obtener_dato_local("user_activo"),
+                adicional
+            );
+
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local("user_activo"),
+                datos
+            );
+        } catch (ex) {
+            console.error("Error en la trazabilidad:", ex);
+        }
+    };
+
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
+    if (procesoActual && procesoActual !== "") {
+        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+
+        try {
+            // Manejar trazabilidad y logs
+            manejarTrazabilidadYLogs({
+                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            });
+
+
+        } catch (error) {
+            console.error("Error en ControlServiceAnular:", error);
+        }
+    } else {
+        // Ejecutar trazabilidad sin datos adicionales
+        manejarTrazabilidadYLogs();
+    }
+
+});
+
 document.addEventListener("gpsOffDetected", async function (e) {
     const mensaje = "Se detectó que el GPS ha sido apagado. Favor habilitar y volver a iniciar el proceso";
     const procesoActual = Obtener_dato_local("id_proceso_activo");
+
+
 
     // Función para manejar la trazabilidad y logs
     const manejarTrazabilidadYLogs = async (adicional = {}) => {
@@ -51,6 +104,7 @@ document.addEventListener("gpsOffDetected", async function (e) {
                 Obtener_dato_local("user_activo"),
                 adicional
             );
+
 
             await obtenerUbicacionEInsertarLog(
                 Obtener_dato_local("user_activo"),
@@ -65,11 +119,8 @@ document.addEventListener("gpsOffDetected", async function (e) {
     if (procesoActual && procesoActual !== "") {
         const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
         const datosUbicacion = await getLocation2();
-        // TODO: VALIDAR PARAMETRO MOVIL PARA DETERMINAR SI DEBE ANULAR LA GUIA.
-        //       SI EL PARAMETRO INDICA QUE NO SE ANULA, SOLO SE DEBE MANEJAR TRAZABILIDAD.
 
-        const anulaGuia = true; // Este valor debería determinarse dinámicamente según la validación
-
+        const anulaGuia = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroDetieneProcesoApagaGPS); // Este valor debería determinarse dinámicamente según la validación
         try {
             // Manejar trazabilidad y logs
             manejarTrazabilidadYLogs({
@@ -92,12 +143,10 @@ document.addEventListener("gpsOffDetected", async function (e) {
                 app.dialog.alert(
                     mensaje,
                     "GFE",
-                    async function () {
+                    function () {
                         inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
                         mainView.router.navigate("/"); // Navegación inmediata
-
                     });
-
 
             }
         } catch (error) {

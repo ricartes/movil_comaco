@@ -13,20 +13,26 @@ function initializeResumeHandler() {
 }
 
 // Función para manejar el cambio de hora
-function handleTimeChange() {
+function handleTimeChange(menuPrincipal = false) {
     const fecha_hora = FechaHoraActual();
-    // Validar contra el servidor
+
     comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
         if (result_fecha == 0) {
             // Hora incorrecta según el servidor
-            dispatchTimeChangeEvent(false, "Hora incorrecta según el servidor");
+            dispatchTimeChangeEvent(
+                false,
+                `Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`,
+                menuPrincipal
+            );
+
         } else if (result_fecha === -1) {
             // No hay conexión: Validar configuración automática
             validateAutomaticDateTimeZone((isAutomatic) => {
                 if (isAutomatic) {
-                    dispatchTimeChangeEvent(true, "Configuración automática activa");
+                    dispatchTimeChangeEvent(true, "Configuración automática activa", menuPrincipal);
                 } else {
-                    dispatchTimeChangeEvent(false, "Configuración automática desactivada");
+
+                    dispatchTimeChangeEvent(false, `(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, menuPrincipal);
                 }
             });
         } else {
@@ -44,124 +50,83 @@ function validateAutomaticDateTimeZone(callback) {
 }
 
 // Función para disparar eventos personalizados
-async function dispatchTimeChangeEvent(horaCorrecta, mensaje) {
-
+async function dispatchTimeChangeEvent(horaCorrecta, mensaje, menuPrincipal) {
 
     Guardar_dato_local("horaCorrecta", horaCorrecta);
-
     const event = new CustomEvent("timeChangeDetected", {
         detail: {
             horaCorrecta: horaCorrecta,
             mensaje: mensaje,
-            timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+            timestamp: new Date().getTime(),
+            menuPrincipal: menuPrincipal
         },
     });
     document.dispatchEvent(event);
-    console.log(`Evento disparado: ${mensaje}`);
 }
 
 
 document.addEventListener("timeChangeDetected", async function (e) {
-    const { horaCorrecta, mensaje } = e.detail; // Accede a los datos adicionales
-    alert(horaCorrecta);
-    mostarOcultarMenuPrincipal(horaCorrecta);
+    const { horaCorrecta, mensaje, menuPrincipal } = e.detail; // Accede a los datos adicionales
+    const rutaActual = mainView.router.currentRoute.path;
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
+    const manejarTrazabilidadYLogs = async (adicional = {}) => {
+        try {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                Obtener_dato_local("user_activo"),
+                adicional
+            );
+
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local("user_activo"),
+                datos
+            );
+        } catch (ex) {
+            console.error("Error en la trazabilidad:", ex);
+        }
+    };
+
     if (!horaCorrecta) {
-        app.dialog.alert(
-            "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador. Validar si tiene habilitada la hora automática en la configuración.",
-            "GFE",
-            async function () {
+        if (procesoActual && procesoActual !== "") {
+            const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+            const anulaGuia = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroDetieneProcesoCambioHora); // Este valor debería determinarse dinámicamente según la validación
+            try {
+                // Manejar trazabilidad y logs
+                manejarTrazabilidadYLogs({
+                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                    despacho: gde_actual,
+                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                    mensaje: mensaje
+                });
+                // Anular la guía si corresponde
+                if (anulaGuia) {
+                    const datosUbicacion = await getLocation2();
+                    await ControlServiceAnular(
+                        procesoActual,
+                        datosUbicacion.GPS_LAT,
+                        datosUbicacion.GPS_LON,
+                        "F",
+                        "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO"
+                    );
 
-                if (!horaCorrecta) {
-
-                    const rutaActual = mainView.router.currentRoute.path;
-                    alert(rutaActual);
-                    if (rutaActual != "/") {
-                        app.dialog.progress("Cargando...");
-                    }
-
-                    const procesoActual = Obtener_dato_local("id_proceso_activo");
-                    if (procesoActual && procesoActual != "") {
-                        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
-                        const datosUbicacion = await getLocation2();
-
-
-
-                        ControlServiceAnular(
-                            procesoActual,
-                            datosUbicacion.GPS_LAT,
-                            datosUbicacion.GPS_LON,
-                            "F",
-                            "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO"
-                        ).then((anula) => {
-                            // Desacoplar la lógica asincrónica en una función autoejecutable
-                            (async () => {
-                                try {
-                                    let datos = await generarDataTrazabilidad(
-                                        TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                        Obtener_dato_local('user_activo'),
-                                        {
-                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                            despacho: gde_actual,
-                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-                                        }
-                                    );
-
-                                    await obtenerUbicacionEInsertarLog(
-                                        Obtener_dato_local('user_activo'),
-                                        datos
-                                    );
-                                } catch (ex) {
-                                    console.error("Error en la trazabilidad:", ex);
-                                } finally {
-                                    inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
-                                }
-                            })();
-
-                            // Lógica principal que no depende de las operaciones asincrónicas
-                            app.dialog.close();
-                            mainView.router.navigate("/");
-                        }).catch((error) => {
-                            console.error("Error en ControlServiceAnular:", error);
+                    app.dialog.alert(
+                        mensaje,
+                        "GFE",
+                        function () {
+                            inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
+                            mainView.router.navigate("/"); // Navegación inmediata
                         });
 
-                    } else {
-
-                        try {
-                            // Crear una función asincrónica separada para manejar las tareas dependientes
-                            (async () => {
-                                try {
-                                    let datos = await generarDataTrazabilidad(
-                                        TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                        Obtener_dato_local("user_activo"),
-                                        {
-                                            mensaje: mensaje
-                                        }
-                                    );
-
-                                    await obtenerUbicacionEInsertarLog(
-                                        Obtener_dato_local("user_activo"),
-                                        datos
-                                    );
-                                } catch (ex) {
-                                    console.error("Error en la trazabilidad:", ex);
-                                }
-                            })();
-
-                            // Ejecutar el navigate inmediatamente
-                            if (rutaActual != "/") {
-                                mainView.router.navigate("/");
-                            }
-                        } catch (ex) {
-                            console.error("Error inesperado:", ex);
-                        } finally {
-                            //app.dialog.close();
-                        }
-
-                    }
 
                 }
-            });
+            } catch (error) {
+                console.error("Error en ControlServiceAnular:", error);
+            }
+        } else {
 
+            manejarTrazabilidadYLogs({ mensaje });
+        }
 
     }
 });

@@ -17,6 +17,14 @@ function handleGpsStateChange(state) {
             },
         });
         document.dispatchEvent(event);
+    } else {
+        const event = new CustomEvent("gpsOnDetected", {
+            detail: {
+                timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                locationMode: state, // Incluye el estado del GPS para información adicional
+            },
+        });
+        document.dispatchEvent(event);
     }
 }
 
@@ -39,99 +47,115 @@ function verificarEstadoGPS() {
 }
 
 
+document.addEventListener("gpsOnDetected", async function (e) {
+
+    const manejarTrazabilidadYLogs = async (adicional = {}) => {
+        try {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.DETECCION_GPS_ENCENDIDO,
+                Obtener_dato_local("user_activo"),
+                adicional
+            );
+
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local("user_activo"),
+                datos
+            );
+        } catch (ex) {
+            console.error("Error en la trazabilidad:", ex);
+        }
+    };
+
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
+    if (procesoActual && procesoActual !== "") {
+        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+
+        try {
+            // Manejar trazabilidad y logs
+            manejarTrazabilidadYLogs({
+                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            });
+
+
+        } catch (error) {
+            console.error("Error en ControlServiceAnular:", error);
+        }
+    } else {
+        // Ejecutar trazabilidad sin datos adicionales
+        manejarTrazabilidadYLogs();
+    }
+
+});
+
 document.addEventListener("gpsOffDetected", async function (e) {
-
-    mostarOcultarMenuPrincipal(false);
-    const mensaje = "Se detecto que el GPS ha sido apagado. Favor habilitar y volver a iniciar el proceso";
-    app.dialog.alert(
-        mensaje,
-        "GFE",
-        async function () {
-            //app.dialog.progress("Cargando...");
-            const procesoActual = Obtener_dato_local("id_proceso_activo");
-            if (procesoActual && procesoActual != "") {
-                const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
-                const datosUbicacion = await getLocation2();
+    const mensaje = "Se detectó que el GPS ha sido apagado. Favor habilitar y volver a iniciar el proceso";
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
 
 
-                ControlServiceAnular(
+
+    // Función para manejar la trazabilidad y logs
+    const manejarTrazabilidadYLogs = async (adicional = {}) => {
+        try {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.DETECCION_GPS_APAGADO,
+                Obtener_dato_local("user_activo"),
+                adicional
+            );
+
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local("user_activo"),
+                datos
+            );
+        } catch (ex) {
+            console.error("Error en la trazabilidad:", ex);
+        }
+    };
+
+
+    if (procesoActual && procesoActual !== "") {
+        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+        const datosUbicacion = await getLocation2();
+
+        const anulaGuia = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroDetieneProcesoApagaGPS); // Este valor debería determinarse dinámicamente según la validación
+        try {
+            // Manejar trazabilidad y logs
+            manejarTrazabilidadYLogs({
+                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                mensaje: mensaje
+            });
+
+            // Anular la guía si corresponde
+            if (anulaGuia) {
+                await ControlServiceAnular(
                     procesoActual,
                     datosUbicacion.GPS_LAT,
                     datosUbicacion.GPS_LON,
                     "F",
-                    "SE DETECTÓ CAMBIO DE ESTADO GPS FUERA DE LINEA"
-                ).then((anula) => {
-                    // Desacoplar las operaciones dependientes en una función autoejecutable asincrónica
-                    (async () => {
-                        try {
-                            let datos = await generarDataTrazabilidad(
-                                TipoAccionTypes.DETECCION_GPS_APAGADO,
-                                Obtener_dato_local('user_activo'),
-                                {
-                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                    despacho: gde_actual,
-                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-                                }
-                            );
+                    "SE DETECTÓ CAMBIO DE ESTADO GPS FUERA DE LÍNEA"
+                );
 
-                            await obtenerUbicacionEInsertarLog(
-                                Obtener_dato_local('user_activo'),
-                                datos
-                            );
-                        } catch (ex) {
-                            console.error("Error en la trazabilidad:", ex);
-                        } finally {
-                            inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
-                        }
-                    })();
-
-                    // Ejecución inmediata de la navegación y cierre del diálogo
-                    mainView.router.navigate("/");
-                    // app.dialog.close(); // Si es necesario cerrar un diálogo
-                }).catch((error) => {
-                    console.error("Error en ControlServiceAnular:", error);
-                });
-
-
-            } else {
-
-                try {
-                    // Ejecutar la lógica asincrónica en segundo plano
-                    (async () => {
-                        try {
-                            let datos = await generarDataTrazabilidad(
-                                TipoAccionTypes.DETECCION_GPS_APAGADO,
-                                Obtener_dato_local("user_activo"),
-                                {
-                                    mensaje: mensaje
-                                }
-                            );
-
-                            await obtenerUbicacionEInsertarLog(
-                                Obtener_dato_local("user_activo"),
-                                datos
-                            );
-                        } catch (ex) {
-                            console.error("Error en la trazabilidad:", ex);
-                        }
-                    })();
-
-                    // Ejecutar el navigate inmediatamente
-                    const rutaActual = mainView.router.currentRoute.path;
-                    if (rutaActual != "/") {
-                        mainView.router.navigate("/");
-                    }
-                } catch (ex) {
-                    console.error("Error inesperado:", ex);
-                } finally {
-                    // Puedes manejar el cierre del diálogo o cualquier otra lógica aquí
-                    // app.dialog.close();
-                }
+                app.dialog.alert(
+                    mensaje,
+                    "GFE",
+                    function () {
+                        inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
+                        mainView.router.navigate("/"); // Navegación inmediata
+                    });
 
             }
-
-        });
-
-
+        } catch (error) {
+            console.error("Error en ControlServiceAnular:", error);
+        }
+    } else {
+        // Ejecutar trazabilidad sin datos adicionales
+        manejarTrazabilidadYLogs({ mensaje });
+    }
 
 });
+
