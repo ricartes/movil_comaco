@@ -47,17 +47,23 @@ document.addEventListener("gpsOffDetected", async function (e) {
         mensaje,
         "GFE",
         async function () {
-            app.dialog.progress("Cargando...");
+            //app.dialog.progress("Cargando...");
             const procesoActual = Obtener_dato_local("id_proceso_activo");
             if (procesoActual && procesoActual != "") {
                 const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
                 const datosUbicacion = await getLocation2();
 
 
-                ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F", "SE DETECTÓ CAMBIO DE ESTADO GPS FUERA DE LINEA").then((anula) => {
+                ControlServiceAnular(
+                    procesoActual,
+                    datosUbicacion.GPS_LAT,
+                    datosUbicacion.GPS_LON,
+                    "F",
+                    "SE DETECTÓ CAMBIO DE ESTADO GPS FUERA DE LINEA"
+                ).then((anula) => {
+                    // Desacoplar las operaciones dependientes en una función autoejecutable asincrónica
                     (async () => {
                         try {
-
                             let datos = await generarDataTrazabilidad(
                                 TipoAccionTypes.DETECCION_GPS_APAGADO,
                                 Obtener_dato_local('user_activo'),
@@ -72,45 +78,57 @@ document.addEventListener("gpsOffDetected", async function (e) {
                                 Obtener_dato_local('user_activo'),
                                 datos
                             );
-
-
-                        } catch (ex) { } finally {
-                            inicializarDatosGde();
-                            app.dialog.close();
-                            mainView.router.navigate("/");
+                        } catch (ex) {
+                            console.error("Error en la trazabilidad:", ex);
+                        } finally {
+                            inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
                         }
-
-
                     })();
+
+                    // Ejecución inmediata de la navegación y cierre del diálogo
+                    mainView.router.navigate("/");
+                    // app.dialog.close(); // Si es necesario cerrar un diálogo
+                }).catch((error) => {
+                    console.error("Error en ControlServiceAnular:", error);
                 });
+
 
             } else {
 
                 try {
-                    let datos = await generarDataTrazabilidad(
-                        TipoAccionTypes.DETECCION_GPS_APAGADO,
-                        Obtener_dato_local("user_activo"),
-                        {
-                            mensaje: mensaje
-                        }
-                    );
+                    // Ejecutar la lógica asincrónica en segundo plano
+                    (async () => {
+                        try {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.DETECCION_GPS_APAGADO,
+                                Obtener_dato_local("user_activo"),
+                                {
+                                    mensaje: mensaje
+                                }
+                            );
 
-                    await obtenerUbicacionEInsertarLog(
-                        Obtener_dato_local("user_activo"),
-                        datos
-                    );
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local("user_activo"),
+                                datos
+                            );
+                        } catch (ex) {
+                            console.error("Error en la trazabilidad:", ex);
+                        }
+                    })();
+
+                    // Ejecutar el navigate inmediatamente
                     const rutaActual = mainView.router.currentRoute.path;
                     if (rutaActual != "/") {
                         mainView.router.navigate("/");
                     }
                 } catch (ex) {
-
+                    console.error("Error inesperado:", ex);
                 } finally {
-
-                    app.dialog.close();
+                    // Puedes manejar el cierre del diálogo o cualquier otra lógica aquí
+                    // app.dialog.close();
                 }
-            }
 
+            }
 
         });
 

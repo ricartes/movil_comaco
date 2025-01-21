@@ -63,6 +63,7 @@ async function dispatchTimeChangeEvent(horaCorrecta, mensaje) {
 
 document.addEventListener("timeChangeDetected", async function (e) {
     const { horaCorrecta, mensaje } = e.detail; // Accede a los datos adicionales
+    alert(horaCorrecta);
     mostarOcultarMenuPrincipal(horaCorrecta);
     if (!horaCorrecta) {
         app.dialog.alert(
@@ -72,7 +73,12 @@ document.addEventListener("timeChangeDetected", async function (e) {
 
                 if (!horaCorrecta) {
 
-                    app.dialog.progress("Cargando...");
+                    const rutaActual = mainView.router.currentRoute.path;
+                    alert(rutaActual);
+                    if (rutaActual != "/") {
+                        app.dialog.progress("Cargando...");
+                    }
+
                     const procesoActual = Obtener_dato_local("id_proceso_activo");
                     if (procesoActual && procesoActual != "") {
                         const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
@@ -80,10 +86,16 @@ document.addEventListener("timeChangeDetected", async function (e) {
 
 
 
-                        ControlServiceAnular(procesoActual, datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON, "F", "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO").then((anula) => {
+                        ControlServiceAnular(
+                            procesoActual,
+                            datosUbicacion.GPS_LAT,
+                            datosUbicacion.GPS_LON,
+                            "F",
+                            "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO"
+                        ).then((anula) => {
+                            // Desacoplar la lógica asincrónica en una función autoejecutable
                             (async () => {
                                 try {
-
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.DETECCION_CAMBIO_HORA,
                                         Obtener_dato_local('user_activo'),
@@ -98,50 +110,53 @@ document.addEventListener("timeChangeDetected", async function (e) {
                                         Obtener_dato_local('user_activo'),
                                         datos
                                     );
-
-
-                                } catch (ex) { } finally {
-                                    inicializarDatosGde();
-                                    app.dialog.close();
-                                    mainView.router.navigate("/");
+                                } catch (ex) {
+                                    console.error("Error en la trazabilidad:", ex);
+                                } finally {
+                                    inicializarDatosGde(); // Ejecutar inicialización independientemente de errores
                                 }
-
-
                             })();
+
+                            // Lógica principal que no depende de las operaciones asincrónicas
+                            app.dialog.close();
+                            mainView.router.navigate("/");
+                        }).catch((error) => {
+                            console.error("Error en ControlServiceAnular:", error);
                         });
-
-
-
-
 
                     } else {
 
                         try {
-                            let datos = await generarDataTrazabilidad(
-                                TipoAccionTypes.DETECCION_CAMBIO_HORA,
-                                Obtener_dato_local("user_activo"),
-                                {
-                                    mensaje: mensaje
+                            // Crear una función asincrónica separada para manejar las tareas dependientes
+                            (async () => {
+                                try {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.DETECCION_CAMBIO_HORA,
+                                        Obtener_dato_local("user_activo"),
+                                        {
+                                            mensaje: mensaje
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local("user_activo"),
+                                        datos
+                                    );
+                                } catch (ex) {
+                                    console.error("Error en la trazabilidad:", ex);
                                 }
-                            );
+                            })();
 
-                            await obtenerUbicacionEInsertarLog(
-                                Obtener_dato_local("user_activo"),
-                                datos
-                            );
-
-                            const rutaActual = mainView.router.currentRoute.path;
-                            alert(rutaActual);
+                            // Ejecutar el navigate inmediatamente
                             if (rutaActual != "/") {
                                 mainView.router.navigate("/");
                             }
-
                         } catch (ex) {
-
+                            console.error("Error inesperado:", ex);
                         } finally {
-
-                            app.dialog.close();
+                            //app.dialog.close();
                         }
+
                     }
 
                 }
