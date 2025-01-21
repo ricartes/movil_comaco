@@ -44,7 +44,7 @@ async function Datos_eliminarLogUsuario(id) {
 function DATOS_ListarTrazabilidad() {
     return new Promise((resolve, reject) => {
         const db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 'system' });
-        db.executeSql("SELECT ID, USU_USUARIO_SISTEMA, fecha_hora as fecha_hora_local , DATOS FROM LOG_USUARIO", [], function (rs) {
+        db.executeSql("SELECT ID, USU_USUARIO_SISTEMA, fecha_hora as fecha_hora_local, DATOS FROM LOG_USUARIO ORDER BY fecha_hora ASC", [], function (rs) {
             var items = [];
             for (var i = 0; i < rs.rows.length; i++) {
                 items.push(rs.rows.item(i));

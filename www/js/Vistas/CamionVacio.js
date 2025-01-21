@@ -2,7 +2,8 @@ var id_gde_actual;
 var tipo_evidencia_camion_vacio = 1;
 var tipo_evidencia_camion_vacio_2 = 3;
 var gde_actual = null;
-
+let intentosCamionVacio1 = 0;
+let intentosCamionVacio2 = 0;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
@@ -141,15 +142,23 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
 
 
-function capturar_evidencia_camion_vacio(tipo_evidencia) {
+async function capturar_evidencia_camion_vacio(tipo_evidencia) {
     if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
 
-        if (tipo_evidencia == 1) {
-            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+        const estadoGPS = await verificarEstadoGPS();
+        if (!estadoGPS) {
+            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo`, "GFE");
+        } else {
+            if (tipo_evidencia == 1) {
+                capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+            }
+            if (tipo_evidencia == 3) {
+                capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+            }
+
         }
-        if (tipo_evidencia == 3) {
-            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
-        }
+
+
     }
     else {
         app.dialog.alert("Ya ha capturado las evidencias necesarias para el camión vacio", "Evidencia", function () {

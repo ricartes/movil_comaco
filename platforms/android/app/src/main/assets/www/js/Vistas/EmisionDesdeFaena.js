@@ -637,9 +637,9 @@ function recargar_combo_transportista2() {
 function volver_menu() {
 
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
+        inicializarDatosGde();
         (async () => {
-            inicializarDatosGde();
-            app.dialog.preloader("Cargando...");
+
             let datos = await generarDataTrazabilidad(
                 TipoAccionTypes.SALIR_INFORME_DESPACHO,
                 Obtener_dato_local('user_activo'),
@@ -654,10 +654,11 @@ function volver_menu() {
                 Obtener_dato_local('user_activo'),
                 datos
             );
-            app.dialog.close();
-            mainView.router.navigate("/");
+
 
         })();
+        mainView.router.navigate("/");
+
     });
 
 }
@@ -862,23 +863,38 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 async function cambia_proyecto(codproyecto, rol) {
 
-
-    app.dialog.preloader("Cargando...");
-    let datos = await generarDataTrazabilidad(
-        TipoAccionTypes.SELECCION_PCR,
-        Obtener_dato_local('user_activo'),
-        {
-            rol: rol,
-            codproyecto: codproyecto,
-            despacho: gde_actual,
-            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-        }
-    );
-    await obtenerUbicacionEInsertarLog(
-        Obtener_dato_local('user_activo'),
-        datos
-    );
     gdeRol = rol;
+    app.dialog.preloader("Cargando...");
+
+
+   
+
+    try {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.SELECCION_PCR,
+            Obtener_dato_local('user_activo'),
+            {
+                rol: rol,
+                codproyecto: codproyecto,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            }
+        );
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
+    } catch (error) {
+        console.error("Error en la ejecución en segundo plano:", error);
+        // Aquí puedes manejar el error de forma personalizada, por ejemplo, mostrando una alerta
+        //app.dialog.alert("Ocurrió un error al procesar la trazabilidad.", "Error");
+    } finally {
+        app.dialog.close();
+    }
+
+
+
+
 
     if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
         validarGeocerca(rol).then((resultado) => {
@@ -903,12 +919,13 @@ async function cambia_proyecto(codproyecto, rol) {
                                     Obtener_dato_local('user_activo'),
                                     datos
                                 );
-                                app.dialog.close();
-                                app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                    mainView.router.navigate("/");
-                                });
+
 
                             })();
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
                         }
 
                     });
@@ -931,10 +948,11 @@ async function cambia_proyecto(codproyecto, rol) {
                                 Obtener_dato_local('user_activo'),
                                 datos
                             );
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE");
+
 
                         })();
+                        app.dialog.close();
+                        app.dialog.alert(resultado.mensaje, "GFE");
                     } else {
                         app.dialog.close();
                     }
@@ -954,11 +972,7 @@ async function cambia_proyecto(codproyecto, rol) {
         combo_productos(codproyecto, 0);
     }
 
-
-
-
-    //combo_productos(codproyecto, 0);
-
+    obtener_punto_inicial();
 
 }
 

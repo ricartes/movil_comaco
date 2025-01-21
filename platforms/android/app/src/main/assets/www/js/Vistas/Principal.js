@@ -394,17 +394,6 @@ document.addEventListener("deviceready", async function () {
         app.dialog.alert("La función initializeResumeHandler no está disponible.");
     }
 
-
-
-    $$(document).on('page:init', '.page[data-name="home"]', function (e, page) {
-        const horaCorrecta = Obtener_dato_local("horaCorrecta") == "true";
-        mostarOcultarMenuPrincipal(horaCorrecta);
-        validaGpsVista();
-
-    });
-
-
-
 });
 
 
@@ -540,7 +529,7 @@ async function clickEmisionFaena() {
 
             const estadoGPS = await verificarEstadoGPS();
             if (!estadoGPS) {
-                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo`);
+                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo`, "GFE");
             } else {
 
                 const fecha_hora = FechaHoraActual();
@@ -549,7 +538,7 @@ async function clickEmisionFaena() {
                     app.dialog.close();
                     if (result_fecha == 0) {
                         // Hora incorrecta según el servidor
-                        app.dialog.alert(`Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`);
+                        app.dialog.alert(`Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`, "GFE");
 
                     } else if (result_fecha === -1) {
                         // No hay conexión: Validar configuración automática
@@ -557,7 +546,7 @@ async function clickEmisionFaena() {
                             if (isAutomatic) {
                                 mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
                             } else {
-                                app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`);
+                                app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, "GFE");
                             }
                         });
                     } else {
@@ -568,7 +557,7 @@ async function clickEmisionFaena() {
             }
 
         } catch (ex) {
-            app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación");
+            app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación", "GFE");
         }
     }
 }

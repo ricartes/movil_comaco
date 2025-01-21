@@ -1,4 +1,5 @@
 
+
 function inicializarGpsDiagnosticHandler() {
     cordova.plugins.diagnostic.registerLocationStateChangeHandler((state) => {
         const usuarioActivo = Obtener_dato_local("user_activo");
@@ -9,22 +10,34 @@ function inicializarGpsDiagnosticHandler() {
     });
 }
 
+let isGpsOn = null; // Variable para rastrear el estado inicial del GPS
+
 function handleGpsStateChange(state) {
+   
+
     if (state === cordova.plugins.diagnostic.locationMode.LOCATION_OFF) {
-        const event = new CustomEvent("gpsOffDetected", {
-            detail: {
-                timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
-            },
-        });
-        document.dispatchEvent(event);
+        if (isGpsOn !== false) {
+            // Solo dispara el evento si el GPS estaba encendido previamente o no ha sido verificado
+            isGpsOn = false;
+            const event = new CustomEvent("gpsOffDetected", {
+                detail: {
+                    timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                },
+            });
+            document.dispatchEvent(event);
+        }
     } else {
-        const event = new CustomEvent("gpsOnDetected", {
-            detail: {
-                timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
-                locationMode: state, // Incluye el estado del GPS para información adicional
-            },
-        });
-        document.dispatchEvent(event);
+        if (isGpsOn !== true) {
+            // Solo dispara el evento si el GPS estaba apagado previamente o no ha sido verificado
+            isGpsOn = true;
+            const event = new CustomEvent("gpsOnDetected", {
+                detail: {
+                    timestamp: new Date().getTime(), // Incluye un timestamp para trazabilidad
+                    locationMode: state, // Incluye el estado del GPS para información adicional
+                },
+            });
+            document.dispatchEvent(event);
+        }
     }
 }
 
