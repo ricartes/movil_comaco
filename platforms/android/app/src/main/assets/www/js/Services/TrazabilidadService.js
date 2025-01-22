@@ -1,25 +1,33 @@
 // Función asincrónica para obtener la ubicación y insertar en la base de datos
-async function obtenerUbicacionEInsertarLog(userUsuario, datos, obtieneUbicacion = true) {
+async function obtenerUbicacionEInsertarLog(userUsuario, datos, location = null) {
     return new Promise(async (resolve, reject) => {
         let ubicacionObtenida = false;
 
         try {
-            const position = await new Promise((positionResolve, positionReject) => {
-                navigator.geolocation.getCurrentPosition(
-                    positionResolve,
-                    positionReject,
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
-                );
-            });
+            //en caso de venir null o que llegue un objeto null
+            if (!location) {
+                const position = await new Promise((positionResolve, positionReject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        positionResolve,
+                        positionReject,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                });
 
-            // Si se obtiene la ubicación exitosamente
-            datos.latitud = position.coords.latitude;
-            datos.longitud = position.coords.longitude;
-            datos.timestamp = position.timestamp;
+                datos.latitud = position.coords.latitude;
+                datos.longitud = position.coords.longitude;
+                datos.timestamp = position.timestamp;
+            } else {
+                datos.latitud = location.latitude;
+                datos.longitud = location.longitude;
+                datos.timestamp = location.time;
+                datos.provider = location.provider;
+            }
+
             ubicacionObtenida = true;
         } catch (error) {
             console.error('Error al obtener la ubicación:', error.message);

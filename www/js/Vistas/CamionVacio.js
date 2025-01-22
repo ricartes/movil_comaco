@@ -21,9 +21,11 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
     );
 
+
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
-        datos
+        datos,
+        getLastKnownLocation()
     );
 
     app.dialog.close();
@@ -187,7 +189,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
-        datos
+        datos,
+        getLastKnownLocation()
     );
 
     if (tipo == 1) {
@@ -222,7 +225,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                                 await obtenerUbicacionEInsertarLog(
                                     Obtener_dato_local('user_activo'),
-                                    datos
+                                    datos,
+                                    getLastKnownLocation()
                                 );
                                 app.dialog.close();
                                 app.dialog.alert(resultado.mensaje, "GFE", function () {
@@ -249,7 +253,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                             await obtenerUbicacionEInsertarLog(
                                 Obtener_dato_local('user_activo'),
-                                datos
+                                datos,
+                                getLastKnownLocation()
                             );
                             app.dialog.close();
                             app.dialog.alert(resultado.mensaje, "GFE");

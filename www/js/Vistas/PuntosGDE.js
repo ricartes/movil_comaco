@@ -36,7 +36,8 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
 
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
-        datos
+        datos,
+        getLastKnownLocation()
     );
 
     app.dialog.close();

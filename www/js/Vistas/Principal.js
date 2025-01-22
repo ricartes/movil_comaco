@@ -391,7 +391,13 @@ document.addEventListener("deviceready", async function () {
     if (typeof inicializarGpsDiagnosticHandler === "function") {
         inicializarGpsDiagnosticHandler();
     } else {
-        app.dialog.alert("La función initializeResumeHandler no está disponible.");
+        app.dialog.alert("La función inicializarGpsDiagnosticHandler no está disponible.");
+    }
+
+    if (typeof configureBackgroundGeolocation === "function") {
+        configureBackgroundGeolocation();
+    } else {
+        app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
     }
 
 });

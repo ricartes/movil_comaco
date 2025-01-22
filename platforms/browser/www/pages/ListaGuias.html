@@ -1,0 +1,81 @@
+<div class="page" data-name="lista-guias">
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link" onclick="ir_atras_boton();">
+					<i class="icon icon-back"></i>
+					<span class="ios-only">Back</span>
+				</a>
+			</div>
+			<div class="title">Consulta Guías</div>
+		</div>
+	</div>
+
+
+
+	<div class="page-content" >
+
+
+		<div class="block">
+
+			<div class="list">
+				<ul>
+					<li>
+						<div class="item-content item-input" Style="display: inline-block; width:49%; ">
+							<div class="item-inner">
+								<div class="item-title item-label">Fecha inicial</div>
+								<div class="item-input-wrap">
+									<input type="date" name="fecha_inicial_lista" id="tx_fecha_inicial_lista" maxlength="30"  placeholder="">
+								</div>
+							</div>
+						</div>	
+						-
+						<div class="item-content item-input" Style="display: inline-block;width:49%;">
+							<div class="item-inner">
+								<div class="item-title item-label">Fecha final</div>
+								<div class="item-input-wrap">
+									<input type="date" name="fecha_final_lista" id="tx_fecha_final_lista" maxlength="30"  placeholder="">
+								</div>
+							</div>
+						</div>
+
+					</li>
+					
+					
+						
+					<!--<li>
+						
+						<div class="item-content item-input" >
+							<div class="item-inner">
+								<div class="item-title item-label">Número Guía</div>
+								<div class="item-input-wrap">
+									<input type="number" name="numero_guia" id="tx_numero_guia"   placeholder="">
+								</div>
+							</div>
+						</div>
+					</li>-->
+
+					<li>
+						<a onclick="filtro_fecha_lista(1)"  class="col button button-big button-raised button-fill" id="btn_filtrar_lista" style="display: inline-block;">Filtrar por fecha</a>
+						<!--<a onclick="filtro_fecha_lista(3)"  class="col button button-big button-raised button-fill" id="btn_filtra_numero" style="display: inline-block;">Filtrar por número</a>-->
+						<a onclick="filtro_fecha_lista(2)"  class="col button button-big button-raised button-fill" id="btn_borra_filtro" style="display: inline-block;">Limpiar filtro</a>
+					</li>
+					
+				</ul>
+			</div>
+		</div>
+
+		<div class="list">
+			<ul id="lista_guias">
+
+
+			</ul>
+
+
+		</div>
+
+
+
+	</div>
+
+</div>

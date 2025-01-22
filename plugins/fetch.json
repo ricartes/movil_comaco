@@ -7,14 +7,6 @@
     "is_top_level": true,
     "variables": {}
   },
-  "cordova-plugin-geolocation": {
-    "source": {
-      "type": "registry",
-      "id": "cordova-plugin-geolocation@^4.0.2"
-    },
-    "is_top_level": true,
-    "variables": {}
-  },
   "cordova-plugin-insomnia": {
     "source": {
       "type": "registry",
@@ -155,6 +147,30 @@
     "source": {
       "type": "registry",
       "id": "cordova.plugins.diagnostic@^7.2.3"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-geolocation": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-geolocation@5.0.0"
+    },
+    "is_top_level": true,
+    "variables": {}
+  },
+  "cordova-plugin-dialogs": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-dialogs"
+    },
+    "is_top_level": false,
+    "variables": {}
+  },
+  "cordova-background-geolocation-plugin": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-background-geolocation-plugin@2.3.1"
     },
     "is_top_level": true,
     "variables": {}

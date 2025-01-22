@@ -2,7 +2,8 @@ var id_gde_actual;
 var tipo_evidencia_camion_vacio = 1;
 var tipo_evidencia_camion_vacio_2 = 3;
 var gde_actual = null;
-
+let intentosCamionVacio1 = 0;
+let intentosCamionVacio2 = 0;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
@@ -20,9 +21,11 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
     );
 
+
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
-        datos
+        datos,
+        getLastKnownLocation()
     );
 
     app.dialog.close();
@@ -186,7 +189,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
     await obtenerUbicacionEInsertarLog(
         Obtener_dato_local('user_activo'),
-        datos
+        datos,
+        getLastKnownLocation()
     );
 
     if (tipo == 1) {
@@ -221,7 +225,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                                 await obtenerUbicacionEInsertarLog(
                                     Obtener_dato_local('user_activo'),
-                                    datos
+                                    datos,
+                                    getLastKnownLocation()
                                 );
                                 app.dialog.close();
                                 app.dialog.alert(resultado.mensaje, "GFE", function () {
@@ -248,7 +253,8 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                             await obtenerUbicacionEInsertarLog(
                                 Obtener_dato_local('user_activo'),
-                                datos
+                                datos,
+                                getLastKnownLocation()
                             );
                             app.dialog.close();
                             app.dialog.alert(resultado.mensaje, "GFE");

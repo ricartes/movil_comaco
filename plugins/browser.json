@@ -10,9 +10,6 @@
     "cordova-plugin-network-information": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-geolocation": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-insomnia": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
@@ -65,6 +62,13 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova.plugins.diagnostic": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-geolocation": {
+      "GPS_REQUIRED": "true",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-background-geolocation-plugin": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
