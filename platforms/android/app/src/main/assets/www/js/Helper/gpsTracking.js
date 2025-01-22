@@ -103,12 +103,64 @@ function stopTracking() {
 // Obtener la última ubicación registrada
 function getLastKnownLocation() {
     if (lastKnownLocation) {
-        return lastKnownLocation;
+        // Usar esUbicacionAntigua para validar la antigüedad
+        if (esUbicacionAntigua(lastKnownLocation.timestamp)) {
+            console.warn("La última ubicación conocida es antigua. Obteniendo una nueva ubicación...");
+
+            // Solicitar una nueva ubicación y actualizar lastKnownLocation
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        lastKnownLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            timestamp: position.timestamp
+                        };
+                        resolve(lastKnownLocation); // Retorna la nueva ubicación
+                    },
+                    (error) => {
+                        console.error("Error al obtener la nueva ubicación:", error.message);
+                        reject(error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        } else {
+            // La ubicación es válida
+            return Promise.resolve(lastKnownLocation);
+        }
     } else {
-        console.warn("No se ha registrado ninguna ubicación aún.");
-        return null;
+        console.warn("No se ha registrado ninguna ubicación aún. Intentando obtener una nueva ubicación...");
+
+        // Solicitar una nueva ubicación si no hay una conocida
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    lastKnownLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        timestamp: position.timestamp
+                    };
+                    resolve(lastKnownLocation); // Retorna la nueva ubicación
+                },
+                (error) => {
+                    console.error("Error al obtener la nueva ubicación:", error.message);
+                    reject(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
     }
 }
+
 
 // Función para guardar la ubicación en una base de datos o API
 async function saveLocation(location) {

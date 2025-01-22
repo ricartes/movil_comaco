@@ -13,7 +13,7 @@ function inicializarGpsDiagnosticHandler() {
 let isGpsOn = null; // Variable para rastrear el estado inicial del GPS
 
 function handleGpsStateChange(state) {
-   
+
 
     if (state === cordova.plugins.diagnostic.locationMode.LOCATION_OFF) {
         if (isGpsOn !== false) {
@@ -144,7 +144,7 @@ document.addEventListener("gpsOffDetected", async function (e) {
             });
 
             // Anular la guía si corresponde
-            if (anulaGuia) {
+            if (parseInt(anulaGuia.PAG_VALOR) === 1) {
                 await ControlServiceAnular(
                     procesoActual,
                     datosUbicacion.GPS_LAT,

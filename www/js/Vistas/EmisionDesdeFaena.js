@@ -301,22 +301,58 @@ function limpiar_datos_transporte() {
 
 async function guardar_guia() {
 
-    if (valida()) {
-        app.dialog.preloader("Guadando...");
-        const datosUbicacion = await getLocation2();
 
-        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaCamionVacio) {
+    const estadoGPS = await verificarEstadoGPS();
+    if (!estadoGPS) {
+        $$('#tabla_proveedores [type="radio"]').each(function (i, chk) {
+            chk.checked = false;
+        });
+        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo. para seleccionar el Predio y Producto.`, "GFE");
+    } else {
+        if (valida()) {
+            app.dialog.preloader("Guadando...");
+            const datosUbicacion = await getLocation2();
 
-            validarGeocerca(gdeRol).then((resultadoGeocerca) => {
-                let resultadoValidacion = resultadoGeocerca.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
-                    //si debe cerrar control
-                    if (resultado.cierra) {
-                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
-                            if (anula) {
+            if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaCamionVacio) {
+
+                validarGeocerca(gdeRol).then((resultadoGeocerca) => {
+                    let resultadoValidacion = resultadoGeocerca.validacion;
+                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
+                        //si debe cerrar control
+                        if (resultado.cierra) {
+                            ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
+                                if (anula) {
+                                    (async () => {
+                                        let datos = await generarDataTrazabilidad(
+                                            TipoAccionTypes.GEOCERCA_INVALIDA,
+                                            Obtener_dato_local('user_activo'),
+                                            {
+                                                rol: gdeRol,
+                                                despacho: gde_actual,
+                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                            }
+                                        );
+
+                                        await obtenerUbicacionEInsertarLog(
+                                            Obtener_dato_local('user_activo'),
+                                            datos
+                                        );
+                                        app.dialog.close();
+                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                            mainView.router.navigate("/");
+                                        });
+
+                                    })();
+
+                                }
+                            });
+                        }
+                        else {
+
+                            if (resultado.advertencia) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
-                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        TipoAccionTypes.GEOCERCA_ADVERTENCIA,
                                         Obtener_dato_local('user_activo'),
                                         {
                                             rol: gdeRol,
@@ -331,63 +367,40 @@ async function guardar_guia() {
                                     );
                                     app.dialog.close();
                                     app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                        mainView.router.navigate("/");
+                                        guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+
                                     });
 
                                 })();
 
-                            }
-                        });
-                    }
-                    else {
 
-                        if (resultado.advertencia) {
-                            (async () => {
-                                let datos = await generarDataTrazabilidad(
-                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
-                                    Obtener_dato_local('user_activo'),
-                                    {
-                                        rol: gdeRol,
-                                        despacho: gde_actual,
-                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-                                    }
-                                );
-
-                                await obtenerUbicacionEInsertarLog(
-                                    Obtener_dato_local('user_activo'),
-                                    datos
-                                );
+                            } else {
                                 app.dialog.close();
-                                app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                    guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
-
-                                });
-
-                            })();
-
-
-                        } else {
-                            app.dialog.close();
-                            guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                                guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                            }
                         }
-                    }
 
+                    });
+
+
+                }).catch((e) => {
+                    app.dialog.close();
+                    app.dialog.alert(e, "GFE")
+                    reject(e);
                 });
 
 
-            }).catch((e) => {
+            } else {
                 app.dialog.close();
-                app.dialog.alert(e, "GFE")
-                reject(e);
-            });
+                guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
 
-
-        } else {
-            app.dialog.close();
-            guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
-
+            }
         }
+
+
     }
+
+
 }
 
 
@@ -506,7 +519,7 @@ function guardar_datos_guia(latitud, longitud) {
 
                 DATOS_actualiza_gde_proveedor(gde, idgde_acutal, async function (result_guardado) {
 
-                    startTracking();
+                    //startTracking();
                     setTimeout(() => {
                         abrir_detalles(idgde_acutal, 2);
                     }, 100); // El retraso de
@@ -520,7 +533,7 @@ function guardar_datos_guia(latitud, longitud) {
                     Guardar_dato_local("id_proceso_activo", result_guardado.insertId);
                     Guardar_dato_local("id_unico_proceso_activo", gde.ID_UNICO_MOVIL);
                     Guardar_dato_local("hora_inicio_proceso", Date.now());
-                    startTracking(); // Espera a que el rastreo inicie correctamente
+                    //startTracking(); // Espera a que el rastreo inicie correctamente
 
                     setTimeout(() => {
                         abrir_detalles(result_guardado.insertId, 2);
@@ -876,7 +889,7 @@ async function cambia_proyecto(codproyecto, rol) {
         $$('#tabla_proveedores [type="radio"]').each(function (i, chk) {
             chk.checked = false;
         });
-        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo para seleccionar el Predio y Producto.`, "GFE");
+        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo. para seleccionar el Predio y Producto.`, "GFE");
     } else {
 
         gdeRol = rol;
@@ -1066,14 +1079,6 @@ function combo_transporte(zona, indicador_recarga) {
 }
 
 
-/*function cambiar_patente(){
-  if($$("#tx_patente_camion").val().length>0){
-    combo_transporte_mejorado(zona_activa,$$("#tx_patente_camion").val().toUpperCase(),0);
-  }else{
-    //combo_transporte_mejorado(zona_activa,"AAAA",0);
-  }
-  
-}*/
 
 
 function combo_transporte_mejorado(zona, valor, indicador_recarga) {

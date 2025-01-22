@@ -100,7 +100,7 @@ document.addEventListener("timeChangeDetected", async function (e) {
                     mensaje: mensaje
                 });
                 // Anular la guía si corresponde
-                if (anulaGuia) {
+                if (parseInt(anulaGuia.PAG_VALOR) === 1) {
                     const datosUbicacion = await getLocation2();
                     await ControlServiceAnular(
                         procesoActual,

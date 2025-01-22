@@ -325,9 +325,13 @@ document.addEventListener("deviceready", async function () {
 
     document.addEventListener("backbutton", boton_atras, false);
 
-    $$("#btn_login").on("click", function () {
-        //$$('#btn_login').prop('disabled', true);
-        login();
+    $$("#btn_login").on("click", async function () {
+        const estadoGPS = await verificarEstadoGPS();
+        if (!estadoGPS) {
+            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo para iniciar sesión.`, "GFE");
+        } else {
+            login();
+        }
     });
 
     $$(".login-screen").on("loginscreen:opened", function (e) {
@@ -394,11 +398,11 @@ document.addEventListener("deviceready", async function () {
         app.dialog.alert("La función inicializarGpsDiagnosticHandler no está disponible.");
     }
 
-    if (typeof configureBackgroundGeolocation === "function") {
+    /*if (typeof configureBackgroundGeolocation === "function") {
         configureBackgroundGeolocation();
     } else {
         app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
-    }
+    }*/
 
 });
 
@@ -535,7 +539,7 @@ async function clickEmisionFaena() {
 
             const estadoGPS = await verificarEstadoGPS();
             if (!estadoGPS) {
-                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilitelo`, "GFE");
+                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
             } else {
 
                 const fecha_hora = FechaHoraActual();
