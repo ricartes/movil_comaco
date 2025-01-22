@@ -135,3 +135,11 @@ async function saveLocation(location) {
     }
 
 }
+
+// Validar si la ubicación es antigua
+function esUbicacionAntigua(timestamp) {
+    const ahora = new Date().getTime();
+    const tiempoUbicacion = new Date(timestamp).getTime();
+    const diferenciaMinutos = (ahora - tiempoUbicacion) / (1000 * 60); // Diferencia en minutos
+    return diferenciaMinutos > 10; // Retorna true si supera los 10 minutos
+}

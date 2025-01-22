@@ -22,7 +22,7 @@ function configureBackgroundGeolocation() {
             startOnBoot: true, // Comienza automáticamente tras reiniciar
         },
         function (state) {
-            alert(state);
+
         },
         function (error) {
             //alert(error);
@@ -103,7 +103,6 @@ function stopTracking() {
 // Obtener la última ubicación registrada
 function getLastKnownLocation() {
     if (lastKnownLocation) {
-        alert("Última ubicación conocida:", JSON.stringify(lastKnownLocation));
         return lastKnownLocation;
     } else {
         console.warn("No se ha registrado ninguna ubicación aún.");
@@ -135,4 +134,12 @@ async function saveLocation(location) {
         );
     }
 
+}
+
+// Validar si la ubicación es antigua
+function esUbicacionAntigua(timestamp) {
+    const ahora = new Date().getTime();
+    const tiempoUbicacion = new Date(timestamp).getTime();
+    const diferenciaMinutos = (ahora - tiempoUbicacion) / (1000 * 60); // Diferencia en minutos
+    return diferenciaMinutos > 10; // Retorna true si supera los 10 minutos
 }

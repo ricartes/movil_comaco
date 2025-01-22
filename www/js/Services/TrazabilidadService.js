@@ -4,8 +4,9 @@ async function obtenerUbicacionEInsertarLog(userUsuario, datos, location = null)
         let ubicacionObtenida = false;
 
         try {
-            //en caso de venir null o que llegue un objeto null
-            if (!location) {
+
+            // Si no hay una ubicación o la última es demasiado antigua
+            if (!location || esUbicacionAntigua(location.time)) {
                 const position = await new Promise((positionResolve, positionReject) => {
                     navigator.geolocation.getCurrentPosition(
                         positionResolve,
@@ -22,6 +23,7 @@ async function obtenerUbicacionEInsertarLog(userUsuario, datos, location = null)
                 datos.longitud = position.coords.longitude;
                 datos.timestamp = position.timestamp;
             } else {
+                // Usar la última ubicación conocida
                 datos.latitud = location.latitude;
                 datos.longitud = location.longitude;
                 datos.timestamp = location.time;
@@ -36,11 +38,7 @@ async function obtenerUbicacionEInsertarLog(userUsuario, datos, location = null)
             try {
                 // Insertar el log de usuario con la ubicación (incluso si no se obtiene la ubicación)
                 await insertLogUsuario(userUsuario, datos);
-                if (ubicacionObtenida) {
-                    resolve(datos);
-                } else {
-                    resolve(datos);
-                }
+                resolve(datos);
             } catch (error) {
                 reject('Error al insertar el log de usuario: ' + error);
             }
