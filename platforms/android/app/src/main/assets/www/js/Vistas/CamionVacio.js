@@ -1,14 +1,15 @@
 var id_gde_actual;
-var tipo_evidencia_camion_vacio = 1;
-var tipo_evidencia_camion_vacio_2 = 3;
+
 var gde_actual = null;
-let intentosCamionVacio1 = 0;
-let intentosCamionVacio2 = 0;
+let intentosCamionVacio1 = 1;
+let intentosCamionVacio2 = 1;
 let intentosMaximos = constantes.cantidadMaximaIntentosCaptura;
-let encuentraFotoFueraGeocerca = false;
-let permiteIngresoFotografias = true;
+let encuentraFotoFueraGeocerca;
+let permiteIngresoFotografias;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
+    encuentraFotoFueraGeocerca = false;
+    permiteIngresoFotografias = true;
     id_gde_actual = mainView.router.currentRoute.params.idgde;
     app.dialog.progress("Cargando...")
     const gde = await seleccionarGdeProveedor(id_gde_actual);
@@ -34,14 +35,30 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
     intentosMaximos = parametro && !isNaN(parseInt(parametro.PAG_VALOR)) ? parseInt(parametro.PAG_VALOR) : constantes.cantidadMaximaIntentosCaptura;
 
     app.dialog.close();
-    DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_vacio, function (datos_evidencia) {
+    DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionVacio1, function (datos_evidencia) {
         if (datos_evidencia != "-1") {
-            $$("#imagen_camion_vacio").attr("src", datos_evidencia[0].ARCHIVO);
-        }
+            alert(JSON.stringify(datos_evidencia));
+            intentosCamionVacio1 = datos_evidencia[0].CANTIDAD_INTENTOS;
 
-        DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_vacio_2, function (datos_evidencia_2) {
+            const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio1, intentosMaximos);
+            intentosCamionVacio1 = resss.intentosActualizados;
+            permiteIngresoFotografias = !resss.debeAnular ? true : false;
+
+            $$("#imagen_camion_vacio").attr("src", datos_evidencia[0].ARCHIVO);
+
+
+
+        }
+        DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionVacio2, function (datos_evidencia_2) {
 
             if (datos_evidencia_2 != "-1") {
+
+                alert(JSON.stringify(datos_evidencia_2));
+                intentosCamionVacio2 = datos_evidencia_2[0].CANTIDAD_INTENTOS;
+                const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio2, intentosMaximos);
+                intentosCamionVacio2 = resss.intentosActualizados;
+
+                permiteIngresoFotografias = !resss.debeAnular ? true : false;
                 $$("#imagen_camion_vacio_2").attr("src", datos_evidencia_2[0].ARCHIVO);
             }
 
@@ -60,8 +77,8 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
                 app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
             } else {
 
-                DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_vacio, function (datos_evidencia) {
-                    DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_vacio_2, async function (datos_evidencia_2) {
+                DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionVacio1, function (datos_evidencia) {
+                    DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionVacio2, async function (datos_evidencia_2) {
                         if (datos_evidencia != "-1" && datos_evidencia_2 != "-1") {
 
                             if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
@@ -236,6 +253,9 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
         || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionVacion2 && tipo == 3)) {
 
 
+        alert(intentosCamionVacio1 + "--" + intentosMaximos);
+        alert(intentosCamionVacio2 + "--" + intentosMaximos);
+
         encuentraFotoFueraGeocerca = false;
         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
@@ -247,13 +267,17 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
                     // Manejar intentos por tipo
                     if (tipo === constantes.tipoEvidencia.camionVacio1) {
                         intentosCamionVacio1++;
-                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio1, intentosMaximos);
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio1, intentosMaximos);
+
                         debeAnular = resss.debeAnular;
                     } else if (tipo === constantes.tipoEvidencia.camionVacio2) {
                         intentosCamionVacio2++;
-                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio2, intentosMaximos);
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio2, intentosMaximos);
+
                         debeAnular = resss.debeAnular;
                     }
+
+
 
 
 
@@ -288,7 +312,11 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                         });*/
                     } else {
+
                         (async () => {
+                            alert(evidencia.ID_UNICO_MOVIL);
+                            alert(tipo === constantes.tipoEvidencia.camionVacio1 ? intentosCamionVacio1 : intentosCamionVacio2);
+                            await DATOS_ActualizarIntentosEvidencia(evidencia.ID_UNICO_MOVIL, tipo === constantes.tipoEvidencia.camionVacio1 ? intentosCamionVacio1 : intentosCamionVacio2);
                             const mensajeMostrado = tipo === constantes.tipoEvidencia.camionVacio1 ? "Camión vacio 1: sacar foto nuevamente porque se encuentra fuera de Geocerca." : "Camión vacio 2: sacar foto nuevamente porque se encuentra fuera de Geocerca.";
                             let datos = await generarDataTrazabilidad(
                                 TipoAccionTypes.ADVERTENCIA_GEOCERCA_CAPTURA_EVIDENCIA,

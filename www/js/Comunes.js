@@ -712,9 +712,9 @@ function inicializarDatosGde() {
     Borrar_dato_local("hora_inicio_proceso");
 }
 
-function manejarIntentosCapturaEvidencias(tipo, intentosActuales, intentosMaximos) {
-    if (intentosActuales < intentosMaximos) {
-        return { intentosActuales: intentosActuales, debeAnular: false };
+function manejarIntentosCapturaEvidencias(intentosActuales, intentosMaximos) {
+    if (intentosActuales <= intentosMaximos) {
+        return { intentosActualizados: intentosActuales, debeAnular: false };
     }
     return { intentosActualizados: intentosActuales, debeAnular: true };
 }

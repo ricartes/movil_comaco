@@ -31,13 +31,21 @@ var version4Esquema = {
     ]
 }
 
+var version5Esquema = {
+    versionNumber: 5,
+    queries: [
+        "ALTER TABLE GDE_EVIDENCIA ADD COLUMN CANTIDAD_INTENTOS INTEGER DEFAULT 1"
+    ]
+}
+
 
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
     version1Esquema,
     version2Esquema,
     version3Esquema,
-    version4Esquema
+    version4Esquema,
+    version5Esquema
 ];
 
 

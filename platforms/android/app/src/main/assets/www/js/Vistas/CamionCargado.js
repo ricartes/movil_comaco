@@ -259,13 +259,14 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
                     encuentraFotoFueraGeocerca = true;
                     // Manejar intentos por tipo
                     if (tipo === constantes.tipoEvidencia.camionCargado1) {
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado1, intentosMaximos);
+                        debeAnular = resss.debeAnular;
                         intentosCamionCargado1++;
-                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionCargado1, intentosMaximos);
-                        debeAnular = resss.debeAnular;
                     } else if (tipo === constantes.tipoEvidencia.camionCargado2) {
-                        intentosCamionCargado2++;
-                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionCargado2, intentosMaximos);
+                       
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado2, intentosMaximos);
                         debeAnular = resss.debeAnular;
+                        intentosCamionCargado2++;
                     }
 
                     if (debeAnular) {
