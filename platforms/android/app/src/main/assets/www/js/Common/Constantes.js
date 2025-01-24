@@ -14,7 +14,10 @@ const constantes = {
     },
     tipoEvidencia: {
         camionVacio1: 1,
-        camionVacio2: 3
+        camionVacio2: 3,
+        camionCargado1: 2,
+        camionCargado2: 4,
+        padronVehiculo: 5
     }
 
 

@@ -2,6 +2,11 @@ var id_gde_actual;
 var tipo_evidencia_camion_cargado = 2;
 var tipo_evidencia_camion_cargado_2 = 4;
 var gde_actual = null;
+let intentosCamionCargado1 = 0;
+let intentosCamionCargado2 = 0;
+let intentosMaximos = constantes.cantidadMaximaIntentosCaptura;
+let encuentraFotoFueraGeocerca = false;
+let permiteIngresoFotografias = true;
 $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
@@ -25,6 +30,9 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
         Obtener_dato_local('user_activo'),
         datos
     );
+
+    const parametro = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroIntentosMaximoCamionPadron);
+    intentosMaximos = parametro && !isNaN(parseInt(parametro.PAG_VALOR)) ? parseInt(parametro.PAG_VALOR) : constantes.cantidadMaximaIntentosCaptura;
     app.dialog.close();
     DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
 
@@ -44,93 +52,108 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 
 
 
-    $$("#btn_padron_guia").click(function () {
-        DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
-            DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado_2, function (datos_evidencia_2) {
-                if (datos_evidencia != "-1" && datos_evidencia_2 != "-1") {
-                    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaPadron) {
+    $$("#btn_padron_guia").click(async function () {
 
-                        app.dialog.preloader("Guardando...")
-                        validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
 
-                            let resultadoValidacion = resultadoGeocerca.validacion;
-                            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
-                                //si debe cerrar control
-                                if (resultado.cierra) {
-                                    ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
-                                        (async () => {
-                                            let datos = await generarDataTrazabilidad(
-                                                TipoAccionTypes.GEOCERCA_INVALIDA,
-                                                Obtener_dato_local('user_activo'),
-                                                {
-                                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                                    despacho: gde_actual,
-                                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
-                                                }
-                                            );
+        if (encuentraFotoFueraGeocerca) {
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir y e intentar nuevamente.");
+            return false;
+        } else {
+            const estadoGPS = await verificarEstadoGPS();
+            if (!estadoGPS) {
+                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
+            } else {
+                DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
+                    DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado_2, function (datos_evidencia_2) {
+                        if (datos_evidencia != "-1" && datos_evidencia_2 != "-1") {
+                            if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaPadron) {
 
-                                            await obtenerUbicacionEInsertarLog(
-                                                Obtener_dato_local('user_activo'),
-                                                datos
-                                            );
-                                            app.dialog.close();
-                                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                                mainView.router.navigate("/");
+                                app.dialog.preloader("Guardando...")
+                                validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
+
+                                    let resultadoValidacion = resultadoGeocerca.validacion;
+                                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
+                                        //si debe cerrar control
+                                        if (resultado.cierra) {
+                                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR PADRÓN GUÍA)`).then((anula) => {
+                                                (async () => {
+                                                    let datos = await generarDataTrazabilidad(
+                                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                                        Obtener_dato_local('user_activo'),
+                                                        {
+                                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                            despacho: gde_actual,
+                                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                                        }
+                                                    );
+
+                                                    await obtenerUbicacionEInsertarLog(
+                                                        Obtener_dato_local('user_activo'),
+                                                        datos
+                                                    );
+                                                    app.dialog.close();
+                                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                                        mainView.router.navigate("/");
+                                                    });
+
+                                                })();
                                             });
+                                        }
+                                        else {
+                                            if (resultado.advertencia) {
+                                                (async () => {
+                                                    let datos = await generarDataTrazabilidad(
+                                                        TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                                        Obtener_dato_local('user_activo'),
+                                                        {
+                                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                            despacho: gde_actual,
+                                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                                        }
+                                                    );
 
-                                        })();
-                                    });
-                                }
-                                else {
-                                    if (resultado.advertencia) {
-                                        (async () => {
-                                            let datos = await generarDataTrazabilidad(
-                                                TipoAccionTypes.GEOCERCA_ADVERTENCIA,
-                                                Obtener_dato_local('user_activo'),
-                                                {
-                                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                                    despacho: gde_actual,
-                                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
-                                                }
-                                            );
+                                                    await obtenerUbicacionEInsertarLog(
+                                                        Obtener_dato_local('user_activo'),
+                                                        datos
+                                                    );
+                                                    app.dialog.close();
+                                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                                        mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
+                                                    });
 
-                                            await obtenerUbicacionEInsertarLog(
-                                                Obtener_dato_local('user_activo'),
-                                                datos
-                                            );
-                                            app.dialog.close();
-                                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                                })();
+                                            } else {
+                                                app.dialog.close();
                                                 mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
-                                            });
+                                            }
+                                        }
 
-                                        })();
-                                    } else {
-                                        app.dialog.close();
-                                        mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
-                                    }
-                                }
+                                    });
 
+
+                                }).catch((e) => {
+                                    app.dialog.close();
+                                    app.dialog.alert(e, "GFE");
+                                    reject(e);
+                                });
+
+                            } else {
+
+                                mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
+                            }
+                        } else {
+                            app.dialog.alert("Antes de continuar. Debe capturar las imágenes del camión cargado", "Evidencia", function () {
+                                return false;
                             });
+                        }
 
-
-                        }).catch((e) => {
-                            app.dialog.close();
-                            app.dialog.alert(e, "GFE");
-                            reject(e);
-                        });
-
-                    } else {
-
-                        mainView.router.navigate('/PadronVehiculo/' + 0 + '/' + id_gde_actual + '/' + 0);
-                    }
-                } else {
-                    app.dialog.alert("Antes de continuar. Debe capturar las imágenes del camión cargado", "Evidencia", function () {
-                        return false;
                     });
-                }
+                });
 
-            });
-        });
+            }
+        }
+
+
 
     });
 });
@@ -138,46 +161,59 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 
 async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
-    const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
-    //const estadoValidacion = true; //TODO: QUITAR AL PASAR
-    if (!estadoValidacion) {
-        app.dialog.preloader("Cargando...");
-        getLocation2().then(async (coordenadas) => {
-            const mensaje = "Fecha captura camión cargado fuera de los rangos establecidos";
-            let datos = await generarDataTrazabilidad(
-                TipoAccionTypes.TIEMPO_CAPTURA_CAMION_CARGADO_FUERA_RANGO,
-                Obtener_dato_local('user_activo'),
-                {
-                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                    despacho: gde_actual,
-                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
-                    mensajeMostrado: mensaje
-                }
-            );
-
-            await obtenerUbicacionEInsertarLog(
-                Obtener_dato_local('user_activo'),
-                datos
-            );
-
-            ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "F", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {
-                app.dialog.close();
-                app.dialog.alert(mensaje, "GFE", function () {
-                    mainView.router.navigate("/");
-                });
-            });
-
-        });
+    if (permiteIngresoFotografias === false) {
+        app.dialog.alert(`No puede capturar mas evidencias debido a que el despacho ha sido anulado.`, "GFE");
     } else {
-        if (tipo_evidencia == 2) {
-            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
-        }
 
-        if (tipo_evidencia == 4) {
-            capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+        const estadoGPS = await verificarEstadoGPS();
+        if (!estadoGPS) {
+            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
+        } else {
+            const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
+            if (!estadoValidacion.esValido) {
+                app.dialog.preloader("Cargando...");
+                getLocation2().then(async (coordenadas) => {
+                    const mensaje = `Fecha captura camión cargado fuera de los rangos establecidos (${esValido.tiempoMinimoEspera}-${esValido.tiempoMinimoEspera.tiempoMaximoAcumulado} minutos.)`;
+                    let datos = await generarDataTrazabilidad(
+                        TipoAccionTypes.TIEMPO_CAPTURA_CAMION_CARGADO_FUERA_RANGO,
+                        Obtener_dato_local('user_activo'),
+                        {
+                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                            despacho: gde_actual,
+                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                            mensajeMostrado: mensaje
+                        }
+                    );
+
+                    await obtenerUbicacionEInsertarLog(
+                        Obtener_dato_local('user_activo'),
+                        datos
+                    );
+
+                    ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {
+                        app.dialog.close();
+                        app.dialog.alert(mensaje, "GFE", function () {
+                            mainView.router.navigate("/");
+                        });
+                    });
+
+                });
+            } else {
+                if (tipo_evidencia == 2) {
+                    capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+                }
+
+                if (tipo_evidencia == 4) {
+                    capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+                }
+
+            }
         }
 
     }
+
+
+
 }
 
 
@@ -212,23 +248,95 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado1 && tipo == 2)
         || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado2 && tipo == 4)) {
 
+        encuentraFotoFueraGeocerca = false;
         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
             validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                 //si debe cerrar control
-                if (resultado.cierra) {
-                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
-                        if (anula) {
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                mainView.router.navigate("/");
-                            });
-                        }
+                if (!resultado.cierra) { //TODO: CAMBIAR CONDICION
 
-                    });
+                    let debeAnular = false;
+                    encuentraFotoFueraGeocerca = true;
+                    // Manejar intentos por tipo
+                    if (tipo === constantes.tipoEvidencia.camionCargado1) {
+                        intentosCamionCargado1++;
+                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionCargado1, intentosMaximos);
+                        debeAnular = resss.debeAnular;
+                    } else if (tipo === constantes.tipoEvidencia.camionCargado2) {
+                        intentosCamionCargado2++;
+                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionCargado2, intentosMaximos);
+                        debeAnular = resss.debeAnular;
+                    }
+
+                    if (debeAnular) {
+                        permiteIngresoFotografias = false;
+                        alert("debe anular, nada que hacer CAMION CARGADO");
+                        app.dialog.close();
+                        /*ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN CARGADO)`).then((anula) => {
+                            if (anula) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
+                            }
+
+                        });*/
+                    } else {
+
+                        (async () => {
+                            const mensajeMostrado = tipo === constantes.tipoEvidencia.camionCargado1 ? "Camión cargado1 1: sacar foto nuevamente porque se encuentra fuera de Geocerca." : "Camión cargado 2: sacar foto nuevamente porque se encuentra fuera de Geocerca.";
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.ADVERTENCIA_GEOCERCA_CAPTURA_EVIDENCIA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                    mensajeMostrado: mensajeMostrado,
+                                    intentos: {
+                                        camionCargado1: intentosCamionCargado1,
+                                        camionCargado2: intentosCamionCargado2
+                                    }
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                            app.dialog.close();
+                            app.dialog.alert(mensajeMostrado, "GFE");
+
+                        })();
+                    }
+
+
+
                 }
                 else {
                     if (resultado.advertencia) {
+
+
+
+
+
                         app.dialog.close();
                         app.dialog.alert(resultado.mensaje, "GFE");
                     } else {

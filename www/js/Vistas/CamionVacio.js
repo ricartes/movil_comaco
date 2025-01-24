@@ -6,6 +6,7 @@ let intentosCamionVacio1 = 0;
 let intentosCamionVacio2 = 0;
 let intentosMaximos = constantes.cantidadMaximaIntentosCaptura;
 let encuentraFotoFueraGeocerca = false;
+let permiteIngresoFotografias = true;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
     id_gde_actual = mainView.router.currentRoute.params.idgde;
@@ -166,28 +167,36 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
 async function capturar_evidencia_camion_vacio(tipo_evidencia) {
 
-    const estadoGPS = await verificarEstadoGPS();
-    if (!estadoGPS) {
-        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
+    if (permiteIngresoFotografias === false) {
+
+        app.dialog.alert(`No puede capturar mas evidencias debido a que el despacho ha sido anulado.`, "GFE");
+
     } else {
 
-        if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
+        const estadoGPS = await verificarEstadoGPS();
+        if (!estadoGPS) {
+            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
+        } else {
+
+            if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
 
 
-            if (tipo_evidencia == 1) {
-                capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+                if (tipo_evidencia == 1) {
+                    capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+                }
+                if (tipo_evidencia == 3) {
+                    capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+                }
             }
-            if (tipo_evidencia == 3) {
-                capturePhotoWithFile(id_gde_actual, tipo_evidencia);
+            else {
+                app.dialog.alert("Ya ha capturado las evidencias necesarias para el camión vacio", "GFE", function () {
+                    return false;
+                });
             }
-        }
-        else {
-            app.dialog.alert("Ya ha capturado las evidencias necesarias para el camión vacio", "Evidencia", function () {
-                return false;
-            });
-        }
 
+        }
     }
+
 
 
 }
@@ -238,20 +247,21 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
                     // Manejar intentos por tipo
                     if (tipo === constantes.tipoEvidencia.camionVacio1) {
                         intentosCamionVacio1++;
-                        const resultado = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio1, intentosMaximos);
-                        debeAnular = resultado.debeAnular;
+                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio1, intentosMaximos);
+                        debeAnular = resss.debeAnular;
                     } else if (tipo === constantes.tipoEvidencia.camionVacio2) {
                         intentosCamionVacio2++;
-                        const resultado = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio2, intentosMaximos);
-                        debeAnular = resultado.debeAnular;
+                        const resss = manejarIntentosCapturaEvidencias(tipo, intentosCamionVacio2, intentosMaximos);
+                        debeAnular = resss.debeAnular;
                     }
 
 
 
                     if (debeAnular) {
+                        permiteIngresoFotografias = false;
                         alert("debe anular, nada que hacer");
                         app.dialog.close();
-                        ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
+                        /*ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "I", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN VACIO)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
@@ -276,7 +286,7 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
                                 })();
                             }
 
-                        });
+                        });*/
                     } else {
                         (async () => {
                             const mensajeMostrado = tipo === constantes.tipoEvidencia.camionVacio1 ? "Camión vacio 1: sacar foto nuevamente porque se encuentra fuera de Geocerca." : "Camión vacio 2: sacar foto nuevamente porque se encuentra fuera de Geocerca.";

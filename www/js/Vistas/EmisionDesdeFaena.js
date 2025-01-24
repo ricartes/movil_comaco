@@ -657,7 +657,7 @@ function recargar_combo_transportista2() {
 function volver_menu() {
 
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
-        stopTracking();
+        //stopTracking();
         inicializarDatosGde();
         (async () => {
 
