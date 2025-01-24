@@ -67,9 +67,8 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
 
     $$("#btn_puntos").click(async function () {
-
-        if (encuentraFotoFueraGeocerca) {
-            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.");
+        if (encuentraFotoFueraGeocerca || !permiteIngresoFotografias) {
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.", "GFE");
             return false;
         } else {
             const estadoGPS = await verificarEstadoGPS();
@@ -92,7 +91,7 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
                                     validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                                         //si debe cerrar control
                                         if (resultado.cierra) {
-                                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F").then((anula) => {
+                                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A PUNTOS GDE)`).then((anula) => {
                                                 (async () => {
                                                     let datos = await generarDataTrazabilidad(
                                                         TipoAccionTypes.GEOCERCA_INVALIDA,

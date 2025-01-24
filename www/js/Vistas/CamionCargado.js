@@ -66,8 +66,8 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
     $$("#btn_padron_guia").click(async function () {
 
 
-        if (encuentraFotoFueraGeocercaCamionCargado) {
-            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.");
+        if (encuentraFotoFueraGeocercaCamionCargado || !permiteIngresoFotografiasCamionCargado) {
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.", "GFE");
             return false;
         } else {
             const estadoGPS = await verificarEstadoGPS();

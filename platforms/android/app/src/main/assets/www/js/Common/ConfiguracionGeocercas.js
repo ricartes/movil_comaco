@@ -14,7 +14,7 @@ const configuracionGeocercas = {
         avanzaHaciaPadron: false,
         padronVehiculo: true,
         avanzaHaciaEvidencia: false,
-        evidenciaOtros: true,
-        informarDespacho: true,
+        evidenciaOtros: false,
+        informarDespacho: false,
     }
 }

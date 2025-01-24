@@ -318,7 +318,7 @@ async function guardar_guia() {
                     validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                         //si debe cerrar control
                         if (resultado.cierra) {
-                            ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
+                            ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida}`).then((anula) => {
                                 if (anula) {
                                     (async () => {
                                         let datos = await generarDataTrazabilidad(
@@ -770,7 +770,7 @@ async function obtener_punto_inicial() {
                     //si debe cerrar control
 
                     if (resultado.cierra) {
-                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I").then((anula) => {
+                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida} (ACCIÓN OBTENER PUNTO INICIAL)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
@@ -926,7 +926,7 @@ async function cambia_proyecto(codproyecto, rol) {
                 validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
-                        ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
+                        ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida, `${constantes.mensajeGeocercaNoValida} (SELECCIÓN PREDIO)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(

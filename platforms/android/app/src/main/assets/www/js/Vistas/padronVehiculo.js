@@ -51,8 +51,8 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
     $$("#btn_evidencia_guia").click(async function () {
 
 
-        if (encuentraFotoFueraGeocercaPadronVehiculo) {
-            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.");
+        if (encuentraFotoFueraGeocercaPadronVehiculo || !permiteIngresoFotografiasPadronVehiculo) {
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.", "GFE");
             return false;
         } else {
             const estadoGPS = await verificarEstadoGPS();
@@ -157,7 +157,7 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
 
 async function capturar_evidencia_padron(tipo_evidencia) {
 
-    if (permiteIngresoFotografiasCamionCargado === false) {
+    if (permiteIngresoFotografiasPadronVehiculo === false) {
         app.dialog.alert(`No puede capturar mas evidencias debido a que el despacho ha sido anulado.`, "GFE");
     } else {
 
@@ -213,7 +213,7 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                         await DATOS_ActualizarIntentosEvidencia(evidencia.ID_UNICO_MOVIL, intentosPadronVehiculo);
 
                         if (debeAnular) {
-                            permiteIngresoFotografiasCamionCargado = false;
+                            permiteIngresoFotografiasPadronVehiculo = false;
                             app.dialog.close();
                             /*ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA PADRÓN VEHÍCULO)`).then((anula) => {
                                 if (anula) {
