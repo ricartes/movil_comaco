@@ -51,8 +51,8 @@ $$(document).on('page:init', '.page[data-name="padron-vehiculo"]', async functio
     $$("#btn_evidencia_guia").click(async function () {
 
 
-        if (encuentraFotoFueraGeocercaCamionCargado) {
-            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir y e intentar nuevamente.");
+        if (encuentraFotoFueraGeocercaPadronVehiculo) {
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.");
             return false;
         } else {
             const estadoGPS = await verificarEstadoGPS();

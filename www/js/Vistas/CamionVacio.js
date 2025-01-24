@@ -69,7 +69,7 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
     $$("#btn_puntos").click(async function () {
 
         if (encuentraFotoFueraGeocerca) {
-            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir y e intentar nuevamente.");
+            app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir e intentar nuevamente.");
             return false;
         } else {
             const estadoGPS = await verificarEstadoGPS();
