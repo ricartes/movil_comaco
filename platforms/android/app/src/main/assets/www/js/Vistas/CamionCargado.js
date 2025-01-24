@@ -1,15 +1,17 @@
 var id_gde_actual;
-var tipo_evidencia_camion_cargado = 2;
-var tipo_evidencia_camion_cargado_2 = 4;
 var gde_actual = null;
-let intentosCamionCargado1 = 0;
-let intentosCamionCargado2 = 0;
-let intentosMaximos = constantes.cantidadMaximaIntentosCaptura;
-let encuentraFotoFueraGeocerca = false;
-let permiteIngresoFotografias = true;
+let intentosCamionCargado1;
+let intentosCamionCargado2;
+let intentosMaximosCamionCargado = constantes.cantidadMaximaIntentosCaptura;
+let encuentraFotoFueraGeocercaCamionCargado;
+let permiteIngresoFotografiasCamionCargado;
 $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function (e, page) {
-
     id_gde_actual = mainView.router.currentRoute.params.idgde;
+    gde_actual = null;
+    encuentraFotoFueraGeocercaCamionCargado = false;
+    permiteIngresoFotografiasCamionCargado = true;
+    intentosCamionCargado1 = 0;
+    intentosCamionCargado2 = 0;
     app.dialog.progress("Cargando...")
     const gde = await seleccionarGdeProveedor(id_gde_actual);
     gde_actual = gde;
@@ -32,21 +34,30 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
     );
 
     const parametro = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroIntentosMaximoCamionPadron);
-    intentosMaximos = parametro && !isNaN(parseInt(parametro.PAG_VALOR)) ? parseInt(parametro.PAG_VALOR) : constantes.cantidadMaximaIntentosCaptura;
+    intentosMaximosCamionCargado = parametro && !isNaN(parseInt(parametro.PAG_VALOR)) ? parseInt(parametro.PAG_VALOR) : constantes.cantidadMaximaIntentosCaptura;
     app.dialog.close();
-    DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
+    DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionCargado1, function (datos_evidencia) {
 
         if (datos_evidencia != "-1") {
+            intentosCamionCargado1 = datos_evidencia[0].CANTIDAD_INTENTOS;
+            const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado1, intentosMaximosCamionCargado);
+            intentosCamionCargado1 = resss.intentosActualizados;
+            permiteIngresoFotografiasCamionCargado = !resss.debeAnular ? true : false;
             $$("#imagen_camion_cargado").attr("src", datos_evidencia[0].ARCHIVO);
         }
-        DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado_2, function (datos_evidencia_2) {
+        DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionCargado2, function (datos_evidencia_2) {
 
             if (datos_evidencia_2 != "-1") {
+
+                intentosCamionCargado2 = datos_evidencia_2[0].CANTIDAD_INTENTOS;
+                const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado2, intentosMaximosCamionCargado);
+                intentosCamionCargado2 = resss.intentosActualizados;
+
+                permiteIngresoFotografiasCamionCargado = !resss.debeAnular ? true : false;
                 $$("#imagen_camion_cargado_2").attr("src", datos_evidencia_2[0].ARCHIVO);
             }
 
         });
-
 
     });
 
@@ -55,7 +66,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
     $$("#btn_padron_guia").click(async function () {
 
 
-        if (encuentraFotoFueraGeocerca) {
+        if (encuentraFotoFueraGeocercaCamionCargado) {
             app.dialog.alert("Existen fotografías que se encuentran fuera de la geocerca. Favor corregir y e intentar nuevamente.");
             return false;
         } else {
@@ -63,8 +74,8 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
             if (!estadoGPS) {
                 app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
             } else {
-                DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado, function (datos_evidencia) {
-                    DATOS_seleccionar_evidencia_guia(id_gde_actual, tipo_evidencia_camion_cargado_2, function (datos_evidencia_2) {
+                DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionCargado1, function (datos_evidencia) {
+                    DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionCargado2, function (datos_evidencia_2) {
                         if (datos_evidencia != "-1" && datos_evidencia_2 != "-1") {
                             if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaPadron) {
 
@@ -161,7 +172,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
 
 async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
-    if (permiteIngresoFotografias === false) {
+    if (permiteIngresoFotografiasCamionCargado === false) {
         app.dialog.alert(`No puede capturar mas evidencias debido a que el despacho ha sido anulado.`, "GFE");
     } else {
 
@@ -170,10 +181,10 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
             app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
         } else {
             const estadoValidacion = await validacionHoraInicioTerminoCarguio(id_gde_actual);
-            if (!estadoValidacion.esValido) {
+            if (constantes.validaRangoHoraCamionCargado && !estadoValidacion.esValido) {
                 app.dialog.preloader("Cargando...");
                 getLocation2().then(async (coordenadas) => {
-                    const mensaje = `Fecha captura camión cargado fuera de los rangos establecidos (${esValido.tiempoMinimoEspera}-${esValido.tiempoMinimoEspera.tiempoMaximoAcumulado} minutos.)`;
+                    const mensaje = `Fecha captura camión cargado fuera de los rangos establecidos (${estadoValidacion.tiempoMinimoEspera}-${estadoValidacion.tiempoMaximoAcumulado} minutos.)`;
                     let datos = await generarDataTrazabilidad(
                         TipoAccionTypes.TIEMPO_CAPTURA_CAMION_CARGADO_FUERA_RANGO,
                         Obtener_dato_local('user_activo'),
@@ -189,8 +200,7 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
                         Obtener_dato_local('user_activo'),
                         datos
                     );
-
-                    ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "", constantes.mensajeHoraCamionCargadoNoValida).then((anula) => {
+                    ControlServiceAnular(id_gde_actual, coordenadas.GPS_LAT, coordenadas.GPS_LON, "", mensaje).then((anula) => {
                         app.dialog.close();
                         app.dialog.alert(mensaje, "GFE", function () {
                             mainView.router.navigate("/");
@@ -199,11 +209,11 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
 
                 });
             } else {
-                if (tipo_evidencia == 2) {
+                if (tipo_evidencia == constantes.tipoEvidencia.camionCargado1) {
                     capturePhotoWithFile(id_gde_actual, tipo_evidencia);
                 }
 
-                if (tipo_evidencia == 4) {
+                if (tipo_evidencia == constantes.tipoEvidencia.camionCargado2) {
                     capturePhotoWithFile(id_gde_actual, tipo_evidencia);
                 }
 
@@ -221,7 +231,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     app.dialog.preloader("Cargando...");
 
 
-    const accion = tipo == 2 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO2;
+    const accion = tipo == constantes.tipoEvidencia.camionCargado1 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_CARGADO2;
     let datos = await generarDataTrazabilidad(
         accion,
         Obtener_dato_local('user_activo'),
@@ -238,42 +248,40 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
     );
 
 
-    if (tipo == 2) {
+    if (tipo == constantes.tipoEvidencia.camionCargado1) {
         $$("#imagen_camion_cargado").attr("src", evidencia.ARCHIVO);
     }
-    if (tipo == 4) {
+    if (tipo == constantes.tipoEvidencia.camionCargado2) {
         $$("#imagen_camion_cargado_2").attr("src", evidencia.ARCHIVO);
     }
 
-    if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado1 && tipo == 2)
-        || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado2 && tipo == 4)) {
+    if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado1 && tipo == constantes.tipoEvidencia.camionCargado1)
+        || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionCargado2 && tipo == constantes.tipoEvidencia.camionCargado2)) {
 
-        encuentraFotoFueraGeocerca = false;
+        encuentraFotoFueraGeocercaCamionCargado = false;
         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
+            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then(async (resultado) => {
                 //si debe cerrar control
-                if (!resultado.cierra) { //TODO: CAMBIAR CONDICION
+                if (resultado.cierra) {
 
                     let debeAnular = false;
-                    encuentraFotoFueraGeocerca = true;
+                    encuentraFotoFueraGeocercaCamionCargado = true;
                     // Manejar intentos por tipo
                     if (tipo === constantes.tipoEvidencia.camionCargado1) {
-                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado1, intentosMaximos);
-                        debeAnular = resss.debeAnular;
                         intentosCamionCargado1++;
-                    } else if (tipo === constantes.tipoEvidencia.camionCargado2) {
-                       
-                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado2, intentosMaximos);
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado1, intentosMaximosCamionCargado);
                         debeAnular = resss.debeAnular;
-                        intentosCamionCargado2++;
-                    }
 
+                    } else if (tipo === constantes.tipoEvidencia.camionCargado2) {
+                        intentosCamionCargado2++;
+                        const resss = manejarIntentosCapturaEvidencias(intentosCamionCargado2, intentosMaximosCamionCargado);
+                        debeAnular = resss.debeAnular;
+                    }
+                    await DATOS_ActualizarIntentosEvidencia(evidencia.ID_UNICO_MOVIL, tipo === constantes.tipoEvidencia.camionCargado1 ? intentosCamionCargado1 : intentosCamionCargado2);
                     if (debeAnular) {
-                        permiteIngresoFotografias = false;
-                        alert("debe anular, nada que hacer CAMION CARGADO");
-                        app.dialog.close();
-                        /*ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN CARGADO)`).then((anula) => {
+                        permiteIngresoFotografiasCamionCargado = false;
+                        ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN CARGADO)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
@@ -298,7 +306,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
                                 })();
                             }
 
-                        });*/
+                        });
                     } else {
 
                         (async () => {
@@ -333,11 +341,6 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
                 }
                 else {
                     if (resultado.advertencia) {
-
-
-
-
-
                         app.dialog.close();
                         app.dialog.alert(resultado.mensaje, "GFE");
                     } else {

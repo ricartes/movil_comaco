@@ -1,5 +1,6 @@
 const constantes = {
     empresaPredeterminada: 1,
+    validaRangoHoraCamionCargado: false, //TODO: PASARLO A TRUE
     parametroTiempoMinimoCarguio: 12,
     parametroTiempoMaximoCarguio: 13,
     parametroDetieneProcesoCambioHora: 14,
@@ -17,7 +18,8 @@ const constantes = {
         camionVacio2: 3,
         camionCargado1: 2,
         camionCargado2: 4,
-        padronVehiculo: 5
+        padronVehiculo: 5,
+        otra: 6
     }
 
 

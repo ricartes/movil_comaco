@@ -1,15 +1,18 @@
 var id_gde_actual;
 
 var gde_actual = null;
-let intentosCamionVacio1 = 1;
-let intentosCamionVacio2 = 1;
+let intentosCamionVacio1;
+let intentosCamionVacio2;
 let intentosMaximos = constantes.cantidadMaximaIntentosCaptura;
 let encuentraFotoFueraGeocerca;
 let permiteIngresoFotografias;
 $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (e, page) {
 
+    gde_actual = null;
     encuentraFotoFueraGeocerca = false;
     permiteIngresoFotografias = true;
+    intentosCamionVacio1 = 0;
+    intentosCamionVacio2 = 0;
     id_gde_actual = mainView.router.currentRoute.params.idgde;
     app.dialog.progress("Cargando...")
     const gde = await seleccionarGdeProveedor(id_gde_actual);
@@ -37,9 +40,7 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
     app.dialog.close();
     DATOS_seleccionar_evidencia_guia(id_gde_actual, constantes.tipoEvidencia.camionVacio1, function (datos_evidencia) {
         if (datos_evidencia != "-1") {
-            alert(JSON.stringify(datos_evidencia));
             intentosCamionVacio1 = datos_evidencia[0].CANTIDAD_INTENTOS;
-
             const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio1, intentosMaximos);
             intentosCamionVacio1 = resss.intentosActualizados;
             permiteIngresoFotografias = !resss.debeAnular ? true : false;
@@ -53,7 +54,6 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
 
             if (datos_evidencia_2 != "-1") {
 
-                alert(JSON.stringify(datos_evidencia_2));
                 intentosCamionVacio2 = datos_evidencia_2[0].CANTIDAD_INTENTOS;
                 const resss = manejarIntentosCapturaEvidencias(intentosCamionVacio2, intentosMaximos);
                 intentosCamionVacio2 = resss.intentosActualizados;
@@ -198,10 +198,10 @@ async function capturar_evidencia_camion_vacio(tipo_evidencia) {
             if (gde_actual.GDE_CAPTURA_FOTO_CAMION_VACIO == 0) {
 
 
-                if (tipo_evidencia == 1) {
+                if (tipo_evidencia == constantes.tipoEvidencia.camionVacio1) {
                     capturePhotoWithFile(id_gde_actual, tipo_evidencia);
                 }
-                if (tipo_evidencia == 3) {
+                if (tipo_evidencia == constantes.tipoEvidencia.camionVacio2) {
                     capturePhotoWithFile(id_gde_actual, tipo_evidencia);
                 }
             }
@@ -224,7 +224,7 @@ async function capturar_evidencia_camion_vacio(tipo_evidencia) {
 async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
     app.dialog.preloader("Cargando...");
-    const accion = tipo == 1 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO2;
+    const accion = tipo == constantes.tipoEvidencia.camionVacio1 ? TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO1 : TipoAccionTypes.CAPTURA_EVIDENCIA_CAMION_VACIO2;
     let datos = await generarDataTrazabilidad(
         accion,
         Obtener_dato_local('user_activo'),
@@ -252,16 +252,12 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
     if ((configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionVacio1 && tipo == 1)
         || (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.camionVacion2 && tipo == 3)) {
 
-
-        alert(intentosCamionVacio1 + "--" + intentosMaximos);
-        alert(intentosCamionVacio2 + "--" + intentosMaximos);
-
         encuentraFotoFueraGeocerca = false;
         validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
             let resultadoValidacion = resultado.validacion;
             validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
                 //si debe cerrar control
-                if (!resultado.cierra) { //TODO: CAMBIAR
+                if (resultado.cierra) {
                     let debeAnular = false;
                     encuentraFotoFueraGeocerca = true;
                     // Manejar intentos por tipo
@@ -277,15 +273,12 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
                         debeAnular = resss.debeAnular;
                     }
 
-
-
-
-
+                    await DATOS_ActualizarIntentosEvidencia(evidencia.ID_UNICO_MOVIL, tipo === constantes.tipoEvidencia.camionVacio1 ? intentosCamionVacio1 : intentosCamionVacio2);
                     if (debeAnular) {
+
                         permiteIngresoFotografias = false;
-                        alert("debe anular, nada que hacer");
                         app.dialog.close();
-                        /*ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "I", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN VACIO)`).then((anula) => {
+                        ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "I", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN VACIO)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
@@ -310,37 +303,30 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
                                 })();
                             }
 
-                        });*/
+                        });
                     } else {
-
-                        (async () => {
-                            alert(evidencia.ID_UNICO_MOVIL);
-                            alert(tipo === constantes.tipoEvidencia.camionVacio1 ? intentosCamionVacio1 : intentosCamionVacio2);
-                            await DATOS_ActualizarIntentosEvidencia(evidencia.ID_UNICO_MOVIL, tipo === constantes.tipoEvidencia.camionVacio1 ? intentosCamionVacio1 : intentosCamionVacio2);
-                            const mensajeMostrado = tipo === constantes.tipoEvidencia.camionVacio1 ? "Camión vacio 1: sacar foto nuevamente porque se encuentra fuera de Geocerca." : "Camión vacio 2: sacar foto nuevamente porque se encuentra fuera de Geocerca.";
-                            let datos = await generarDataTrazabilidad(
-                                TipoAccionTypes.ADVERTENCIA_GEOCERCA_CAPTURA_EVIDENCIA,
-                                Obtener_dato_local('user_activo'),
-                                {
-                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                                    despacho: gde_actual,
-                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
-                                    mensajeMostrado: mensajeMostrado,
-                                    intentos: {
-                                        camionVacio1: intentosCamionVacio1,
-                                        camionVacio2: intentosCamionVacio2
-                                    }
+                        const mensajeMostrado = tipo === constantes.tipoEvidencia.camionVacio1 ? "Camión vacio 1: sacar foto nuevamente porque se encuentra fuera de Geocerca." : "Camión vacio 2: sacar foto nuevamente porque se encuentra fuera de Geocerca.";
+                        let datos = await generarDataTrazabilidad(
+                            TipoAccionTypes.ADVERTENCIA_GEOCERCA_CAPTURA_EVIDENCIA,
+                            Obtener_dato_local('user_activo'),
+                            {
+                                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                despacho: gde_actual,
+                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                mensajeMostrado: mensajeMostrado,
+                                intentos: {
+                                    camionVacio1: intentosCamionVacio1,
+                                    camionVacio2: intentosCamionVacio2
                                 }
-                            );
+                            }
+                        );
 
-                            await obtenerUbicacionEInsertarLog(
-                                Obtener_dato_local('user_activo'),
-                                datos
-                            );
-                            app.dialog.close();
-                            app.dialog.alert(mensajeMostrado, "GFE");
-
-                        })();
+                        await obtenerUbicacionEInsertarLog(
+                            Obtener_dato_local('user_activo'),
+                            datos
+                        );
+                        app.dialog.close();
+                        app.dialog.alert(mensajeMostrado, "GFE");
 
                     }
 

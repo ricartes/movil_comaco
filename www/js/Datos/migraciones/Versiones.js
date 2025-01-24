@@ -34,7 +34,7 @@ var version4Esquema = {
 var version5Esquema = {
     versionNumber: 5,
     queries: [
-        "ALTER TABLE GDE_EVIDENCIA ADD COLUMN CANTIDAD_INTENTOS INTEGER DEFAULT 1"
+        "ALTER TABLE GDE_EVIDENCIA ADD COLUMN CANTIDAD_INTENTOS INTEGER DEFAULT 0"
     ]
 }
 

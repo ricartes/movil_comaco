@@ -54,6 +54,7 @@ async function validacionHoraInicioTerminoCarguio(idGde) {
         const tiempoEsperaAdicional = !isNaN(ordenCompra.tiempo_espera_carguio) ? ordenCompra.tiempo_espera_carguio : 0;
         const tiempoMaximoAcumulado = tiempoMaximoEspera + tiempoEsperaAdicional;
 
+        
         const esValido = validarRangoFecha(gde.GDE_HORA_CARGUIO_INICIO, tiempoMinimoEspera, tiempoMaximoAcumulado);
 
         return {

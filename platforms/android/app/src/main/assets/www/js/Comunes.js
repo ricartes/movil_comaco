@@ -713,7 +713,7 @@ function inicializarDatosGde() {
 }
 
 function manejarIntentosCapturaEvidencias(intentosActuales, intentosMaximos) {
-    if (intentosActuales <= intentosMaximos) {
+    if (intentosActuales < intentosMaximos) {
         return { intentosActualizados: intentosActuales, debeAnular: false };
     }
     return { intentosActualizados: intentosActuales, debeAnular: true };

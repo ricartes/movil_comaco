@@ -311,8 +311,6 @@ async function DATOS_ActualizarIntentosEvidencia(id_unico_evidencia, intentos) {
 
     return new Promise((resolve, reject) => {
         db.transaction(function (tr) {
-            alert(id_unico_evidencia);
-            alert(intentos);
             tr.executeSql(
                 "UPDATE GDE_EVIDENCIA SET CANTIDAD_INTENTOS=? WHERE ID_UNICO_MOVIL=?",
                 [intentos, id_unico_evidencia],

@@ -47,9 +47,7 @@ $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function 
     idgde_acutal = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
 
-
-
-
+    app.dialog.progress("Cargando...");
     crear_autocompletar();
     if (Obtener_dato_local("tema_oscuro") == "si") {
         $$("#lb_patente").css("border", "1px solid white");
