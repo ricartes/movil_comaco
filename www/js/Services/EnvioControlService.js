@@ -35,11 +35,15 @@ function uploadPhotoPromise(imageURI, id) {
 
 async function enviarConfirmacionIngresoPlantaService() {
 
+    let respuesta = {
+        total: 0,
+        exitosos: 0,
+        erroneos: 0
+    }
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorNoConfirmadas();
-    alert(JSON.stringify(gdeNoConfirmadas));
+
     if (gdeNoConfirmadas != "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
-
-
+        respuesta.total = gdeNoConfirmadas.length;
         let datos = await generarDataTrazabilidad(
             TipoAccionTypes.CONFIRMA_INGRESO_PLANTA,
             Obtener_dato_local('user_activo'),
@@ -52,7 +56,26 @@ async function enviarConfirmacionIngresoPlantaService() {
             Obtener_dato_local('user_activo'),
             datos
         );
+
+
+
+        for (let i = 0; i < gdeNoConfirmadas.length; i++) {
+            try {
+                const response = await enviarConfirmacionIngresoPlantaWebService(gdeNoConfirmadas[i].ID_UNICO_MOVIL);
+                respuesta.exitosos++;
+            } catch (ex) {
+                respuesta.erroneos++;
+            }
+
+
+        }
+
+
+
+
     }
+
+    return respuesta;
 
 }
 

@@ -781,7 +781,7 @@ function envio_guias_automatico() {
 async function clickIngresoPlanta() {
 
     app.dialog.confirm(
-        "¿Está seguro que desea cerrar sesión?",
+        "¿Está seguro que desea confirmar el ingreso planta?",
         "GFE",
         async function () {
 
@@ -790,7 +790,7 @@ async function clickIngresoPlanta() {
                 await enviarConfirmacionIngresoPlantaService();
 
             } catch (ex) {
-
+                alert(JSON.stringify(ex));
             }
             finally {
                 app.dialog.close();

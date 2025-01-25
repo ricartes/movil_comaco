@@ -1938,6 +1938,29 @@ function ws_cargaGeocercas(rut, empresa, porcentaje_actual, callback) {
 
 
 
+
+}
+
+function enviarConfirmacionIngresoPlantaWebService(idUnico) {
+    return new Promise((resolve, reject) => {
+        DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
+            const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_ConfirmacionIngresoPlanta';
+            const cadenaParam = "idUnico=" + idUnico;
+            axios
+                .post(ruta, cadenaParam, {
+                    timeout: 5000
+                })
+                .then((response) => {
+                    alert(JSON.stringify(response));
+                    resolve(response.data);
+                })
+                .catch((error) => {
+                    alert(JSON.stringify(error));
+                    reject({ MENSAJE: error.message, ERROR_MSJ: error.code });
+                });
+
+        });
+    });
 }
 
 
