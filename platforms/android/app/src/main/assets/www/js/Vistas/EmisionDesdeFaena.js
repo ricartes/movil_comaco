@@ -921,7 +921,6 @@ async function cambia_proyecto(codproyecto, rol) {
 
 
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
-            alert("pasa");
             validarGeocerca(rol).then((resultado) => {
                 let resultadoValidacion = resultado.validacion;
                 validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {

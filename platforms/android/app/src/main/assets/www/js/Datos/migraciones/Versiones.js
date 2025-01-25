@@ -38,6 +38,13 @@ var version5Esquema = {
     ]
 }
 
+var version6Esquema = {
+    versionNumber: 6,
+    queries: [
+        "ALTER TABLE GDE ADD GDE_CONFIRMA_INGRESO_PLANTA INTEGER DEFAULT 0"
+    ]
+}
+
 
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
@@ -45,7 +52,8 @@ var versionesEsquema = [
     version2Esquema,
     version3Esquema,
     version4Esquema,
-    version5Esquema
+    version5Esquema,
+    version6Esquema
 ];
 
 

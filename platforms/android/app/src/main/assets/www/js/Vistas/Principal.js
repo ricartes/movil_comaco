@@ -778,6 +778,31 @@ function envio_guias_automatico() {
     alert("mi envio!");
 }
 
+async function clickIngresoPlanta() {
+
+    app.dialog.confirm(
+        "¿Está seguro que desea cerrar sesión?",
+        "GFE",
+        async function () {
+
+            app.dialog.progress("Enviando...")
+            try {
+                await enviarConfirmacionIngresoPlantaService();
+
+            } catch (ex) {
+
+            }
+            finally {
+                app.dialog.close();
+            }
+        }
+    );
+
+
+
+
+}
+
 function obtener_informacion_movil() {
     //app.dialog.close();
     if (

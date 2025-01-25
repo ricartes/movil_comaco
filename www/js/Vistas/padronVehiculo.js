@@ -202,9 +202,7 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                 let resultadoValidacion = resultado.validacion;
                 validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then(async (resultado) => {
                     //si debe cerrar control
-                    if (!resultado.cierra) { //TODO: DESCOMENTAR
-
-
+                    if (resultado.cierra) {
                         let debeAnular = false;
                         encuentraFotoFueraGeocercaPadronVehiculo = true;
                         intentosPadronVehiculo++;
@@ -215,7 +213,7 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                         if (debeAnular) {
                             permiteIngresoFotografiasPadronVehiculo = false;
                             app.dialog.close();
-                            /*ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA PADRÓN VEHÍCULO)`).then((anula) => {
+                            ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA PADRÓN VEHÍCULO)`).then((anula) => {
                                 if (anula) {
                                     (async () => {
                                         let datos = await generarDataTrazabilidad(
@@ -240,7 +238,7 @@ async function cargar_evidencia_padron_vehiculo(evidencia, tipo) {
                                     })();
                                 }
 
-                            });*/
+                            });
 
                         } else {
                             (async () => {

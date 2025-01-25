@@ -22,9 +22,7 @@ function listado_guias(fecha_inicial, fecha_final, numero_guia) {
             if (result[i].GDE_ESTADO_MOVIL == "P") estado_string = "PROVISORIA";
             if (result[i].GDE_ESTADO_MOVIL == "I") estado_string = "IMPRESA";
             if (result[i].GDE_ESTADO_MOVIL == "E") {
-                estado_string = "ENVIADA";
-
-
+                estado_string = "ENVIADA"
             }
 
             if (result[i].ENVIADO == 1) {
