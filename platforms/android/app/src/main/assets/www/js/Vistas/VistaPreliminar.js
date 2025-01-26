@@ -252,20 +252,39 @@ function cambiar_texto_gde_proveedor(valor) {
 }
 
 async function reenviarFotos() {
-    app.dialog.progress("Reenviando imágenes...");
-    try {
-        const evidencias = await reenviarImagenes(id_gde);
-        if (evidencias === 0) {
-            app.dialog.alert("No se han encontrado archivos de evidencias para reenviar");
-        } else {
-            app.dialog.alert(`Evidencias reenviadas correctamente. Se enviaron ${evidencias} archivos`);
-        }
-    } catch (ex) {
-        const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
-        app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`);
-    } finally {
-        app.dialog.close();
+
+    if (checkConnection() == "No network connection") {
+        app.dialog.alert("No hay conexión a Internet", "GFE");
+        return false;
+    } else {
+        app.dialog.progress("Reenviando imágenes...");
+        comprueba_conexion("0", async function (result_conexion) {
+
+
+            if (result_conexion == 1) {
+                try {
+                    const evidencias = await reenviarImagenes(id_gde);
+                    if (evidencias === 0) {
+                        app.dialog.alert("No se han encontrado archivos de evidencias para reenviar");
+                    } else {
+                        app.dialog.alert(`Evidencias reenviadas correctamente. Se enviaron ${evidencias} archivos`);
+                    }
+                } catch (ex) {
+                    const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
+                    app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`);
+                } finally {
+                    app.dialog.close();
+                }
+
+            } else {
+                app.dialog.close();
+                app.dialog.alert("No se pudo extablecer la conexión con el servidor.");
+            }
+        });
     }
+
+
+
 }
 
 

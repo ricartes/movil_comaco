@@ -823,39 +823,40 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
 async function DATOS_seleccionarGdeProveedorNoConfirmadas() {
     // Abrir la base de datos
     const db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: "default", androidDatabaseImplementation: 2 });
-  
+
     return new Promise((resolve, reject) => {
-      db.transaction(function (tr) {
-        tr.executeSql(
-          "SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL =? AND (GDE_CONFIRMA_INGRESO_PLANTA=0)",
-          [Obtener_dato_local("rut_activo"), "1", "E"],
-          function (tr, rs) {
-            const n = rs.rows.length;
-            if (n === 0) {
-              resolve(-1); // Resolver con -1 si no hay registros
-            } else {
-              const ar = [];
-              for (let i = 0; i < n; i++) {
-                const rs_datos = rs.rows.item(i);
-                const gde = new CL_GDE();
-                gde.ROWID = rs_datos.rowid;
-                gde.EMP_ID = rs_datos.EMP_ID;
-                gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
-                gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
-                gde.VERSION_APP = Obtener_dato_local("version_app");
-                ar.push(gde);
-              }
-              resolve(ar); // Resolver con los datos procesados
-            }
-          },
-          function (tr, error) {
-            reject(error); // Rechazar la promesa en caso de error
-          }
-        );
-      });
+        db.transaction(function (tr) {
+            tr.executeSql(
+                "SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL =? AND (GDE_CONFIRMA_INGRESO_PLANTA=0)",
+                [Obtener_dato_local("rut_activo"), "1", "E"],
+                function (tr, rs) {
+                    const n = rs.rows.length;
+                    if (n === 0) {
+                        resolve(-1); // Resolver con -1 si no hay registros
+                    } else {
+                        const ar = [];
+                        for (let i = 0; i < n; i++) {
+                            const rs_datos = rs.rows.item(i);
+                            const gde = new CL_GDE();
+                            gde.ROWID = rs_datos.rowid;
+                            gde.EMP_ID = rs_datos.EMP_ID;
+                            gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                            gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
+                            gde.GDE_COD_ORIGEN = rs_datos.GDE_COD_ORIGEN;
+                            gde.VERSION_APP = Obtener_dato_local("version_app");
+                            ar.push(gde);
+                        }
+                        resolve(ar); // Resolver con los datos procesados
+                    }
+                },
+                function (tr, error) {
+                    reject(error); // Rechazar la promesa en caso de error
+                }
+            );
+        });
     });
-  }
-  
+}
+
 
 
 
@@ -989,4 +990,33 @@ function DATOS_actualiza_comentarios(id_gde, valor, callback) {
         });
     });
 
+}
+
+
+function DATOS_confirmaIngresoPlanta(id_gde) {
+    return new Promise((resolve, reject) => {
+        const db = window.sqlitePlugin.openDatabase({
+            name: "bd.db",
+            location: "default",
+            androidDatabaseImplementation: 2
+        });
+
+        db.transaction(
+            function (tr) {
+                tr.executeSql(
+                    "UPDATE GDE SET GDE_CONFIRMA_INGRESO_PLANTA=1 WHERE ROWID=?",
+                    [id_gde],
+                    function (tr, rs) {
+                        resolve(rs); // Resuelve la promesa con el resultado
+                    },
+                    function (tr, error) {
+                        reject(error); // Rechaza la promesa en caso de error
+                    }
+                );
+            },
+            function (error) {
+                reject(error); // Rechaza la promesa si hay un error en la transacción
+            }
+        );
+    });
 }

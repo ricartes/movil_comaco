@@ -1074,7 +1074,6 @@ function enviar_actualizacion_numero_guias(bandera, callback) {
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
         ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Actulizacion_Numero_Guia';
 
-
         DATOS_seleccionar_gde_actualizada_por_enviar("0", function (result) {
 
             if (result == -1) {
@@ -1951,11 +1950,9 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
                     timeout: 5000
                 })
                 .then((response) => {
-                    alert(JSON.stringify(response));
                     resolve(response.data);
                 })
                 .catch((error) => {
-                    alert(JSON.stringify(error));
                     reject({ MENSAJE: error.message, ERROR_MSJ: error.code });
                 });
 

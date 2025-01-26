@@ -16,7 +16,16 @@ function initializeResumeHandler() {
 function handleTimeChange(menuPrincipal = false) {
     const fecha_hora = FechaHoraActual();
 
-    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+    validateAutomaticDateTimeZone((isAutomatic) => {
+        if (isAutomatic) {
+            dispatchTimeChangeEvent(true, "Configuración automática activa", menuPrincipal);
+        } else {
+
+            dispatchTimeChangeEvent(false, `(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, menuPrincipal);
+        }
+    });
+
+    /*comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
         if (result_fecha == 0) {
             // Hora incorrecta según el servidor
             dispatchTimeChangeEvent(
@@ -27,19 +36,12 @@ function handleTimeChange(menuPrincipal = false) {
 
         } else if (result_fecha === -1) {
             // No hay conexión: Validar configuración automática
-            validateAutomaticDateTimeZone((isAutomatic) => {
-                if (isAutomatic) {
-                    dispatchTimeChangeEvent(true, "Configuración automática activa", menuPrincipal);
-                } else {
 
-                    dispatchTimeChangeEvent(false, `(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, menuPrincipal);
-                }
-            });
         } else {
             // Hora correcta según el servidor
             dispatchTimeChangeEvent(true, "Hora correcta según el servidor");
         }
-    });
+    });*/
 }
 
 // Función para validar configuración automática

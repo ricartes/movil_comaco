@@ -36,6 +36,7 @@ function uploadPhotoPromise(imageURI, id) {
 async function enviarConfirmacionIngresoPlantaService() {
 
     let respuesta = {
+        detalle: [],
         total: 0,
         exitosos: 0,
         erroneos: 0
@@ -44,29 +45,38 @@ async function enviarConfirmacionIngresoPlantaService() {
 
     if (gdeNoConfirmadas != "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
         respuesta.total = gdeNoConfirmadas.length;
-        let datos = await generarDataTrazabilidad(
-            TipoAccionTypes.CONFIRMA_INGRESO_PLANTA,
-            Obtener_dato_local('user_activo'),
-            {
-                despachos: gdeNoConfirmadas
-            }
-        );
+        respuesta.detalle = gdeNoConfirmadas
 
-        await obtenerUbicacionEInsertarLog(
-            Obtener_dato_local('user_activo'),
-            datos
-        );
 
 
 
         for (let i = 0; i < gdeNoConfirmadas.length; i++) {
             try {
                 const response = await enviarConfirmacionIngresoPlantaWebService(gdeNoConfirmadas[i].ID_UNICO_MOVIL);
+                if (response.STATUS === true) {
+                    await DATOS_confirmaIngresoPlanta(gdeNoConfirmadas[i].ROWID);
+
+                    const datos = await generarDataTrazabilidad(
+                        TipoAccionTypes.CONFIRMA_INGRESO_PLANTA,
+                        Obtener_dato_local('user_activo'),
+                        {
+                            rol: gdeNoConfirmadas[i]?.GDE_COD_ORIGEN ?? null,
+                            despacho: gdeNoConfirmadas[i],
+                            id_unico_movil_gde: gdeNoConfirmadas[i]?.ID_UNICO_MOVIL ?? null,
+                        }
+                    );
+
+                    await obtenerUbicacionEInsertarLog(
+                        Obtener_dato_local('user_activo'),
+                        datos
+                    );
+                } else {
+                    respuesta.erroneos++;
+                }
                 respuesta.exitosos++;
             } catch (ex) {
                 respuesta.erroneos++;
             }
-
 
         }
 
@@ -74,7 +84,6 @@ async function enviarConfirmacionIngresoPlantaService() {
 
 
     }
-
     return respuesta;
 
 }

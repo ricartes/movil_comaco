@@ -104,9 +104,9 @@ function EnvioAutomatico(segundo_plano, automatico) {
                                                 result_imagenes == 1 ||
                                                 result_imagenes == 0
                                             ) {
-                                                $$("#ESTADO_").text("Datos enviados correctamente");
+                                                //$$("#ESTADO_").text("Datos enviados correctamente");
                                             } else {
-                                                $$("#ESTADO_").text("Error al enviar datos");
+                                                // $$("#ESTADO_").text("Error al enviar datos");
                                             }
                                         }
                                     );
@@ -165,18 +165,24 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
                 enviar_guias_proveedor("0", function (result_guias) {
                     enviar_evidencias_proveedor("0", function (result_evidencias) {
                         enviar_imagenes("0", function (result_imagenes) {
-                            Guardar_dato_local("bloqueado", 0);
-                            envio_automatico_activado = 1;
-                            if (
-                                result_evidencias == 1 ||
-                                result_evidencias == 0 ||
-                                result_imagenes == 1 ||
-                                result_imagenes == 0
-                            ) {
-                                $$("#ESTADO_").text("Datos enviados correctamente");
-                            } else {
-                                $$("#ESTADO_").text("Error al enviar datos");
-                            }
+
+                            enviar_actualizacion_numero_guias(
+                                "0",
+                                function (result_actualizadas) {
+                                    Guardar_dato_local("bloqueado", 0);
+                                    envio_automatico_activado = 1;
+                                    if (
+                                        result_evidencias == 1 ||
+                                        result_evidencias == 0 ||
+                                        result_imagenes == 1 ||
+                                        result_imagenes == 0
+                                    ) {
+                                        //$$("#ESTADO_").text("Datos enviados correctamente");
+                                    } else {
+                                        // $$("#ESTADO_").text("Error al enviar datos");
+                                    }
+                                }
+                            );
                         });
                     });
                 });
@@ -544,7 +550,15 @@ async function clickEmisionFaena() {
 
                 const fecha_hora = FechaHoraActual();
                 app.dialog.progress("Espere por favor...");
-                comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+                validateAutomaticDateTimeZone((isAutomatic) => {
+                    app.dialog.close();
+                    if (isAutomatic) {
+                        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                    } else {
+                        app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático y reintentar.`, "GFE");
+                    }
+                });
+                /*comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
                     app.dialog.close();
                     if (result_fecha == 0) {
                         // Hora incorrecta según el servidor
@@ -563,7 +577,7 @@ async function clickEmisionFaena() {
                         // Hora correcta según el servidor
                         mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
                     }
-                });
+                });*/
             }
 
         } catch (ex) {
@@ -781,20 +795,45 @@ function envio_guias_automatico() {
 async function clickIngresoPlanta() {
 
     app.dialog.confirm(
-        "¿Está seguro que desea confirmar el ingreso planta?",
+        "¿Está seguro que desea confirmar el ingreso planta?. Se requiere una conexión a Internet activa",
         "GFE",
         async function () {
 
-            app.dialog.progress("Enviando...")
-            try {
-                await enviarConfirmacionIngresoPlantaService();
+            if (checkConnection() == "No network connection") {
+                app.dialog.alert("No hay conexión a Internet", "GFE");
+                return false;
+            } else {
+                app.dialog.progress("Enviando...")
+                comprueba_conexion("0", async function (result_conexion) {
 
-            } catch (ex) {
-                alert(JSON.stringify(ex));
+
+                    if (result_conexion == 1) {
+
+
+                        try {
+                            response = await enviarConfirmacionIngresoPlantaService();
+                            app.dialog.alert(`Proceso finalizado con éxito. Se envío un total de  ${response.total} datos.`, "GFE")
+
+
+                        } catch (ex) {
+                            const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
+                            app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`, "GFE");
+                        }
+                        finally {
+
+                            app.dialog.close();
+                        }
+                    }
+                    else {
+                        app.dialog.close();
+                        app.dialog.alert("No se pudo extablecer la conexión con el servidor.");
+                    }
+
+                });
+
             }
-            finally {
-                app.dialog.close();
-            }
+
+
         }
     );
 
