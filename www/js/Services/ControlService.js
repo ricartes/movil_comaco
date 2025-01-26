@@ -1,4 +1,5 @@
 function ControlServiceAnular(id = null, latitud, longitud, tipoCoordenada, mensaje) {
+    stopTracking();
     return new Promise((resolve, reject) => {
         if (id != "-1") {
             let estado = "N";
@@ -54,7 +55,7 @@ async function validacionHoraInicioTerminoCarguio(idGde) {
         const tiempoEsperaAdicional = !isNaN(ordenCompra.tiempo_espera_carguio) ? ordenCompra.tiempo_espera_carguio : 0;
         const tiempoMaximoAcumulado = tiempoMaximoEspera + tiempoEsperaAdicional;
 
-        
+
         const esValido = validarRangoFecha(gde.GDE_HORA_CARGUIO_INICIO, tiempoMinimoEspera, tiempoMaximoAcumulado);
 
         return {

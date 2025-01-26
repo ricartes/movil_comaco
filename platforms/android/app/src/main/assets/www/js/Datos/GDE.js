@@ -827,7 +827,7 @@ async function DATOS_seleccionarGdeProveedorNoConfirmadas() {
     return new Promise((resolve, reject) => {
         db.transaction(function (tr) {
             tr.executeSql(
-                "SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL =? AND (GDE_CONFIRMA_INGRESO_PLANTA=1)",
+                "SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL =? AND (GDE_CONFIRMA_INGRESO_PLANTA=0)",
                 [Obtener_dato_local("rut_activo"), "1", "E"],
                 function (tr, rs) {
                     const n = rs.rows.length;

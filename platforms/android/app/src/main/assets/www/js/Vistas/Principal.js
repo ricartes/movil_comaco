@@ -404,11 +404,11 @@ document.addEventListener("deviceready", async function () {
         app.dialog.alert("La función inicializarGpsDiagnosticHandler no está disponible.");
     }
 
-    /*if (typeof configureBackgroundGeolocation === "function") {
+    if (typeof configureBackgroundGeolocation === "function") {
         configureBackgroundGeolocation();
     } else {
         app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
-    }*/
+    }
 
 });
 

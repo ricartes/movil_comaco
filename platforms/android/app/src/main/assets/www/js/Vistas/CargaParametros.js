@@ -34,9 +34,10 @@ function carga_parametros() {
         return false;
     } else {
 
-        comprueba_conexion("0", function (result_conexion) {
+        comprueba_conexion("0", async function (result_conexion) {
 
-            (async () => {
+            if (result_conexion == 1) {
+
                 let datos = await generarDataTrazabilidad(
                     TipoAccionTypes.INICIA_CARGA_PARAMETROS,
                     Obtener_dato_local('user_activo')
@@ -46,9 +47,8 @@ function carga_parametros() {
                     Obtener_dato_local('user_activo'),
                     datos
                 );
-            })();
 
-            if (result_conexion == 1) {
+
                 cargar_orden_compra(username, empresa, 0, function (result) {
                     if (result > 0) {
 
