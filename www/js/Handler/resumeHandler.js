@@ -71,6 +71,7 @@ document.addEventListener("timeChangeDetected", async function (e) {
     const { horaCorrecta, mensaje, menuPrincipal } = e.detail; // Accede a los datos adicionales
     const rutaActual = mainView.router.currentRoute.path;
     const procesoActual = Obtener_dato_local("id_proceso_activo");
+    const id_gde_actual = Obtener_dato_local("id_proceso_activo");
     const manejarTrazabilidadYLogs = async (adicional = {}) => {
         try {
             const datos = await generarDataTrazabilidad(

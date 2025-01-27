@@ -130,7 +130,7 @@ document.addEventListener("gpsOffDetected", async function (e) {
 
 
     if (procesoActual && procesoActual !== "") {
-        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+        const gde_actual = await seleccionarGdeProveedor(procesoActual);
         const datosUbicacion = await getLocation2();
 
         const anulaGuia = await Datos_seleccionarParametroGeneralAsync(constantes.empresaPredeterminada, constantes.parametroDetieneProcesoApagaGPS); // Este valor debería determinarse dinámicamente según la validación

@@ -19,7 +19,6 @@ function configureBackgroundGeolocation() {
             startOnBoot: true, // Comienza automáticamente tras reiniciar
         },
         function (state) {
-            alert(state);
         },
         function (error) {
             //alert(error);
@@ -30,7 +29,6 @@ function configureBackgroundGeolocation() {
     // Maneja actualizaciones de ubicación
     BackgroundGeolocation.on('location', async function (location) {
         try {
-            alert(JSON.stringify(location));
             lastKnownLocation = location;
 
             // Guardar ubicación en la base de datos
@@ -71,7 +69,6 @@ function startTracking() {
 
 
     BackgroundGeolocation.checkStatus(function (status) {
-        alert(JSON.stringify(status));
         console.log('[INFO] BackgroundGeolocation service is running', status.isRunning);
         console.log('[INFO] BackgroundGeolocation services enabled', status.locationServicesEnabled);
         console.log('[INFO] BackgroundGeolocation auth status: ' + status.authorization);
@@ -79,7 +76,6 @@ function startTracking() {
         // you don't need to check status before start (this is just the example)
 
         if (!status.isRunning) {
-            alert("inicia");
             BackgroundGeolocation.start(); //triggers start on start event
         }
     });
@@ -166,10 +162,9 @@ function getLastKnownLocation() {
 async function saveLocation(location) {
     // Aquí implementa la lógica para almacenar la ubicación
 
-    alert(location);
     const procesoActual = Obtener_dato_local("id_proceso_activo");
-    const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
     if (procesoActual && procesoActual !== "") {
+        const gde_actual = await seleccionarGdeProveedor(procesoActual);
         let datos = await generarDataTrazabilidad(
             TipoAccionTypes.CAPTURA_UBICACION,
             Obtener_dato_local('user_activo'),

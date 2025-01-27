@@ -418,7 +418,10 @@ async function recargarr_datos_gde(id_gde) {
 
         try {
             gde_actual = await seleccionarGdeProveedor(id_gde);
-
+            Guardar_dato_local("id_proceso_activo", id_gde);
+            Guardar_dato_local("id_unico_proceso_activo", gde_actual.ID_UNICO_MOVIL);
+            Guardar_dato_local("hora_inicio_proceso", Date.now());
+            startTracking();
             datos.metadata.rol = gde_actual?.GDE_COD_ORIGEN ?? null;
             datos.metadata.despacho = gde_actual;
             datos.metadata.id_unico_movil_gde = gde_actual?.ID_UNICO_MOVIL ?? null;
@@ -517,7 +520,7 @@ function guardar_datos_guia(latitud, longitud) {
 
                 DATOS_actualiza_gde_proveedor(gde, idgde_acutal, async function (result_guardado) {
 
-                    //startTracking();
+
                     setTimeout(() => {
                         abrir_detalles(idgde_acutal, 2);
                     }, 100); // El retraso de
