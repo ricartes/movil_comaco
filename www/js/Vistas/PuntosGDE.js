@@ -124,7 +124,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                             validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                                                 //si debe cerrar control
                                                 if (resultado.cierra) {
-                                                    ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A CAMIÓN CARGADO)`).then((anula) => {
+                                                    ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A CAMIÓN CARGADO)`).then((anula) => {
                                                         (async () => {
                                                             let datos = await generarDataTrazabilidad(
                                                                 TipoAccionTypes.GEOCERCA_INVALIDA,
@@ -426,7 +426,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
                 validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                     //si debe cerrar control
                     if (resultado.cierra) {
-                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (OBTENER PUNTO FINAL)`).then((anula) => {
+                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (OBTENER PUNTO FINAL)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(

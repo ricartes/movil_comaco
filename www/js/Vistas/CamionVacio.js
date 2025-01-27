@@ -91,7 +91,7 @@ $$(document).on('page:init', '.page[data-name="camion-vacio"]', async function (
                                     validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
                                         //si debe cerrar control
                                         if (resultado.cierra) {
-                                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A PUNTOS GDE)`).then((anula) => {
+                                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A PUNTOS GDE)`).then((anula) => {
                                                 (async () => {
                                                     let datos = await generarDataTrazabilidad(
                                                         TipoAccionTypes.GEOCERCA_INVALIDA,
@@ -277,7 +277,7 @@ async function cargar_evidencia_camion_vacio(evidencia, tipo) {
 
                         permiteIngresoFotografias = false;
                         app.dialog.close();
-                        ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "I", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN VACIO)`).then((anula) => {
+                        ControlServiceAnular(id_gde_actual, resultado.latitud, resultado.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA CAMIÓN VACIO)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(

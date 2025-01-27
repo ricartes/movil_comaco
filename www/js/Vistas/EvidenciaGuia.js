@@ -58,7 +58,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
                     validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
                         //si debe cerrar control
                         if (resultado.cierra) {
-                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (ACCIÓN INFORMAR DESPACHO)`).then((anula) => {
+                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN INFORMAR DESPACHO)`).then((anula) => {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(
                                         TipoAccionTypes.GEOCERCA_INVALIDA,
@@ -288,7 +288,7 @@ async function confirmaCargaEvidencia(id_gde) {
 
                 if (resultado.cierra) {
 
-                    ControlServiceAnular(id_gde, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "F", `${constantes.mensajeGeocercaNoValida} (ACCIÓN CAPTURA EVIDENCIAS OTROS)`).then((anula) => {
+                    ControlServiceAnular(id_gde, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN CAPTURA EVIDENCIAS OTROS)`).then((anula) => {
                         (async () => {
                             let datos = await generarDataTrazabilidad(
                                 TipoAccionTypes.GEOCERCA_INVALIDA,

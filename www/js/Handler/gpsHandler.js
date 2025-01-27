@@ -144,13 +144,13 @@ document.addEventListener("gpsOffDetected", async function (e) {
             });
 
             // Anular la guía si corresponde
-            if (parseInt(anulaGuia.PAG_VALOR) === 1) {
+            if (anulaGuia && parseInt(anulaGuia.PAG_VALOR) === 1) {
                 await ControlServiceAnular(
                     procesoActual,
                     datosUbicacion.GPS_LAT,
                     datosUbicacion.GPS_LON,
-                    "F",
-                    "SE DETECTÓ CAMBIO DE ESTADO GPS FUERA DE LÍNEA"
+                    "",
+                    "SE DETECTÓ CAMBIO DE ESTADO GPS HACIA FUERA DE LÍNEA"
                 );
 
                 app.dialog.alert(

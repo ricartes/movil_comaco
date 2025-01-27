@@ -103,13 +103,13 @@ document.addEventListener("timeChangeDetected", async function (e) {
                     mensaje: mensaje
                 });
                 // Anular la guía si corresponde
-                if (parseInt(anulaGuia.PAG_VALOR) === 1) {
+                if (anulaGuia && parseInt(anulaGuia.PAG_VALOR) === 1) {
                     const datosUbicacion = await getLocation2();
                     await ControlServiceAnular(
                         procesoActual,
                         datosUbicacion.GPS_LAT,
                         datosUbicacion.GPS_LON,
-                        "F",
+                        "",
                         "SE DETECTÓ CAMBIO DE HORA DURANTE EL PROCESO"
                     );
 
