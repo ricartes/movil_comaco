@@ -49,31 +49,25 @@ async function obtenerUbicacionEInsertarLog(userUsuario, datos, location = null)
 
 
 async function generarDataTrazabilidad(accionParametro, userParametro, metadata = {}) {
-    let resultado = null;
-    try {
-        resultado = await getPublicIPAddress();
-    } catch (error) {
-        console.error("Error al obtener la dirección IP pública:", error);
-    } finally {
-        let user_agent = {
-            device: device,
-            versionApp: Obtener_dato_local("version_app")
-        }
-        const datos = {
-            accion: accionParametro,
-            usu_usuario_sistema: userParametro.toLowerCase().trim(),
-            versionApp: Obtener_dato_local("version_app"),
-            user_agent: user_agent,
-            ip_address: resultado,
-            ubicacionObtenida: false,
-            latitud: null,
-            longitud: null,
-            timestamp: null,
-            metadata: metadata,
-            fechaHora: moment().format('YYYY-MM-DD HH:mm:ss.SSS')
-        };
-        return datos;
+
+    let user_agent = {
+        device: device,
+        versionApp: Obtener_dato_local("version_app")
     }
+    const datos = {
+        accion: accionParametro,
+        usu_usuario_sistema: userParametro.toLowerCase().trim(),
+        versionApp: Obtener_dato_local("version_app"),
+        user_agent: user_agent,
+        ip_address: null,
+        ubicacionObtenida: false,
+        latitud: null,
+        longitud: null,
+        timestamp: null,
+        metadata: metadata,
+        fechaHora: moment().format('YYYY-MM-DD HH:mm:ss.SSS')
+    };
+    return datos;
 }
 
 
@@ -111,7 +105,8 @@ async function listarTrazabilidad() {
 
 function enviarTrazabilidad(trazabilidad) {
     let respuesta = new ResponseDTO();
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+
         enviarTrazabilidadWebService(trazabilidad).then(async (response) => {
             if (response.STATUS) {
                 await Datos_eliminarLogUsuario(trazabilidad.ID);
@@ -141,8 +136,19 @@ function enviarListadoTrazabilidad(listaTrazabilidad) {
         if (listaTrazabilidad.length > 0) {
             if (checkConnection() != "No network connection") {
 
-                comprueba_conexion("0", function (result_conexion) {
+                comprueba_conexion("0", async function (result_conexion) {
                     if (result_conexion == 1) {
+
+                        let ip = null;
+                        try {
+                            ip = await getPublicIPAddress();
+                        } catch (ex) {
+                            console.error("Error al obtener la dirección IP pública:", ex);
+                            ip = null; // No es estrictamente necesario porque ya es null, pero es explícito
+                        }
+
+
+
                         //al validar conexion, se procede a enviar datos
                         let resumen = {
                             enviados: 0,
@@ -150,9 +156,11 @@ function enviarListadoTrazabilidad(listaTrazabilidad) {
                         };
                         Promise.all(
                             //itera por cada inventario
-                            listaTrazabilidad.map((e) =>
-                                enviarTrazabilidad(e)
-                            )
+                            listaTrazabilidad.map((e) => {
+                                e.DATOS.ip_address = ip;
+                                // Llamar a enviarTrazabilidad y devolver el Promise
+                                return enviarTrazabilidad(e);
+                            })
                         )
                             .then((responses) => {
                                 responses.forEach((r) => {

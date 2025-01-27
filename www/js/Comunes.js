@@ -694,9 +694,7 @@ function permisosCamara() {
 
 function inicializarVariables() {
 
-    Borrar_dato_local("id_proceso_activo");
-    Borrar_dato_local("hora_inicio_proceso");
-    Borrar_dato_local("id_unico_proceso_activo");
+    inicializarDatosGde();
     Borrar_dato_local("user_activo");
     Borrar_dato_local("rut_activo");
     Borrar_dato_local("nombre_activo");
