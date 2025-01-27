@@ -157,7 +157,12 @@ function enviarListadoTrazabilidad(listaTrazabilidad) {
                         Promise.all(
                             //itera por cada inventario
                             listaTrazabilidad.map((e) => {
-                                e.DATOS.ip_address = ip;
+                                let datos = JSON.parse(e.DATOS);
+                                // Modificar el objeto
+                                datos.ip_address = ip;
+
+                                // Codificar nuevamente el objeto a JSON string
+                                e.DATOS = JSON.stringify(datos);
                                 // Llamar a enviarTrazabilidad y devolver el Promise
                                 return enviarTrazabilidad(e);
                             })
