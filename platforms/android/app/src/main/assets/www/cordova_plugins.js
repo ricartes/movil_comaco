@@ -468,6 +468,15 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       "id": "cordova-background-geolocation-plugin.radio",
       "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
       "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+      "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+      "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+      "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+      "clobbers": [
+        "cordova.plugins.mockLocation",
+        "mockLocation"
+      ]
     }
   ];
   module.exports.metadata = {
@@ -490,6 +499,7 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "verify-automatic-date-time-zone": "1.0.0-dev",
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
-    "cordova-background-geolocation-plugin": "2.3.1"
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
   };
 });

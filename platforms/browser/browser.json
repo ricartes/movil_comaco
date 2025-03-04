@@ -89,6 +89,9 @@
     },
     "cordova-background-geolocation-plugin": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "@ccervantesb/cordova-plugin-mock-location": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {},
@@ -767,6 +770,15 @@
       "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
       "id": "cordova-background-geolocation-plugin.radio",
       "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+      "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+      "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+      "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+      "clobbers": [
+        "cordova.plugins.mockLocation",
+        "mockLocation"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -790,6 +802,7 @@
     "verify-automatic-date-time-zone": "1.0.0-dev",
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
-    "cordova-background-geolocation-plugin": "2.3.1"
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
   }
 }

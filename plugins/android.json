@@ -78,6 +78,9 @@
       "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
       "CONTENT_AUTHORITY": "$PACKAGE_NAME",
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "@ccervantesb/cordova-plugin-mock-location": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {}

@@ -29,19 +29,19 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 508
+              "count": 523
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 507
+              "count": 522
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 508
+              "count": 523
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 508
+              "count": 523
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
@@ -284,6 +284,10 @@
             {
               "xml": "<feature name=\"BackgroundGeolocation\"><param name=\"android-package\" value=\"com.tenforwardconsulting.bgloc.cordova.BackgroundGeolocationPlugin\" /></feature>",
               "count": 1
+            },
+            {
+              "xml": "<feature name=\"PluginMockLocation\"><param name=\"android-package\" value=\"com.ccervantesb.mocklocation.PluginMockLocation\" /></feature>",
+              "count": 1
             }
           ]
         }
@@ -457,6 +461,9 @@
       "ACCOUNT_LABEL": "@string/app_name",
       "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
       "CONTENT_AUTHORITY": "$PACKAGE_NAME",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "@ccervantesb/cordova-plugin-mock-location": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
@@ -930,6 +937,15 @@
       "id": "cordova-background-geolocation-plugin.radio",
       "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
       "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+      "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+      "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+      "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+      "clobbers": [
+        "cordova.plugins.mockLocation",
+        "mockLocation"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -952,6 +968,7 @@
     "verify-automatic-date-time-zone": "1.0.0-dev",
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
-    "cordova-background-geolocation-plugin": "2.3.1"
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
   }
 }

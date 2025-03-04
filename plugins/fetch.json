@@ -174,5 +174,13 @@
     },
     "is_top_level": true,
     "variables": {}
+  },
+  "@ccervantesb/cordova-plugin-mock-location": {
+    "source": {
+      "type": "registry",
+      "id": "https://github.com/cesarcervantesb/cordova-plugin-mock-location"
+    },
+    "is_top_level": true,
+    "variables": {}
   }
 }

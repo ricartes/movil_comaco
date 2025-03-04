@@ -58,7 +58,8 @@
                 "ACCOUNT_LABEL": "@string/app_name",
                 "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
                 "CONTENT_AUTHORITY": "$PACKAGE_NAME"
-            }
+            },
+            "@ccervantesb/cordova-plugin-mock-location": {}
         },
         "platforms": [
             "browser",
@@ -66,6 +67,7 @@
         ]
     },
     "devDependencies": {
+        "@ccervantesb/cordova-plugin-mock-location": "github:cesarcervantesb/cordova-plugin-mock-location",
         "cordova-android": "^13.0.0",
         "cordova-background-geolocation-plugin": "^2.3.1",
         "cordova-pdf-generator": "^2.1.1",

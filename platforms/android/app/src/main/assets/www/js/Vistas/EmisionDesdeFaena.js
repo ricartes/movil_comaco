@@ -315,7 +315,9 @@ async function guardar_guia() {
 
                 validarGeocerca(gdeRol).then((resultadoGeocerca) => {
                     let resultadoValidacion = resultadoGeocerca.validacion;
-                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
+                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
+
+                        const ubicacionSimulada = await detectarUbicacionSimulada();
                         //si debe cerrar control
                         if (resultado.cierra) {
                             ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida}`).then((anula) => {
@@ -769,8 +771,36 @@ async function obtener_punto_inicial() {
                 let resultadoValidacion = resultadoGeocerca.validacion;
 
 
-                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
                     //si debe cerrar control
+
+                    const resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                    if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+
+                        (async () => {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gdeRol,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                    resultadoUbicacionSimulada: resultadoUbicacionSimulada
+
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
+
+                        })();
+                    }
 
                     if (resultado.cierra) {
                         ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida} (ACCIÓN OBTENER PUNTO INICIAL)`).then((anula) => {
@@ -926,7 +956,10 @@ async function cambia_proyecto(codproyecto, rol) {
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
             validarGeocerca(rol).then((resultado) => {
                 let resultadoValidacion = resultado.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
+
+                    const ubicacionSimulada = await detectarUbicacionSimulada();
+
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida, `${constantes.mensajeGeocercaNoValida} (SELECCIÓN PREDIO)`).then((anula) => {

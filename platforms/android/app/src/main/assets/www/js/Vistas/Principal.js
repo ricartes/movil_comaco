@@ -9,8 +9,8 @@ var hay_parametro;
 
 
 
-var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-//var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
+//var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
+var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
