@@ -39,8 +39,8 @@ async function detectarUbicacionSimulada() {
 
     //let ubicacionSimulada = false;
     //const ubicacion = await getLocation2();
+    const pluginResult = await mockLocation.checkMockLocation(false);
 
-    const pluginResult = await mockLocation.checkMockLocation(true);
 
     return {
         esUbicacionSimulada: pluginResult.isMockLocation,

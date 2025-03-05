@@ -37,9 +37,15 @@ function validarGeocerca(rol) {
 
 async function detectarUbicacionSimulada() {
 
-    const ubicacion = await getLocation2();
-    alert(ubicacion.ACCURACY);
+    //let ubicacionSimulada = false;
+    //const ubicacion = await getLocation2();
 
+    const pluginResult = await mockLocation.checkMockLocation(true);
+
+    return {
+        esUbicacionSimulada: pluginResult.isMockLocation,
+        detalle: pluginResult
+    }
 }
 
 
