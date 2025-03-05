@@ -776,10 +776,10 @@ async function obtener_punto_inicial() {
 
                     let intentos = 0;
                     let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
-                    
+
 
                     do {
-           
+
                         if (resultadoUbicacionSimulada.esUbicacionSimulada) {
                             if (intentos === 0) {
                                 // Solo registramos trazabilidad en el primer intento
@@ -816,8 +816,7 @@ async function obtener_punto_inicial() {
                                         app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
                                         setTimeout(async () => {
                                             resultadoUbicacionSimulada = await detectarUbicacionSimulada();
-                                            alert(resultadoUbicacionSimulada.esUbicacionSimulada);
-                                            app.dialog.close(); // Cerramos el progreso después de validar
+                                            //app.dialog.close(); // Cerramos el progreso después de validar
                                             resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
                                         }, 1500); // Pequeña espera para evitar consultas instantáneas
                                     }
@@ -830,7 +829,7 @@ async function obtener_punto_inicial() {
                     } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
 
                     // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
-                    alert("Ubicación validada correctamente, continuando flujo...");
+
 
 
                     if (resultado.cierra) {
