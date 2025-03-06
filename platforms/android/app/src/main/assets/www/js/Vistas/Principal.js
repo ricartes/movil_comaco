@@ -410,6 +410,43 @@ document.addEventListener("deviceready", async function () {
         app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
     }
 
+
+    let intentos = 0;
+    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+    do {
+
+        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+            // Cerramos cualquier diálogo previo para evitar errores
+            try {
+                app.dialog.close();
+            } catch (e) {
+                console.warn("No había diálogos abiertos.");
+            }
+
+            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+            await new Promise((resolve) => {
+                app.dialog.alert(
+                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                    "GFE Proveedores",
+                    async function () {
+                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                        setTimeout(async () => {
+                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                            app.dialog.close(); // Cerramos el progreso después de validar
+                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                    }
+                );
+            });
+
+            intentos++; // Contamos los intentos
+        }
+
+    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
 });
 
 

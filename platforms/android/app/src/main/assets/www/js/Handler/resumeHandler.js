@@ -3,10 +3,87 @@ let elapsedTime = 0;           // Tiempo acumulado por el reloj interno
 const THRESHOLD = 5000; // Umbral de 5 segundos
 // Función para inicializar el evento resume
 function initializeResumeHandler() {
-    document.addEventListener("resume", function () {
+    document.addEventListener("resume", async function () {
 
         const usuarioActivo = Obtener_dato_local("user_activo");
         if (usuarioActivo && usuarioActivo != "") {
+
+
+            let intentos = 0;
+            let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+            do {
+
+                if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+
+                    if (intentos === 0) {
+                        const id_gde_actual = Obtener_dato_local("id_proceso_activo");
+                        let adicionales = {
+                            rol: null,
+                            despacho: null,
+                            id_unico_movil_gde: null,
+                            resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                        };
+
+                        // Solo obtenemos datos si procesoActual existe
+                        if (id_gde_actual) {
+                            try {
+                                const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+                                if (gde_actual) {
+                                    adicionales = {
+                                        rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                    };
+                                }
+                            } catch (error) {
+                                console.error("Error obteniendo GDE:", error);
+                            }
+                        }
+
+                        let datos = await generarDataTrazabilidad(
+                            TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                            Obtener_dato_local('user_activo'),
+                            adicionales
+                        );
+
+                        await obtenerUbicacionEInsertarLog(
+                            Obtener_dato_local('user_activo'),
+                            datos
+                        );
+
+                    }
+
+                    // Cerramos cualquier diálogo previo para evitar errores
+                    try {
+                        app.dialog.close();
+                    } catch (e) {
+                        console.warn("No había diálogos abiertos.");
+                    }
+
+                    // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                    await new Promise((resolve) => {
+                        app.dialog.alert(
+                            'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                            "GFE Proveedores",
+                            async function () {
+                                app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                setTimeout(async () => {
+                                    resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                    app.dialog.close(); // Cerramos el progreso después de validar
+                                    resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                }, 1500); // Pequeña espera para evitar consultas instantáneas
+                            }
+                        );
+                    });
+
+                    intentos++; // Contamos los intentos
+                }
+
+            } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+
             handleTimeChange();
         }
     }, false);
