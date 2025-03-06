@@ -121,7 +121,64 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                         validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
 
                                             let resultadoValidacion = resultadoGeocerca.validacion;
-                                            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
+                                            validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then(async (resultado) => {
+
+                                                let intentos = 0;
+                                                let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+
+                                                do {
+
+                                                    if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                                                        if (intentos === 0) {
+                                                            // Solo registramos trazabilidad en el primer intento
+                                                            let datos = await generarDataTrazabilidad(
+                                                                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                                                Obtener_dato_local('user_activo'),
+                                                                {
+                                                                    rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                    despacho: gde_actual_puntos_gde,
+                                                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                                                    resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                                                }
+                                                            );
+
+                                                            await obtenerUbicacionEInsertarLog(
+                                                                Obtener_dato_local('user_activo'),
+                                                                datos
+                                                            );
+                                                        }
+
+                                                        // Cerramos cualquier diálogo previo para evitar errores
+                                                        try {
+                                                            app.dialog.close();
+                                                        } catch (e) {
+                                                            console.warn("No había diálogos abiertos.");
+                                                        }
+
+                                                        // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                                                        await new Promise((resolve) => {
+                                                            app.dialog.alert(
+                                                                'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                                                "GFE Proveedores",
+                                                                async function () {
+                                                                    app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                                                    setTimeout(async () => {
+                                                                        resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                                                        //app.dialog.close(); // Cerramos el progreso después de validar
+                                                                        resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                                                    }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                                                }
+                                                            );
+                                                        });
+
+                                                        intentos++; // Contamos los intentos
+                                                    }
+
+                                                } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                                                // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
                                                 //si debe cerrar control
                                                 if (resultado.cierra) {
                                                     ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN IR A CAMIÓN CARGADO)`).then((anula) => {
@@ -423,7 +480,65 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
         if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoFinal) {
             validarGeocerca(gde_actual_puntos_gde.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
                 let resultadoValidacion = resultadoGeocerca.validacion;
-                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then(async (resultado) => {
+
+
+                    let intentos = 0;
+                    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+
+                    do {
+
+                        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                            if (intentos === 0) {
+                                // Solo registramos trazabilidad en el primer intento
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                        despacho: gde_actual_puntos_gde,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                            }
+
+                            // Cerramos cualquier diálogo previo para evitar errores
+                            try {
+                                app.dialog.close();
+                            } catch (e) {
+                                console.warn("No había diálogos abiertos.");
+                            }
+
+                            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                            await new Promise((resolve) => {
+                                app.dialog.alert(
+                                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                    "GFE Proveedores",
+                                    async function () {
+                                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                        setTimeout(async () => {
+                                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                            //app.dialog.close(); // Cerramos el progreso después de validar
+                                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                    }
+                                );
+                            });
+
+                            intentos++; // Contamos los intentos
+                        }
+
+                    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
                     //si debe cerrar control
                     if (resultado.cierra) {
                         ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (OBTENER PUNTO FINAL)`).then((anula) => {
