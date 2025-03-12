@@ -1034,7 +1034,7 @@ function DATOS_actualiza_comentarios(id_gde, valor, callback) {
 }
 
 
-function DATOS_confirmaIngresoPlanta(id_gde) {
+async function DATOS_confirmaIngresoPlanta(id_gde) {
     return new Promise((resolve, reject) => {
         const db = window.sqlitePlugin.openDatabase({
             name: "bd.db",

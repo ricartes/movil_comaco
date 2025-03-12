@@ -34,35 +34,36 @@ function uploadPhotoPromise(imageURI, id) {
 
 
 async function enviarConfirmacionIngresoPlantaService() {
-
     let respuesta = {
         detalle: [],
         total: 0,
         exitosos: 0,
         erroneos: 0
-    }
+    };
+
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorNoConfirmadas();
 
-    if (gdeNoConfirmadas != "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
+    if (gdeNoConfirmadas !== "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
         respuesta.total = gdeNoConfirmadas.length;
-        respuesta.detalle = gdeNoConfirmadas
-
-
-
+        respuesta.detalle = gdeNoConfirmadas;
 
         for (let i = 0; i < gdeNoConfirmadas.length; i++) {
             try {
-                const response = await enviarConfirmacionIngresoPlantaWebService(gdeNoConfirmadas[i].ID_UNICO_MOVIL);
+                const gde = gdeNoConfirmadas[i];
+
+                const response = await enviarConfirmacionIngresoPlantaWebService(gde.ID_UNICO_MOVIL);
+
                 if (response.STATUS === true) {
-                    await DATOS_confirmaIngresoPlanta(gdeNoConfirmadas[i].ROWID);
+
+                    await DATOS_confirmaIngresoPlanta(gde.ROWID);
 
                     const datos = await generarDataTrazabilidad(
                         TipoAccionTypes.CONFIRMA_INGRESO_PLANTA,
                         Obtener_dato_local('user_activo'),
                         {
-                            rol: gdeNoConfirmadas[i]?.GDE_COD_ORIGEN ?? null,
-                            despacho: gdeNoConfirmadas[i],
-                            id_unico_movil_gde: gdeNoConfirmadas[i]?.ID_UNICO_MOVIL ?? null,
+                            rol: gde?.GDE_COD_ORIGEN ?? null,
+                            despacho: gde,
+                            id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
                         }
                     );
 
@@ -70,23 +71,20 @@ async function enviarConfirmacionIngresoPlantaService() {
                         Obtener_dato_local('user_activo'),
                         datos
                     );
+
+                    respuesta.exitosos++;
                 } else {
                     respuesta.erroneos++;
                 }
-                respuesta.exitosos++;
             } catch (ex) {
+                alert("Error en la confirmación de ingreso:", ex);
                 respuesta.erroneos++;
             }
-
         }
-
-
-
-
     }
     return respuesta;
-
 }
+
 
 
 async function reenviarFotosService(id_gde_actual) {
