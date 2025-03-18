@@ -115,6 +115,9 @@
     <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
         <application android:usesCleartextTraffic="true" />
     </edit-config>
+    <config-file parent="/manifest/application" target="AndroidManifest.xml">
+        <service android:exported="false" android:foregroundServiceType="location" android:name="de.einfachhans.BackgroundMode.ForegroundService" />
+    </config-file>
     <config-file parent="/manifest" target="AndroidManifest.xml">
         <uses-permission android:name="android.permission.INTERNET" />
         <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />

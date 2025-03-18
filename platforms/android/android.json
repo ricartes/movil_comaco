@@ -14,6 +14,8 @@
               "mode": "merge",
               "id": "config.xml",
               "oldAttrib": {
+                "android:exported": "false",
+                "android:foregroundServiceType": "location",
                 "android:hardwareAccelerated": "true",
                 "android:icon": "@mipmap/ic_launcher",
                 "android:label": "@string/app_name",
@@ -29,19 +31,19 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 563
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 562
+              "count": 581
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 563
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 563
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
@@ -81,11 +83,11 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
-              "count": 1
+              "count": 3
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
-              "count": 1
+              "count": 3
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS\" />",
@@ -97,18 +99,18 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />",
-              "count": 1
+              "count": 3
             },
             {
               "xml": "<uses-permission android:name=\"android.hardware.location\" />",
               "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />",
+              "count": 2
             }
           ],
           "/manifest/application": [
-            {
-              "xml": "<service android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
-              "count": 1
-            },
             {
               "xml": "<meta-data android:name=\"com.google.android.gms.version\" android:value=\"@integer/google_play_services_version\" />",
               "count": 1
@@ -136,6 +138,10 @@
             {
               "xml": "<uses-library android:name=\"org.apache.http.legacy\" android:required=\"true\" />",
               "count": 1
+            },
+            {
+              "xml": "<service android:exported=\"false\" android:foregroundServiceType=\"location\" android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
+              "count": 13
             }
           ],
           "/*": [

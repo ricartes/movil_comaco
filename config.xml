@@ -1,5 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.gestionasi.gfe_comaco" version="30000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="io.gestionasi.gfe_comaco" version="30000" xmlns="http://www.w3.org/ns/widgets"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Control de Origen (Proveedores)</name>
     <description>
         Emisión guia electronica Proveedores Comaco
@@ -16,13 +18,26 @@
     <preference name="android-targetSdkVersion" value="34" />
     <platform name="android">
         <allow-intent href="market:*" />
+
         <icon density="ldpi" src="res/icon/android/comaco36.png" />
         <icon density="mdpi" src="res/icon/android/comaco48.png" />
         <icon density="hdpi" src="res/icon/android/comaco72.png" />
         <icon density="xhdpi" src="res/icon/android/comaco96.png" />
-        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+
+        <!-- Permitir tráfico HTTP no seguro -->
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge"
+            target="/manifest/application">
             <application android:usesCleartextTraffic="true" />
         </edit-config>
+
+        <!-- Declaración del servicio en primer plano -->
+        <config-file parent="/manifest/application" target="AndroidManifest.xml">
+            <service android:name="de.einfachhans.BackgroundMode.ForegroundService"
+                android:foregroundServiceType="location"
+                android:exported="false" />
+        </config-file>
+
+        <!-- Permisos requeridos -->
         <config-file parent="/manifest" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -30,6 +45,7 @@
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
         </config-file>
     </platform>
+
     <platform name="ios">
         <allow-intent href="itms:*" />
         <allow-intent href="itms-apps:*" />
