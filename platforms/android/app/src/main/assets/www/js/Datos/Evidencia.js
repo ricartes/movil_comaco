@@ -21,9 +21,11 @@ function DATOS_seleccionar_evidencia_guia(id_gde, tipo_evidencia, callback) {
                     cb.ARCHIVO = rs_datos.ARCHIVO;
                     cb.TIPO_EVIDENCIA = rs_datos.TIPO_EVIDENCIA;
                     cb.ENVIADO = rs_datos.ENVIADO;
+                    cb.CANTIDAD_INTENTOS = rs_datos.CANTIDAD_INTENTOS;
                     ar.push(cb);
 
                 }
+
                 //alert(ar);
                 typeof callback == "function" && callback(ar);
 
@@ -62,6 +64,7 @@ async function DATOS_seleccionar_evidencia_por_guia(id_gde) {
                             cb.ARCHIVO = rs_datos.ARCHIVO;
                             cb.TIPO_EVIDENCIA = rs_datos.TIPO_EVIDENCIA;
                             cb.ENVIADO = rs_datos.ENVIADO;
+                            cb.CANTIDAD_INTENTOS = rs_datos.CANTIDAD_INTENTOS;
                             ar.push(cb);
                         }
                         resolve(ar);
@@ -105,6 +108,7 @@ function DATOS_seleccionar_evidencias_por_enviar(estado, callback) {
                     cb.EVIDENCIA_COORDENADA_Y = rs_datos.EVIDENCIA_COORDENADA_Y;
                     cb.ENVIADO = rs_datos.ENVIADO;
                     cb.TIPO_EVIDENCIA = rs_datos.TIPO_EVIDENCIA;
+                    cb.CANTIDAD_INTENTOS = rs_datos.CANTIDAD_INTENTOS;
                     cb.ARCHIVO_FOTO = cb.ARCHIVO.substr(cb.ARCHIVO.lastIndexOf('/') + 1);
                     ar.push(cb);
                 }
@@ -146,6 +150,7 @@ function DATOS_seleccionar_evidencias_FOTOS_Por_enviar(estado, callback) {
                     cb.EVIDENCIA_COORDENADA_Y = rs_datos.EVIDENCIA_COORDENADA_Y;
                     cb.ENVIADO = rs_datos.ENVIADO;
                     cb.TIPO_EVIDENCIA = rs_datos.TIPO_EVIDENCIA;
+                    cb.CANTIDAD_INTENTOS = rs_datos.CANTIDAD_INTENTOS;
                     cb.ARCHIVO_FOTO = cb.ARCHIVO.substr(cb.ARCHIVO.lastIndexOf('/') + 1);
                     ar.push(cb);
                 }
@@ -160,9 +165,7 @@ function DATOS_seleccionar_evidencias_FOTOS_Por_enviar(estado, callback) {
 
 
 function DATOS_asigna_rowid_evidencia(num_folio, callback) {
-    //alert("a guardar gdep");
-    //alert("NUM FOLIO ES "+num_folio);
-    //alert("ALTURA_IZQUIERDA: "+GDEP.ALTURA_IZQUIERDA)
+
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     this.db.transaction(function (tr) {
         tr.executeSql("SELECT GDE.rowid FROM GDE WHERE ID_UNICO_MOVIL=?", [num_folio], function (tr, rs) {
@@ -297,6 +300,27 @@ function DATOS_cambiar_estado_envio_foto_gde_evidencia(id_unico_evidencia, estad
     this.db.transaction(function (tr) {
         tr.executeSql("UPDATE GDE_EVIDENCIA SET  ENVIADO_FOTO=? WHERE ID_UNICO_MOVIL=?", [estado, id_unico_evidencia], function (tr, rs) {
             typeof callback == "function" && callback(rs);
+        });
+    });
+}
+
+
+async function DATOS_ActualizarIntentosEvidencia(id_unico_evidencia, intentos) {
+    // Asegúrate de que sqlitePlugin esté disponible
+    const db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: "default", androidDatabaseImplementation: 2 });
+
+    return new Promise((resolve, reject) => {
+        db.transaction(function (tr) {
+            tr.executeSql(
+                "UPDATE GDE_EVIDENCIA SET CANTIDAD_INTENTOS=? WHERE ID_UNICO_MOVIL=?",
+                [intentos, id_unico_evidencia],
+                function (tr, rs) {
+                    resolve(rs); // Resuelve la promesa si la operación es exitosa
+                },
+                function (tr, error) {
+                    reject(error); // Rechaza la promesa si hay un error
+                }
+            );
         });
     });
 }

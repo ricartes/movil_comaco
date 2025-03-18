@@ -1544,6 +1544,15 @@ function DATOS_seleccionar_Parametro_general(empresa, valor, callback) {
     });
 }
 
+function Datos_seleccionarParametroGeneralAsync(empresa, valor) {
+    return new Promise((resolve, reject) => {
+        DATOS_seleccionar_Parametro_general(empresa, valor, (result) => {
+            resolve(result === -1 ? null : result);
+        });
+    });
+}
+
+
 
 
 

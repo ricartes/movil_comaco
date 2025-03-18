@@ -15,7 +15,6 @@
         "cordova-import-npm": "^1.0.33",
         "cordova-plugin-app-version": "^0.1.12",
         "cordova-plugin-device-motion": "^1.2.5",
-        "cordova-plugin-geolocation": "^4.0.2",
         "cordova-plugin-inappbrowser": "^3.1.0",
         "cordova-plugin-ip-mac-address": "^1.0.1",
         "cordova-plugin-network-information": "^2.0.1",
@@ -27,7 +26,6 @@
         "plugins": {
             "cordova-plugin-network-information": {},
             "cordova-plugin-device": {},
-            "cordova-plugin-geolocation": {},
             "cordova-plugin-insomnia": {},
             "cordova-plugin-inappbrowser": {},
             "cordova-plugin-btprinter": {},
@@ -46,7 +44,22 @@
             "cordova-plugin-file": {
                 "ANDROIDX_WEBKIT_VERSION": "1.4.0"
             },
-            "cordova-plugin-file-transfer": {}
+            "cordova-plugin-file-transfer": {},
+            "verify-automatic-date-time-zone": {},
+            "cordova.plugins.diagnostic": {},
+            "cordova-plugin-geolocation": {
+                "GPS_REQUIRED": "true"
+            },
+            "cordova-background-geolocation-plugin": {
+                "GOOGLE_PLAY_SERVICES_VERSION": "17+",
+                "ICON": "@mipmap/ic_launcher",
+                "SMALL_ICON": "@mipmap/ic_launcher",
+                "ACCOUNT_NAME": "@string/app_name",
+                "ACCOUNT_LABEL": "@string/app_name",
+                "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
+                "CONTENT_AUTHORITY": "$PACKAGE_NAME"
+            },
+            "@ccervantesb/cordova-plugin-mock-location": {}
         },
         "platforms": [
             "browser",
@@ -54,7 +67,9 @@
         ]
     },
     "devDependencies": {
+        "@ccervantesb/cordova-plugin-mock-location": "github:cesarcervantesb/cordova-plugin-mock-location",
         "cordova-android": "^13.0.0",
+        "cordova-background-geolocation-plugin": "^2.3.1",
         "cordova-pdf-generator": "^2.1.1",
         "cordova-plugin-advanced-background-mode": "^1.1.1",
         "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",
@@ -64,7 +79,10 @@
         "cordova-plugin-camera": "^7.0.0",
         "cordova-plugin-file": "^8.0.0",
         "cordova-plugin-file-transfer": "^2.0.0",
+        "cordova-plugin-geolocation": "^5.0.0",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
-        "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx"
+        "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
+        "cordova.plugins.diagnostic": "^7.2.3",
+        "verify-automatic-date-time-zone": "^1.0.3-dev"
     }
 }

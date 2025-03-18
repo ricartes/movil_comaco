@@ -27,9 +27,6 @@
     <feature name="Accelerometer">
         <param name="android-package" value="org.apache.cordova.devicemotion.AccelListener" />
     </feature>
-    <feature name="Geolocation">
-        <param name="android-package" value="org.apache.cordova.geolocation.Geolocation" />
-    </feature>
     <feature name="InAppBrowser">
         <param name="android-package" value="org.apache.cordova.inappbrowser.InAppBrowser" />
     </feature>
@@ -53,6 +50,50 @@
     <feature name="FileTransfer">
         <param name="android-package" value="org.apache.cordova.filetransfer.FileTransfer" />
     </feature>
+    <feature name="VerifyAutomaticDateTimeZone">
+        <param name="android-package" value="com.edsonhoraciojunior.verifyautomaticdatetimezone.VerifyAutomaticDateTimeZone" />
+    </feature>
+    <feature name="Geolocation">
+        <param name="android-package" value="org.apache.cordova.geolocation.Geolocation" />
+    </feature>
+    <feature name="BackgroundGeolocation">
+        <param name="android-package" value="com.tenforwardconsulting.bgloc.cordova.BackgroundGeolocationPlugin" />
+    </feature>
+    <feature name="PluginMockLocation">
+        <param name="android-package" value="com.ccervantesb.mocklocation.PluginMockLocation" />
+    </feature>
+    <feature name="Diagnostic">
+        <param name="android-package" value="cordova.plugins.Diagnostic" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_Location">
+        <param name="android-package" value="cordova.plugins.Diagnostic_Location" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_Bluetooth">
+        <param name="android-package" value="cordova.plugins.Diagnostic_Bluetooth" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_Wifi">
+        <param name="android-package" value="cordova.plugins.Diagnostic_Wifi" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_Camera">
+        <param name="android-package" value="cordova.plugins.Diagnostic_Camera" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_Notifications">
+        <param name="android-package" value="cordova.plugins.Diagnostic_Notifications" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_NFC">
+        <param name="android-package" value="cordova.plugins.Diagnostic_NFC" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="Diagnostic_External_Storage">
+        <param name="android-package" value="cordova.plugins.Diagnostic_External_Storage" />
+        <param name="onload" value="true" />
+    </feature>
     <name>Control de Origen (Proveedores)</name>
     <description>
         Emisión guia electronica Proveedores Comaco
@@ -74,6 +115,9 @@
     <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
         <application android:usesCleartextTraffic="true" />
     </edit-config>
+    <config-file parent="/manifest/application" target="AndroidManifest.xml">
+        <service android:exported="false" android:foregroundServiceType="location" android:name="de.einfachhans.BackgroundMode.ForegroundService" />
+    </config-file>
     <config-file parent="/manifest" target="AndroidManifest.xml">
         <uses-permission android:name="android.permission.INTERNET" />
         <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -83,5 +127,5 @@
     <preference name="loglevel" value="DEBUG" />
     <preference name="KeepRunning" value="true" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    <preference name="android-targetSdkVersion" value="33" />
+    <preference name="android-targetSdkVersion" value="34" />
 </widget>

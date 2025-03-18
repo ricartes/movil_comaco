@@ -21,11 +21,9 @@ description: Access GPS data.
 #         under the License.
 -->
 
-|AppVeyor|Travis CI|
-|:-:|:-:|
-|[![Build status](https://ci.appveyor.com/api/projects/status/github/apache/cordova-plugin-geolocation?branch=master)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/cordova-plugin-geolocation)|[![Build Status](https://travis-ci.org/apache/cordova-plugin-geolocation.svg?branch=master)](https://travis-ci.org/apache/cordova-plugin-geolocation)|
-
 # cordova-plugin-geolocation
+
+[![Android Testsuite](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/android.yml/badge.svg)](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/android.yml) [![Chrome Testsuite](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/chrome.yml/badge.svg)](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/chrome.yml) [![iOS Testsuite](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/ios.yml/badge.svg)](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/ios.yml) [![Lint Test](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/lint.yml/badge.svg)](https://github.com/apache/cordova-plugin-geolocation/actions/workflows/lint.yml)
 
 This plugin provides information about the device's location, such as
 latitude and longitude.
@@ -39,8 +37,7 @@ device's actual location.
 > To get a few ideas, check out the [sample](#sample) at the bottom of this page or go straight to the [reference](#reference) content.
 
 This API is based on the
-[W3C Geolocation API Specification](http://dev.w3.org/geo/api/spec-source.html),
-and only executes on devices that don't already provide an implementation.
+[W3C Geolocation API Specification](http://dev.w3.org/geo/api/spec-source.html).
 
 __WARNING__: Collection and use of geolocation data
 raises important privacy issues.  Your app's privacy policy should
@@ -90,7 +87,6 @@ It is also possible to install via repo url directly ( unstable )
 
 - Android
 - iOS
-- Windows
 
 ## Methods
 
@@ -160,17 +156,34 @@ error, the `geolocationError` callback is passed a
 
  This plugins requires the following usage description:
 
- * `NSLocationWhenInUseUsageDescription` describes the reason that the app accesses the user's location. 
+ * `NSLocationWhenInUseUsageDescription` describes the reason that the app accesses the user's location, this is used while the app is running in the foreground.
+ * `NSLocationAlwaysAndWhenInUseUsageDescription` describes the reason that the app is requesting access to the user’s location information at all times. Use this key if your iOS app accesses location information while running in the background and foreground. 
+ * `NSLocationAlwaysUsageDescription` describes the reason that the app is requesting access to the user's location at all times. Use this key if your app accesses location information in the background and you deploy to a target earlier than iOS 11. For iOS 11 and later, add both `NSLocationAlwaysUsageDescription` and `NSLocationAlwaysAndWhenInUseUsageDescription` to your app’s `Info.plist` file with the same message.
 
- To add this entry into the `info.plist`, you can use the `edit-config` tag in the `config.xml` like this:
+ To add these entries into the `info.plist`, you can use the `edit-config` tag in the `config.xml` like this:
 
 ```
 <edit-config target="NSLocationWhenInUseUsageDescription" file="*-Info.plist" mode="merge">
     <string>need location access to find things nearby</string>
 </edit-config>
 ```
+```
+<edit-config target="NSLocationAlwaysAndWhenInUseUsageDescription" file="*-Info.plist" mode="merge">
+    <string>need location access to find things nearby</string>
+</edit-config>
+```
+```
+<edit-config target="NSLocationAlwaysUsageDescription" file="*-Info.plist" mode="merge">
+    <string>need location access to find things nearby</string>
+</edit-config>
+```
  
 ### Android Quirks
+
+For historic reasons, this plugin requires GPS Hardware on Android devices, so your app will not be able to run on devices without.
+If you want to use this plugin in your app, but you do not require actual GPS Hardware on the device, install the plugin using the variable *GPS_REQUIRED* set to false:
+
+    cordova plugin add cordova-plugin-geolocation --variable GPS_REQUIRED="false"
 
 If Geolocation service is turned off the `onError` callback is invoked after `timeout` interval (if specified).
 If `timeout` parameter is not specified then no callback is called.

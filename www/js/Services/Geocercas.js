@@ -4,16 +4,18 @@ function validarGeocerca(rol) {
             punto: "",
             validacion: null,
             latitud: null,
-            longitud: null
+            longitud: null,
+            accuracy: null,
         }
 
         if (rol != null) {
             getLocation2().then((coordenadas) => {
-                if (!coordenadas || ( coordenadas && (coordenadas.GPS_LON == 0 || coordenadas.GPS_LAT == 0))) {
+                if (!coordenadas || (coordenadas && (coordenadas.GPS_LON == 0 || coordenadas.GPS_LAT == 0))) {
                     reject("Ubicación no activada o aplicación sin permisos para obtenerla...")
                 } else {
                     resultadoGeocerca.latitud = coordenadas.GPS_LAT;
                     resultadoGeocerca.longitud = coordenadas.GPS_LON;
+                    resultadoGeocerca.accuracy = coordenadas.ACCURACY;
                     let punto = coordenadas.GPS_LON + " " + coordenadas.GPS_LAT;
                     resultadoGeocerca.punto = punto;
                     Datos_validaGeocerca(rol, punto).then((validacion) => {
@@ -30,6 +32,20 @@ function validarGeocerca(rol) {
             reject("No ha seleccionado el predio. Para continuar, debe seleccionarlo desde la parte superior de la pantalla.")
         }
     });
+}
+
+
+async function detectarUbicacionSimulada() {
+
+    //let ubicacionSimulada = false;
+    //const ubicacion = await getLocation2();
+    const pluginResult = await mockLocation.checkMockLocation(false);
+
+
+    return {
+        esUbicacionSimulada: pluginResult.isMockLocation,
+        detalle: pluginResult
+    }
 }
 
 
@@ -79,11 +95,13 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
 
 function getLocation2() {
     return new Promise((resolve, reject) => {
-        var ubicacion = { GPS_LAT: 0, GPS_LON: 0, ERROR: "", status: false }
+        var ubicacion = { GPS_LAT: 0, GPS_LON: 0, ERROR: "", ACCURACY: 0, status: false }
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function (position) {
+
                 ubicacion.GPS_LAT = position.coords.latitude;
                 ubicacion.GPS_LON = position.coords.longitude;
+                ubicacion.ACCURACY = position.coords.accuracy;
                 ubicacion.status = true;
                 resolve(ubicacion);
             }, function (err) {

@@ -9,82 +9,185 @@ var gde_actual = null;
 var evidencia_seleccionada = 0;
 var tipo_evidencia_general = 6;
 
+let cantidadEvidencias = 0;
 
-
-$$(document).on('page:init', '.page[data-name="evidencia-guia"]', function (e, page) {
+$$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function (e, page) {
 
     zona_activa = mainView.router.currentRoute.params.idzona;
     id_gde = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
     id_gde_actual = id_gde;
 
-    DATOS_seleccionar_gde_proveedor(id_gde_actual, async function (result) {
-        gde_actual = result;
-
-        cargar_datos_evidencia(id_gde);
-        cargar_datos_usuario(1);
-        $$("#btn_nueva_evidencia").click(function () {
-            capturePhotoWithFile(id_gde, tipo_evidencia_general);
-        });
-
-        $$("#btn_emitir").click(function () {
-
-            app.dialog.confirm('¿Está seguro que desea informar despacho?', "GFE Proveedores", function () {
+    app.dialog.progress("Cargando...")
+    gde_actual = await seleccionarGdeProveedor(id_gde_actual);
 
 
-                if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.informarDespacho) {
-                    app.dialog.preloader("Cargando...");
-                    validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
-                        let resultadoValidacion = resultado.validacion;
-                        validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
-                            //si debe cerrar control
-                            if (resultado.cierra) {
-                                ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
-                                    if (anula) {
-                                        app.dialog.close();
-                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                            mainView.router.navigate("/");
-                                        });
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESO_EVIDENCIA_ADICIONALES,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
+
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
+    app.dialog.close();
+
+
+    cargar_datos_evidencia(id_gde);
+    cargar_datos_usuario(1);
+    $$("#btn_nueva_evidencia").click(function () {
+        capturePhotoWithFile(id_gde, tipo_evidencia_general);
+    });
+
+    $$("#btn_emitir").click(function () {
+        app.dialog.confirm('¿Está seguro que desea informar Despacho?', "GFE Proveedores", function () {
+            app.dialog.preloader("Informando despacho...")
+            if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.informarDespacho) {
+
+                validarGeocerca(gde_actual.GDE_COD_ORIGEN).then(async (resultadoGeocerca) => {
+
+                    let resultadoValidacion = resultadoGeocerca.validacion;
+
+
+                    let intentos = 0;
+                    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+                    do {
+
+                        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                            if (intentos === 0) {
+                                // Solo registramos trazabilidad en el primer intento
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        resultadoUbicacionSimulada: resultadoUbicacionSimulada
                                     }
+                                );
 
-                                });
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
                             }
-                            else {
 
-                                if (resultado.advertencia) {
+                            // Cerramos cualquier diálogo previo para evitar errores
+                            try {
+                                app.dialog.close();
+                            } catch (e) {
+                                console.warn("No había diálogos abiertos.");
+                            }
+
+                            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                            await new Promise((resolve) => {
+                                app.dialog.alert(
+                                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                    "GFE Proveedores",
+                                    async function () {
+                                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                        setTimeout(async () => {
+                                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                            //app.dialog.close(); // Cerramos el progreso después de validar
+                                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                    }
+                                );
+                            });
+
+                            intentos++; // Contamos los intentos
+                        }
+
+                    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
+                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.final).then((resultado) => {
+                        //si debe cerrar control
+                        if (resultado.cierra) {
+                            ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN INFORMAR DESPACHO)`).then((anula) => {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
+                            });
+                        }
+                        else {
+                            if (resultado.advertencia) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
                                     app.dialog.close();
                                     app.dialog.alert(resultado.mensaje, "GFE", function () {
                                         app.dialog.preloader("Informando despacho...")
                                         emitir_guia();
                                     });
-                                } else {
-                                    app.dialog.close();
-                                    emitir_guia();
-                                }
+
+                                })();
+                            } else {
+                                emitir_guia();
                             }
+                        }
 
-                        });
-
-
-                    }).catch((e) => {
-                        app.dialog.close();
-                        app.dialog.alert(e, "GFE")
-                        reject(e);
                     });
 
-                } else {
-                    emitir_guia();
-                }
+
+                }).catch((e) => {
+                    app.dialog.close();
+                    app.dialog.alert(e, "GFE");
+                    reject(e);
+                });
+
+            } else {
+                emitir_guia();
+            }
 
 
-            });
+
 
         });
 
-
-
-
     });
+
 });
 
 
@@ -95,8 +198,25 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', function (e, p
 
 async function emitir_guia() {
 
+
+
     let gde = gde_actual;
     gde.ROWID = id_gde_actual;
+
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INFORMA_DESPACHO,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
 
     const datosUbicacion = await getLocation2();
     gde.GDE_COORDENADA_X = datosUbicacion.GPS_LAT;
@@ -116,6 +236,8 @@ async function emitir_guia() {
 
 
 function confirmEmisionDespacho(id_gde, gde) {
+    stopTracking();
+    inicializarDatosGde();
     const estado = "I";
     DATOS_cambiar_estado_gde_proveedores(id_gde, estado, function (result1) {
         DATOS_cambiar_estado_gde_evidencia(id_gde, estado, function (result2) {
@@ -137,22 +259,10 @@ function confirmEmisionDespacho(id_gde, gde) {
 
 function recargar_datos_gde(id_gde) {
 
-
-
-    if (id_gde != "-1") {
-
-        DATOS_seleccionar_gde_proveedor(id_gde, function (result) {
-            gde_actual = result;
-
-
-
-            $$('#tx_guia_proveedor').val(gde_actual.GDE_GUIA_PROVEEDOR);
-            $$('#tx_volumen_proveedor').val(gde_actual.GDE_VOLUMEN_PROVEEDOR);
-            $$('#tx_anio_cosecha').val(gde_actual.GDE_ANO_COSECHA);
-            $$("#tx_comentario").val(gde_actual.GDE_COMENTARIO);
-
-        });
-    }
+    $$('#tx_guia_proveedor').val(gde_actual.GDE_GUIA_PROVEEDOR);
+    $$('#tx_volumen_proveedor').val(gde_actual.GDE_VOLUMEN_PROVEEDOR);
+    $$('#tx_anio_cosecha').val(gde_actual.GDE_ANO_COSECHA);
+    $$("#tx_comentario").val(gde_actual.GDE_COMENTARIO);
 
 }
 
@@ -165,6 +275,7 @@ function cargar_datos_evidencia(id_gde) {
     DATOS_seleccionar_evidencia_guia(id_gde, tipo_evidencia_general, function (datos_evidencia) {
 
         if (datos_evidencia != "-1") {
+            cantidadEvidencias = datos_evidencia.length;
             for (i = 0; i < datos_evidencia.length; i++) {
                 htmls += "<li class='swipeout'>";
                 htmls += "<a href='#' class='item-link item-content swipeout-content'>";
@@ -200,6 +311,164 @@ function cargar_datos_evidencia(id_gde) {
 
     });
 
+}
+
+
+async function confirmaCargaEvidencia(id_gde) {
+    app.dialog.progress("Cargando...")
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.CAPTURA_EVIDENCIA_ADICIONAL,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+            mensajeMostrado: `EVIDENCIA n° ${cantidadEvidencias + 1}`
+        }
+    );
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
+
+
+
+    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.evidenciaOtros) {
+
+
+        validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultadoGeocerca) => {
+            let resultadoValidacion = resultadoGeocerca.validacion;
+            validarCierreControl(resultadoValidacion, id_gde, constantes.tipoPunto.final).then(async (resultado) => {
+
+                let intentos = 0;
+                let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+                do {
+
+                    if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                        if (intentos === 0) {
+                            // Solo registramos trazabilidad en el primer intento
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                    resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                        }
+
+                        // Cerramos cualquier diálogo previo para evitar errores
+                        try {
+                            app.dialog.close();
+                        } catch (e) {
+                            console.warn("No había diálogos abiertos.");
+                        }
+
+                        // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                        await new Promise((resolve) => {
+                            app.dialog.alert(
+                                'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                "GFE Proveedores",
+                                async function () {
+                                    app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                    setTimeout(async () => {
+                                        resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                        //app.dialog.close(); // Cerramos el progreso después de validar
+                                        resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                    }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                }
+                            );
+                        });
+
+                        intentos++; // Contamos los intentos
+                    }
+
+                } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
+                //si debe cerrar control
+
+                if (resultado.cierra) {
+
+                    ControlServiceAnular(id_gde, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (ACCIÓN CAPTURA EVIDENCIAS OTROS)`).then((anula) => {
+                        (async () => {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.GEOCERCA_INVALIDA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                mainView.router.navigate("/");
+                            });
+
+                        })();
+                    });
+                }
+                else {
+                    if (resultado.advertencia) {
+
+                        (async () => {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    despacho: gde_actual,
+                                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                            app.dialog.close();
+                            cargar_datos_evidencia(id_gde);
+                            app.dialog.alert(resultado.mensaje, "GFE");
+
+                        })();
+                    } else {
+                        app.dialog.close();
+                        cargar_datos_evidencia(id_gde);
+
+                    }
+                }
+
+            });
+
+
+        }).catch((e) => {
+            app.dialog.close();
+            app.dialog.alert(e, "GFE");
+            reject(e);
+        });
+
+
+    } else {
+        cargar_datos_evidencia(id_gde);
+        app.dialog.close();
+    }
 }
 
 
@@ -311,54 +580,6 @@ function volver_padron_vehiculo() {
 
 
 
-async function confirmaCargaEvidencia(id_gde) {
-    app.dialog.preloader("Cargando...")
-
-
-
-    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.evidenciaOtros) {
-
-
-        validarGeocerca(gde_actual.GDE_COD_ORIGEN).then((resultado) => {
-            let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
-                //si debe cerrar control
-                if (resultado.cierra) {
-                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
-                        if (anula) {
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                mainView.router.navigate("/");
-                            });
-                        }
-
-                    });
-                }
-                else {
-                    cargar_datos_evidencia(id_gde);
-                    if (resultado.advertencia) {
-                        app.dialog.close();
-                        app.dialog.alert(resultado.mensaje, "GFE");
-                    } else {
-                        app.dialog.close();
-                    }
-                }
-
-            });
-
-
-        }).catch((e) => {
-            app.dialog.close();
-            app.dialog.alert(e, "GFE")
-            reject(e);
-        });
-
-
-    } else {
-        cargar_datos_evidencia(id_gde);
-        app.dialog.close();
-    }
-}
 
 
 

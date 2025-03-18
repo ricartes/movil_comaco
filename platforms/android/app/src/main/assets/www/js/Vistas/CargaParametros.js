@@ -34,9 +34,21 @@ function carga_parametros() {
         return false;
     } else {
 
-        comprueba_conexion("0", function (result_conexion) {
+        comprueba_conexion("0", async function (result_conexion) {
 
             if (result_conexion == 1) {
+
+                let datos = await generarDataTrazabilidad(
+                    TipoAccionTypes.INICIA_CARGA_PARAMETROS,
+                    Obtener_dato_local('user_activo')
+                );
+
+                const resultado = await obtenerUbicacionEInsertarLog(
+                    Obtener_dato_local('user_activo'),
+                    datos
+                );
+
+
                 cargar_orden_compra(username, empresa, 0, function (result) {
                     if (result > 0) {
 
@@ -61,9 +73,24 @@ function carga_parametros() {
                                                                 $$(".link").removeClass("disabled");
                                                                 Guardar_dato_local("fecha_hora_carga_parametros", FechaHoraActual());
 
-                                                                app.dialog.alert("Parametros cargados correctamente", "Carga parámetros", function () {
-                                                                    mainView.router.navigate('/');
-                                                                });
+                                                                (async () => {
+                                                                    let datos = await generarDataTrazabilidad(
+                                                                        TipoAccionTypes.FINALIZA_CARGA_PARAMETROS,
+                                                                        Obtener_dato_local('user_activo')
+                                                                    );
+
+                                                                    const resultado = await obtenerUbicacionEInsertarLog(
+                                                                        Obtener_dato_local('user_activo'),
+                                                                        datos
+                                                                    );
+
+                                                                    app.dialog.alert("Parametros cargados correctamente", "Carga parámetros", function () {
+                                                                        mainView.router.navigate('/');
+                                                                    });
+                                                                })();
+
+
+
                                                             } else {
                                                                 mensaje = "Error al cargar Geocercas";
                                                                 app.dialog.alert(

@@ -14,22 +14,23 @@ function listado_guias(fecha_inicial, fecha_final, numero_guia) {
 
 
         for (i = 0; i < result.length; i++) {
-            var estado_string = "";
+            let estado_string = "";
             //alert(result[i].GDE_TIPO_EMISION);
 
             if (result[i].GDE_ESTADO_MOVIL == "B") estado_string = "BORRADOR";
             if (result[i].GDE_ESTADO_MOVIL == "M") estado_string = "EMITIDA";
             if (result[i].GDE_ESTADO_MOVIL == "P") estado_string = "PROVISORIA";
             if (result[i].GDE_ESTADO_MOVIL == "I") estado_string = "IMPRESA";
-            if (result[i].GDE_ESTADO_MOVIL == "E") {
-                estado_string = "ENVIADA";
+            if (result[i].GDE_ESTADO_MOVIL == "E" || result[i].ENVIADO == 1) {
+                estado_string = "ENVIADA"
 
+                if (result[i].GDE_CONFIRMA_INGRESO_PLANTA === 1) {
+                    estado_string += ", INGRESO A PLANTA CONFIRMADO";
 
+                }
             }
 
-            if (result[i].ENVIADO == 1) {
-                estado_string = "ENVIADA";
-            }
+
 
 
             if (result[i].GDE_ESTADO_MOVIL == "N" && result[i].ENVIADO == 0) {

@@ -6,11 +6,10 @@ var ip_interna = null;
 var ip_externa = null;
 var usuario_activo;
 var hay_parametro;
-var ejecuta = setInterval(function () {
-    EnvioAutomatico(1, 0);
-}, 10000);
 
 
+
+//var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
 var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
@@ -105,9 +104,9 @@ function EnvioAutomatico(segundo_plano, automatico) {
                                                 result_imagenes == 1 ||
                                                 result_imagenes == 0
                                             ) {
-                                                $$("#ESTADO_").text("Datos enviados correctamente");
+                                                //$$("#ESTADO_").text("Datos enviados correctamente");
                                             } else {
-                                                $$("#ESTADO_").text("Error al enviar datos");
+                                                // $$("#ESTADO_").text("Error al enviar datos");
                                             }
                                         }
                                     );
@@ -154,21 +153,11 @@ function EnvioAutomatico(segundo_plano, automatico) {
 }
 
 function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
-    var bloqueado = Obtener_dato_local("bloqueado");
-    //alert(bloqueado);
 
-    var mensaje = "";
-    var error_aserrable = 0;
-    var error_pulpable = 0;
     Guardar_dato_local("bloqueado", 1);
+    const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
 
-    if (segundo_plano == 1) {
-        /*cordova.plugins.backgroundMode.configure({
-                    title: 'GFE',
-                    icon: 'ldpi',
-                    text: 'Enviando...'
-                });*/
-    }
+
 
     if (checkConnection() != "No network connection") {
         comprueba_conexion("0", function (result_conexion) {
@@ -176,48 +165,63 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
                 enviar_guias_proveedor("0", function (result_guias) {
                     enviar_evidencias_proveedor("0", function (result_evidencias) {
                         enviar_imagenes("0", function (result_imagenes) {
-                            Guardar_dato_local("bloqueado", 0);
-                            envio_automatico_activado = 1;
-                            if (
-                                result_evidencias == 1 ||
-                                result_evidencias == 0 ||
-                                result_imagenes == 1 ||
-                                result_imagenes == 0
-                            ) {
-                                $$("#ESTADO_").text("Datos enviados correctamente");
-                            } else {
-                                $$("#ESTADO_").text("Error al enviar datos");
-                            }
+
+                            enviar_actualizacion_numero_guias(
+                                "0",
+                                function (result_actualizadas) {
+                                    Guardar_dato_local("bloqueado", 0);
+                                    envio_automatico_activado = 1;
+                                    if (
+                                        result_evidencias == 1 ||
+                                        result_evidencias == 0 ||
+                                        result_imagenes == 1 ||
+                                        result_imagenes == 0
+                                    ) {
+                                        //$$("#ESTADO_").text("Datos enviados correctamente");
+                                    } else {
+                                        // $$("#ESTADO_").text("Error al enviar datos");
+                                    }
+                                }
+                            );
                         });
                     });
                 });
+
+
+
             } else {
                 Guardar_dato_local("bloqueado", 0);
-
-                $$("#ESTADO_").text("Conexión no establecida con el servidor");
-
-                if (segundo_plano == 1) {
-                    /*cordova.plugins.backgroundMode.configure({
-                                      title: 'GFE',
-                                      icon: 'ldpi',
-                                      text: 'Conexión no establecida con el servidor'
-                                  });*/
-                }
             }
         });
     } else {
         Guardar_dato_local("bloqueado", 0);
-
-        $$("#ESTADO_").text("Conexión a Internet no detectada");
-
-        if (segundo_plano == 1) {
-            /*cordova.plugins.backgroundMode.configure({
-                          title: 'GFE',
-                          icon: 'ldpi',
-                          text: 'Conexión a Internet no detectada'
-                      });*/
-        }
     }
+    if (bloqueadoTraza === 0) {
+        compruebaEnviaTrazabilidad().then((resultadoTrazabilidad) => {
+        }).catch((error) => { });
+    }
+}
+
+function compruebaEnviaTrazabilidad() {
+    let respuesta = new ResponseDTO();
+    return new Promise(async (resolve, reject) => {
+
+        Guardar_dato_local("bloqueado-traza", 1);
+        try {
+            const resultTrazabilidad = await listarTrazabilidad();
+            if (resultTrazabilidad.status) {
+                const listaTrazabilidad = resultTrazabilidad.data.listaTrazabilidad;
+                const resultEnvioTrazabilidad = await enviarListadoTrazabilidad(listaTrazabilidad);
+                Guardar_dato_local("bloqueado-traza", 0);
+            } else {
+                Guardar_dato_local("bloqueado-traza", 0);
+                reject(resultTrazabilidad.error);
+            }
+        } catch (e) {
+            Guardar_dato_local("bloqueado-traza", 0);
+            reject(e);
+        }
+    });
 }
 
 function onActivate() {
@@ -243,15 +247,16 @@ function onActivate() {
     }, 10000);
 }
 
+
+
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
-    Guardar_dato_local("bloqueado", 1);
 
+
+    inicializarVariables();
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
     }
-
-
 
 
     permisosCamara();
@@ -326,9 +331,13 @@ document.addEventListener("deviceready", async function () {
 
     document.addEventListener("backbutton", boton_atras, false);
 
-    $$("#btn_login").on("click", function () {
-        //$$('#btn_login').prop('disabled', true);
-        login();
+    $$("#btn_login").on("click", async function () {
+        const estadoGPS = await verificarEstadoGPS();
+        if (!estadoGPS) {
+            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo para iniciar sesión.`, "GFE");
+        } else {
+            login();
+        }
     });
 
     $$(".login-screen").on("loginscreen:opened", function (e) {
@@ -363,31 +372,14 @@ document.addEventListener("deviceready", async function () {
                         borra_transporte(function (result) {
                             borra_empresa(function (result) {
                                 borra_parametro_general(function (result) {
-                                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
-                                        if (result_fecha == 0) {
-                                            app.dialog.alert(
-                                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador",
-                                                "GFE"
-                                            );
-                                        }
+                                    obtener_informacion_movil();
 
-                                        obtener_informacion_movil();
-                                    });
                                 });
                             });
                         });
                     });
                 } else {
-                    comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
-                        if (result_fecha == 0) {
-                            app.dialog.alert(
-                                "Hay una diferencia de fecha/hora entre el dispositivo móvil y el servidor web. Se recomienda corroborar con el administrador",
-                                "GFE"
-                            );
-                        }
-
-                        obtener_informacion_movil();
-                    });
+                    obtener_informacion_movil();
                 }
 
                 Guardar_dato_local("ultimo_activo", result.user);
@@ -396,9 +388,96 @@ document.addEventListener("deviceready", async function () {
             }
         });
     });
+
+
+
+
+    if (typeof initializeResumeHandler === "function") {
+        initializeResumeHandler();
+    } else {
+        app.dialog.alert("La función initializeResumeHandler no está disponible.");
+    }
+
+    if (typeof inicializarGpsDiagnosticHandler === "function") {
+        inicializarGpsDiagnosticHandler();
+    } else {
+        app.dialog.alert("La función inicializarGpsDiagnosticHandler no está disponible.");
+    }
+
+    if (typeof configureBackgroundGeolocation === "function") {
+        configureBackgroundGeolocation();
+    } else {
+        app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
+    }
+
+
+    let intentos = 0;
+    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+    do {
+
+        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+            // Cerramos cualquier diálogo previo para evitar errores
+            try {
+                app.dialog.close();
+            } catch (e) {
+                console.warn("No había diálogos abiertos.");
+            }
+
+            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+            await new Promise((resolve) => {
+                app.dialog.alert(
+                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                    "GFE Proveedores",
+                    async function () {
+                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                        setTimeout(async () => {
+                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                            app.dialog.close(); // Cerramos el progreso después de validar
+                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                    }
+                );
+            });
+
+            intentos++; // Contamos los intentos
+        }
+
+    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
 });
 
 
+function mostarOcultarMenuPrincipal(visible) {
+    if (visible) {
+        $$('#page_guias').removeClass("disabled");
+        $$('#btn_canchaGuiaIndex').removeClass("disabled");
+        $$('#btnControlFaenas').removeClass("disabled");
+        $$('#btn_consultaGuiaIndex').removeClass("disabled");
+        $$('#btn_login').removeClass("disabled");
+        $$('#item_zonas').removeClass("disabled");
+        $$('#item_cargar_folios').removeClass("disabled");
+        $$('#item_liberar_folios').removeClass("disabled");
+        $$('#item_enviar_guias').removeClass("disabled");
+        $$('#item_enviar_cfaena').removeClass("disabled");
+        $$("#item_configuracion").removeClass("disabled");
+    } else {
+        $$('#page_guias').addClass("disabled");
+        $$('#btn_canchaGuiaIndex').addClass("disabled");
+        $$('#btnControlFaenas').addClass("disabled");
+        $$('#btn_consultaGuiaIndex').addClass("disabled");
+        $$('#item_zonas').addClass("disabled");
+        $$('#item_cargar_folios').addClass("disabled");
+        $$('#item_liberar_folios').addClass("disabled");
+        $$('#item_enviar_guias').addClass("disabled");
+        $$('#item_enviar_cfaena').addClass("disabled");
+        $$("#item_configuracion").addClass("disabled");
+        //$$('#btn_login').addClass("disabled");
+    }
+
+}
 function cargarUrlServidorWeb() {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
@@ -493,12 +572,54 @@ function boton_atras() {
     }
 }
 
-function clickEmisionFaena() {
+async function clickEmisionFaena() {
     if (hay_parametro == 0) {
         app.dialog.alert("No se han cargado los parámetros", "Emisión desde faena");
         return false;
     } else {
-        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+
+        try {
+
+            const estadoGPS = await verificarEstadoGPS();
+            if (!estadoGPS) {
+                app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
+            } else {
+
+                const fecha_hora = FechaHoraActual();
+                app.dialog.progress("Espere por favor...");
+                validateAutomaticDateTimeZone((isAutomatic) => {
+                    app.dialog.close();
+                    if (isAutomatic) {
+                        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                    } else {
+                        app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático y reintentar.`, "GFE");
+                    }
+                });
+                /*comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
+                    app.dialog.close();
+                    if (result_fecha == 0) {
+                        // Hora incorrecta según el servidor
+                        app.dialog.alert(`Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`, "GFE");
+
+                    } else if (result_fecha === -1) {
+                        // No hay conexión: Validar configuración automática
+                        validateAutomaticDateTimeZone((isAutomatic) => {
+                            if (isAutomatic) {
+                                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                            } else {
+                                app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, "GFE");
+                            }
+                        });
+                    } else {
+                        // Hora correcta según el servidor
+                        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
+                    }
+                });*/
+            }
+
+        } catch (ex) {
+            app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación", "GFE");
+        }
     }
 }
 
@@ -561,14 +682,25 @@ function login() {
                                         ok_login(result);
                                     });
                                 } else {
-                                    //$$('#btn_login').prop('disabled', false);
-                                    $$("#lb_estado").css("color", "red");
-                                    $$("#lb_estado").html("Usuario y/o password incorrectos");
-                                }
+                                    (async () => {
+                                        let datos = await generarDataTrazabilidad(
+                                            TipoAccionTypes.INICIO_SESION_INCORRECTO,
+                                            $$("#input_username").val().toLowerCase().trim()
+                                        );
 
-                                setTimeout(function () {
-                                    app.dialog.close();
-                                }, 0);
+                                        await obtenerUbicacionEInsertarLog(
+                                            $$("#input_username").val().toLowerCase().trim(),
+                                            datos
+                                        );
+                                        $$("#lb_estado").css("color", "red");
+                                        $$("#lb_estado").html("Usuario y/o password incorrectos");
+
+                                        setTimeout(function () {
+                                            app.dialog.close();
+                                        }, 800);
+
+                                    })();
+                                }
                             });
                         } else {
                             app.dialog.close();
@@ -589,11 +721,28 @@ function login() {
                         });
                     } else {
                         if (contador != -1) {
-                            if (us.rut == "0") {
-                                $$("#lb_estado").css("color", "red");
-                                $$("#btn_login").prop("disabled", false);
-                                $$("#lb_estado").html("Usuario y/o password incorrectos");
-                            }
+                            (async () => {
+                                app.dialog.progress("Iniciando sesión...");
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.INICIO_SESION_INCORRECTO,
+                                    $$("#input_username").val().toLowerCase().trim()
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    $$("#input_username").val().toLowerCase().trim(),
+                                    datos
+                                );
+                                if (us.rut == "0") {
+                                    $$("#lb_estado").css("color", "red");
+                                    $$("#btn_login").prop("disabled", false);
+                                    $$("#lb_estado").html("Usuario y/o password incorrectos");
+                                }
+
+                                setTimeout(function () {
+                                    app.dialog.close();
+                                }, 800);
+
+                            })();
                         } else {
                             $$("#lb_estado").css("color", "red");
                             $$("#btn_login").prop("disabled", false);
@@ -614,9 +763,21 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
+
+            const usuarioActivo = Obtener_dato_local('user_activo');
             Borrar_dato_local("user_activo");
             Borrar_dato_local("rut_activo");
             Borrar_dato_local("empresa_activo");
+            (async () => {
+                let datos = await generarDataTrazabilidad(
+                    TipoAccionTypes.CIERRE_SESION,
+                    usuarioActivo,
+                );
+                await obtenerUbicacionEInsertarLog(
+                    usuarioActivo,
+                    datos
+                );
+            })();
             ls.open(false);
         }
     );
@@ -627,6 +788,23 @@ function logout() {
 function ok_login(usuario) {
     usuario_activo = usuario;
     var ls = app.loginScreen.create({ el: ".login-screen" });
+
+    (async () => {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.INICIO_SESION_CORRECTO,
+            $$("#input_username").val().toLowerCase().trim()
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            $$("#input_username").val().toLowerCase().trim(),
+            datos
+        );
+
+        setTimeout(function () {
+            app.dialog.close();
+        }, 800);
+
+    })();
     ls.close(false);
 }
 
@@ -651,8 +829,58 @@ function envio_guias_automatico() {
     alert("mi envio!");
 }
 
+async function clickIngresoPlanta() {
+
+    app.dialog.confirm(
+        "¿Está seguro que desea confirmar el ingreso planta?. Se requiere una conexión a Internet activa",
+        "GFE",
+        async function () {
+
+            if (checkConnection() == "No network connection") {
+                app.dialog.alert("No hay conexión a Internet", "GFE");
+                return false;
+            } else {
+                app.dialog.progress("Enviando...")
+                comprueba_conexion("0", async function (result_conexion) {
+
+
+                    if (result_conexion == 1) {
+
+
+                        try {
+                            response = await enviarConfirmacionIngresoPlantaService();
+                            app.dialog.alert(`Proceso finalizado con éxito. Se envío un total de  ${response.total} datos.`, "GFE")
+
+
+                        } catch (ex) {
+                            const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
+                            app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`, "GFE");
+                        }
+                        finally {
+
+                            app.dialog.close();
+                        }
+                    }
+                    else {
+                        app.dialog.close();
+                        app.dialog.alert("No se pudo extablecer la conexión con el servidor.");
+                    }
+
+                });
+
+            }
+
+
+        }
+    );
+
+
+
+
+}
+
 function obtener_informacion_movil() {
-    app.dialog.close();
+    //app.dialog.close();
     if (
         Obtener_dato_local("fecha_hora_carga_parametros") != undefined &&
         Obtener_dato_local("fecha_hora_carga_parametros") != null

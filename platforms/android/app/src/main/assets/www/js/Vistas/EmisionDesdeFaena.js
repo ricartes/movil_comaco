@@ -41,6 +41,13 @@ var options_gps = {
 
 
 $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function (e, page) {
+
+
+    rut_valido = 1;
+    idgde_acutal = mainView.router.currentRoute.params.idgde;
+    tipo_emision = mainView.router.currentRoute.params.tipoemision;
+
+    app.dialog.progress("Cargando...");
     crear_autocompletar();
     if (Obtener_dato_local("tema_oscuro") == "si") {
         $$("#lb_patente").css("border", "1px solid white");
@@ -51,11 +58,11 @@ $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function 
         $$("#tx_rut_chofer").css("border", "1px solid white");
         $$("#tx_nom_chofer").css("border", "1px solid white");
     }
-    rut_valido = 1;
-    idgde_acutal = mainView.router.currentRoute.params.idgde;
-    tipo_emision = mainView.router.currentRoute.params.tipoemision;
+
+
     //cargar_datos_usuario(1);
     tabla_proveedores(idgde_acutal);
+    app.dialog.close();
     $$('#combo_producto').change(function () {
 
         var seleccionado = $$("#combo_producto").val();
@@ -290,10 +297,161 @@ function limpiar_datos_transporte() {
 
 
 
-function guardar_guia() {
+async function guardar_guia() {
 
-    if (valida()) {
-        guardar_datos_guia(0, 0);
+
+    const estadoGPS = await verificarEstadoGPS();
+    if (!estadoGPS) {
+        $$('#tabla_proveedores [type="radio"]').each(function (i, chk) {
+            chk.checked = false;
+        });
+        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo. para seleccionar el Predio y Producto.`, "GFE");
+    } else {
+        if (valida()) {
+            app.dialog.preloader("Guadando...");
+            const datosUbicacion = await getLocation2();
+
+            if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.avanzaHaciaCamionVacio) {
+
+                validarGeocerca(gdeRol).then((resultadoGeocerca) => {
+                    let resultadoValidacion = resultadoGeocerca.validacion;
+                    validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
+
+                        let intentos = 0;
+                        let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+
+                        do {
+
+                            if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                                if (intentos === 0) {
+                                    // Solo registramos trazabilidad en el primer intento
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gdeRol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                            resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                }
+
+                                // Cerramos cualquier diálogo previo para evitar errores
+                                try {
+                                    app.dialog.close();
+                                } catch (e) {
+                                    console.warn("No había diálogos abiertos.");
+                                }
+
+                                // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                                await new Promise((resolve) => {
+                                    app.dialog.alert(
+                                        'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                        "GFE Proveedores",
+                                        async function () {
+                                            app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                            setTimeout(async () => {
+                                                resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                                //app.dialog.close(); // Cerramos el progreso después de validar
+                                                resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                            }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                        }
+                                    );
+                                });
+
+                                intentos++; // Contamos los intentos
+                            }
+
+                        } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                        // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+                        //si debe cerrar control
+                        if (resultado.cierra) {
+                            ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida}`).then((anula) => {
+                                if (anula) {
+                                    (async () => {
+                                        let datos = await generarDataTrazabilidad(
+                                            TipoAccionTypes.GEOCERCA_INVALIDA,
+                                            Obtener_dato_local('user_activo'),
+                                            {
+                                                rol: gdeRol,
+                                                despacho: gde_actual,
+                                                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                            }
+                                        );
+
+                                        await obtenerUbicacionEInsertarLog(
+                                            Obtener_dato_local('user_activo'),
+                                            datos
+                                        );
+                                        app.dialog.close();
+                                        app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                            mainView.router.navigate("/");
+                                        });
+
+                                    })();
+
+                                }
+                            });
+                        }
+                        else {
+
+                            if (resultado.advertencia) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gdeRol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+
+                                    });
+
+                                })();
+
+
+                            } else {
+                                app.dialog.close();
+                                guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                            }
+                        }
+
+                    });
+
+
+                }).catch((e) => {
+                    app.dialog.close();
+                    app.dialog.alert(e, "GFE")
+                    reject(e);
+                });
+
+
+            } else {
+                app.dialog.close();
+                guardar_datos_guia(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+
+            }
+        }
+
+
     }
 
 
@@ -302,13 +460,34 @@ function guardar_guia() {
 
 
 
-function recargarr_datos_gde(id_gde) {
+async function recargarr_datos_gde(id_gde) {
+    const accion = idgde_acutal != "-1" ? TipoAccionTypes.INICIA_INFORMAR_DESPACHO_BORRADOR : TipoAccionTypes.INICIA_INFORMAR_DESPACHO;
 
+    let datos = await generarDataTrazabilidad(
+        accion,
+        Obtener_dato_local('user_activo')
+    );
+    datos.metadata.rol = gdeRol;
 
     if (id_gde != "-1") {
-        DATOS_seleccionar_gde_proveedor(id_gde, function (result) {
+        app.dialog.progress("Cargando...")
 
-            gde_actual = result;
+        try {
+            gde_actual = await seleccionarGdeProveedor(id_gde);
+            Guardar_dato_local("id_proceso_activo", id_gde);
+            Guardar_dato_local("id_unico_proceso_activo", gde_actual.ID_UNICO_MOVIL);
+            Guardar_dato_local("hora_inicio_proceso", Date.now());
+            startTracking();
+            datos.metadata.rol = gde_actual?.GDE_COD_ORIGEN ?? null;
+            datos.metadata.despacho = gde_actual;
+            datos.metadata.id_unico_movil_gde = gde_actual?.ID_UNICO_MOVIL ?? null;
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+
+
+
             $$('#autocomplete-standalone-popup').find('.item-after').text(gde_actual.GDE_PATENTE_CAMION);
             $$('#autocomplete-standalone-popup').find('input').val(gde_actual.GDE_PATENTE_CAMION);
             $$("#tx_latitud_inicial").val(gde_actual.GDE_COORDENADA_INICIAL_X);
@@ -324,11 +503,18 @@ function recargarr_datos_gde(id_gde) {
 
             combo_productos(gde_actual.GDE_COD_PROYECTO, 1);
             recargar_combo_transportista2();
+        } catch (ex) {
+            app.dialog.alert("Ha ocurrido un error al cargar los datos en borrrador");
+        } finally {
+            app.dialog.close();
+        }
 
 
-
-        });
-
+    } else {
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
     }
 
 }
@@ -372,7 +558,7 @@ function guardar_datos_guia(latitud, longitud) {
 
         DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, gde.GDE_COD_PRODUCTO, function (proveedor) {
 
-           
+
 
             gde.GDE_COD_CLIENTE = proveedor.C_codigo;
             gde.GDE_NOMBRE_CLIENTE = proveedor.SN_Nombre
@@ -388,17 +574,28 @@ function guardar_datos_guia(latitud, longitud) {
 
             if (idgde_acutal != "-1") {
 
-                DATOS_actualiza_gde_proveedor(gde, idgde_acutal, function (result_guardado) {
+                DATOS_actualiza_gde_proveedor(gde, idgde_acutal, async function (result_guardado) {
 
-                    abrir_detalles(idgde_acutal, 2);
+
+                    setTimeout(() => {
+                        abrir_detalles(idgde_acutal, 2);
+                    }, 100); // El retraso de
 
                 });
 
             } else {
 
-                DATOS_guarda_gde_proveedor(gde, function (result_guardado) {
+                DATOS_guarda_gde_proveedor(gde, async function (result_guardado) {
 
-                    abrir_detalles(result_guardado.insertId, 2);
+                    Guardar_dato_local("id_proceso_activo", result_guardado.insertId);
+                    Guardar_dato_local("id_unico_proceso_activo", gde.ID_UNICO_MOVIL);
+                    Guardar_dato_local("hora_inicio_proceso", Date.now());
+                    startTracking(); // Espera a que el rastreo inicie correctamente
+
+                    setTimeout(() => {
+                        abrir_detalles(result_guardado.insertId, 2);
+                    }, 100); // El retraso de
+
 
                 });
             }
@@ -407,7 +604,7 @@ function guardar_datos_guia(latitud, longitud) {
 
     } else {
 
-        alert("error de seleccion");
+        app.dialog.alert("Falta seleccionar el Predio.", "GFE");
     }
 
 }
@@ -516,10 +713,29 @@ function recargar_combo_transportista2() {
 
 function volver_menu() {
 
-
-
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
-        mainView.router.navigate('/');
+        stopTracking();
+        inicializarDatosGde();
+        (async () => {
+
+            let datos = await generarDataTrazabilidad(
+                TipoAccionTypes.SALIR_INFORME_DESPACHO,
+                Obtener_dato_local('user_activo'),
+                {
+                    rol: gdeRol,
+                    despacho: gde_actual,
+                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                }
+            );
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+
+
+        })();
+        mainView.router.navigate("/");
 
     });
 
@@ -572,24 +788,198 @@ function valida() {
         return false;
     }
 
-
-
-
-
-
-
-
-
-
-
     return res;
 }
 
 
 
 
-function obtener_punto_inicial() {
-    getLocation(1, 0, gdeRol);
+async function obtener_punto_inicial() {
+
+    app.dialog.preloader("Obteniendo Punto...");
+    let datos = await generarDataTrazabilidad(
+        TipoAccionTypes.INGRESA_PUNTO_INICIAL,
+        Obtener_dato_local('user_activo'),
+        {
+            rol: gdeRol,
+            despacho: gde_actual,
+            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+        }
+    );
+
+
+
+    await obtenerUbicacionEInsertarLog(
+        Obtener_dato_local('user_activo'),
+        datos
+    );
+
+
+    //obtiene puntos
+    const datosUbicacion = await getLocation2();
+
+    if (datosUbicacion.status) {
+
+        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.puntoInicial) {
+            validarGeocerca(gdeRol).then((resultadoGeocerca) => {
+
+
+                let resultadoValidacion = resultadoGeocerca.validacion;
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
+                    //si debe cerrar control
+
+                    let intentos = 0;
+                    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+
+                    do {
+
+                        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                            if (intentos === 0) {
+                                // Solo registramos trazabilidad en el primer intento
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gdeRol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                            }
+
+                            // Cerramos cualquier diálogo previo para evitar errores
+                            try {
+                                app.dialog.close();
+                            } catch (e) {
+                                console.warn("No había diálogos abiertos.");
+                            }
+
+                            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                            await new Promise((resolve) => {
+                                app.dialog.alert(
+                                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                    "GFE Proveedores",
+                                    async function () {
+                                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                        setTimeout(async () => {
+                                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                            //app.dialog.close(); // Cerramos el progreso después de validar
+                                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                    }
+                                );
+                            });
+
+                            intentos++; // Contamos los intentos
+                        }
+
+                    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
+
+                    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
+
+
+                    if (resultado.cierra) {
+                        ControlServiceAnular(idgde_acutal, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "I", `${constantes.mensajeGeocercaNoValida} (ACCIÓN OBTENER PUNTO INICIAL)`).then((anula) => {
+                            if (anula) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: gdeRol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+                                    app.dialog.close();
+                                    app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                        mainView.router.navigate("/");
+                                    });
+
+                                })();
+
+                            }
+                        });
+                    }
+                    else {
+
+                        if (resultado.advertencia) {
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gdeRol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                                });
+
+                            })();
+
+                        } else {
+                            app.dialog.close();
+                            asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+                        }
+
+                    }
+
+                });
+
+
+            }).catch((e) => {
+                app.dialog.close();
+                app.dialog.alert(e, "GFE")
+                reject(e);
+            });
+
+        } else {
+            app.dialog.close();
+            asignar_puntos_inicio(datosUbicacion.GPS_LAT, datosUbicacion.GPS_LON);
+        }
+
+    } else {
+        let datos = await generarDataTrazabilidad(
+            TipoAccionTypes.UBICACION_DESACTIVADA,
+            Obtener_dato_local('user_activo'),
+            {
+                rol: gdeRol,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+            }
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos
+        );
+        app.dialog.close();
+        app.dialog.alert("Servicios de ubicación se encuentran desactivados. Favor activar para continuar", "GFE");
+        return false;
+    }
+
 }
 
 
@@ -607,54 +997,183 @@ function alerta_geocerca_punto_inicial(geocerca) {
 
 
 
-function cambia_proyecto(codproyecto, rol) {
+async function cambia_proyecto(codproyecto, rol) {
 
-    app.dialog.preloader("Cargando...");
-    gdeRol = rol;
-    if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
-        validarGeocerca(rol).then((resultado) => {
-            let resultadoValidacion = resultado.validacion;
-            validarCierreControl(resultadoValidacion, id_gde_actual, 1).then((resultado) => {
-                //si debe cerrar control
-                if (resultado.cierra) {
-                    ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida).then((anula) => {
-                        if (anula) {
-                            app.dialog.close();
-                            app.dialog.alert(resultado.mensaje, "GFE", function () {
-                                mainView.router.navigate("/");
+    const estadoGPS = await verificarEstadoGPS();
+    if (!estadoGPS) {
+        $$('#tabla_proveedores [type="radio"]').each(function (i, chk) {
+            chk.checked = false;
+        });
+        app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo. para seleccionar el Predio y Producto.`, "GFE");
+    } else {
+
+        gdeRol = rol;
+        app.dialog.preloader("Cargando...");
+
+        try {
+            let datos = await generarDataTrazabilidad(
+                TipoAccionTypes.SELECCION_PCR,
+                Obtener_dato_local('user_activo'),
+                {
+                    rol: rol,
+                    codproyecto: codproyecto,
+                    despacho: gde_actual,
+                    id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                }
+            );
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+        } catch (error) {
+            console.error("Error en la ejecución en segundo plano:", error);
+            // Aquí puedes manejar el error de forma personalizada, por ejemplo, mostrando una alerta
+            //app.dialog.alert("Ocurrió un error al procesar la trazabilidad.", "Error");
+        } finally {
+            app.dialog.close();
+        }
+
+
+
+
+
+        if (configuracionGeocercas.habilitado && configuracionGeocercas.habilitadoPorAccion.seleccionPredio) {
+            validarGeocerca(rol).then((resultado) => {
+                let resultadoValidacion = resultado.validacion;
+                validarCierreControl(resultadoValidacion, id_gde_actual, constantes.tipoPunto.inicial).then(async (resultado) => {
+
+                    let intentos = 0;
+                    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+
+                    do {
+
+                        if (resultadoUbicacionSimulada.esUbicacionSimulada) {
+                            if (intentos === 0) {
+                                // Solo registramos trazabilidad en el primer intento
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: gdeRol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
+                                        resultadoUbicacionSimulada: resultadoUbicacionSimulada
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+                            }
+
+                            // Cerramos cualquier diálogo previo para evitar errores
+                            try {
+                                app.dialog.close();
+                            } catch (e) {
+                                console.warn("No había diálogos abiertos.");
+                            }
+
+                            // Mostramos el cuadro de diálogo y esperamos hasta que el usuario presione "Confirmar"
+                            await new Promise((resolve) => {
+                                app.dialog.alert(
+                                    'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                                    "GFE Proveedores",
+                                    async function () {
+                                        app.dialog.progress("Cargando..."); // Mostrar progreso mientras se verifica la nueva ubicación
+                                        setTimeout(async () => {
+                                            resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                                            //app.dialog.close(); // Cerramos el progreso después de validar
+                                            resolve(); // Salimos del Promise y el ciclo continúa si sigue siendo Fake GPS
+                                        }, 1500); // Pequeña espera para evitar consultas instantáneas
+                                    }
+                                );
                             });
+
+                            intentos++; // Contamos los intentos
                         }
 
-                    });
-                }
-                else {
-                    combo_productos(codproyecto, 0);
-                    if (resultado.advertencia) {
-                        app.dialog.close();
-                        app.dialog.alert(resultado.mensaje, "GFE");
-                    } else {
-                        app.dialog.close();
-                    }
-                }
+                    } while (resultadoUbicacionSimulada.esUbicacionSimulada); // Solo salimos cuando la ubicación es real
 
+                    // 🔹 Aquí el flujo principal continúa una vez que la ubicación es válida
+
+                    //si debe cerrar control
+                    if (resultado.cierra) {
+                        ControlServiceAnular(idgde_acutal, resultado.latitud, resultado.longitud, "I", constantes.mensajeGeocercaNoValida, `${constantes.mensajeGeocercaNoValida} (SELECCIÓN PREDIO)`).then((anula) => {
+                            if (anula) {
+                                (async () => {
+                                    let datos = await generarDataTrazabilidad(
+                                        TipoAccionTypes.GEOCERCA_INVALIDA,
+                                        Obtener_dato_local('user_activo'),
+                                        {
+                                            rol: rol,
+                                            despacho: gde_actual,
+                                            id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                        }
+                                    );
+
+                                    await obtenerUbicacionEInsertarLog(
+                                        Obtener_dato_local('user_activo'),
+                                        datos
+                                    );
+
+
+                                })();
+                                app.dialog.close();
+                                app.dialog.alert(resultado.mensaje, "GFE", function () {
+                                    mainView.router.navigate("/");
+                                });
+                            }
+
+                        });
+                    }
+                    else {
+                        combo_productos(codproyecto, 0);
+                        if (resultado.advertencia) {
+                            (async () => {
+                                let datos = await generarDataTrazabilidad(
+                                    TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+                                    Obtener_dato_local('user_activo'),
+                                    {
+                                        rol: rol,
+                                        despacho: gde_actual,
+                                        id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
+                                    }
+                                );
+
+                                await obtenerUbicacionEInsertarLog(
+                                    Obtener_dato_local('user_activo'),
+                                    datos
+                                );
+
+
+                            })();
+                            app.dialog.close();
+                            app.dialog.alert(resultado.mensaje, "GFE");
+                        } else {
+                            app.dialog.close();
+                        }
+                    }
+
+                });
+
+
+            }).catch((e) => {
+                app.dialog.close();
+                app.dialog.alert(e, "GFE")
+                reject(e);
             });
 
-
-        }).catch((e) => {
+        } else {
             app.dialog.close();
-            app.dialog.alert(e, "GFE")
-            reject(e);
-        });
+            combo_productos(codproyecto, 0);
+        }
 
-    } else {
-        app.dialog.close();
-        combo_productos(codproyecto, 0);
+        obtener_punto_inicial();
+
     }
 
-
-
-
-    //combo_productos(codproyecto, 0);
 
 
 }
@@ -732,14 +1251,6 @@ function combo_transporte(zona, indicador_recarga) {
 }
 
 
-/*function cambiar_patente(){
-  if($$("#tx_patente_camion").val().length>0){
-    combo_transporte_mejorado(zona_activa,$$("#tx_patente_camion").val().toUpperCase(),0);
-  }else{
-    //combo_transporte_mejorado(zona_activa,"AAAA",0);
-  }
-  
-}*/
 
 
 function combo_transporte_mejorado(zona, valor, indicador_recarga) {

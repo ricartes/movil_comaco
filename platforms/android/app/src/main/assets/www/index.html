@@ -200,11 +200,21 @@
 
 
                     <div class="block">
-                        <p class="row">
+                        <p class="row" id="rowEmisionFaena">
 
                             <a onclick="clickEmisionFaena();" data-view=".view-main"
                                 class="col button button-big button-raised button-fill" id="page_guias">INFORMAR
                                 DESPACHO
+                            </a>
+                            <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
+                        </p>
+
+
+                        <p class="row" id="rowconfirmaIngresoPlanta">
+
+                            <a onclick="clickIngresoPlanta();" data-view=".view-main"
+                                class="col button button-big button-raised button-fill" id="page_guias">Confirmar
+                                ingreso planta
                             </a>
                             <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
                         </p>
@@ -268,6 +278,7 @@
 
 
     <script type="text/javascript" src="js/routes.js"></script>
+    <script type="text/javascript" src="js/Types/TipoAccionTypes.js"></script>
     <script type="text/javascript" src="js/Datos/Tablas.js"></script>
     <script type="text/javascript" src="js/Datos/Usuarios.js"></script>
     <script type="text/javascript" src="js/Datos/Parametros.js"></script>
@@ -278,6 +289,7 @@
     <script type="text/javascript" src="js/Datos/migraciones/Tablas.js"></script>
     <script type="text/javascript" src="js/Datos/migraciones/Funciones.js"></script>
     <script type="text/javascript" src="js/Datos/migraciones/Versiones.js"></script>
+    <script type="text/javascript" src="js/Datos/Trazabilidad.js"></script>
     <script type="text/javascript" src="js/Common/Constantes.js"></script>
     <script type="text/javascript" src="js/Common/ConfiguracionGeocercas.js"></script>
     <script type="text/javascript" src="js/Datos/Geocercas.js"></script>
@@ -285,6 +297,7 @@
     <script type="text/javascript" src="js/Services/Geocercas.js"></script>
     <script type="text/javascript" src="js/Services/ControlService.js"></script>
     <script type="text/javascript" src="js/Services/EnvioControlService.js"></script>
+    <script type="text/javascript" src="js/Services/TrazabilidadService.js"></script>
     <script type="text/javascript" src="js/Comunes.js"></script>
     <script type="text/javascript" src="js/Telefono/FuncionesTelefono.js"></script>
     <script type="text/javascript" src="js/Clases/Clases.js"></script>
@@ -306,7 +319,9 @@
     <script type="text/javascript" src="js/Vistas/EvidenciaGuia.js"></script>
     <script type="text/javascript" src="js/Vistas/PuntosGDE.js"></script>
 
-
+    <script type="text/javascript" src="js/Handler/resumeHandler.js"></script>
+    <script type="text/javascript" src="js/Handler/gpsHandler.js"></script>
+    <script type="text/javascript" src="js/Helper/gpsTracking.js"></script>
 
 
 

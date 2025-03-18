@@ -100,20 +100,6 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       ]
     },
     {
-      "id": "cordova-plugin-geolocation.geolocation",
-      "file": "plugins/cordova-plugin-geolocation/www/android/geolocation.js",
-      "pluginId": "cordova-plugin-geolocation",
-      "clobbers": [
-        "navigator.geolocation"
-      ]
-    },
-    {
-      "id": "cordova-plugin-geolocation.PositionError",
-      "file": "plugins/cordova-plugin-geolocation/www/PositionError.js",
-      "pluginId": "cordova-plugin-geolocation",
-      "runs": true
-    },
-    {
       "id": "cordova-plugin-inappbrowser.inappbrowser",
       "file": "plugins/cordova-plugin-inappbrowser/www/inappbrowser.js",
       "pluginId": "cordova-plugin-inappbrowser",
@@ -359,6 +345,138 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
       "clobbers": [
         "window.FileTransfer"
       ]
+    },
+    {
+      "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+      "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+      "pluginId": "verify-automatic-date-time-zone",
+      "clobbers": [
+        "VerifyAutomaticDateTimeZone"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Location",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.location.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.location"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Bluetooth",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.bluetooth.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.bluetooth"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Wifi",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.wifi.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.wifi"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Camera",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.camera.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.camera"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Notifications",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.notifications.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.notifications"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Microphone",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.microphone.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.microphone"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Contacts",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.contacts.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.contacts"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Calendar",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.calendar.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.calendar"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_NFC",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.nfc.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.nfc"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_External_Storage",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.external_storage.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.external_storage"
+      ]
+    },
+    {
+      "id": "cordova-plugin-geolocation.geolocation",
+      "file": "plugins/cordova-plugin-geolocation/www/android/geolocation.js",
+      "pluginId": "cordova-plugin-geolocation",
+      "clobbers": [
+        "navigator.geolocation"
+      ]
+    },
+    {
+      "id": "cordova-plugin-geolocation.PositionError",
+      "file": "plugins/cordova-plugin-geolocation/www/PositionError.js",
+      "pluginId": "cordova-plugin-geolocation",
+      "runs": true
+    },
+    {
+      "id": "cordova-background-geolocation-plugin.BackgroundGeolocation",
+      "file": "plugins/cordova-background-geolocation-plugin/www/BackgroundGeolocation.js",
+      "pluginId": "cordova-background-geolocation-plugin",
+      "clobbers": [
+        "BackgroundGeolocation"
+      ]
+    },
+    {
+      "id": "cordova-background-geolocation-plugin.radio",
+      "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
+      "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+      "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+      "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+      "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+      "clobbers": [
+        "cordova.plugins.mockLocation",
+        "mockLocation"
+      ]
     }
   ];
   module.exports.metadata = {
@@ -370,7 +488,6 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova-plugin-btprinter": "0.1.0-dev",
     "cordova-plugin-camera": "7.0.0",
     "cordova-plugin-device-motion": "1.2.5",
-    "cordova-plugin-geolocation": "4.0.2",
     "cordova-plugin-inappbrowser": "3.1.0",
     "cordova-plugin-insomnia": "4.3.0",
     "cordova-plugin-ip-mac-address": "1.0.1",
@@ -378,6 +495,11 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova-plugin-vibration": "3.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev",
+    "cordova.plugins.diagnostic": "7.2.3",
+    "cordova-plugin-geolocation": "5.0.0",
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
   };
 });

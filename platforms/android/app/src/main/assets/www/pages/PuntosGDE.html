@@ -1,88 +1,78 @@
 <div class="page" data-name="puntos-gde">
-	<div class="navbar">
-		<div class="navbar-inner sliding">
-			<div class="left">
-				<a href="#" class="link"  onclick="volver_camion_vacio()" >
-					<i class="icon icon-back"></i>
-					<span class="ios-only">Back</span>
-				</a>
-			</div>
-			<div class="title">Punto Inicial/Final</div>
-		</div>
-	</div>
+    <div class="navbar">
+        <div class="navbar-inner sliding">
+            <div class="left">
+                <a href="#" class="link" onclick="volver_camion_vacio()">
+                    <i class="icon icon-back"></i>
+                    <span class="ios-only">Back</span>
+                </a>
+            </div>
+            <div class="title">Punto Inicial/Final</div>
+        </div>
+    </div>
 
 
-	<!--<div class="fab fab-right-bottom">
+    <!--<div class="fab fab-right-bottom">
 		    <a  id="btn_nueva_evidencia">
 		      <i class="icon f7-icons">+</i>
 		    </a>
 	</div>-->
-	<div class="page-content" id="contenido">
+    <div class="page-content" id="contenido">
 
-		<div class="block">
-			<div class="list">
-				Punto Final:
-				<ul>
+        <div class="block">
+            <div class="list">
+                Punto Final:
+                <ul>
 
-					<li>
-						<a id="btn_punto_final" data-view=".view-main" onclick="obtener_punto_final()"  class="col button button-outline" disabled>OBTENER PUNTO FINAL
-						</a>
-					</li>
-					<li>
-						<br>
-					</li>
-					<li>
-						<div id="datos_punto_final">
-							<div class="row">
-								<div class="col"><label>Latitud:</label></div>
-							<div class="col">
+                    <li>
+                        <a id="btn_punto_final" data-view=".view-main" onclick="obtener_punto_final()"
+                            class="col button button-outline disabled" disabled>OBTENER PUNTO FINAL
+                        </a>
+                    </li>
+                   
+                    <li>
+                        <br>
+                    </li>
+                    <li>
+                        <div id="datos_punto_final">
+                            <div class="row">
+                                <div class="col"><label>Latitud:</label></div>
+                                <div class="col">
 
-								<input type="text" name="tx_latitud_final" id="tx_latitud_final" disabled="" placeholder="Latitud" style='width:100%; border: 1px solid black;' ></div>
-								<!--<label id="lb_patente"></label></div>-->
-							</div>
-								<div class="row" style="margin-top: 2px;">
-								<div class="col"><label>Logintud</label></div>
-								<div class="col"><input type="text" name="tx_longitud_final" id="tx_longitud_final"  disabled="" placeholder="Longitud" style='width:100%; border: 1px solid black;' ></div>
-							</div>	 
+                                    <input type="text" name="tx_latitud_final" id="tx_latitud_final" disabled=""
+                                        placeholder="Latitud" style='width:100%; border: 1px solid black;'>
+                                </div>
+                                <!--<label id="lb_patente"></label></div>-->
+                            </div>
+                            <div class="row" style="margin-top: 2px;">
+                                <div class="col"><label>Logintud</label></div>
+                                <div class="col"><input type="text" name="tx_longitud_final" id="tx_longitud_final"
+                                        disabled="" placeholder="Longitud" style='width:100%; border: 1px solid black;'>
+                                </div>
+                            </div>
 
-						</div>
-					</li>
+                        </div>
+                    </li>
 
-				</ul>
-			</div>
-
-
-		</div>
-		<br>
-		
-		  
-		
-
-		<!--<div class="block">
-			<p class="row">
-				<label style="float: left;display: inline;" id="usuario">USUARIO</label>
-				
-			</p>
-		</div>-->
+                </ul>
+            </div>
 
 
-		
-		
-
-		<!--<p class="row" style="bottom: 0;">         
-			<a id="btn_emitir" data-view=".view-main" class="col button button-big button-raised button-fill">INFORMAR DESPACHO
-			</a>
-		</p>-->
-
-
-		<p class="row" style="bottom: 0;">         
-			<a id="btn_camion_cargado" data-view=".view-main" class="col button button-big button-raised button-fill">SIGUIENTE
-			</a>
-		</p>
+        </div>
+        <br>
 
 
 
 
-	</div>
+        <p class="row" style="bottom: 0;">
+            <a id="btn_camion_cargado" data-view=".view-main"
+                class="col button button-big button-raised button-fill">SIGUIENTE
+            </a>
+        </p>
+
+
+
+
+    </div>
 
 </div>

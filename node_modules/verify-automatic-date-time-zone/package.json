@@ -1,0 +1,32 @@
+{
+  "name": "verify-automatic-date-time-zone",
+  "version": "1.0.3-dev",
+  "description": "Verify Automatic Date, Time and Timezone",
+  "types": "./types/index.d.ts",
+  "cordova": {
+    "id": "verify-automatic-date-time-zone",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edsonhoraciojunior/verify-automatic-date-time-zone.git"
+  },
+  "keywords": [
+    "automatic",
+    "date",
+    "time",
+    "timezone",
+    "settings"
+  ],
+  "author": "Edson Horácio Junior",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/edsonhoraciojunior/verify-automatic-date-time-zone/issues"
+  },
+  "homepage": "https://github.com/edsonhoraciojunior/verify-automatic-date-time-zone#readme",
+  "dependencies": {},
+  "devDependencies": {}
+}

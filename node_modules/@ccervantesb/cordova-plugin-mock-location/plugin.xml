@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="@ccervantesb/cordova-plugin-mock-location" version="1.1.0"
+	xmlns="http://apache.org/cordova/ns/plugins/1.0"
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	<name>PluginMockLocation</name>
+	<js-module name="mockLocation" src="www/cordova-plugin-mock-location.js">
+		<clobbers target="cordova.plugins.mockLocation" />
+		<clobbers target="mockLocation" />
+	</js-module>
+	<platform name="android">
+		<config-file parent="/*" target="res/xml/config.xml">
+			<feature name="PluginMockLocation">
+				<param name="android-package" value="com.ccervantesb.mocklocation.PluginMockLocation" />
+			</feature>
+		</config-file>
+		<config-file parent="/*" target="AndroidManifest.xml" />
+		<source-file src="src/android/PluginMockLocation.java" target-dir="src/com/ccervantesb/mocklocation" />
+	</platform>
+	<platform name="ios">
+		<config-file parent="/*" target="config.xml">
+			<feature name="PluginMockLocation">
+				<param name="ios-package" value="PluginMockLocation" />
+			</feature>
+		</config-file>
+		<source-file src="src/ios/PluginMockLocation.m" />
+	</platform>
+</plugin>

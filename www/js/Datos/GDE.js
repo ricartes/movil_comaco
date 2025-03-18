@@ -576,6 +576,7 @@ function DATOS_seleccionar_gde_proveedor_por_estado_lista_PRUEBA(estado, fecha_i
                     gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
                     gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
                     gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
+                    gde.GDE_CONFIRMA_INGRESO_PLANTA = rs_datos.GDE_CONFIRMA_INGRESO_PLANTA;
                     gde.ENVIADO = rs_datos.ENVIADO;
                     ar.push(gde);
 
@@ -692,6 +693,7 @@ function DATOS_seleccionar_gde_proveedor(id_gde, callback) {
                 gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
                 gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
                 gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
+                gde.GDE_CONFIRMA_INGRESO_PLANTA = rs_datos.GDE_CONFIRMA_INGRESO_PLANTA;
                 typeof callback == "function" && callback(gde);
             }
         });
@@ -807,6 +809,7 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
                     gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
                     gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
                     gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
+                    gde.GDE_CONFIRMA_INGRESO_PLANTA = rs_datos.GDE_CONFIRMA_INGRESO_PLANTA;
                     gde.VERSION_APP = Obtener_dato_local("version_app");
                     ar.push(gde);
                 }
@@ -816,6 +819,86 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
         });
     });
 }
+
+async function DATOS_seleccionarGdeProveedorNoConfirmadas() {
+    // Abrir la base de datos
+    const db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: "default", androidDatabaseImplementation: 2 });
+
+    return new Promise((resolve, reject) => {
+        db.transaction(function (tr) {
+            tr.executeSql(
+                "SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL =? AND (GDE_CONFIRMA_INGRESO_PLANTA=0)",
+                [Obtener_dato_local("rut_activo"), "1", "E"],
+                function (tr, rs) {
+                    const n = rs.rows.length;
+                    if (n === 0) {
+                        resolve(-1); // Resolver con -1 si no hay registros
+                    } else {
+                        const ar = [];
+                        for (let i = 0; i < n; i++) {
+                            const rs_datos = rs.rows.item(i);
+                            const gde = new CL_GDE();
+                            gde.ROWID = rs_datos.rowid;
+                            gde.GDE_COD_DESPACHADOR = rs_datos.GDE_COD_DESPACHADOR;
+                            gde.GDE_FECHA_EMISION = rs_datos.GDE_FECHA_EMISION;
+                            gde.EMP_ID = rs_datos.EMP_ID;
+                            gde.GDE_FECHA_EMISION = rs_datos.GDE_FECHA_EMISION;
+                            gde.GDE_FECHA_FORMAT = rs_datos.GDE_FECHA_FORMAT;
+                            gde.GDE_COD_TRANSPORTISTA = rs_datos.GDE_COD_TRANSPORTISTA;
+                            gde.GDE_NOMBRE_TRANSPORTISTA = rs_datos.GDE_NOMBRE_TRANSPORTISTA;
+                            gde.GDE_RUT_CONDUCTOR = rs_datos.GDE_RUT_CONDUCTOR;
+                            gde.GDE_NOM_CONDUCTOR = rs_datos.GDE_NOM_CONDUCTOR;
+                            gde.GDE_PATENTE_CARRO = rs_datos.GDE_PATENTE_CARRO;
+                            gde.GDE_PATENTE_CAMION = rs_datos.GDE_PATENTE_CAMION;
+                            gde.GDE_COMENTARIO = rs_datos.GDE_COMENTARIO;
+                            gde.GDE_GUIA_PROVEEDOR = rs_datos.GDE_GUIA_PROVEEDOR;
+                            gde.GDE_VOLUMEN_PROVEEDOR = rs_datos.GDE_VOLUMEN_PROVEEDOR;
+                            gde.GDE_COORDENADA_X = rs_datos.GDE_COORDENADA_X;
+                            gde.GDE_COORDENADA_Y = rs_datos.GDE_COORDENADA_Y;
+                            gde.GDE_COD_CLIENTE = rs_datos.GDE_COD_CLIENTE;
+                            gde.GDE_NOMBRE_CLIENTE = rs_datos.GDE_NOMBRE_CLIENTE;
+                            gde.GDE_DESTINO = rs_datos.GDE_DESTINO;
+                            gde.GDE_COD_PROYECTO = rs_datos.GDE_COD_PROYECTO;
+                            gde.GDE_NOMBRE_PREDIO = rs_datos.GDE_NOMBRE_PREDIO;
+                            gde.GDE_ROL_COMUNA = rs_datos.GDE_ROL_COMUNA;
+                            gde.GDE_ROL = rs_datos.GDE_ROL;
+                            gde.GDE_COD_PRODUCTO = rs_datos.GDE_COD_PRODUCTO;
+                            gde.GDE_ANO_COSECHA = rs_datos.GDE_ANO_COSECHA;
+                            gde.GDE_NOMBRE_PRODUCTO = rs_datos.GDE_NOMBRE_PRODUCTO;
+                            gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                            gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
+                            gde.DocEntry = rs_datos.DocEntry;
+                            gde.GDE_COORDENADA_INICIAL_X = rs_datos.GDE_COORDENADA_INICIAL_X;
+                            gde.GDE_COORDENADA_INICIAL_Y = rs_datos.GDE_COORDENADA_INICIAL_Y;
+                            gde.GDE_COORDENADA_FINAL_X = rs_datos.GDE_COORDENADA_FINAL_X;
+                            gde.GDE_COORDENADA_FINAL_Y = rs_datos.GDE_COORDENADA_FINAL_Y;
+                            gde.GDE_HORA_PUNTO_INICIO = rs_datos.GDE_HORA_PUNTO_INICIO;
+                            gde.GDE_HORA_PUNTO_FINAL = rs_datos.GDE_HORA_PUNTO_FINAL;
+                            gde.GDE_PATENTE_EX = rs_datos.GDE_PATENTE_EX;
+                            gde.GDE_ACTUALIZA_NUM_GUIA = rs_datos.GDE_ACTUALIZA_NUM_GUIA;
+                            gde.GDE_ALERTA_PUNTO_INICIAL = rs_datos.GDE_ALERTA_PUNTO_INICIAL;
+                            gde.GDE_ALERTA_PUNTO_FINAL = rs_datos.GDE_ALERTA_PUNTO_FINAL;
+                            gde.GDE_COD_ORIGEN = rs_datos.GDE_COD_ORIGEN;
+                            gde.GDE_HORA_CARGUIO_INICIO = rs_datos.GDE_HORA_CARGUIO_INICIO;
+                            gde.GDE_HORA_CARGUIO_TERMINO = rs_datos.GDE_HORA_CARGUIO_TERMINO;
+                            gde.GDE_MOTIVO_ANULACION = rs_datos.GDE_MOTIVO_ANULACION;
+                            gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
+                            gde.GDE_CONFIRMA_INGRESO_PLANTA = rs_datos.GDE_CONFIRMA_INGRESO_PLANTA;
+                            gde.VERSION_APP = Obtener_dato_local("version_app");
+                            ar.push(gde);
+                        }
+                        resolve(ar); // Resolver con los datos procesados
+                    }
+                },
+                function (tr, error) {
+                    reject(error); // Rechazar la promesa en caso de error
+                }
+            );
+        });
+    });
+}
+
+
 
 
 function DATOS_seleccionar_gde_actualizada_por_enviar(estado, callback) {
@@ -948,4 +1031,33 @@ function DATOS_actualiza_comentarios(id_gde, valor, callback) {
         });
     });
 
+}
+
+
+async function DATOS_confirmaIngresoPlanta(id_gde) {
+    return new Promise((resolve, reject) => {
+        const db = window.sqlitePlugin.openDatabase({
+            name: "bd.db",
+            location: "default",
+            androidDatabaseImplementation: 2
+        });
+
+        db.transaction(
+            function (tr) {
+                tr.executeSql(
+                    "UPDATE GDE SET GDE_CONFIRMA_INGRESO_PLANTA=1 WHERE ROWID=?",
+                    [id_gde],
+                    function (tr, rs) {
+                        resolve(rs); // Resuelve la promesa con el resultado
+                    },
+                    function (tr, error) {
+                        reject(error); // Rechaza la promesa en caso de error
+                    }
+                );
+            },
+            function (error) {
+                reject(error); // Rechaza la promesa si hay un error en la transacción
+            }
+        );
+    });
 }

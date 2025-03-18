@@ -14,6 +14,8 @@
               "mode": "merge",
               "id": "config.xml",
               "oldAttrib": {
+                "android:exported": "false",
+                "android:foregroundServiceType": "location",
                 "android:hardwareAccelerated": "true",
                 "android:icon": "@mipmap/ic_launcher",
                 "android:label": "@string/app_name",
@@ -29,23 +31,23 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 88
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 88
+              "count": 581
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 88
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 88
+              "count": 582
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
-              "count": 1
+              "count": 2
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -54,18 +56,98 @@
             {
               "xml": "<uses-permission android:name=\"android.permission.VIBRATE\" />",
               "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.AUTHENTICATE_ACCOUNTS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.READ_SYNC_SETTINGS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.WRITE_SYNC_SETTINGS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"com.google.android.gms.permission.ACTIVITY_RECOGNITION\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACTIVITY_RECOGNITION\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
+              "count": 3
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
+              "count": 3
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />",
+              "count": 3
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.hardware.location\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />",
+              "count": 2
             }
           ],
           "/manifest/application": [
             {
-              "xml": "<service android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
+              "xml": "<meta-data android:name=\"com.google.android.gms.version\" android:value=\"@integer/google_play_services_version\" />",
               "count": 1
+            },
+            {
+              "xml": "<service android:exported=\"true\" android:name=\"com.marianhello.bgloc.sync.SyncService\" android:process=\":sync\"><intent-filter><action android:name=\"android.content.SyncAdapter\" /></intent-filter><meta-data android:name=\"android.content.SyncAdapter\" android:resource=\"@xml/syncadapter\" /></service>",
+              "count": 1
+            },
+            {
+              "xml": "<service android:exported=\"false\" android:name=\"com.marianhello.bgloc.sync.AuthenticatorService\"><intent-filter><action android:name=\"android.accounts.AccountAuthenticator\" /></intent-filter><meta-data android:name=\"android.accounts.AccountAuthenticator\" android:resource=\"@xml/authenticator\" /></service>",
+              "count": 1
+            },
+            {
+              "xml": "<provider android:authorities=\"@string/plugin_bgloc_content_authority\" android:exported=\"false\" android:name=\"com.marianhello.bgloc.data.provider.LocationContentProvider\" android:syncable=\"true\" />",
+              "count": 1
+            },
+            {
+              "xml": "<service android:enabled=\"true\" android:exported=\"false\" android:foregroundServiceType=\"location\" android:name=\"com.marianhello.bgloc.service.LocationServiceImpl\" />",
+              "count": 1
+            },
+            {
+              "xml": "<receiver android:enabled=\"true\" android:exported=\"true\" android:name=\"com.marianhello.bgloc.BootCompletedReceiver\"><intent-filter><action android:name=\"android.intent.action.BOOT_COMPLETED\" /></intent-filter></receiver>",
+              "count": 1
+            },
+            {
+              "xml": "<uses-library android:name=\"org.apache.http.legacy\" android:required=\"true\" />",
+              "count": 1
+            },
+            {
+              "xml": "<service android:exported=\"false\" android:foregroundServiceType=\"location\" android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
+              "count": 13
             }
           ],
           "/*": [
             {
               "xml": "<uses-permission android:name=\"android.permission.BLUETOOTH\" />",
-              "count": 1
+              "count": 2
             },
             {
               "xml": "<uses-permission android:maxSdkVersion=\"32\" android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />",
@@ -80,6 +162,10 @@
               "count": 1
             },
             {
+              "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
+              "count": 1
+            },
+            {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
               "count": 1
             },
@@ -88,11 +174,7 @@
               "count": 1
             },
             {
-              "xml": "<uses-feature android:name=\"android.hardware.location.gps\" />",
-              "count": 1
-            },
-            {
-              "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
+              "xml": "<uses-feature android:name=\"android.hardware.location.gps\" android:required=\"true\" />",
               "count": 1
             }
           ],
@@ -166,10 +248,6 @@
               "count": 1
             },
             {
-              "xml": "<feature name=\"Geolocation\"><param name=\"android-package\" value=\"org.apache.cordova.geolocation.Geolocation\" /></feature>",
-              "count": 1
-            },
-            {
               "xml": "<feature name=\"InAppBrowser\"><param name=\"android-package\" value=\"org.apache.cordova.inappbrowser.InAppBrowser\" /></feature>",
               "count": 1
             },
@@ -200,6 +278,118 @@
             {
               "xml": "<feature name=\"FileTransfer\"><param name=\"android-package\" value=\"org.apache.cordova.filetransfer.FileTransfer\" /></feature>",
               "count": 1
+            },
+            {
+              "xml": "<feature name=\"VerifyAutomaticDateTimeZone\"><param name=\"android-package\" value=\"com.edsonhoraciojunior.verifyautomaticdatetimezone.VerifyAutomaticDateTimeZone\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Geolocation\"><param name=\"android-package\" value=\"org.apache.cordova.geolocation.Geolocation\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"BackgroundGeolocation\"><param name=\"android-package\" value=\"com.tenforwardconsulting.bgloc.cordova.BackgroundGeolocationPlugin\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"PluginMockLocation\"><param name=\"android-package\" value=\"com.ccervantesb.mocklocation.PluginMockLocation\" /></feature>",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "config.xml": {
+        "parents": {
+          "/*": [
+            {
+              "xml": "<feature name=\"Diagnostic\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_Location\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_Location\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_Bluetooth\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_Bluetooth\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_Wifi\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_Wifi\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_Camera\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_Camera\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_Notifications\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_Notifications\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_NFC\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_NFC\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"Diagnostic_External_Storage\"><param name=\"android-package\" value=\"cordova.plugins.Diagnostic_External_Storage\" /><param name=\"onload\" value=\"true\" /></feature>",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "res/values/strings.xml": {
+        "parents": {
+          "/resources": [
+            {
+              "xml": "<string name=\"plugin_bgloc_account_name\">@string/app_name</string>",
+              "count": 1
+            },
+            {
+              "xml": "<string name=\"plugin_bgloc_account_type\">io.gestionasi.gfe_comaco.account</string>",
+              "count": 1
+            },
+            {
+              "xml": "<string name=\"plugin_bgloc_content_authority\">io.gestionasi.gfe_comaco</string>",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "res/xml/authenticator.xml": {
+        "parents": {
+          "/*": [
+            {
+              "xml": "<account-authenticator android:accountType=\"@string/plugin_bgloc_account_type\" android:icon=\"@mipmap/ic_launcher\" android:label=\"@string/app_name\" android:smallIcon=\"@mipmap/ic_launcher\" xmlns:android=\"http://schemas.android.com/apk/res/android\" />",
+              "count": 1,
+              "mode": "overwrite",
+              "plugin": "cordova-background-geolocation-plugin",
+              "oldAttrib": {
+                "android:accountType": "@string/plugin_bgloc_account_type",
+                "android:icon": "@mipmap/ic_launcher",
+                "android:label": "@string/app_name",
+                "android:smallIcon": "@mipmap/ic_launcher",
+                "xmlns:android": "http://schemas.android.com/apk/res/android"
+              }
+            }
+          ]
+        }
+      },
+      "res/xml/syncadapter.xml": {
+        "parents": {
+          "/*": [
+            {
+              "xml": "<sync-adapter android:accountType=\"@string/plugin_bgloc_account_type\" android:allowParallelSyncs=\"false\" android:contentAuthority=\"@string/plugin_bgloc_content_authority\" android:isAlwaysSyncable=\"true\" android:supportsUploading=\"true\" android:userVisible=\"false\" xmlns:android=\"http://schemas.android.com/apk/res/android\" />",
+              "count": 1,
+              "mode": "overwrite",
+              "plugin": "cordova-background-geolocation-plugin",
+              "oldAttrib": {
+                "android:accountType": "@string/plugin_bgloc_account_type",
+                "android:allowParallelSyncs": "false",
+                "android:contentAuthority": "@string/plugin_bgloc_content_authority",
+                "android:isAlwaysSyncable": "true",
+                "android:supportsUploading": "true",
+                "android:userVisible": "false",
+                "xmlns:android": "http://schemas.android.com/apk/res/android"
+              }
             }
           ]
         }
@@ -232,9 +422,6 @@
     "cordova-plugin-device-motion": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
-    "cordova-plugin-geolocation": {
-      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
-    },
     "cordova-plugin-inappbrowser": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
@@ -258,6 +445,31 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "cordova-plugin-file-transfer": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "verify-automatic-date-time-zone": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova.plugins.diagnostic": {
+      "ANDROIDX_VERSION": "1.0.0",
+      "ANDROIDX_APPCOMPAT_VERSION": "1.3.1",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-geolocation": {
+      "GPS_REQUIRED": "true",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-background-geolocation-plugin": {
+      "GOOGLE_PLAY_SERVICES_VERSION": "17+",
+      "ICON": "@mipmap/ic_launcher",
+      "SMALL_ICON": "@mipmap/ic_launcher",
+      "ACCOUNT_NAME": "@string/app_name",
+      "ACCOUNT_LABEL": "@string/app_name",
+      "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
+      "CONTENT_AUTHORITY": "$PACKAGE_NAME",
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "@ccervantesb/cordova-plugin-mock-location": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
@@ -361,20 +573,6 @@
       "clobbers": [
         "navigator.accelerometer"
       ]
-    },
-    {
-      "id": "cordova-plugin-geolocation.geolocation",
-      "file": "plugins/cordova-plugin-geolocation/www/android/geolocation.js",
-      "pluginId": "cordova-plugin-geolocation",
-      "clobbers": [
-        "navigator.geolocation"
-      ]
-    },
-    {
-      "id": "cordova-plugin-geolocation.PositionError",
-      "file": "plugins/cordova-plugin-geolocation/www/PositionError.js",
-      "pluginId": "cordova-plugin-geolocation",
-      "runs": true
     },
     {
       "id": "cordova-plugin-inappbrowser.inappbrowser",
@@ -622,6 +820,138 @@
       "clobbers": [
         "window.FileTransfer"
       ]
+    },
+    {
+      "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+      "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+      "pluginId": "verify-automatic-date-time-zone",
+      "clobbers": [
+        "VerifyAutomaticDateTimeZone"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Location",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.location.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.location"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Bluetooth",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.bluetooth.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.bluetooth"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Wifi",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.wifi.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.wifi"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Camera",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.camera.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.camera"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Notifications",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.notifications.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.notifications"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Microphone",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.microphone.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.microphone"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Contacts",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.contacts.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.contacts"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_Calendar",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.calendar.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.calendar"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_NFC",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.nfc.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.nfc"
+      ]
+    },
+    {
+      "id": "cordova.plugins.diagnostic.Diagnostic_External_Storage",
+      "file": "plugins/cordova.plugins.diagnostic/www/android/diagnostic.external_storage.js",
+      "pluginId": "cordova.plugins.diagnostic",
+      "merges": [
+        "cordova.plugins.diagnostic.external_storage"
+      ]
+    },
+    {
+      "id": "cordova-plugin-geolocation.geolocation",
+      "file": "plugins/cordova-plugin-geolocation/www/android/geolocation.js",
+      "pluginId": "cordova-plugin-geolocation",
+      "clobbers": [
+        "navigator.geolocation"
+      ]
+    },
+    {
+      "id": "cordova-plugin-geolocation.PositionError",
+      "file": "plugins/cordova-plugin-geolocation/www/PositionError.js",
+      "pluginId": "cordova-plugin-geolocation",
+      "runs": true
+    },
+    {
+      "id": "cordova-background-geolocation-plugin.BackgroundGeolocation",
+      "file": "plugins/cordova-background-geolocation-plugin/www/BackgroundGeolocation.js",
+      "pluginId": "cordova-background-geolocation-plugin",
+      "clobbers": [
+        "BackgroundGeolocation"
+      ]
+    },
+    {
+      "id": "cordova-background-geolocation-plugin.radio",
+      "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
+      "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+      "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+      "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+      "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+      "clobbers": [
+        "cordova.plugins.mockLocation",
+        "mockLocation"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -633,7 +963,6 @@
     "cordova-plugin-btprinter": "0.1.0-dev",
     "cordova-plugin-camera": "7.0.0",
     "cordova-plugin-device-motion": "1.2.5",
-    "cordova-plugin-geolocation": "4.0.2",
     "cordova-plugin-inappbrowser": "3.1.0",
     "cordova-plugin-insomnia": "4.3.0",
     "cordova-plugin-ip-mac-address": "1.0.1",
@@ -641,6 +970,11 @@
     "cordova-plugin-vibration": "3.1.1",
     "cordova-sqlite-spatialite-evplus-ext-common-free": "0.0.1-dev",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev",
+    "cordova.plugins.diagnostic": "7.2.3",
+    "cordova-plugin-geolocation": "5.0.0",
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
   }
 }

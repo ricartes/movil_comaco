@@ -653,6 +653,36 @@ module.exports = [
         "clobbers": [
             "window.FileTransfer"
         ]
+    },
+    {
+        "file": "plugins/verify-automatic-date-time-zone/www/verifyAutomaticDateTimeZone.js",
+        "id": "verify-automatic-date-time-zone.verifyAutomaticDateTimeZone",
+        "pluginId": "verify-automatic-date-time-zone",
+        "clobbers": [
+            "VerifyAutomaticDateTimeZone"
+        ]
+    },
+    {
+        "file": "plugins/cordova-background-geolocation-plugin/www/BackgroundGeolocation.js",
+        "id": "cordova-background-geolocation-plugin.BackgroundGeolocation",
+        "pluginId": "cordova-background-geolocation-plugin",
+        "clobbers": [
+            "BackgroundGeolocation"
+        ]
+    },
+    {
+        "file": "plugins/cordova-background-geolocation-plugin/www/radio.js",
+        "id": "cordova-background-geolocation-plugin.radio",
+        "pluginId": "cordova-background-geolocation-plugin"
+    },
+    {
+        "file": "plugins/@ccervantesb/cordova-plugin-mock-location/www/cordova-plugin-mock-location.js",
+        "id": "@ccervantesb/cordova-plugin-mock-location.mockLocation",
+        "pluginId": "@ccervantesb/cordova-plugin-mock-location",
+        "clobbers": [
+            "cordova.plugins.mockLocation",
+            "mockLocation"
+        ]
     }
 ];
 module.exports.metadata = 
@@ -660,7 +690,6 @@ module.exports.metadata =
 {
     "cordova-plugin-device-motion": "1.2.5",
     "cordova-plugin-network-information": "2.0.1",
-    "cordova-plugin-geolocation": "4.0.2",
     "cordova-plugin-insomnia": "4.3.0",
     "cordova-plugin-inappbrowser": "3.1.0",
     "cordova-plugin-btprinter": "0.1.0-dev",
@@ -675,7 +704,12 @@ module.exports.metadata =
     "cordova-plugin-android-permissions": "1.1.5",
     "cordova-plugin-camera": "7.0.0",
     "cordova-plugin-file": "8.0.0",
-    "cordova-plugin-file-transfer": "2.0.0"
+    "cordova-plugin-file-transfer": "2.0.0",
+    "verify-automatic-date-time-zone": "1.0.0-dev",
+    "cordova.plugins.diagnostic": "7.2.3",
+    "cordova-plugin-geolocation": "5.0.0",
+    "cordova-background-geolocation-plugin": "2.3.1",
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
 }
 // BOTTOM OF METADATA
 });

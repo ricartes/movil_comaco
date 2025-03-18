@@ -1,7 +1,7 @@
 const configuracionGeocercas = {
     habilitado: true,
     habilitadoPorAccion: {
-        seleccionPredio: true,
+        seleccionPredio: false,
         puntoInicial: true,
         avanzaHaciaCamionVacio: false,
         camionVacio1: true,
@@ -14,7 +14,7 @@ const configuracionGeocercas = {
         avanzaHaciaPadron: false,
         padronVehiculo: true,
         avanzaHaciaEvidencia: false,
-        evidenciaOtros: true,
-        informarDespacho: true,
+        evidenciaOtros: false,
+        informarDespacho: false,
     }
 }
