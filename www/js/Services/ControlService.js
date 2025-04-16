@@ -1,5 +1,4 @@
 function ControlServiceAnular(id = null, latitud, longitud, tipoCoordenada, mensaje) {
-    stopTracking();
     return new Promise((resolve, reject) => {
         if (id != "-1") {
             let estado = "N";

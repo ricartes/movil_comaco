@@ -162,25 +162,29 @@ function getLastKnownLocation() {
 async function saveLocation(location) {
     // Aquí implementa la lógica para almacenar la ubicación
 
-    const procesoActual = Obtener_dato_local("id_proceso_activo");
-    if (procesoActual && procesoActual !== "") {
-        const gde_actual = await seleccionarGdeProveedor(procesoActual);
-        let datos = await generarDataTrazabilidad(
-            TipoAccionTypes.CAPTURA_UBICACION,
-            Obtener_dato_local('user_activo'),
-            {
-                rol: gdeRol,
-                despacho: gde_actual,
-                id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
-            }
-        );
+    //const procesoActual = Obtener_dato_local("id_proceso_activo");
+    const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
 
-        await obtenerUbicacionEInsertarLog(
-            Obtener_dato_local('user_activo'),
-            datos,
-            location
-        );
+    if (Array.isArray(guiasNoConfirmadas) && guiasNoConfirmadas.length > 0) {
+        for (const guia of guiasNoConfirmadas) {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.CAPTURA_UBICACION,
+                Obtener_dato_local('user_activo'),
+                {
+                    rol: gdeRol,
+                    despacho: guia,
+                    id_unico_movil_gde: guia.ID_UNICO_MOVIL ?? null
+                }
+            );
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos,
+                location
+            );
+        }
     }
+
 
 }
 

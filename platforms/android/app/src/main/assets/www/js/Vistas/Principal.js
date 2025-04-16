@@ -357,6 +357,7 @@ document.addEventListener("deviceready", async function () {
         datos_usuario(usuario_activo, function (result) {
             //alert(result);
             if (result != -1) {
+                startTracking();
                 Guardar_dato_local("bloqueado", 0);
                 envio_automatico_activado = 1;
                 Guardar_dato_local(
@@ -595,26 +596,7 @@ async function clickEmisionFaena() {
                         app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático y reintentar.`, "GFE");
                     }
                 });
-                /*comparar_fecha_hora_ws(fecha_hora, function (result_fecha) {
-                    app.dialog.close();
-                    if (result_fecha == 0) {
-                        // Hora incorrecta según el servidor
-                        app.dialog.alert(`Se ha detectado que la hora está incorrecta (${fecha_hora}). Favor configurar la fecha/hora en automático.`, "GFE");
 
-                    } else if (result_fecha === -1) {
-                        // No hay conexión: Validar configuración automática
-                        validateAutomaticDateTimeZone((isAutomatic) => {
-                            if (isAutomatic) {
-                                mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
-                            } else {
-                                app.dialog.alert(`(${fecha_hora}) Se ha detectado que la configuración de fecha/hora NO está en automático. Favor configurar la fecha/hora en automático.`, "GFE");
-                            }
-                        });
-                    } else {
-                        // Hora correcta según el servidor
-                        mainView.router.navigate("/EmisionDesdeFaena/0/-1/0");
-                    }
-                });*/
             }
 
         } catch (ex) {
@@ -763,7 +745,7 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
-
+            stopTracking();
             const usuarioActivo = Obtener_dato_local('user_activo');
             Borrar_dato_local("user_activo");
             Borrar_dato_local("rut_activo");

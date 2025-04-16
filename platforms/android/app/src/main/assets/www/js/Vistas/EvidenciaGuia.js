@@ -197,12 +197,8 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
 
 
 async function emitir_guia() {
-
-
-
     let gde = gde_actual;
     gde.ROWID = id_gde_actual;
-
     let datos = await generarDataTrazabilidad(
         TipoAccionTypes.INFORMA_DESPACHO,
         Obtener_dato_local('user_activo'),
@@ -236,7 +232,6 @@ async function emitir_guia() {
 
 
 function confirmEmisionDespacho(id_gde, gde) {
-    stopTracking();
     inicializarDatosGde();
     const estado = "I";
     DATOS_cambiar_estado_gde_proveedores(id_gde, estado, function (result1) {

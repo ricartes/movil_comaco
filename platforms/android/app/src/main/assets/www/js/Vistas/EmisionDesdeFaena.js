@@ -477,7 +477,6 @@ async function recargarr_datos_gde(id_gde) {
             Guardar_dato_local("id_proceso_activo", id_gde);
             Guardar_dato_local("id_unico_proceso_activo", gde_actual.ID_UNICO_MOVIL);
             Guardar_dato_local("hora_inicio_proceso", Date.now());
-            startTracking();
             datos.metadata.rol = gde_actual?.GDE_COD_ORIGEN ?? null;
             datos.metadata.despacho = gde_actual;
             datos.metadata.id_unico_movil_gde = gde_actual?.ID_UNICO_MOVIL ?? null;
@@ -590,7 +589,6 @@ function guardar_datos_guia(latitud, longitud) {
                     Guardar_dato_local("id_proceso_activo", result_guardado.insertId);
                     Guardar_dato_local("id_unico_proceso_activo", gde.ID_UNICO_MOVIL);
                     Guardar_dato_local("hora_inicio_proceso", Date.now());
-                    startTracking(); // Espera a que el rastreo inicie correctamente
 
                     setTimeout(() => {
                         abrir_detalles(result_guardado.insertId, 2);
@@ -714,7 +712,6 @@ function recargar_combo_transportista2() {
 function volver_menu() {
 
     app.dialog.confirm('¿Está seguro que desea volver al menú principal?', "Emisión", function () {
-        stopTracking();
         inicializarDatosGde();
         (async () => {
 
