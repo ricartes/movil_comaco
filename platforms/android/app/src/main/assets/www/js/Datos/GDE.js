@@ -820,7 +820,7 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
     });
 }
 
-async function DATOS_seleccionarGdeProveedorNoConfirmadas() {
+async function DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas() {
     // Abrir la base de datos
     const db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: "default", androidDatabaseImplementation: 2 });
 

@@ -41,7 +41,7 @@ async function enviarConfirmacionIngresoPlantaService() {
         erroneos: 0
     };
 
-    const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorNoConfirmadas();
+    const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
 
     if (gdeNoConfirmadas !== "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
         respuesta.total = gdeNoConfirmadas.length;

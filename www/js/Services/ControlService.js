@@ -92,6 +92,11 @@ function seleccionarGdeProveedor(idGde) {
     });
 }
 
+async function listarGdeProveedorNoConfirmadas() {
+    return await DATOS_seleccionarGdeProveedorConfirmadas();
+}
+
+
 
 function seleccionarParametroGeneral(id, parametro) {
     return new Promise((resolve, reject) => {
