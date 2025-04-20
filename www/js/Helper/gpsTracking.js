@@ -8,9 +8,10 @@ function configureBackgroundGeolocation() {
 
     BackgroundGeolocation.configure(
         {
-            desiredAccuracy: 10, // Alta precisión
+            locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
+            desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Alta precisión
             stationaryRadius: 5, // Radio para estado estacionario
-            distanceFilter: 10, // Distancia mínima entre actualizaciones
+            distanceFilter: 50, // Distancia mínima entre actualizaciones
             debug: false, // Notificaciones de depuración desactivadas
             interval: 10000, // Actualización cada 10 segundos (deseado)
             fastestInterval: 5000, // No más rápido que cada 5 segundos
@@ -162,8 +163,27 @@ function getLastKnownLocation() {
 async function saveLocation(location) {
     // Aquí implementa la lógica para almacenar la ubicación
 
-    //const procesoActual = Obtener_dato_local("id_proceso_activo");
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
     const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
+
+    if (procesoActual && procesoActual !== "") {
+        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+        const datos = await generarDataTrazabilidad(
+            TipoAccionTypes.CAPTURA_UBICACION,
+            Obtener_dato_local('user_activo'),
+            {
+                rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                despacho: gde_actual,
+                id_unico_movil_gde: gde_actual.ID_UNICO_MOVIL ?? null
+            }
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local('user_activo'),
+            datos,
+            location
+        );
+    }
 
     if (Array.isArray(guiasNoConfirmadas) && guiasNoConfirmadas.length > 0) {
         for (const guia of guiasNoConfirmadas) {
@@ -171,7 +191,7 @@ async function saveLocation(location) {
                 TipoAccionTypes.CAPTURA_UBICACION,
                 Obtener_dato_local('user_activo'),
                 {
-                    rol: gdeRol,
+                    rol: guia?.GDE_COD_ORIGEN ?? null,
                     despacho: guia,
                     id_unico_movil_gde: guia.ID_UNICO_MOVIL ?? null
                 }
@@ -184,6 +204,8 @@ async function saveLocation(location) {
             );
         }
     }
+
+
 
 
 }
