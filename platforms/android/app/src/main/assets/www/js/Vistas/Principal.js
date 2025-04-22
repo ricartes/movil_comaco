@@ -152,6 +152,21 @@ function EnvioAutomatico(segundo_plano, automatico) {
     }
 }
 
+function controlarTrackingDinamico() {
+    setInterval(async () => {
+        const usuarioActivo = Obtener_dato_local("rut_activo");
+        const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+        const procesoActual = Obtener_dato_local("id_proceso_activo");
+        if (usuarioActivo && usuarioActivo != "" && ((procesoActual && procesoActual !== "") || gdeNoConfirmadas !== "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0)) {
+
+            startTracking();
+        } else {
+            stopTracking();
+        }
+    }, 10000); // Cada 10 segundos
+}
+
+
 function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
 
     Guardar_dato_local("bloqueado", 1);
@@ -274,6 +289,8 @@ document.addEventListener("deviceready", async function () {
     cordova.plugins.backgroundMode.on("activate", onActivate);
 
     Borrar_dato_local("version_app");
+
+    controlarTrackingDinamico();
     cordova.getAppVersion.getVersionNumber(function (version) {
         Guardar_dato_local("version_app", version);
         $$("#ver_app").text(version);

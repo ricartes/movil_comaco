@@ -1,36 +1,53 @@
 // Variables globales para el rastreo de ubicación
 let isTrackingEnabled = false;
 let lastKnownLocation = null;
+let ultimoTimestamp = null;
 
 // Configura el plugin
 function configureBackgroundGeolocation() {
 
 
-    BackgroundGeolocation.configure(
-        {
-            locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
-            desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Alta precisión
-            stationaryRadius: 5, // Radio para estado estacionario
-            distanceFilter: 50, // Distancia mínima entre actualizaciones
-            debug: false, // Notificaciones de depuración desactivadas
-            interval: 10000, // Actualización cada 10 segundos (deseado)
-            fastestInterval: 5000, // No más rápido que cada 5 segundos
-            activitiesInterval: 10000, // Revisión de actividad cada 10 segundos
-            stopOnTerminate: false, // Continúa en segundo plano
-            startOnBoot: true, // Comienza automáticamente tras reiniciar
-        },
-        function (state) {
-        },
-        function (error) {
-            //alert(error);
-            alert("Error en la configuración del plugin:", error);
-        }
-    );
+    BackgroundGeolocation.configure({
+        locationProvider: BackgroundGeolocation.RAW_PROVIDER, // O RAW_PROVIDER si quieres full precisión
+        desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Máxima precisión GPS
+        stationaryRadius: 1,         // Considera "quieto" si se mueve menos de 1 metro
+        distanceFilter: 1,           // Captura cada 1 metro de movimiento
+        interval: 2000,              // Intenta actualizar cada 5 segundos
+        fastestInterval: 2000,       // Lo más rápido que puede capturar es cada 3 segundos
+        activitiesInterval: 3000,    // Verifica actividad cada 5 segundos
+        debug: false,
+        stopOnTerminate: false,
+        startOnBoot: true
+    });
+
 
     // Maneja actualizaciones de ubicación
     BackgroundGeolocation.on('location', async function (location) {
         try {
+            const { latitude, longitude, speed, time } = location;
+
+            if (ultimoTimestamp && time === ultimoTimestamp) {
+
+                return BackgroundGeolocation.finish();
+            }
+
+
+            if (lastKnownLocation) {
+                const distancia = calcularDistanciaMetros(
+                    latitude,
+                    longitude,
+                    lastKnownLocation.latitude,
+                    lastKnownLocation.longitude
+                );
+
+
+                if (speed <= 0 && distancia < 1) {
+
+                    return BackgroundGeolocation.finish();
+                }
+            }
             lastKnownLocation = location;
+            ultimoTimestamp = time;
 
             // Guardar ubicación en la base de datos
             await saveLocation(location);
@@ -61,6 +78,23 @@ function configureBackgroundGeolocation() {
     });
 }
 
+
+function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Radio de la Tierra en metros
+    const toRad = (x) => x * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+
 // Función para iniciar el rastreo
 function startTracking() {
     if (isTrackingEnabled) {
@@ -77,6 +111,7 @@ function startTracking() {
         // you don't need to check status before start (this is just the example)
 
         if (!status.isRunning) {
+            isTrackingEnabled = true
             BackgroundGeolocation.start(); //triggers start on start event
         }
     });
@@ -93,8 +128,10 @@ function stopTracking() {
         console.log("El rastreo ya está deshabilitado.");
         return;
     }
+
     BackgroundGeolocation.removeAllListeners();
     BackgroundGeolocation.stop();
+    isTrackingEnabled = false;
 }
 
 // Obtener la última ubicación registrada
