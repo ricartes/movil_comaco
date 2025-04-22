@@ -63,11 +63,11 @@ function configureBackgroundGeolocation() {
     });
 
     BackgroundGeolocation.on('stationary', function (stationaryLocation) {
-        if (stationaryLocation.accuracy && stationaryLocation.accuracy <= 20) {
+        /*if (stationaryLocation.accuracy && stationaryLocation.accuracy <= 20) {
             alert("Ubicación estacionaria válida:", stationaryLocation);
         } else {
             alert("Ubicación estacionaria ignorada por baja precisión:", stationaryLocation);
-        }
+        }*/
     });
 
 
