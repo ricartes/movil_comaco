@@ -1,5 +1,5 @@
 // Dom7
-var version_movil = 3;
+var version_movil = 4;
 var $$ = Dom7;
 var db = null;
 var ip_interna = null;
@@ -517,6 +517,7 @@ function boton_atras() {
                 "¿Está seguro que desea salir de la aplicación?",
                 "GFE",
                 function () {
+                    stopTracking();
                     Borrar_dato_local("user_activo");
                     Borrar_dato_local("rut_activo");
                     Borrar_dato_local("nombre_activo");
