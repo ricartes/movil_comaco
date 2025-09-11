@@ -1,0 +1,79 @@
+{
+    "productivo": true,
+    "servidor": {
+        "urlServidorLocal": "http://localhost:1805/origenes/",
+        "urlServidorLocalMovil": "http://10.0.2.2:1805/origenes/",
+        "urlServidorDesarrollo": "http://localhost:8010/proxy/",
+        "urlServidorDesarrolloComaco": "http://200.54.71.116:8095/",
+        "urlServidorProductivo": "http://gestiona-002-site16.itempurl.com/"
+    },
+    "webServices": {
+        "nombreWebService": "Webservice.asmx/"
+    },
+    "parametroGeneral": {
+        "actualizaDescuentos": "ASIGNA_PORCENTAJE"
+    },
+    "mensajeError": {
+        "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
+    },
+    "parametros": {
+        "cantidadParametrosDescarga": 4,
+        "cantidadMaximaRumas": 20,
+        "cantidadFotosPermitida": 1,
+        "cantidadFotosPreguntaPermitida": 1,
+        "alturaMinima": 0,
+        "alturaMaxima": 999.99,
+        "cantidadDecimales": 2,
+        "cantidadDecimalesAltura": 2,
+        "cantidadDecimalesDiametros": 3,
+        "valorDivisionVolumen": 2.44,
+        "maximoCaracteresObservacion": 110,
+        "m3": {
+            "diametroMinimo": 14,
+            "diametroMaximo": 72,
+            "desplazamiento": 2
+        },
+        "validaciones": {
+            "validaExistenciaRumas": true,
+            "validaRespuestasContestadas": true,
+            "validaFotosIngresadas": false,
+            "validaObservacionesRespuestas": false
+        },
+        "descuentoAplicado": {
+            "valorEstatico": "N",
+            "valorEditable": "S",
+            "valorMinimo": 0,
+            "valorMaximo": 100
+        },
+        "transformarAlturaAMetros": true,
+        "valorTransformacionMetros": 100,
+        "validaEquipoMovil": true,
+        "habilitaPdf": true,
+        "validaUbicacionActivada": false,
+        "truncarPromedio": true,
+        "cantidadDecimalesTruncar": 2
+    },
+    "rutas": {
+        "Login_Movil": "Login_Movil",
+        "Rescate_Areas": "Rescate_Areas",
+        "Rescate_Teams": "Rescate_Teams",
+        "Rescate_Equipos": "Rescate_Equipos",
+        "Rescate_EquiposTeams": "Rescate_EquiposTeams",
+        "Enviar_ControlHallazgo": "Recibe_ControlHallazgo",
+        "ValidarToken": "ValidarToken",
+        "validaConexion": "validaConexion",
+        "Enviar_Fotos": "Recibe_Fotos",
+        "Enviar_Fotos2": "Recibe_Fotos2"
+    },
+    "bd": {
+        "tipoEntidad": {
+            "usuario": "usuario",
+            "area": "area",
+            "team": "team",
+            "equipo": "equipo",
+            "equipoTeam": "equipo_team",
+            "controlHallazgo": "control_hallazgo",
+            "errorEnvio": "error_envio"
+        }
+    }
+}

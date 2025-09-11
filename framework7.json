@@ -1,0 +1,24 @@
+{
+  "cwd": "D:\\Trabajos\\GFE\\MovilFds",
+  "type": [
+    "capacitor"
+  ],
+  "name": "GdeFds",
+  "framework": "vue",
+  "template": "tabs",
+  "bundler": "vite",
+  "cssPreProcessor": "less",
+  "theming": {
+    "customColor": false,
+    "color": "#007aff",
+    "darkMode": false,
+    "iconFonts": true
+  },
+  "customBuild": false,
+  "pkg": "io.framework7.myapp",
+  "capacitor": {
+    "platforms": [
+      "android"
+    ]
+  }
+}

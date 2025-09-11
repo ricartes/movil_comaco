@@ -1,0 +1,80 @@
+{
+    "tituloAplicacion": "Backlog cima",
+    "datosLoginIncorrectos": "Usuario y contraseña proporcionados son incorrectos",
+    "datosLoginFaltantes": "Usuario y contraseña son requeridos",
+    "iniciandoSesion": "Iniciando sesión",
+    "cargando": "Cargando",
+    "importante": "Importante",
+    "considerar": "A considerar",
+    "vistas": {
+        "home": {
+            "ultimoLogin": "Último Login"
+        },
+        "cargaParametros": {
+            "textoBoton": "Presione este botón para cargar faenas",
+            "mensajeCargaParametrosOk": "Parámetros cargadas correctamente"
+        },
+        "enviarControlHallazgo": {
+            "textoBoton": "Presione este botón para enviar inventarios",
+            "noHayDatos": "No hay datos por enviar."
+        },
+        "agregarControlHallazgo": {
+            "mensajeInsertadoOk": "Control hallazgo insertado correctamente"
+        }
+    },
+    "operaciones": {
+        "agregar": "Agregar"
+    },
+    "parrafo": {
+        "cargaParametro": "Desde esta pantalla, puede cargar los parámetros necesarios para que la aplicación funcione fuera de linea. Es importante contar con una conexión estable para realizar este proceso."
+    },
+    "titulo": {
+        "controlHallazgo": "Control hallazgos",
+        "cargaParametros": "Cargar parámetros",
+        "cerrarSesion": "Cerrar sesión",
+        "enviarDatos": "Enviar hallazgos realizados ",
+        "listadoHallazgos": "Controles hallazgos realizados",
+        "nuevoHallazgos": "Nuevo Control hallazgo",
+        "detalleHallazgos": "Detalle Control hallazgo",
+        "fotograsfiaHallazgo": "Fotografías",
+        "listadoFotografias": "Listado fotografías"
+
+    },
+    "errors": {
+        "tokenNoValido": "Sesión expirada. Debe volver a iniciar sesión",
+        "noConexion": "No hay una conexión a Internet activa. Favor verficiar conectividad",
+        "validacionEquipo": "El equipo en el cual intenta cargar faenas, no corresponde al registrado. Debe contactar con el administrador",
+        "inventarioExistente": "Ya existe un inventario registrado al día de hoy asociado a la faena seleccionada.",
+        "faltaOpcionRespuestaFoto": "Antes de poder ingresar un registro fotográfico, debe seleccionar una de las opciones disponibles.",
+        "fantanRespuestasPorContestar": "Existen respuestas incompletas. Favor corroborar. Recuerde, que para cerrar el inventario, debe responder todas las preguntas y completar la observación en caso de ser requerida.",
+        "faltanPreguntasConObservacion": "Existen preguntas sin ingreso de observación requerida. Debe contestar las observaciones asociadas a cada pregunta.",
+        "faltanPreguntasConFotografica": "Existen preguntas sin ingreso de evidencia fotográfica requerida. Debe ingresar la/s evidencias fotográficas requeridas en cada pregunta.",
+        "rumasNoExisten": "No existen rumas asociadas. Para cerrar el inventario, debe ingresar al menos una ruma.",
+        "ubicacionNoDisponible": "Servicios de ubicación no activiados. Favor activar antes de ingresar una ruma",
+        "geocercaNoValida": "Ubicación no se encuentra en la geocerca establecida",
+        "faltaEmseforInforme": "Debe ingresar al menos una empresa para generar el informe.",
+        "inputs": {
+            "valorInvalido": "Antes de continuar, debe ingresar valores correctos a la Ruma actual.",
+            "area": "Falta ingresar el Área",
+            "teams": "Falta ingresar el Teams",
+            "equipo": "Falta ingresar Equipo.",
+            "descripcion": "Falta ingresar la Descripción.",
+            "fotografia": "Falta ingresar al menos una de las Fotografías requeridas."
+        }
+    },
+    "success": {
+        "inventario": "Inventario ingresado correctamente",
+        "ruma": "Ruma ingresada correctamente",
+        "rumaErrorGeocerca": "Ruma ingresada correctamente. Sin embargo, se ha detectado que la ubicación en donde está ingresando la ruma, no se encuentra en la geocerca establecida para esta Faena.",
+        "cambioRuma": "Ruma modificada correctamente.",
+        "fotoRuma": "Foto Ruma ingresada correctamente",
+        "cierreInventario": "Inventario cerrado correctamente",
+        "controlHallazgoEnviados": "Datos enviados correctamente"
+    },
+    "acciones": {
+        "cerrar": "Cerrar",
+        "ingresar": "Ingresar",
+        "reingresar": "Reingresar",
+        "eliminarAltura": "¿Está seguro que deséa eliminar este registro?"
+    }
+}
