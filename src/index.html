@@ -30,9 +30,16 @@
 <body>
     <div id="app"></div>
 
+    <script src="./vendor/pouchdb/pouchdb.min.js"></script>
+    <script src="./vendor/pouchdb/pouchdb.find.min.js"></script>
+    <script>
+        if (window.PouchDB && window.pouchdbFind) {
+            window.PouchDB.plugin(window.pouchdbFind);
+        } else {
+            console.error('No se cargaron los scripts UMD de PouchDB/pouchdb.find');
+        }
+    </script>
     <script type="module" src="./js/app.js"></script>
-    <!-- <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
-    <script src="https://unpkg.com/pouchdb@8.0.1/dist/pouchdb.find.min.js"></script> -->
 </body>
 
 </html>

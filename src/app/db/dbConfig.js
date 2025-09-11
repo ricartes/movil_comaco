@@ -1,45 +1,44 @@
-// @ts-nocheck
-import { ref, computed } from 'vue'
-import PouchDB from 'pouchdb-browser'
-import pouchdbFind from 'pouchdb-find'
-import Utilidades from '@/Utilidades'
-import { crearIndicesTipo } from '@/db/indexs/Tipo'
 
-PouchDB.plugin(pouchdbFind)
+import { crearIndicesTipo } from '@/app/db/indexs/Indices';
+import Utilidades from '../Utilidades';
 
-/** @type {import('vue').Ref<import('pouchdb-browser').Database|null>} */
-const localDbRef = ref(null)
-/** @type {import('pouchdb-browser').Database|null} */
-let localDbInstance = null
+//import { myViews } from '../dbViews/dbViews';
 
-export async function initializeDatabases() {
-    if (localDbInstance) return localDbInstance
+let localDbInstance = null;
 
-    let nameDB = 'gde_fs'
-    const uid = await Utilidades.getUIDevice()
-    nameDB += uid
 
-    localDbInstance = new PouchDB(nameDB, { auto_compaction: true, revs_limit: 5 })
-    localDbRef.value = localDbInstance
+async function initializeDatabases() {
+    let nameDB = 'control_faena_';
+    const uid = await Utilidades.getUIDevice();
+    nameDB += uid;
+
+    localDbInstance = new PouchDB(nameDB);
+    //dbLocal.set(localDbInstance); // Actualiza el store si necesitas reactividad
+
+    // Configurar índices para usuarios
+    crearIndicesTipo(localDbInstance).then(() => {
+
+    }).catch(err => {
+        console.log('Error configurando índices de usuario:', err);
+    });
+}
+
+
+
+// Función para insertar un documento en la base de datos local
+async function insertarDocumento(documento) {
+    if (!localDbInstance) {
+        throw new Error("La base de datos local no está inicializada.");
+    }
 
     try {
-        await crearIndicesTipo(localDbInstance)
-    } catch (err) {
-        console.error('Error configurando índices de tipo:', err)
-    }
-    return localDbInstance
-}
-
-export async function insertarDocumento(documento) {
-    if (!localDbInstance) throw new Error('DB no inicializada')
-    return await localDbInstance.post(documento)
-}
-
-export function useLocalDb() {
-    return {
-        localDb: localDbRef,
-        isReady: computed(() => !!localDbRef.value),
-        initializeDatabases,
-        insertarDocumento,
+        const resultado = await localDbInstance.post(documento);
+        console.log("Documento insertado con éxito. ID generado:", resultado.id);
+        return resultado; // El objeto resultado incluye el _id generado y el _rev
+    } catch (error) {
+        alert("Error al insertar el documento:", error);
+        throw error;
     }
 }
+
+export { localDbInstance, initializeDatabases };

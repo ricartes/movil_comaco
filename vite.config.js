@@ -8,30 +8,30 @@ const PUBLIC_DIR = path.resolve(__dirname, './public');
 const BUILD_DIR = path.resolve(__dirname, './www',);
 export default async () => {
 
-  return  {
-    plugins: [
-      vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.includes('swiper-') } } }),,
+    return {
+        plugins: [
+            vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.includes('swiper-') } } }), ,
 
-    ],
-    root: SRC_DIR,
-    base: '',
-    publicDir: PUBLIC_DIR,
-    build: {
-      outDir: BUILD_DIR,
-      assetsInlineLimit: 0,
-      emptyOutDir: true,
-      rollupOptions: {
-        treeshake: false,
-      },
-    },
-    resolve: {
-      alias: {
-        '@': SRC_DIR,
-      },
-    },
-    server: {
-      host: true,
-    },
+        ],
+        root: SRC_DIR,
+        base: '',
+        publicDir: PUBLIC_DIR,
+        build: {
+            outDir: BUILD_DIR,
+            assetsInlineLimit: 0,
+            emptyOutDir: true,
+            rollupOptions: {
+                treeshake: false,
+            },
+        },
+        resolve: {
+            alias: {
+                '@': SRC_DIR,
+            },
+        },
+        server: {
+            host: true,
+        },
 
-  };
+    };
 }
