@@ -1,4 +1,4 @@
-//import UsuarioDAO from '../DAO/UsuarioDAO'; // Asegúrate de que la ruta sea correcta según tu estructura de directorios
+import UsuarioDAO from '../DAO/UsuarioDAO';
 
 import BaseDAO from '../DAO/BaseDAO';
 
@@ -10,8 +10,7 @@ let _baseDAO;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
-    // _usuarioDao = new UsuarioDAO(dbInstance);
-
+    _usuarioDao = new UsuarioDAO(dbInstance);
     _baseDAO = new BaseDAO(dbInstance);
     // Podrías inicializar más servicios aquí
 }
@@ -21,5 +20,12 @@ export function getBaseDao() {
         throw new Error("BaseDao no ha sido inicializado.");
     }
     return _baseDAO;
+}
+
+export function getUsuarioDao() {
+    if (!_usuarioDao) {
+        throw new Error("_usuarioDao no ha sido inicializado.");
+    }
+    return _usuarioDao;
 }
 

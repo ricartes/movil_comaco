@@ -1,14 +1,14 @@
 {
     "productivo": true,
     "servidor": {
-        "urlServidorLocal": "http://localhost:1805/origenes/",
-        "urlServidorLocalMovil": "http://10.0.2.2:1805/origenes/",
-        "urlServidorDesarrollo": "http://localhost:8010/proxy/",
-        "urlServidorDesarrolloComaco": "http://200.54.71.116:8095/",
-        "urlServidorProductivo": "http://gestiona-002-site16.itempurl.com/"
+        "urlServidorLocal": "http://gestiona-002-site20.anytempurl.com/",
+        "urlServidorLocalMovil": "http://gestiona-002-site20.anytempurl.com/",
+        "urlServidorDesarrollo": "http://gestiona-002-site20.anytempurl.com/",
+        "urlServidorDesarrolloComaco": "http://gestiona-002-site20.anytempurl.com/",
+        "urlServidorProductivo": "http://gestiona-002-site20.anytempurl.com/"
     },
     "webServices": {
-        "nombreWebService": "Webservice.asmx/"
+        "nombreWebService": "mapi/v1/"
     },
     "parametroGeneral": {
         "actualizaDescuentos": "ASIGNA_PORCENTAJE"
@@ -54,25 +54,12 @@
         "cantidadDecimalesTruncar": 2
     },
     "rutas": {
-        "Login_Movil": "Login_Movil",
-        "Rescate_Areas": "Rescate_Areas",
-        "Rescate_Teams": "Rescate_Teams",
-        "Rescate_Equipos": "Rescate_Equipos",
-        "Rescate_EquiposTeams": "Rescate_EquiposTeams",
-        "Enviar_ControlHallazgo": "Recibe_ControlHallazgo",
-        "ValidarToken": "ValidarToken",
-        "validaConexion": "validaConexion",
-        "Enviar_Fotos": "Recibe_Fotos",
-        "Enviar_Fotos2": "Recibe_Fotos2"
+        "Login_Movil": "auth/login"
+
     },
     "bd": {
         "tipoEntidad": {
             "usuario": "usuario",
-            "area": "area",
-            "team": "team",
-            "equipo": "equipo",
-            "equipoTeam": "equipo_team",
-            "controlHallazgo": "control_hallazgo",
             "errorEnvio": "error_envio"
         }
     }

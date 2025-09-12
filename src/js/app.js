@@ -8,6 +8,7 @@ import Framework7 from 'framework7/lite-bundle';
 import Framework7Vue, { registerComponents } from 'framework7-vue/bundle';
 
 import { initializeDatabases, localDbInstance } from '../app/db/dbConfig';
+import { initializeServices } from '../app/services/initServices';
 
 // Import Framework7 Styles
 import 'framework7/css/bundle';
@@ -26,8 +27,6 @@ Framework7.use(Framework7Vue);
     try {
         // 1) Inicializa PouchDB e índices
         await initializeDatabases()
-
-
         // 2) Si necesitas pasar la instancia a tus services/repos
         //    (por ejemplo, para construir repos con la DB)
         if (typeof initializeServices === 'function') {

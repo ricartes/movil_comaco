@@ -5,7 +5,7 @@ import NotFoundPage from '../pages/404.vue';
 
 var routes = [
     {
-        path: '/',
+        path: '/login/',
         component: Login,
     },
 
