@@ -87,11 +87,16 @@
 
 <script>
 import { f7 } from "framework7-vue";
+import store from "@/js/store";
 import logoSrc from "@/assets/img/logo.png";
 import UsuarioService from "@/app/services/UsuarioService";
 
 export default {
+    props: {
+        f7router: Object,
+    },
     name: "LoginPage",
+
     data() {
         return {
             logoSrc,
@@ -193,7 +198,14 @@ export default {
                         this.form.rut,
                         this.form.pin
                     );
-                    console.log(resultadoPin);
+                    if (!resultadoPin) throw new Error("PIN incorrecto");
+                    const user = await UsuarioService.obtener(this.form.rut); // doc local
+                    await store.dispatch("setSessionOffline", { user });
+                    localStorage.setItem("auth_token", "1");
+                    window.dispatchEvent(new Event("auth:login"));
+                    f7.views.main.router.navigate("/home/", {
+                        clearPreviousHistory: true,
+                    });
                 }
                 if (this.requierePassword) {
                     const loginWeb = await UsuarioService.loginWeb(
@@ -215,12 +227,18 @@ export default {
                                 loginWeb.user,
                                 pin
                             );
-                            f7.toast
-                                .create({
-                                    text: `PIN configurado`,
-                                    closeTimeout: 1200,
-                                })
-                                .open();
+
+                            await store.dispatch("setSessionOnline", {
+                                user: loginWeb.user, // doc que guardaste/actualizaste
+                                token: loginWeb.session.token,
+                            });
+
+                            localStorage.setItem("auth_token", "1");
+                            window.dispatchEvent(new Event("auth:login"));
+
+                            f7.views.main.router.navigate("/home/", {
+                                clearPreviousHistory: true,
+                            });
                         }
                     }
                 }

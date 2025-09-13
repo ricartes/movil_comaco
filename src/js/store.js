@@ -1,35 +1,80 @@
+import { createStore } from 'framework7/lite-bundle'
+import { Preferences } from '@capacitor/preferences'
+import { getUsuarioDao } from '@/app/services/initServices'
 
-import { createStore } from 'framework7/lite';
+const TOKEN_KEY = 'auth_token'
+const RUT_KEY = 'auth_rut'
 
 const store = createStore({
-  state: {
-    products: [
-      {
-        id: '1',
-        title: 'Apple iPhone 8',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi tempora similique reiciendis, error nesciunt vero, blanditiis pariatur dolor, minima sed sapiente rerum, dolorem corrupti hic modi praesentium unde saepe perspiciatis.'
-      },
-      {
-        id: '2',
-        title: 'Apple iPhone 8 Plus',
-        description: 'Velit odit autem modi saepe ratione totam minus, aperiam, labore quia provident temporibus quasi est ut aliquid blanditiis beatae suscipit odio vel! Nostrum porro sunt sint eveniet maiores, dolorem itaque!'
-      },
-      {
-        id: '3',
-        title: 'Apple iPhone X',
-        description: 'Expedita sequi perferendis quod illum pariatur aliquam, alias laboriosam! Vero blanditiis placeat, mollitia necessitatibus reprehenderit. Labore dolores amet quos, accusamus earum asperiores officiis assumenda optio architecto quia neque, quae eum.'
-      },
-    ]
-  },
-  getters: {
-    products({ state }) {
-      return state.products;
-    }
-  },
-  actions: {
-    addProduct({ state }, product) {
-      state.products = [...state.products, product];
+    state: { user: null, token: null, offline: false, ready: false },
+    getters: {
+        isAuth({ state }) { return !!state.user },
+        user({ state }) { return state.user },
+        token({ state }) { return state.token },
+        offline({ state }) { return state.offline },
+        ready({ state }) { return state.ready },
     },
-  },
+    actions: {
+        async hydrate({ state }) {
+            try {
+                // lee Preferences pero no revientes si falla en web
+                const [{ value: token } = {}, { value: rut } = {}] = await Promise.all([
+                    Preferences.get({ key: TOKEN_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: RUT_KEY }).catch(() => ({ value: null })),
+                ])
+                state.token = token || null
+
+                // intenta cargar el user del DAO, pero no falles si aún no está listo
+                if (rut) {
+                    try {
+                        const dao = getUsuarioDao?.()
+                        if (dao && typeof dao.obtener === 'function') {
+                            state.user = await dao.obtener(String(rut))
+                        } else {
+                            state.user = null
+                        }
+                    } catch (e) {
+                        console.warn('hydrate(): no se pudo obtener usuario', e)
+                        state.user = null
+                    }
+                } else {
+                    state.user = null
+                }
+
+                state.offline = !state.token && !!state.user
+            } finally {
+                // ✅ garantizado: evita quedarse en “Cargando…”
+                state.ready = true
+            }
+        },
+
+        async setSessionOnline({ state }, { user, token }) {
+            state.user = user
+            state.token = token
+            state.offline = false
+            await Preferences.set({ key: TOKEN_KEY, value: token })
+            await Preferences.set({ key: RUT_KEY, value: String(user.rut) })
+            window.dispatchEvent(new CustomEvent('auth:login'))
+        },
+
+        async setSessionOffline({ state }, { user }) {
+            state.user = user
+            state.token = null
+            state.offline = true
+            await Preferences.remove({ key: TOKEN_KEY })
+            await Preferences.set({ key: RUT_KEY, value: String(user.rut) })
+            window.dispatchEvent(new CustomEvent('auth:login'))
+        },
+
+        async clearSession({ state }) {
+            state.user = null
+            state.token = null
+            state.offline = false
+            await Preferences.remove({ key: TOKEN_KEY })
+            await Preferences.remove({ key: RUT_KEY })
+            window.dispatchEvent(new CustomEvent('auth:logout'))
+        },
+    },
 })
-export default store;
+
+export default store

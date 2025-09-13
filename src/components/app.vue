@@ -2,45 +2,35 @@
     <f7-app v-bind="f7params">
         <template v-if="isAuth">
             <!-- forzamos nuevo árbol cuando cambia auth -->
-            <div :key="'auth-shell'">
-                <f7-views tabs class="safe-areas">
-                    <f7-toolbar tabbar icons bottom>
-                        <f7-link
-                            tab-link="#view-home"
-                            tab-link-active
-                            icon-ios="f7:house_fill"
-                            icon-md="material:home"
-                            text="Home"
-                        />
-                        <f7-link
-                            tab-link="#view-catalog"
-                            icon-ios="f7:square_list_fill"
-                            icon-md="material:view_list"
-                            text="Catalog"
-                        />
-                        <f7-link
-                            tab-link="#view-settings"
-                            icon-ios="f7:gear"
-                            icon-md="material:settings"
-                            text="Settings"
-                        />
-                    </f7-toolbar>
+            <f7-views tabs class="safe-areas" :key="'auth-tabs'">
+                <!-- Tabbar inferior -->
+                <f7-toolbar tabbar labels bottom>
+                    <f7-link
+                        tab-link="#view-home"
+                        tab-link-active
+                        icon-ios="f7:rectangle_grid_2x2_fill"
+                        icon-md="material:dashboard"
+                        text="Dashboard"
+                    />
+                    <f7-link
+                        tab-link="#view-gde"
+                        icon-ios="f7:doc_text_fill"
+                        icon-md="material:description"
+                        text="GDE"
+                    />
+                    <f7-link
+                        tab-link="#view-menu"
+                        icon-ios="f7:line_3_horizontal"
+                        icon-md="material:menu"
+                        text="Menú"
+                    />
+                </f7-toolbar>
 
-                    <f7-view id="view-home" main tab tab-active url="/home/" />
-                    <f7-view
-                        id="view-catalog"
-                        name="catalog"
-                        tab
-                        url="/catalog/"
-                    />
-                    <f7-view
-                        id="view-settings"
-                        name="settings"
-                        tab
-                        url="/settings/"
-                    />
-                </f7-views>
-            </div>
+                <!-- Vistas/tabs -->
+                <f7-view id="view-home" main tab tab-active url="/home/" />
+                <f7-view id="view-gde" name="gde" tab url="/gde/" />
+                <f7-view id="view-menu" name="menu" tab url="/menu/" />
+            </f7-views>
         </template>
 
         <template v-else>
@@ -80,20 +70,38 @@ export default {
 
         onMounted(() => {
             f7ready(() => {
-                // ✅ Mantener EXACTO
                 if (device.capacitor) {
                     capacitorApp.init(f7);
                 }
                 // sesión inicial
                 isAuth.value = !!localStorage.getItem("auth_token");
 
+                // 👇 fuerza ir a la página correcta por si la URL quedó vacía
+                console.log(isAuth.value);
+                if (isAuth.value) {
+                    console.log("pasa");
+                    f7.views.main?.router?.navigate("/home/", {
+                        reloadAll: true,
+                    });
+                } else {
+                    f7.views.main?.router?.navigate("/login/", {
+                        reloadAll: true,
+                    });
+                }
+
                 // eventos globales opcionales
                 window.addEventListener("auth:login", () => {
                     isAuth.value = true;
+                    f7.views.main?.router?.navigate("/home/", {
+                        reloadAll: true,
+                    });
                 });
                 window.addEventListener("auth:logout", () => {
                     isAuth.value = false;
                     localStorage.removeItem("auth_token");
+                    f7.views.main?.router?.navigate("/login/", {
+                        reloadAll: true,
+                    });
                 });
             });
         });
