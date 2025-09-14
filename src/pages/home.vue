@@ -16,15 +16,10 @@ import store from "@/js/store";
 
 export default {
     setup() {
-
         const user = computed(() => store.state.user);
-        console.log(user);
         const offline = computed(() => store.state.offline);
 
-        onMounted(() => {
-            console.log("user(state) =", user.value);
-            console.log("offline(state) =", offline.value);
-        });
+        onMounted(() => {});
 
         return { user, offline };
     },

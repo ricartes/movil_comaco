@@ -1,31 +1,24 @@
-var CargaParametrosWebServices = {
+import { CapacitorHttp } from '@capacitor/core'
+import Utilidades from '@/app/Utilidades'
+import { apiBase, urlJoin } from '../helpers/ApiHelpers'
 
-    async cargarOrdenCompra(empId, rut) {
-        const uuid = await Utilidades.getUIDevice();
-        const url = (
-            Constantes.direccionServidorPredeterminado +
-            Constantes.nombreWebServicePredeterminado +
-            config.rutas.RescatarOrdenCompra
-        );
-        const params = new URLSearchParams();
-        params.append('rut', rut);
-        params.append('empId', empId);
-        params.append('uuid', uuid);
-        const options = {
+const CargaParametrosWebServices = {
+    async cargarParametro(empId, rut, ruta, token) {
+        const uuid = await Utilidades.getUIDevice()
+        const url = urlJoin(apiBase(), ruta);
+        const { data } = await CapacitorHttp.get({
             url,
+            params: { empId: String(empId), rut: String(rut), uuid },
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
             },
-            data: params.toString()
-        };
+        })
 
-        const response = await CapacitorHttp.get(options);
 
-        return response.data; // CapacitorHttp ya parsea JSON
+
+        return data // JSON parseado
     },
 }
 
-import Utilidades from '@/app/Utilidades'
-import Constantes from '@/app/Common/Constantes';
-import config from "@/Common/json/config.json"
-export default CargaParametrosWebServices;
+export default CargaParametrosWebServices

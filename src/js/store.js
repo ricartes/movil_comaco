@@ -19,7 +19,7 @@ const store = createStore({
         async hydrate({ state }) {
             try {
                 // lee Preferences pero no revientes si falla en web
-                const [{ value: token } = {}, { value: rut } = {}] = await Promise.all([
+                const [{ value: token } = {}, { value: rut } = {}, { value: empresa } = {}] = await Promise.all([
                     Preferences.get({ key: TOKEN_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: RUT_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: EMPRESA_KEY }).catch(() => ({})),

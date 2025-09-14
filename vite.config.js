@@ -31,7 +31,24 @@ export default async () => {
         },
         server: {
             host: true,
-        },
+            proxy: {
+                '/mapi': {
+                    target: 'http://gestiona-002-site20.anytempurl.com',
+                    changeOrigin: true,
+                    secure: false,
+                    configure: (proxy, options) => {
+                        proxy.on('proxyReq', (proxyReq, req) => {
+                            console.log('[proxy] →', req.method, req.url,
+                                'to', options.target + req.url)
+                        })
+                        proxy.on('proxyRes', (proxyRes, req) => {
+                            console.log('[proxy] ←', proxyRes.statusCode,
+                                req.method, req.url)
+                        })
+                    },
+                },
+            },
+        }
 
     };
 }

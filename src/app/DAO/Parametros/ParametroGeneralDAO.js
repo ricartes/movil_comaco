@@ -1,10 +1,10 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { ocDocToDTO } from '@/app/mappers/ordenCompraMapper'
+import { parametroGeneralDocToDTO } from '@/app/mappers/parametroGeneralMapper'
 
 let instance = null;
 
-export default class OrdenCompraDAO {
+export default class ParametroGeneralDAO {
     constructor(db) {
         if (!instance) {
             this.db = db;
@@ -15,32 +15,32 @@ export default class OrdenCompraDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
-        return docs.map(ocDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.parametroGeneral)
+        return docs.map(parametroGeneralDocToDTO)
     }
 
 
 
     async eliminarTodos() {
         try {
-            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
+            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.parametroGeneral);
             for (const item of data) {
                 await getBaseDao().eliminar(item);
             }
 
         } catch (error) {
-            console.error("Error al eliminar todos los OC:", error);
+            console.error("Error al eliminar todos las parametroGeneral:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }
 
 
-    async insertar(ordenCompra) {
+    async insertar(parametroGeneral) {
         try {
-            return await getBaseDao().insertar(ordenCompra);
+            return await getBaseDao().insertar(parametroGeneral);
 
         } catch (error) {
-            console.error("Error al insertar OC:", error);
+            console.error("Error al insertar parametroGeneral:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }

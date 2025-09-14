@@ -25,6 +25,7 @@
                             inputmode="numeric"
                             pattern="[0-9]*"
                             maxlength="9"
+                            :disabled="showPinSetup || checkingRut || loading"
                             v-model:value="form.rut"
                             @input="onRutInput"
                         >
@@ -43,6 +44,7 @@
                             inputmode="numeric"
                             pattern="[0-9]*"
                             maxlength="8"
+                            :disabled="showPinSetup || loading"
                             v-model:value="form.pin"
                             @input="onPinInput"
                         >
@@ -53,13 +55,14 @@
 
                         <!-- Password si NO está registrado -->
                         <f7-list-input
-                            v-if="requierePassword"
+                            v-if="requierePassword && !showPinSetup"
                             label="Password"
                             type="password"
                             placeholder="Password"
                             clear-button
                             toggle-password
                             autocomplete="current-password"
+                            :disabled="loading"
                             v-model:value="form.password"
                         >
                             <template #media
@@ -68,9 +71,80 @@
                         </f7-list-input>
                     </f7-list>
 
-                    <!-- Botón: solo aparece cuando hay campo de PIN o Password visible y con algo escrito -->
+                    <!-- Bloque inline para configurar PIN (cuando login web = OK) -->
+                    <transition name="fade">
+                        <div v-if="showPinSetup" class="pin-setup">
+                            <div class="pin-title">Configurar PIN offline</div>
+                            <div class="pin-subtitle">
+                                El PIN se usará para iniciar sesión sin
+                                Internet.
+                            </div>
+
+                            <f7-list form no-hairlines-md class="pin-list">
+                                <f7-list-input
+                                    label="PIN"
+                                    type="password"
+                                    placeholder="4 dígitos"
+                                    clear-button
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    maxlength="4"
+                                    :disabled="loading"
+                                    v-model:value="pin1"
+                                    @input="onPin1Input"
+                                >
+                                    <template #media
+                                        ><f7-icon f7="number"
+                                    /></template>
+                                </f7-list-input>
+
+                                <f7-list-input
+                                    label="Repetir PIN"
+                                    type="password"
+                                    placeholder="Repetir PIN"
+                                    clear-button
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    maxlength="4"
+                                    :disabled="loading"
+                                    v-model:value="pin2"
+                                    @input="onPin2Input"
+                                >
+                                    <template #media
+                                        ><f7-icon f7="number"
+                                    /></template>
+                                </f7-list-input>
+                            </f7-list>
+
+                            <div v-if="pinError" class="pin-error">
+                                {{ pinError }}
+                            </div>
+
+                            <p class="grid grid-cols-2 grid-gap">
+                                <f7-button
+                                    fill
+                                    large
+                                    :disabled="!canSavePin || loading"
+                                    @click="onSavePin"
+                                >
+                                    {{ loading ? "Guardando…" : "Guardar PIN" }}
+                                </f7-button>
+                                <f7-button
+                                    outline
+                                    large
+                                    class="cancel-btn"
+                                    :disabled="loading"
+                                    @click="onCancelPin"
+                                >
+                                    Cancelar
+                                </f7-button>
+                            </p>
+                        </div>
+                    </transition>
+
+                    <!-- Botón: solo aparece cuando NO estamos en el setup de PIN -->
                     <f7-button
-                        v-if="mostrarBoton"
+                        v-if="!showPinSetup && mostrarBoton"
                         fill
                         large
                         class="login-btn"
@@ -92,21 +166,25 @@ import logoSrc from "@/assets/img/logo.png";
 import UsuarioService from "@/app/services/UsuarioService";
 
 export default {
-    props: {
-        f7router: Object,
-    },
     name: "LoginPage",
-
+    props: { f7router: Object },
     data() {
         return {
             logoSrc,
             loading: false,
-            checkingRut: false, // ⬅ para bloquear mientras consultamos
+            checkingRut: false,
             requierePin: false,
             requierePassword: false,
             form: { rut: "", pin: "", password: "" },
-            _rutTimer: null, // ⬅ debounce timer
-            _rutQueryId: 0, // ⬅ evita condiciones de carrera
+            _rutTimer: null,
+            _rutQueryId: 0,
+
+            // 👇 nuevo estado para setup de PIN
+            showPinSetup: false,
+            pin1: "",
+            pin2: "",
+            pinError: "",
+            pendingLogin: null, // { user, session } luego del login web OK
         };
     },
     computed: {
@@ -117,47 +195,57 @@ export default {
             return false;
         },
         mostrarBoton() {
-            if (this.checkingRut) return false;
+            if (this.checkingRut || this.showPinSetup) return false;
             if (this.requierePin) return this.form.pin.length > 0;
             if (this.requierePassword)
                 return this.form.password.trim().length > 0;
             return false;
         },
+        canSavePin() {
+            return /^\d{4}$/.test(this.pin1) && this.pin1 === this.pin2;
+        },
     },
     methods: {
         onPinInput(e) {
             this.form.pin = (e?.target?.value || "")
-                .replace(/\D/g, "") // solo dígitos
-                .slice(0, 8); // máx 8
+                .replace(/\D/g, "")
+                .slice(0, 8);
+        },
+        onPin1Input(e) {
+            this.pin1 = (e?.target?.value || "").replace(/\D/g, "").slice(0, 4);
+            this.pinError = "";
+        },
+        onPin2Input(e) {
+            this.pin2 = (e?.target?.value || "").replace(/\D/g, "").slice(0, 4);
+            this.pinError = "";
         },
 
         onRutInput(e) {
-            // Normaliza RUT (solo dígitos, máx 9)
             const val = (e?.target?.value || "").replace(/\D/g, "").slice(0, 9);
             this.form.rut = val;
 
-            // Resetea estado dependiente del RUT
+            // reset dependientes
             this.requierePin = false;
             this.requierePassword = false;
             this.form.pin = "";
             this.form.password = "";
+            this.showPinSetup = false;
+            this.pin1 = "";
+            this.pin2 = "";
+            this.pinError = "";
+            this.pendingLogin = null;
 
-            // Cancela debounce anterior
             if (this._rutTimer) clearTimeout(this._rutTimer);
-
-            // Si aún no es válido (7–9 dígitos), no consultamos
             if (!/^\d{7,9}$/.test(val)) {
                 this.checkingRut = false;
                 return;
             }
 
-            // Debounce para no consultar en cada tecla
             const myQueryId = ++this._rutQueryId;
             this._rutTimer = setTimeout(async () => {
                 this.checkingRut = true;
                 try {
                     const usuario = await UsuarioService.obtener(val);
-                    // Si cambió el RUT o llegó otra consulta más nueva, ignora este resultado
                     if (this._rutQueryId !== myQueryId || this.form.rut !== val)
                         return;
 
@@ -173,19 +261,17 @@ export default {
                         this.requierePassword = true;
                     }
                 } catch (err) {
-                    // En caso de error, deja ambos ocultos
                     this.requierePin = false;
                     this.requierePassword = false;
-                    this.$f7.toast.show({
+                    f7.toast.show({
                         text: "Error consultando usuario local",
                         closeTimeout: 1500,
                     });
                 } finally {
-                    // Asegura que seguimos mirando el mismo RUT
                     if (this._rutQueryId === myQueryId)
                         this.checkingRut = false;
                 }
-            }, 250); // debounce 250ms
+            }, 250);
         },
 
         async onSubmit() {
@@ -193,54 +279,39 @@ export default {
             this.loading = true;
             try {
                 if (this.requierePin) {
-                    console.log("requiere pin");
-                    const resultadoPin = await UsuarioService.validarPIN(
+                    const ok = await UsuarioService.validarPIN(
                         this.form.rut,
                         this.form.pin
                     );
-                    if (!resultadoPin) throw new Error("PIN incorrecto");
-                    const user = await UsuarioService.obtener(this.form.rut); // doc local
+                    if (!ok) throw new Error("PIN incorrecto");
+                    const user = await UsuarioService.obtener(this.form.rut);
                     await store.dispatch("setSessionOffline", { user });
                     localStorage.setItem("auth_token", "1");
                     window.dispatchEvent(new Event("auth:login"));
                     f7.views.main.router.navigate("/home/", {
                         clearPreviousHistory: true,
                     });
+                    return;
                 }
+
                 if (this.requierePassword) {
                     const loginWeb = await UsuarioService.loginWeb(
                         this.form.rut,
                         this.form.password
                     );
                     if (!loginWeb.status) {
-                        f7.dialog.alert(loginWeb.message); // o this.$f7.dialog.alert(dto.message)
-                    } else {
-                        const pin = await this.pedirPinConConfirmacion();
-                        if (!pin) {
-                            // si quieres hacerlo OBLIGATORIO, lanza error:
-                            throw new Error(
-                                "Se requiere configurar un PIN para continuar"
-                            );
-                            // si NO obligatorio: puedes seguir sin offline (token ya guardado)
-                        } else {
-                            await UsuarioService.guardarUsuarioLocalConPin(
-                                loginWeb.user,
-                                pin
-                            );
-
-                            await store.dispatch("setSessionOnline", {
-                                user: loginWeb.user, // doc que guardaste/actualizaste
-                                token: loginWeb.session.token,
-                            });
-
-                            localStorage.setItem("auth_token", "1");
-                            window.dispatchEvent(new Event("auth:login"));
-
-                            f7.views.main.router.navigate("/home/", {
-                                clearPreviousHistory: true,
-                            });
-                        }
+                        f7.dialog.alert(
+                            loginWeb.message || "Credenciales inválidas"
+                        );
+                        return;
                     }
+                    // en vez de dialog: mostramos UI inline para setear PIN (4 dígitos)
+                    this.pendingLogin = loginWeb; // { user, session }
+                    this.showPinSetup = true;
+                    this.$nextTick(() => {
+                        const el = this.$el.querySelector(".pin-list input");
+                        el?.focus();
+                    });
                 }
             } catch (e) {
                 f7.dialog.alert(e.message || "No se pudo iniciar sesión");
@@ -248,64 +319,54 @@ export default {
                 this.loading = false;
             }
         },
-        pedirPinConConfirmacion() {
-            return new Promise((resolve) => {
-                const dlg = f7.dialog.create({
-                    title: "Configurar PIN offline",
-                    text: "Ingresa un PIN de 4 dígitos para inicio de sesión offine",
-                    content: `<div class="dialog-input-field">
-                            <input type="password" id="pin1" inputmode="numeric" maxlength="4" class="dialog-input" placeholder="PIN" />
-                        </div>
-                        <div class="dialog-input-field">
-                            <input type="password" id="pin2" inputmode="numeric" maxlength="4" class="dialog-input" placeholder="Repetir PIN" />
-                        </div>`,
-                    buttons: [
-                        {
-                            text: "Cancelar",
-                            onClick: () => {
-                                resolve(null);
-                            },
-                        },
-                        {
-                            text: "Guardar",
-                            bold: true,
-                            onClick: () => {
-                                const p1 = (
-                                    dlg.el.querySelector("#pin1")?.value || ""
-                                ).replace(/\D/g, "");
-                                const p2 = (
-                                    dlg.el.querySelector("#pin2")?.value || ""
-                                ).replace(/\D/g, "");
-                                if (!/^\d{4,4}$/.test(p1)) {
-                                    f7.dialog.alert(
-                                        "El PIN debe tener 4 dígitos"
-                                    );
-                                    return;
-                                }
-                                if (p1 !== p2) {
-                                    f7.dialog.alert("Los PIN no coinciden");
-                                    return;
-                                }
-                                resolve(p1);
-                            },
-                        },
-                    ],
-                    on: {
-                        opened() {
-                            dlg.el.querySelector("#pin1")?.focus();
-                        },
-                        closed() {
-                            dlg.destroy();
-                        },
-                    },
+
+        async onSavePin() {
+            if (!/^\d{4}$/.test(this.pin1)) {
+                this.pinError = "El PIN debe tener 4 dígitos.";
+                return;
+            }
+            if (this.pin1 !== this.pin2) {
+                this.pinError = "Los PIN no coinciden.";
+                return;
+            }
+            if (!this.pendingLogin?.user || !this.pendingLogin?.session) {
+                this.pinError = "Sesión no disponible. Intenta de nuevo.";
+                return;
+            }
+
+            this.loading = true;
+            try {
+                await UsuarioService.guardarUsuarioLocalConPin(
+                    this.pendingLogin.user,
+                    this.pin1
+                );
+                await store.dispatch("setSessionOnline", {
+                    user: this.pendingLogin.user,
+                    token: this.pendingLogin.session.token,
                 });
-                dlg.open();
-            });
+                localStorage.setItem("auth_token", "1");
+                window.dispatchEvent(new Event("auth:login"));
+                f7.views.main.router.navigate("/home/", {
+                    clearPreviousHistory: true,
+                });
+            } catch (e) {
+                this.pinError = e?.message || "No se pudo guardar el PIN";
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        onCancelPin() {
+            // volver a la etapa de password
+            this.showPinSetup = false;
+            this.pin1 = "";
+            this.pin2 = "";
+            this.pinError = "";
+            this.pendingLogin = null;
         },
     },
 };
 </script>
-
 
 <style scoped>
 /* Fondo y centrado */
@@ -354,7 +415,7 @@ export default {
     line-height: 1;
 }
 
-/* Solo card/login */
+/* Card/login */
 .login-card {
     width: clamp(380px, 92vw, 640px);
     border-radius: 12px;
@@ -372,5 +433,43 @@ export default {
     width: 100%;
     display: block;
     margin-top: 10px;
+}
+
+/* PIN setup */
+.pin-setup {
+    margin-top: 8px;
+}
+.pin-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+}
+.pin-subtitle {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+.pin-list .item-input-wrap {
+    margin-bottom: 10px;
+}
+.pin-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+.pin-error {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/* pequeña transición */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

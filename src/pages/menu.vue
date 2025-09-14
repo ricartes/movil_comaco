@@ -84,8 +84,78 @@ export default {
                             this.user.rut
                         ),
                 },
-                // { key: "Socios", run: () => CargaParametrosService.cargarSocios(this.empId, this.rut) },
-                // ...
+                {
+                    key: "Órdenes de venta",
+                    run: () =>
+                        CargaParametrosService.cargarOrdenesVenta(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Transportista",
+                    run: () =>
+                        CargaParametrosService.cargarTransportista(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Socios",
+                    run: () =>
+                        CargaParametrosService.cargarSocios(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Precio Producto",
+                    run: () =>
+                        CargaParametrosService.cargarPrecios(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Empresa",
+                    run: () =>
+                        CargaParametrosService.cargarEmpresas(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Parámetro general",
+                    run: () =>
+                        CargaParametrosService.cargarParametroGeneral(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Carguios",
+                    run: () =>
+                        CargaParametrosService.cargarCarguios(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Empresa Contratista",
+                    run: () =>
+                        CargaParametrosService.cargarEmpresaContratista(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Rodales",
+                    run: () =>
+                        CargaParametrosService.cargarRodales(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
             ];
 
             const total = tasks.length;

@@ -1,10 +1,10 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { ocDocToDTO } from '@/app/mappers/ordenCompraMapper'
+import { socioDocToDTO } from '@/app/mappers/socioMapper'
 
 let instance = null;
 
-export default class OrdenCompraDAO {
+export default class socioDAO {
     constructor(db) {
         if (!instance) {
             this.db = db;
@@ -15,32 +15,32 @@ export default class OrdenCompraDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
-        return docs.map(ocDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.socio)
+        return docs.map(socioDocToDTO)
     }
 
 
 
     async eliminarTodos() {
         try {
-            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
+            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.socio);
             for (const item of data) {
                 await getBaseDao().eliminar(item);
             }
 
         } catch (error) {
-            console.error("Error al eliminar todos los OC:", error);
+            console.error("Error al eliminar todos los SOCIOS:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }
 
 
-    async insertar(ordenCompra) {
+    async insertar(socio) {
         try {
-            return await getBaseDao().insertar(ordenCompra);
+            return await getBaseDao().insertar(socio);
 
         } catch (error) {
-            console.error("Error al insertar OC:", error);
+            console.error("Error al insertar SOCIO:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }

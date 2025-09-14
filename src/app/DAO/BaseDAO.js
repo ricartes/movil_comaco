@@ -15,7 +15,7 @@ export default class BaseDAO {
             // Recuperar todos los documentos, incluyendo sus contenidos completos
             const resultado = await this.db.find({
                 selector: {
-                    tipo: tipo
+                    type: tipo
                 },
             });
             return resultado.docs;

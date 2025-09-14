@@ -128,32 +128,6 @@ export class OrdenCompraDTO {
         this.categoria = categoria;
         this.sag = sag;
         this.ocCliente = ocCliente;
-
-        // pouch opcionales
-        this._id = _id;
-        this._rev = _rev;
-        this.type = type;
-    }
-
-    static fromDoc(doc) {
-        return new OrdenCompraDTO(doc);
-    }
-
-    /**
-     * Genera un documento listo para PouchDB.
-     * @param {string} tipoEntidad e.g. config.bd.tipoEntidad.ordenCompra
-     * @param {string=} idStrategy por defecto usa numOc
-     */
-    toPouchDoc(tipoEntidad, idStrategy = 'numOc') {
-        const idSuffix = (idStrategy === 'numOc' && this.numOc) ? String(this.numOc) : String(Date.now());
-        const base = { ...this };
-        // limpiamos posibles undefined para no ensuciar el doc
-        Object.keys(base).forEach(k => base[k] === undefined && delete base[k]);
-        return {
-            _id: this._id || `${tipoEntidad}:${idSuffix}`,
-            type: tipoEntidad,
-            ...base,
-        };
     }
 }
 

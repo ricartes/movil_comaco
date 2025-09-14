@@ -55,7 +55,16 @@
     },
     "rutas": {
         "Login_Movil": "auth/login",
-        "RescatarOrdenCompra": "orden-compra"
+        "RescatarOrdenCompra": "orden-compra",
+        "RescatarOrdenVenta": "orden-venta",
+        "RescatarTransportista": "transportista",
+        "RescatarSocios": "socio",
+        "RescatarPrecios": "precio",
+        "RescatarEmpresas": "empresa",
+        "RescatarParametroGeneral": "parametro-general",
+        "RescatarCarguios": "carguio",
+        "RescatarEmpresaContratista": "empresa-contratista",
+        "RescatarRodales": "rodal"
     },
     "bd": {
         "tipoEntidad": {

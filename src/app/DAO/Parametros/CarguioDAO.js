@@ -1,10 +1,10 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { ocDocToDTO } from '@/app/mappers/ordenCompraMapper'
+import { carguioDocToDTO } from '@/app/mappers/carguioMapper'
 
 let instance = null;
 
-export default class OrdenCompraDAO {
+export default class CarguioDAO {
     constructor(db) {
         if (!instance) {
             this.db = db;
@@ -15,32 +15,33 @@ export default class OrdenCompraDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
-        return docs.map(ocDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio)
+        return docs.map(carguioDocToDTO)
     }
 
 
 
     async eliminarTodos() {
         try {
-            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
+            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio);
             for (const item of data) {
+                console.log(item);
                 await getBaseDao().eliminar(item);
             }
 
         } catch (error) {
-            console.error("Error al eliminar todos los OC:", error);
+            console.error("Error al eliminar todos las carguios:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }
 
 
-    async insertar(ordenCompra) {
+    async insertar(carguio) {
         try {
-            return await getBaseDao().insertar(ordenCompra);
+            return await getBaseDao().insertar(carguio);
 
         } catch (error) {
-            console.error("Error al insertar OC:", error);
+            console.error("Error al insertar carguio:", error);
             throw error;  // Re-lanzar para manejo externo
         }
     }
