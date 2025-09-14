@@ -4,6 +4,7 @@ import { getUsuarioDao } from '@/app/services/initServices'
 
 const TOKEN_KEY = 'auth_token'
 const RUT_KEY = 'auth_rut'
+const EMPRESA_KEY = 'auth_empresa'
 
 const store = createStore({
     state: { user: null, token: null, offline: false, ready: false },
@@ -21,15 +22,16 @@ const store = createStore({
                 const [{ value: token } = {}, { value: rut } = {}] = await Promise.all([
                     Preferences.get({ key: TOKEN_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: RUT_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: EMPRESA_KEY }).catch(() => ({})),
                 ])
                 state.token = token || null
 
                 // intenta cargar el user del DAO, pero no falles si aún no está listo
-                if (rut) {
+                if (rut && empresa) {
                     try {
                         const dao = getUsuarioDao?.()
                         if (dao && typeof dao.obtener === 'function') {
-                            state.user = await dao.obtener(String(rut))
+                            state.user = await dao.obtener(rut, empresa)
                         } else {
                             state.user = null
                         }
@@ -54,6 +56,7 @@ const store = createStore({
             state.offline = false
             await Preferences.set({ key: TOKEN_KEY, value: token })
             await Preferences.set({ key: RUT_KEY, value: String(user.rut) })
+            await Preferences.set({ key: EMPRESA_KEY, value: String(user.empresa ?? '') })
             window.dispatchEvent(new CustomEvent('auth:login'))
         },
 
@@ -63,6 +66,7 @@ const store = createStore({
             state.offline = true
             await Preferences.remove({ key: TOKEN_KEY })
             await Preferences.set({ key: RUT_KEY, value: String(user.rut) })
+            await Preferences.set({ key: EMPRESA_KEY, value: String(user.empresa ?? '') })
             window.dispatchEvent(new CustomEvent('auth:login'))
         },
 
@@ -72,6 +76,7 @@ const store = createStore({
             state.offline = false
             await Preferences.remove({ key: TOKEN_KEY })
             await Preferences.remove({ key: RUT_KEY })
+            await Preferences.remove({ key: EMPRESA_KEY })
             window.dispatchEvent(new CustomEvent('auth:logout'))
         },
     },

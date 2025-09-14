@@ -1,10 +1,14 @@
 import UsuarioDAO from '../DAO/UsuarioDAO';
 
+import OrdenCompraDAO from '../DAO/Parametros/OrdenCompraDAO';
+
 import BaseDAO from '../DAO/BaseDAO';
 
 // Inicializa UsuarioDAO con la instancia de la base de datos
 // La función acepta la instancia de la base de datos como parámetro
-let _usuarioDao; // Almacena la instancia aquí
+let _usuarioDao;
+
+let _ordenCompraDao;
 
 let _baseDAO;
 
@@ -12,6 +16,7 @@ export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
     _usuarioDao = new UsuarioDAO(dbInstance);
     _baseDAO = new BaseDAO(dbInstance);
+    _ordenCompraDao = new OrdenCompraDAO(dbInstance);
     // Podrías inicializar más servicios aquí
 }
 
@@ -27,5 +32,11 @@ export function getUsuarioDao() {
         throw new Error("_usuarioDao no ha sido inicializado.");
     }
     return _usuarioDao;
+}
+export function getOrdenCompraDao() {
+    if (!_ordenCompraDao) {
+        throw new Error("_ordenCompraDao no ha sido inicializado.");
+    }
+    return _ordenCompraDao;
 }
 

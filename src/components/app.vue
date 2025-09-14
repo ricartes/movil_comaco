@@ -77,9 +77,7 @@ export default {
                 isAuth.value = !!localStorage.getItem("auth_token");
 
                 // 👇 fuerza ir a la página correcta por si la URL quedó vacía
-                console.log(isAuth.value);
                 if (isAuth.value) {
-                    console.log("pasa");
                     f7.views.main?.router?.navigate("/home/", {
                         reloadAll: true,
                     });

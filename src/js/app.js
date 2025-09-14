@@ -16,7 +16,7 @@ import 'framework7/css/bundle';
 // Import Icons and App Custom Styles
 import '../css/icons.css';
 import '../css/app.less';
-
+import store from '@/js/store' 
 // Import App Component
 import App from '../components/app.vue';
 
@@ -32,6 +32,8 @@ Framework7.use(Framework7Vue);
         if (typeof initializeServices === 'function') {
             initializeServices(localDbInstance)
         }
+
+        await store.dispatch('hydrate') 
         // 3) Crea y monta la app
         const app = createApp(App)
         registerComponents(app)

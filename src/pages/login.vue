@@ -252,13 +252,13 @@ export default {
             return new Promise((resolve) => {
                 const dlg = f7.dialog.create({
                     title: "Configurar PIN offline",
-                    text: "Ingresa un PIN de 4 a 8 dígitos",
+                    text: "Ingresa un PIN de 4 dígitos para inicio de sesión offine",
                     content: `<div class="dialog-input-field">
-             <input type="password" id="pin1" inputmode="numeric" maxlength="8" class="dialog-input" placeholder="PIN" />
-           </div>
-           <div class="dialog-input-field">
-             <input type="password" id="pin2" inputmode="numeric" maxlength="8" class="dialog-input" placeholder="Repetir PIN" />
-           </div>`,
+                            <input type="password" id="pin1" inputmode="numeric" maxlength="4" class="dialog-input" placeholder="PIN" />
+                        </div>
+                        <div class="dialog-input-field">
+                            <input type="password" id="pin2" inputmode="numeric" maxlength="4" class="dialog-input" placeholder="Repetir PIN" />
+                        </div>`,
                     buttons: [
                         {
                             text: "Cancelar",
@@ -276,9 +276,9 @@ export default {
                                 const p2 = (
                                     dlg.el.querySelector("#pin2")?.value || ""
                                 ).replace(/\D/g, "");
-                                if (!/^\d{4,8}$/.test(p1)) {
+                                if (!/^\d{4,4}$/.test(p1)) {
                                     f7.dialog.alert(
-                                        "El PIN debe tener 4 a 8 dígitos"
+                                        "El PIN debe tener 4 dígitos"
                                     );
                                     return;
                                 }

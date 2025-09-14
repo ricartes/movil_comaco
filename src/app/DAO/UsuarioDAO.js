@@ -1,4 +1,4 @@
-import config from "../../Common/json/config.json"
+import config from "@/Common/json/config.json"
 let instance = null;
 
 export default class UsuarioDAO {
@@ -22,15 +22,12 @@ export default class UsuarioDAO {
         }
     }
 
-    async obtener(rut) {
+    async obtener(rut, empresa) {
         const rutStr = String(rut).replace(/\D/g, '')
-        const id = `user:${rutStr}`
-        console.log(id);
-        try {
-            return await this.db.get(id)    // trae TODO el doc, incluido offlinePin*
-        } catch (e) {
-            if (e.status === 404) return null
-            throw e
+        const empStr = String(empresa ?? '')
+        const id = `${config.bd.tipoEntidad.usuario}:${rutStr}:${empStr}`
+        try { return await this.db.get(id) } catch (e) {
+            if (e.status === 404) return null; throw e
         }
     }
 

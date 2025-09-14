@@ -1,10 +1,7 @@
 
-import HelperService from "./HelperService"
 import { getToken, derivePinHash, verifyPin } from "../Seguridad";
 import { loginWs } from "@/app/webservices/UsuarioWebService";
-import { UsuarioDTO } from "../DTO/UsuarioDTO";
 import { getUsuarioDao } from './initServices';
-import UsuarioResponseDTO from "../DTO/UsuarioResponseDTO";
 import Utilidades from "../Utilidades";
 import { Preferences } from '@capacitor/preferences'
 import { mapServerUserToDoc } from '@/app/mappers/userMapper'

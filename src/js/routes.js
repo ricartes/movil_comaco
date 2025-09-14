@@ -1,6 +1,7 @@
 
 import HomePage from '@/pages/home.vue';
 import Login from '@/pages/login.vue'
+import Menu from '@/pages//menu.vue';
 import NotFoundPage from '../pages/404.vue';
 
 var routes = [
@@ -12,6 +13,10 @@ var routes = [
     {
         path: '/home/',
         component: HomePage,
+    },
+    {
+        path: '/menu/',
+        component: Menu,
     },
 
     {

@@ -54,12 +54,22 @@
         "cantidadDecimalesTruncar": 2
     },
     "rutas": {
-        "Login_Movil": "auth/login"
-
+        "Login_Movil": "auth/login",
+        "RescatarOrdenCompra": "orden-compra"
     },
     "bd": {
         "tipoEntidad": {
             "usuario": "usuario",
+            "empresa": "empresa",
+            "parametroGeneral": "parametro-general",
+            "transportista": "transportista",
+            "socio": "socio",
+            "precio": "precio",
+            "empresaContratista": "empresa-contratista",
+            "rodal": "rodal",
+            "ordenCompra": "orden-compra",
+            "ordenVenta": "orden-venta",
+            "carguio": "carguio",
             "errorEnvio": "error_envio"
         }
     }
