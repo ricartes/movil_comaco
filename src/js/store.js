@@ -25,13 +25,12 @@ const store = createStore({
                     Preferences.get({ key: EMPRESA_KEY }).catch(() => ({})),
                 ])
                 state.token = token || null
-
                 // intenta cargar el user del DAO, pero no falles si aún no está listo
-                if (rut && empresa) {
+                if (rut) {
                     try {
                         const dao = getUsuarioDao?.()
-                        if (dao && typeof dao.obtener === 'function') {
-                            state.user = await dao.obtener(rut, empresa)
+                        if (dao && typeof dao.obtenerPorRut === 'function') {
+                            state.user = await dao.obtenerPorRut(rut)
                         } else {
                             state.user = null
                         }

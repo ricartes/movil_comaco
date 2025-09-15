@@ -4,9 +4,9 @@ import { makeId } from './_id'
 
 /** @param {import('../DTO/auth').ServerUser} su */
 export function mapServerUserToDoc(su) {
-    console.log(makeId(config.bd.tipoEntidad.usuario, su.empresa, su.rut));
     return {
-        _id: makeId(config.bd.tipoEntidad.usuario, su.empresa, su.rut),
+        type: config.bd.tipoEntidad.usuario,
+        _id: makeId(config.bd.tipoEntidad.usuario, su.rut),
         rut: su.rut,
         empresa: su.empresa,
         nombre: su.name,

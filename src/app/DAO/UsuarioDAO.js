@@ -23,10 +23,24 @@ export default class UsuarioDAO {
         }
     }
 
-    async obtener(rut, empresa) {
-        try { return await this.db.get(makeId(config.bd.tipoEntidad.usuario, empresa, rut)) } catch (e) {
+    async obtenerPorRut(rut) {
+        try { return await this.db.get(makeId(config.bd.tipoEntidad.usuario, rut)) } catch (e) {
             if (e.status === 404) return null; throw e
         }
+    }
+
+    async listarPorRut(rut) {
+        console.log(config.bd.tipoEntidad.usuario);
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.usuario,
+            },
+
+        });
+
+        console.log(res);
+
+        return res;
     }
 
 
@@ -43,6 +57,8 @@ export default class UsuarioDAO {
             console.error("Error al eliminar usuario:", error);
             throw error;
         }
+
+
     }
 
 

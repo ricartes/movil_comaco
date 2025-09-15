@@ -8,8 +8,7 @@
         :infinite-distance="100"
         @infinite="onInfinite"
     >
-        <f7-navbar title="Guías de Despacho" />
-
+        <f7-navbar title="Guias de despacho" />
         <!-- Empty state -->
         <div v-if="!loading && items.length === 0" class="empty">
             <f7-icon f7="doc_text" size="48"></f7-icon>
@@ -98,8 +97,13 @@ export default {
 
             // 1) Si el DAO ofrece método paginado, úsalo
             if (typeof listarPorEmpresaYRutPaginado === "function") {
-                const page = await listarPorEmpresaYRutPaginado(Number(empId.value), rut.value, { limit: PAGE_SIZE, skip: skip.value }) || []
-    
+                const page =
+                    (await listarPorEmpresaYRutPaginado(
+                        Number(empId.value),
+                        rut.value,
+                        { limit: PAGE_SIZE, skip: skip.value }
+                    )) || [];
+
                 if (reset) items.value = page;
                 else items.value = items.value.concat(page);
 
@@ -157,7 +161,7 @@ export default {
 
         function onCrear() {
             // Navega a tu flujo de creación de GDE (ajusta la ruta)
-            f7.views.main?.router?.navigate("/gde/nueva/");
+            f7.views.main?.router?.navigate("/gde/ingreso/");
         }
 
         function openDetalle(g) {

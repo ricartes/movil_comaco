@@ -104,8 +104,8 @@ var UsuarioService = {
 
 
 
-    async obtener(rut) {
-        return await getUsuarioDao().obtener(rut);
+    async obtenerPorRut(rut) {
+        return await getUsuarioDao().obtenerPorRut(rut);
     },
 
 
@@ -116,7 +116,6 @@ var UsuarioService = {
         const hash = await derivePinHash(pin, salt)
 
         const doc = { ...userDoc, offlinePinSalt: salt, offlinePinHash: hash }
-        console.log(doc);
         await getUsuarioDao().insertar(doc) // o upsert si tu DAO lo maneja
         return doc
     },
@@ -127,7 +126,7 @@ var UsuarioService = {
      * Valida PIN offline contra lo guardado en PouchDB
      */
     async validarPIN(rut, pin) {
-        const user = await getUsuarioDao().obtener(rut)
+        const user = await getUsuarioDao().obtenerPorRut(rut)
         if (!user || !user.offlinePinSalt || !user.offlinePinHash) return false
         return await verifyPin(pin, user.offlinePinSalt, user.offlinePinHash)
     },

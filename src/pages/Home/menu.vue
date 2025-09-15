@@ -1,51 +1,43 @@
 <template>
-    <f7-page name="menu">
-        <f7-navbar title="Menú" />
-
-        <!-- Card de usuario -->
-        <f7-card class="user-card">
-            <f7-card-content>
-                <div class="user-row">
-                    <div class="avatar">{{ initials }}</div>
-                    <div class="meta">
-                        <div class="name">{{ user?.nombre || "Usuario" }}</div>
-                        <div class="sub">RUT: {{ user?.rut ?? "-" }}</div>
-                        <div class="sub ellipsis">{{ user?.email || "" }}</div>
-                        <div class="status">
-                            <span
-                                class="dot"
-                                :class="offline ? 'bg-orange' : 'bg-green'"
-                            ></span>
-                            {{ offline ? "Offline" : "Online" }}
-                        </div>
+    <f7-navbar title="Menú principal" />
+    <f7-card class="user-card">
+        <f7-card-content>
+            <div class="user-row">
+                <div class="avatar">{{ initials }}</div>
+                <div class="meta">
+                    <div class="name">{{ user?.nombre || "Usuario" }}</div>
+                    <div class="sub">RUT: {{ user?.rut ?? "-" }}</div>
+                    <div class="sub ellipsis">{{ user?.email || "" }}</div>
+                    <div class="status">
+                        <span
+                            class="dot"
+                            :class="offline ? 'bg-orange' : 'bg-green'"
+                        ></span>
+                        {{ offline ? "Offline" : "Online" }}
                     </div>
                 </div>
-            </f7-card-content>
-        </f7-card>
+            </div>
+        </f7-card-content>
+    </f7-card>
 
-        <!-- Opciones -->
-        <f7-list inset strong class="menu-list">
-            <f7-list-item title="Cargar parámetros" @click="onCargarParametros">
-                <template #media
-                    ><f7-icon f7="arrow_down_circle_fill"
-                /></template>
-            </f7-list-item>
+    <!-- Opciones -->
+    <f7-list inset strong class="menu-list">
+        <f7-list-item title="Cargar parámetros" @click="onCargarParametros">
+            <template #media><f7-icon f7="arrow_down_circle_fill" /></template>
+        </f7-list-item>
 
-            <f7-list-item title="Cargar folios" @click="onCargarFolios">
-                <template #media><f7-icon f7="doc_on_doc_fill" /></template>
-            </f7-list-item>
+        <f7-list-item title="Cargar folios" @click="onCargarFolios">
+            <template #media><f7-icon f7="doc_on_doc_fill" /></template>
+        </f7-list-item>
 
-            <f7-list-item title="Configuración general" @click="onConfig">
-                <template #media><f7-icon f7="gear" /></template>
-            </f7-list-item>
-        </f7-list>
+        <f7-list-item title="Configuración general" @click="onConfig">
+            <template #media><f7-icon f7="gear" /></template>
+        </f7-list-item>
+    </f7-list>
 
-        <f7-block strong>
-            <f7-button fill color="red" @click="logout"
-                >Cerrar sesión</f7-button
-            >
-        </f7-block>
-    </f7-page>
+    <f7-block strong>
+        <f7-button fill color="red" @click="logout">Cerrar sesión</f7-button>
+    </f7-block>
 </template>
 
 <script>

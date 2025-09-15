@@ -1,3 +1,31 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    // Limita la memoria del lenguaje JS/TS (aplica también a JS)
+    "typescript.tsserver.maxTsServerMemory": 2048,
+    // No calcule diagnósticos globales del proyecto
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    // JS: desactiva chequeos pesados
+    "javascript.implicitProjectConfig.checkJs": false,
+    // Evita que descargue @types automáticamente (ahorra RAM y tiempo)
+    "typescript.disableAutomaticTypeAcquisition": true,
+    // Menos ruido = menos trabajo
+    "javascript.suggest.autoImports": false,
+    "typescript.suggest.autoImports": false,
+    // No indexar carpetas enormes
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/android/**": true,
+        "**/ios/**": true,
+        "**/build/**": true,
+        "**/dist/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/android": true,
+        "**/ios": true,
+        "**/build": true,
+        "**/dist": true
+    },
+    // Si usas Vue (Volar): activa "Take Over Mode" para un solo server
+    "vue.server.vitePress.takeOverMode.enabled": true,
+    "vue.features.takeOverMode.enabled": true
 }

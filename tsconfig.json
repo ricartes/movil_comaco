@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "skipLibCheck": true,
+        "allowJs": true,
+        "checkJs": false,
+        "noErrorTruncation": false
+    },
+    "exclude": [
+        "node_modules",
+        "android",
+        "ios",
+        "build",
+        "dist"
+    ]
+}

@@ -8,14 +8,15 @@
         "SplashScreen": {
             "launchShowDuration": 0
         },
+        "StatusBar": {
+            "overlaysWebView": false
+        },
         "CapacitorHttp": {
             "enabled": true
-        },
-        "StatusBar": {
-            "overlaysWebView": false,
-            "visible": false,
-            "style": "DARK"
         }
+    },
+    "android": {
+        "adjustMarginsForEdgeToEdge": "auto"
     },
     "cordova": {}
 }

@@ -1,14 +1,21 @@
 <template>
-    <f7-page name="login" no-swipeback class="login-page">
+    <f7-page
+        no-toolbar
+        no-navbar
+        no-swipeback
+        login-screen
+        class="login-page"
+        @page:beforein="onPageInit"
+    >
         <div class="login-container">
-            <!-- Marca -->
-            <div class="brand">
+            <f7-login-screen-title>
                 <img :src="logoSrc" alt="GDE" class="brand-logo" />
                 <div class="brand-text">
                     <div class="brand-title">GUIA DE DESPACHO</div>
                     <div class="brand-subtitle">ELECTRONICA</div>
                 </div>
-            </div>
+            </f7-login-screen-title>
+            <!-- Marca -->
 
             <!-- Card -->
             <f7-card class="login-card">
@@ -170,6 +177,7 @@ export default {
     props: { f7router: Object },
     data() {
         return {
+            paginaPrincipal: "/home/",
             logoSrc,
             loading: false,
             checkingRut: false,
@@ -206,6 +214,13 @@ export default {
         },
     },
     methods: {
+        onPageInit() {
+            const autenticado = !!localStorage.getItem("auth_token");
+            if (autenticado) {
+                //console.log(this.paginaPrincipal);
+                this.f7router.navigate(this.paginaPrincipal);
+            }
+        },
         onPinInput(e) {
             this.form.pin = (e?.target?.value || "")
                 .replace(/\D/g, "")
@@ -245,7 +260,7 @@ export default {
             this._rutTimer = setTimeout(async () => {
                 this.checkingRut = true;
                 try {
-                    const usuario = await UsuarioService.obtener(val);
+                    const usuario = await UsuarioService.obtenerPorRut(val);
                     if (this._rutQueryId !== myQueryId || this.form.rut !== val)
                         return;
 
@@ -284,13 +299,13 @@ export default {
                         this.form.pin
                     );
                     if (!ok) throw new Error("PIN incorrecto");
-                    const user = await UsuarioService.obtener(this.form.rut);
+                    const user = await UsuarioService.obtenerPorRut(
+                        this.form.rut
+                    );
                     await store.dispatch("setSessionOffline", { user });
                     localStorage.setItem("auth_token", "1");
                     window.dispatchEvent(new Event("auth:login"));
-                    f7.views.main.router.navigate("/home/", {
-                        clearPreviousHistory: true,
-                    });
+                    this.f7router.navigate(this.paginaPrincipal);
                     return;
                 }
 
@@ -346,9 +361,7 @@ export default {
                 });
                 localStorage.setItem("auth_token", "1");
                 window.dispatchEvent(new Event("auth:login"));
-                f7.views.main.router.navigate("/home/", {
-                    clearPreviousHistory: true,
-                });
+                this.f7router.navigate(this.paginaPrincipal);
             } catch (e) {
                 this.pinError = e?.message || "No se pudo guardar el PIN";
             } finally {
@@ -371,17 +384,9 @@ export default {
 <style scoped>
 /* Fondo y centrado */
 .login-page {
-    min-height: 100svh;
     background: #f5f7fb;
     display: grid;
     place-items: center;
-}
-.login-container {
-    transform: translateY(4vh);
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    align-items: center;
 }
 
 /* Marca */
@@ -416,13 +421,7 @@ export default {
 }
 
 /* Card/login */
-.login-card {
-    width: clamp(380px, 92vw, 640px);
-    border-radius: 12px;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
-    --f7-input-height: 40px;
-    --f7-input-font-size: 16px;
-}
+
 .login-card .login-list {
     margin: 8px 0 18px;
 }

@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+
 android {
     namespace "io.framework7.myapp"
     compileSdk rootProject.ext.compileSdkVersion

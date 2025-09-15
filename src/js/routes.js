@@ -1,29 +1,29 @@
 
-import HomePage from '@/pages/home.vue';
+
 import Login from '@/pages/login.vue'
-import Menu from '@/pages//menu.vue';
 import NotFoundPage from '../pages/404.vue';
-import gde from '@/pages/gde.vue';
+import home from '@/pages/home.vue';
+import GdeIngreso from '@/pages/gde/ingreso.vue';
+import store from './store';
+
+
+function isAuthed() {
+    return !!localStorage.getItem('auth_token')
+}
 
 var routes = [
-    { path: '/', redirect: () => (store.getters?.isAuth ? '/home/' : '/login/') },
     {
         path: '/login/',
         component: Login,
     },
     {
         path: '/home/',
-        component: HomePage,
+        component: home,
     },
     {
-        path: '/gde/',
-        component: gde,
+        path: '/gde/ingreso/',
+        component: GdeIngreso,
     },
-    {
-        path: '/menu/',
-        component: Menu,
-    },
-
 
     {
         path: '(.*)',

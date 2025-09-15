@@ -5,6 +5,26 @@
             "@/*": [
                 "src/*"
             ]
-        }
-    }
+        },
+        "allowJs": true,
+        "checkJs": false,
+        "skipLibCheck": true
+    },
+    "typeAcquisition": {
+        "enable": false
+    },
+    "include": [
+        "src/**/*",
+        "env.d.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "android",
+        "ios",
+        "build",
+        "dist",
+        "coverage",
+        "**/*.spec.*",
+        "**/*.test.*"
+    ]
 }

@@ -1,42 +1,7 @@
 <template>
-    <f7-app v-bind="f7params" class="safe-areas">
-        <template v-if="isAuth">
-            <!-- forzamos nuevo árbol cuando cambia auth -->
-            <f7-views tabs  :key="'auth-tabs'">
-                <!-- Tabbar inferior -->
-                <f7-toolbar tabbar labels bottom>
-                    <f7-link
-                        tab-link="#view-home"
-                        tab-link-active
-                        icon-ios="f7:rectangle_grid_2x2_fill"
-                        icon-md="material:dashboard"
-                        text="Dashboard"
-                    />
-                    <f7-link
-                        tab-link="#view-gde"
-                        icon-ios="f7:doc_text_fill"
-                        icon-md="material:description"
-                        text="GDE"
-                    />
-                    <f7-link
-                        tab-link="#view-menu"
-                        icon-ios="f7:line_3_horizontal"
-                        icon-md="material:menu"
-                        text="Menú"
-                    />
-                </f7-toolbar>
-
-                <!-- Vistas/tabs -->
-                <f7-view id="view-home" main tab tab-active url="/home/" />
-                <f7-view id="view-gde" name="gde" tab url="/gde/" />
-                <f7-view id="view-menu" name="menu" tab url="/menu/" />
-            </f7-views>
-        </template>
-
-        <template v-else>
-            <!-- IMPORTANTe: key distinto para que F7 cree un view “nuevo” -->
-            <f7-view main :key="'login-view'" url="/login/" />
-        </template>
+    <f7-app v-bind="f7params">
+        <!-- Your main view, should have "view-main" class -->
+        <f7-view main class="safe-areas" url="/login/"></f7-view>
     </f7-app>
 </template>
 
@@ -47,11 +12,12 @@ import { getDevice } from "framework7/lite-bundle";
 import capacitorApp from "../js/capacitor-app.js";
 import routes from "../js/routes.js";
 import store from "../js/store";
+import { StatusBar } from "@capacitor/status-bar";
 
 export default {
     setup() {
         const device = getDevice();
-        const isAuth = ref(false);
+        // const isAuth = ref(false);
 
         const f7params = {
             name: "GdeFds",
@@ -69,42 +35,20 @@ export default {
         };
 
         onMounted(() => {
-            f7ready(() => {
+            f7ready(async () => {
+                // 👈 ahora es async
                 if (device.capacitor) {
+                    // Desactiva overlay en Android/iOS
+                    await StatusBar.setOverlaysWebView({ overlay: false });
+                    // Luego inicializa tu lógica capacitor
                     capacitorApp.init(f7);
                 }
-                // sesión inicial
-                isAuth.value = !!localStorage.getItem("auth_token");
 
-                // 👇 fuerza ir a la página correcta por si la URL quedó vacía
-                if (isAuth.value) {
-                    f7.views.main?.router?.navigate("/home/", {
-                        reloadAll: true,
-                    });
-                } else {
-                    f7.views.main?.router?.navigate("/login/", {
-                        reloadAll: true,
-                    });
-                }
-
-                // eventos globales opcionales
-                window.addEventListener("auth:login", () => {
-                    isAuth.value = true;
-                    f7.views.main?.router?.navigate("/home/", {
-                        reloadAll: true,
-                    });
-                });
-                window.addEventListener("auth:logout", () => {
-                    isAuth.value = false;
-                    localStorage.removeItem("auth_token");
-                    f7.views.main?.router?.navigate("/login/", {
-                        reloadAll: true,
-                    });
-                });
+                // ... tu lógica de sesión inicial
             });
         });
 
-        return { f7params, isAuth };
+        return { f7params };
     },
 };
 </script>
