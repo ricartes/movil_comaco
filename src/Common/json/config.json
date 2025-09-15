@@ -79,7 +79,8 @@
             "ordenCompra": "orden-compra",
             "ordenVenta": "orden-venta",
             "carguio": "carguio",
-            "errorEnvio": "error_envio"
+            "errorEnvio": "error_envio",
+            "gde": "gde"
         }
     }
 }

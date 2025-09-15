@@ -12,11 +12,11 @@ import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
 import { mapServerTransportistaToDoc } from '@/app/mappers/transportistaMapper'
 import { mapServerSocioToDoc } from '@/app/mappers/SocioMapper'
 import { mapServerPrecioToDoc } from '@/app/mappers/PrecioProductoMapper'
-import { mapServerEmpresaToDoc } from '@/app/mappers/EmpresaMapper'
-import { mapServerParametroGeneralToDoc } from '@/app/mappers/ParametroGeneralMapper'
-import { mapServerCarguioToDoc } from '@/app/mappers/CarguioMapper'
-import { mapServerEmpresaContratistaToDoc } from '@/app/mappers/EmpresaContratistaMapper'
-import { mapServerRodalToDoc } from '@/app/mappers/RodalMapper'
+import { mapServerEmpresaToDoc } from '@/app/mappers/empresaMapper'
+import { mapServerParametroGeneralToDoc } from '@/app/mappers/parametroGeneralMapper'
+import { mapServerCarguioToDoc } from '@/app/mappers/carguioMapper'
+import { mapServerEmpresaContratistaToDoc } from '@/app/mappers/empresaContratistaMapper'
+import { mapServerRodalToDoc } from '@/app/mappers/rodalMapper'
 
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {

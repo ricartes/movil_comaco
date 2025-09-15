@@ -1,4 +1,5 @@
 import config from "@/Common/json/config.json"
+import { makeId } from "../mappers/_id";
 let instance = null;
 
 export default class UsuarioDAO {
@@ -23,10 +24,7 @@ export default class UsuarioDAO {
     }
 
     async obtener(rut, empresa) {
-        const rutStr = String(rut).replace(/\D/g, '')
-        const empStr = String(empresa ?? '')
-        const id = `${config.bd.tipoEntidad.usuario}:${rutStr}:${empStr}`
-        try { return await this.db.get(id) } catch (e) {
+        try { return await this.db.get(makeId(config.bd.tipoEntidad.usuario, empresa, rut)) } catch (e) {
             if (e.status === 404) return null; throw e
         }
     }

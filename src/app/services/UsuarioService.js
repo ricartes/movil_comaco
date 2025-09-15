@@ -76,8 +76,6 @@ var UsuarioService = {
         try {
 
             const rutNum = String(rut).replace(/\D/g, '')
-
-            /** @type {import('@/app/dto/auth').WebLoginResponse} */
             const resp = await loginWs(rutNum, passwordIngresado)
             // Backend SIEMPRE entrega "status" true/false → no lances error aquí
             if (!resp?.status) {
@@ -111,12 +109,6 @@ var UsuarioService = {
     },
 
 
-
-    /**
-     * Guarda el usuario en PouchDB agregando PIN offline (hash + salt)
-     * @param {import('@/app/dto/auth').UsuarioDoc} userDoc
-     * @param {string} pin  // 4-8 dígitos
-     */
     async guardarUsuarioLocalConPin(userDoc, pin) {
         if (!/^\d{4,8}$/.test(pin)) throw new Error('PIN invalido')
         const deviceId = await Utilidades.getUIDevice()
@@ -129,7 +121,7 @@ var UsuarioService = {
         return doc
     },
 
-    
+
 
     /**
      * Valida PIN offline contra lo guardado en PouchDB

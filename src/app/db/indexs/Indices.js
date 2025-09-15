@@ -54,6 +54,11 @@ export async function crearIndicesTipo(db) {
 
         // === error_envio (si lo usas con fechas) ===
         { ddoc: 'idx_err_fecha', fields: ['type', 'fechaHora'] },
+
+
+        { ddoc: 'idx_gde_empId_rut', fields: ['type', 'empId', 'codDespachador'] },
+
+
     ];
 
     for (const { ddoc, fields } of toCreate) {

@@ -1,6 +1,6 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { socioDocToDTO } from '@/app/mappers/socioMapper'
+import { socioDocToDTO } from '@/app/mappers/SocioMapper'
 
 let instance = null;
 

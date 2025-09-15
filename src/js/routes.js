@@ -3,6 +3,7 @@ import HomePage from '@/pages/home.vue';
 import Login from '@/pages/login.vue'
 import Menu from '@/pages//menu.vue';
 import NotFoundPage from '../pages/404.vue';
+import gde from '@/pages/gde.vue';
 
 var routes = [
     { path: '/', redirect: () => (store.getters?.isAuth ? '/home/' : '/login/') },
@@ -15,9 +16,14 @@ var routes = [
         component: HomePage,
     },
     {
+        path: '/gde/',
+        component: gde,
+    },
+    {
         path: '/menu/',
         component: Menu,
     },
+
 
     {
         path: '(.*)',

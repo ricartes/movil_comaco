@@ -1,8 +1,8 @@
 <template>
-    <f7-app v-bind="f7params">
+    <f7-app v-bind="f7params" class="safe-areas">
         <template v-if="isAuth">
             <!-- forzamos nuevo árbol cuando cambia auth -->
-            <f7-views tabs class="safe-areas" :key="'auth-tabs'">
+            <f7-views tabs  :key="'auth-tabs'">
                 <!-- Tabbar inferior -->
                 <f7-toolbar tabbar labels bottom>
                     <f7-link

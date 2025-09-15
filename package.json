@@ -10,7 +10,8 @@
     "dev": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
     "build-capacitor-android": "cross-env NODE_ENV=production vite build && npx cap copy android",
-    "postinstall": "cpy --flat ./node_modules/framework7-icons/fonts/*.* ./src/fonts/ && cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
+    "postinstall": "cpy --flat ./node_modules/framework7-icons/fonts/*.* ./src/fonts/ && cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/",
+    "run-android": "cross-env NODE_ENV=production vite build && npx cap copy android && npx cap run android"
   },
   "browserslist": [
     "IOS >= 15",
@@ -26,7 +27,6 @@
     "@capacitor/device": "^7.0.2",
     "@capacitor/filesystem": "^7.1.4",
     "@capacitor/geolocation": "^7.1.5",
-    "@capacitor/http": "^0.0.2",
     "@capacitor/keyboard": "^7.0.3",
     "@capacitor/network": "^7.0.2",
     "@capacitor/preferences": "^7.0.2",
