@@ -9,35 +9,41 @@
                 smart-select
                 :smart-select-params="ssParams"
             >
-                <select :value="form.zonaId" @change="handleZonaChange">
+                <select :value="form.zonaCodigo" @change="handleZonaChange">
                     <option value="" disabled>Seleccione una zona…</option>
-                    <option v-for="z in zonas" :key="z.id" :value="z.id">
-                        {{ z.nombre }}
+                    <option
+                        v-for="z in zonas"
+                        :key="z.codigo"
+                        :value="z.codigo"
+                    >
+                        {{ z.descripcion }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <!-- PATENTE -->
+            <!-- TRANSPORTISTA (sin “agregar nuevo”) -->
             <f7-list-item
-                title="Patente"
+                v-if="form.zonaCodigo"
+                title="Transportista"
                 smart-select
                 :smart-select-params="ssParams"
-                v-if="form.zonaId"
             >
-                <select :value="form.patente" @change="handlePatenteChange">
-                    <option value="" disabled>Seleccione una patente…</option>
-                    <option v-for="p in patentes" :key="p" :value="p">
-                        {{ p }}
+                <select
+                    :value="form.transportista"
+                    @change="handleTransportistaChange"
+                >
+                    <option value="" disabled>
+                        {{
+                            transportistas.length
+                                ? "Seleccione un transportista…"
+                                : "No hay transportistas"
+                        }}
                     </option>
-                    <option value="__new">➕ Ingresar patente…</option>
+                    <option v-for="t in transportistas" :key="t" :value="t">
+                        {{ t }}
+                    </option>
                 </select>
             </f7-list-item>
-        </f7-list>
-
-        <!-- Campos dependientes -->
-        <f7-list v-if="extrasVisible">
-            <f7-list-input label="Conductor" v-model:value="form.conductor" />
-            <f7-list-input label="Observación" v-model:value="form.obs" />
         </f7-list>
     </f7-page>
 </template>
@@ -45,132 +51,102 @@
 <script>
 import { f7 } from "framework7-vue";
 import { nextTick } from "vue";
+import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
+import store from "@/js/store";
 
 export default {
     name: "GDEIngreso",
     data() {
         return {
-            ssParams: { openIn: "sheet", searchbar: true, closeOnSelect: true },
-            zonas: [],
-            patentes: ["ABCJ45", "JKLF12", "PQRS89"],
-            form: {
-                zonaId: "",
-                patente: "",
-                conductor: "",
-                obs: "",
+            ssParams: {
+                openIn: "popup",
+                searchbar: true,
+                closeOnSelect: true,
+                sheetCloseLinkText: "Listo",
+                searchbarPlaceholder: 'Buscar',
             },
-            extrasVisible: false,
-            _prevZona: "",
-            _prevPatente: "",
+            zonas: [],
+            transportistas: [], // ← vacío por ahora
+            form: {
+                zonaCodigo: "",
+                zona: null, // objeto completo de zona
+                transportista: "", // string seleccionado
+            },
+            _prevZonaCodigo: "",
+            _prevTransportista: "",
         };
+    },
+    computed: {
+        usuarioActivo() {
+            return store.state.user;
+        },
     },
     async created() {
         await this.getZonas();
     },
     methods: {
-
-
-        async getZonas(){
-
-
+        async getZonas() {
+            this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
+            if (this.form.zonaCodigo) this.syncZona(this.form.zonaCodigo);
         },
-        // ---- util: forzar re-render del select de zona
-        async forceRebindZona(id) {
-            const v = id; // guardar nuevo valor
-            this.form.zonaId = null; // 1) blanquear
-            await nextTick(); // 2) esperar re-render
-            this.form.zonaId = v; // 3) reasignar
-            this._prevZona = v;
+
+        syncZona(codigo) {
+            this.form.zonaCodigo = codigo || "";
+            this.form.zona =
+                this.zonas.find((z) => z.codigo === codigo) || null;
+        },
+
+        async forceRebindZona(codigo) {
+            const v = codigo;
+            this.syncZona(""); // limpia (evita re-montaje raro del smart select)
+            await nextTick();
+            this.syncZona(v);
+            this._prevZonaCodigo = v;
         },
 
         resetDependencias() {
-            this.form.patente = "";
-            this.form.conductor = "";
-            this.form.obs = "";
-            this.extrasVisible = false;
-            this._prevPatente = "";
+            // por ahora solo limpiar selección y lista
+            this.form.transportista = "";
+            this._prevTransportista = "";
+            this.transportistas = []; // seguirá vacío hasta que cargues desde API
         },
 
-        // ---- ZONA
+        // --- ZONA
         async handleZonaChange(e) {
-            const newZona = e.target.value;
+            const nuevoCodigo = e.target.value;
 
-            // si ya hay patente o extras visibles, pedir confirmación
-            if (this.form.patente || this.extrasVisible) {
+            if (this.form.transportista) {
                 f7.dialog.confirm(
-                    "Cambiar la zona limpiará los datos (patente y campos). ¿Desea continuar?",
+                    "Cambiar la zona limpiará el transportista seleccionado. ¿Desea continuar?",
                     async () => {
                         this.resetDependencias();
-                        await this.forceRebindZona(newZona);
+                        await this.forceRebindZona(nuevoCodigo);
+                        // cuando tengas backend:
+                        // this.transportistas = await TransportistaService.listarPorZona(nuevoCodigo)
                     },
                     async () => {
-                        // cancelar: rebind con la zona anterior para “volver atrás”
-                        await this.forceRebindZona(this._prevZona);
+                        await this.forceRebindZona(this._prevZonaCodigo); // revertir
                     }
                 );
                 return;
             }
 
-            // no hay dependencias -> solo rebind
-            await this.forceRebindZona(newZona);
+            this.resetDependencias();
+            await this.forceRebindZona(nuevoCodigo);
+            // cuando tengas backend:
+            // this.transportistas = await TransportistaService.listarPorZona(nuevoCodigo)
         },
 
-        // ---- PATENTE
-        handlePatenteChange(e) {
+        // --- TRANSPORTISTA (simple, sin “nuevo”)
+        handleTransportistaChange(e) {
             const val = e.target.value;
-
-            const setPatente = (v) => {
-                this.form.patente = v;
-                this._prevPatente = v;
-                this.extrasVisible = !!v; // mostrar campos al tener patente
-            };
-
-            // opción de crear nueva patente
-            if (val === "__new") {
-                f7.dialog.prompt(
-                    "Ingrese la patente",
-                    (pat) => {
-                        const clean = (pat || "")
-                            .toUpperCase()
-                            .replace(/\s+/g, "");
-                        if (!clean) return;
-                        if (!this.patentes.includes(clean))
-                            this.patentes.unshift(clean);
-                        setPatente(clean);
-                    },
-                    () => {
-                        // canceló prompt -> volver a la anterior
-                        setPatente(this._prevPatente);
-                    }
-                );
-                return;
-            }
-
-            // si ya hay extras visibles y cambia a otra patente, confirmar limpieza
-            if (this.extrasVisible && val !== this._prevPatente) {
-                f7.dialog.confirm(
-                    "Cambiar la patente limpiará los campos dependientes. ¿Desea continuar?",
-                    () => {
-                        this.form.conductor = "";
-                        this.form.obs = "";
-                        setPatente(val);
-                    },
-                    () => {
-                        // cancelar -> revertir
-                        setPatente(this._prevPatente);
-                    }
-                );
-                return;
-            }
-
-            // asignación directa
-            setPatente(val);
+            this.form.transportista = val;
+            this._prevTransportista = val;
         },
     },
     mounted() {
-        // inicial para “volver atrás” si cancela
-        this._prevZona = this.form.zonaId;
-        this._prevPatente = this.form.patente;
+        this._prevZonaCodigo = this.form.zonaCodigo;
+        this._prevTransportista = this.form.transportista;
     },
 };
 </script>

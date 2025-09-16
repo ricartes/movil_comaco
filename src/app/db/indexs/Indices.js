@@ -52,6 +52,9 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_rodal_origen', fields: ['type', 'codOrigen'] },
         { ddoc: 'idx_rodal_origen_cod', fields: ['type', 'codOrigen', 'codrodal'] },
 
+      
+
+
         // === error_envio (si lo usas con fechas) ===
         { ddoc: 'idx_err_fecha', fields: ['type', 'fechaHora'] },
 

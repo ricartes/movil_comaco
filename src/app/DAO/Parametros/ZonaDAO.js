@@ -19,6 +19,18 @@ export default class ZonaDAO {
         return docs.map(zonaDocToDTO)
     }
 
+    async listarPorEmpresa(empId) {
+
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.zona,
+                empId: Number(empId)                // ⬅️ empId aquí
+
+            },
+        })
+        return res.docs.map(zonaDocToDTO);
+    }
+
 
 
     async eliminarTodos() {

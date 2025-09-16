@@ -12,7 +12,6 @@ import { getDevice } from "framework7/lite-bundle";
 import capacitorApp from "../js/capacitor-app.js";
 import routes from "../js/routes.js";
 import store from "../js/store";
-import { StatusBar } from "@capacitor/status-bar";
 
 export default {
     setup() {
@@ -38,9 +37,6 @@ export default {
             f7ready(async () => {
                 // 👈 ahora es async
                 if (device.capacitor) {
-                    // Desactiva overlay en Android/iOS
-                    await StatusBar.setOverlaysWebView({ overlay: false });
-                    // Luego inicializa tu lógica capacitor
                     capacitorApp.init(f7);
                 }
 
