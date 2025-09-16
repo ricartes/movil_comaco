@@ -41,11 +41,12 @@ export function mapTransportistaArrayToDocs(rows = []) {
 export function transportistaDocToDTO(doc) {
     return new TransportistaDTO(
         doc.patCamion,
-        doc.patCarro ?? null,
-        doc.rutChofer ?? null,
-        doc.nomChofer ?? null,
-        doc.codTransportista ?? null,
-        doc.nomTransportista ?? null,
-        doc.rutTransportista ?? null
+        doc.patCarro,
+        doc.rutChofer,
+        doc.nomChofer,
+        doc.codTransportista,
+        doc.nomTransportista,
+        doc.rutTransportista,
+        doc.vigencia
     )
 }

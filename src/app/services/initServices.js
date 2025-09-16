@@ -12,7 +12,8 @@ import EmpresaContratistaDAO from '@/app/DAO/Parametros/EmpresaContratistaDAO';
 import RodalDAO from '@/app/DAO/Parametros/RodalDAO';
 import ZonaDAO from '@/app/DAO/Parametros/ZonaDAO';
 import GdeDAO from '@/app/DAO/GdeDAO';
-
+import ProveedorDAO from '@/app/DAO/Parametros/ProveedorDAO';
+import PredioDAO from '@/app/DAO/Parametros/PredioDAO';
 
 
 // Inicializa UsuarioDAO con la instancia de la base de datos
@@ -31,6 +32,8 @@ let _empresaContratistaDao;
 let _rodalDao;
 let _gdeDao;
 let _zonaDao;
+let _proveedorDao;
+let _predioDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -48,7 +51,8 @@ export function initializeServices(dbInstance) {
     _rodalDao = new RodalDAO(dbInstance);
     _gdeDao = new GdeDAO(dbInstance);
     _zonaDao = new ZonaDAO(dbInstance);
-    // Podrías inicializar más servicios aquí
+    _proveedorDao = new ProveedorDAO(dbInstance);
+    _predioDao = new PredioDAO(dbInstance);
 }
 
 export function getBaseDao() {
@@ -139,6 +143,20 @@ export function getZonaDao() {
         throw new Error("_zonaDao no ha sido inicializado.");
     }
     return _zonaDao;
+}
+
+export function getProveedorDao() {
+    if (!_proveedorDao) {
+        throw new Error("_proveedorDao no ha sido inicializado.");
+    }
+    return _proveedorDao;
+}
+
+export function getPredioDao() {
+    if (!_predioDao) {
+        throw new Error("_predioDao no ha sido inicializado.");
+    }
+    return _predioDao;
 }
 
 export function getGdeDao() {

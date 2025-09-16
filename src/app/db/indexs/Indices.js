@@ -52,6 +52,11 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_rodal_origen', fields: ['type', 'codOrigen'] },
         { ddoc: 'idx_rodal_origen_cod', fields: ['type', 'codOrigen', 'codrodal'] },
 
+        //proveedor
+        { ddoc: 'idx_proveedor_encargado_proveedor', fields: ['type', 'codEncargado', 'rutProveedor'] },
+
+       
+
       
 
 

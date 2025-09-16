@@ -82,7 +82,8 @@
             "carguio": "carguio",
             "errorEnvio": "error_envio",
             "gde": "gde",
-            "zona": "zona"
+            "zona": "zona",
+            "proveedor": "proveedor"
         }
     }
 }
