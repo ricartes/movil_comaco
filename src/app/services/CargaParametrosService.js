@@ -5,7 +5,8 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
-    getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresContratistaDao, getRodalDao
+    getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresContratistaDao, getRodalDao,
+    getZonaDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
@@ -17,6 +18,7 @@ import { mapServerParametroGeneralToDoc } from '@/app/mappers/parametroGeneralMa
 import { mapServerCarguioToDoc } from '@/app/mappers/carguioMapper'
 import { mapServerEmpresaContratistaToDoc } from '@/app/mappers/empresaContratistaMapper'
 import { mapServerRodalToDoc } from '@/app/mappers/rodalMapper'
+import { mapServerZonaToDoc } from '@/app/mappers/ZonaMapper'
 
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
@@ -145,6 +147,17 @@ const CargaParametrosService = {
             mapper: mapServerRodalToDoc,
             daoGetter: getRodalDao,
             nombre: 'Rodales',
+        })
+    },
+
+    cargarZonas(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarZonas,
+            mapper: mapServerZonaToDoc,
+            daoGetter: getZonaDao,
+            nombre: 'Zonas',
         })
     },
 }

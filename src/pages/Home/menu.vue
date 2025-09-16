@@ -148,6 +148,14 @@ export default {
                             this.user.rut
                         ),
                 },
+                {
+                    key: "Zonas",
+                    run: () =>
+                        CargaParametrosService.cargarZonas(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
             ];
 
             const total = tasks.length;

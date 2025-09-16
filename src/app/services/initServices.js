@@ -10,7 +10,9 @@ import ParametroGeneralDAO from '@/app/DAO/Parametros/ParametroGeneralDAO';
 import CarguioDAO from '@/app/DAO/Parametros/CarguioDAO';
 import EmpresaContratistaDAO from '@/app/DAO/Parametros/EmpresaContratistaDAO';
 import RodalDAO from '@/app/DAO/Parametros/RodalDAO';
-import gdeDAO from '@/app/DAO/GdeDAO';
+import ZonaDAO from '@/app/DAO/Parametros/ZonaDAO';
+import GdeDAO from '@/app/DAO/GdeDAO';
+
 
 
 // Inicializa UsuarioDAO con la instancia de la base de datos
@@ -28,6 +30,7 @@ let _carguioDao;
 let _empresaContratistaDao;
 let _rodalDao;
 let _gdeDao;
+let _zonaDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -43,7 +46,8 @@ export function initializeServices(dbInstance) {
     _carguioDao = new CarguioDAO(dbInstance);
     _empresaContratistaDao = new EmpresaContratistaDAO(dbInstance);
     _rodalDao = new RodalDAO(dbInstance);
-    _gdeDao = new gdeDAO(dbInstance);
+    _gdeDao = new GdeDAO(dbInstance);
+    _zonaDao = new ZonaDAO(dbInstance);
     // Podrías inicializar más servicios aquí
 }
 
@@ -128,6 +132,13 @@ export function getRodalDao() {
         throw new Error("_rodalDao no ha sido inicializado.");
     }
     return _rodalDao;
+}
+
+export function getZonaDao() {
+    if (!_zonaDao) {
+        throw new Error("_zonaDao no ha sido inicializado.");
+    }
+    return _zonaDao;
 }
 
 export function getGdeDao() {

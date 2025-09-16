@@ -4,7 +4,7 @@ import { gdeDocToDTO } from '@/app/mappers/gdeMapper'
 
 let instance = null;
 
-export default class gdeDAO {
+export default class GdeDAO {
     constructor(db) {
         if (!instance) {
             this.db = db;

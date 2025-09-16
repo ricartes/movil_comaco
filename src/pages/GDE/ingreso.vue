@@ -51,11 +51,7 @@ export default {
     data() {
         return {
             ssParams: { openIn: "sheet", searchbar: true, closeOnSelect: true },
-            zonas: [
-                { id: "norte", nombre: "Zona Norte" },
-                { id: "centro", nombre: "Zona Centro" },
-                { id: "sur", nombre: "Zona Sur" },
-            ],
+            zonas: [],
             patentes: ["ABCJ45", "JKLF12", "PQRS89"],
             form: {
                 zonaId: "",
@@ -68,7 +64,16 @@ export default {
             _prevPatente: "",
         };
     },
+    async created() {
+        await this.getZonas();
+    },
     methods: {
+
+
+        async getZonas(){
+
+
+        },
         // ---- util: forzar re-render del select de zona
         async forceRebindZona(id) {
             const v = id; // guardar nuevo valor

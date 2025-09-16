@@ -64,7 +64,8 @@
         "RescatarParametroGeneral": "parametro-general",
         "RescatarCarguios": "carguio",
         "RescatarEmpresaContratista": "empresa-contratista",
-        "RescatarRodales": "rodal"
+        "RescatarRodales": "rodal",
+        "RescatarZonas": "zona"
     },
     "bd": {
         "tipoEntidad": {
@@ -80,7 +81,8 @@
             "ordenVenta": "orden-venta",
             "carguio": "carguio",
             "errorEnvio": "error_envio",
-            "gde": "gde"
+            "gde": "gde",
+            "zona": "zona"
         }
     }
 }
