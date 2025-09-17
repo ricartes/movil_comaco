@@ -68,13 +68,117 @@
                     :value="form.predio?.rolPredio || ''"
                     @change="handlePredioChange"
                 >
-                    <option value="" disabled>Seleccione un Proveedor…</option>
+                    <option value="" disabled>Seleccione un Predio</option>
                     <option
                         v-for="p in predios"
                         :key="p.rolPredio"
                         :value="p.rolPredio"
                     >
                         {{ p.predio }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <!-- CLIENTE: depende de predio -->
+            <f7-list-item
+                v-if="form.predio"
+                :key="form.predio?.rolPredio"
+                title="Cliente"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.cliente?.rutCliente || ''"
+                    @change="handleClienteChange"
+                >
+                    <option value="" disabled>Seleccione un Cliente</option>
+                    <option
+                        v-for="p in clientes"
+                        :key="p.rutCliente"
+                        :value="p.rutCliente"
+                    >
+                        {{ p.rutCliente }} {{ p.razonSocialCliente }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                accordion-item
+                :accordion-opened="true"
+                title="Información del cliente"
+                v-if="form.cliente"
+            >
+                <f7-accordion-content>
+                    <div class="card data-table data-table-init">
+                        <div class="card-content">
+                            <table>
+                                <tbody>
+                                    <tr>
+                                        <td class="label-cell">RUT</td>
+                                        <td class="numeric-cell">
+                                            {{ form.cliente.rutCliente }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Razón Social</td>
+                                        <td class="numeric-cell">
+                                            {{
+                                                form.cliente.razonSocialCliente
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Comuna</td>
+                                        <td class="numeric-cell">
+                                            {{ form.cliente.comunaCliente }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Ciudad</td>
+                                        <td class="numeric-cell">
+                                            {{ form.cliente.ciudadCliente }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Giro</td>
+                                        <td class="numeric-cell">
+                                            {{ form.cliente.giroCliente }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Teléfono</td>
+                                        <td class="numeric-cell">
+                                            {{
+                                                form.cliente.telefonoCliente ||
+                                                "—"
+                                            }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.cliente"
+                :key="form.cliente?.rutCliente"
+                title="Destino"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.cliente?.destinoCliente || ''"
+                    @change="handleDestinoChange"
+                >
+                    <option value="" disabled>Seleccione un Destino</option>
+                    <option
+                        v-for="p in destinos"
+                        :key="p.destinoCliente"
+                        :value="p.destinoCliente"
+                    >
+                        {{ p.destinoCliente }}
                     </option>
                 </select>
             </f7-list-item>
@@ -87,6 +191,7 @@ import { f7 } from "framework7-vue";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
+import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
 import store from "@/js/store";
 
 export default {
@@ -103,10 +208,14 @@ export default {
             zonas: [],
             proveedores: [],
             predios: [],
+            clientes: [],
+            destinos: [],
             form: {
                 zona: null, // objeto zona seleccionado
                 proveedor: null, // objeto proveedor seleccionado
                 predio: null, // objeto predio seleccionado
+                cliente: null, // objeto cliente seleccionado
+                destino: null,
             },
         };
     },
@@ -160,7 +269,9 @@ export default {
             // limpiar predio antes de recargar lista
             this.form.proveedor = nuevoProv;
             this.form.predio = null;
+            this.form.cliente = null;
             this.predios = [];
+            this.clientes = [];
 
             await this.$nextTick(); // re-render del smart-select "Predio"
 
@@ -172,10 +283,39 @@ export default {
                 : [];
         },
 
-        handlePredioChange(e) {
+        async handlePredioChange(e) {
             const nuevoPredio = e.target.value;
             this.form.predio =
                 this.predios.find((p) => p.rolPredio === nuevoPredio) || null;
+
+            this.form.cliente = null;
+            this.clientes = [];
+            await this.$nextTick();
+
+            this.clientes = nuevoPredio
+                ? await listarClientesPorPredio(
+                      this.form.zona.codigo,
+                      this.form.proveedor.rutProveedor,
+                      nuevoPredio.rolPredio
+                  )
+                : [];
+        },
+
+        async handleClienteChange(e) {
+            const nuevoCliente = e.target.value;
+            this.form.cliente =
+                this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
+                null;
+
+            this.form.destino = null;
+            this.destinos = [];
+            await this.$nextTick();
+        },
+
+        async handleDestinoChange(e) {
+            const nuevoDestino = e.target.value;
+            this.form.destino =
+                this.destinos.find((p) => p.destino === nuevoDestino) || null;
         },
 
         back() {
