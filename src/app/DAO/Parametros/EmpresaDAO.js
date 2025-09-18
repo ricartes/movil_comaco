@@ -20,6 +20,21 @@ export default class EmpresaDAO {
     }
 
 
+    async obtener(id) {
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.empresa,
+                id
+            },
+            limit: 1, // 👈 optimiza: solo un doc
+        });
+
+        const doc = res.docs[0] || null;
+        return doc ? empresaDocToDTO(doc) : null;
+    }
+
+
+
 
     async eliminarTodos() {
         try {

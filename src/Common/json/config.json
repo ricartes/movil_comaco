@@ -45,6 +45,16 @@
             "valorMinimo": 0,
             "valorMaximo": 100
         },
+        "indicadoresTraslado": {
+            "VENTA": {
+                "id": "V",
+                "texto": "CONSTITUYE VENTA"
+            },
+            "TRASLADO": {
+                "id": "T",
+                "texto": "SOLO TRASLADO"
+            }
+        },
         "transformarAlturaAMetros": true,
         "valorTransformacionMetros": 100,
         "validaEquipoMovil": true,

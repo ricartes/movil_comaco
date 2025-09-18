@@ -104,59 +104,20 @@
 
             <f7-list-item
                 accordion-item
-                :accordion-opened="true"
+                accordion-opened
                 title="Información del cliente"
+                class="cliente-info"
+                ref="clienteAccordion"
                 v-if="form.cliente"
             >
                 <f7-accordion-content>
                     <div class="card data-table data-table-init">
-                        <div class="card-content">
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td class="label-cell">RUT</td>
-                                        <td class="numeric-cell">
-                                            {{ form.cliente.rutCliente }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label-cell">Razón Social</td>
-                                        <td class="numeric-cell">
-                                            {{
-                                                form.cliente.razonSocialCliente
-                                            }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label-cell">Comuna</td>
-                                        <td class="numeric-cell">
-                                            {{ form.cliente.comunaCliente }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label-cell">Ciudad</td>
-                                        <td class="numeric-cell">
-                                            {{ form.cliente.ciudadCliente }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label-cell">Giro</td>
-                                        <td class="numeric-cell">
-                                            {{ form.cliente.giroCliente }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label-cell">Teléfono</td>
-                                        <td class="numeric-cell">
-                                            {{
-                                                form.cliente.telefonoCliente ||
-                                                "—"
-                                            }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <informacion-cliente
+                            v-if="form.cliente"
+                            :cliente="form.cliente"
+                            :indicador-traslado="form.indicadorTraslado"
+                        >
+                        </informacion-cliente>
                     </div>
                 </f7-accordion-content>
             </f7-list-item>
@@ -165,16 +126,103 @@
                 v-if="form.cliente"
                 :key="form.cliente?.rutCliente"
                 title="Destino"
+                class="destino-cliente"
+                ref="destinoCliente"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
-                    :value="form.cliente?.destinoCliente || ''"
+                    :value="form.destino?.destinoCliente || ''"
                     @change="handleDestinoChange"
                 >
                     <option value="" disabled>Seleccione un Destino</option>
                     <option
                         v-for="p in destinos"
+                        :key="p.destinoCliente"
+                        :value="p.destinoCliente"
+                    >
+                        {{ p.destinoCliente }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                accordion-item
+                accordion-opened
+                title="Información del destino"
+                class="destino-info"
+                ref="destinoAccordion"
+                v-if="form.destino"
+            >
+                <f7-accordion-content>
+                    <InformacionDestino
+                        v-if="form.destino"
+                        :destino="form.destino"
+                    />
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.destino"
+                checkbox
+                checkbox-icon="end"
+                title="Trasvasije"
+                v-model:checked="form.trasvasije"
+                :disabled="form.ventaPiso"
+                @change="handleTrasvasijeChange"
+            />
+
+            <f7-list-item
+                v-if="form.destino"
+                checkbox
+                checkbox-icon="end"
+                title="Venta en piso"
+                v-model:checked="form.ventaPiso"
+                :disabled="form.trasvasije"
+                @change="handleVentaPisoChange"
+            />
+
+            <f7-list-item v-if="form.destino">
+                <f7-block class="mb-2 no-margin-top">
+                    <div
+                        class="alert alert-info"
+                        style="
+                            border: 1px solid #bce8f1;
+                            background-color: #d9edf7;
+                            color: #31708f;
+                            border-radius: 6px;
+                            padding: 10px 15px;
+                            font-size: 14px;
+                        "
+                    >
+                        <i
+                            class="f7-icons"
+                            style="font-size: 16px; margin-right: 6px"
+                            >info_circle</i
+                        >
+                        Seleccionar entre <strong>Trasvasije</strong> o
+                        <strong>Venta en piso</strong>. Al elegir una opción, la
+                        otra se deshabilitará automáticamente.
+                    </div></f7-block
+                >
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.destino"
+                :key="form.destino?.destinoCliente"
+                title="Producto"
+                class="rroducto"
+                ref="producto"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.producto?.destinoCliente || ''"
+                    @change="handleDestinoChange"
+                >
+                    <option value="" disabled>Seleccione un Producto</option>
+                    <option
+                        v-for="p in productos"
                         :key="p.destinoCliente"
                         :value="p.destinoCliente"
                     >
@@ -192,10 +240,19 @@ import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
+import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
+import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
 import store from "@/js/store";
+import {
+    listarDestinosPorCliente,
+    clienteEsEmisor,
+} from "@/app/services/Parametros/ClienteService";
+import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
+import config from "@/Common/json/config.json";
 
 export default {
     name: "GDEIngreso",
+    components: { InformacionCliente, InformacionDestino },
     data() {
         return {
             ssParams: {
@@ -210,12 +267,18 @@ export default {
             predios: [],
             clientes: [],
             destinos: [],
+            productos: [],
             form: {
+                empresa: null,
                 zona: null, // objeto zona seleccionado
                 proveedor: null, // objeto proveedor seleccionado
                 predio: null, // objeto predio seleccionado
                 cliente: null, // objeto cliente seleccionado
                 destino: null,
+                indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
+                trasvasije: false,
+                ventaPiso: false,
+                producto: null,
             },
         };
     },
@@ -223,8 +286,12 @@ export default {
         usuarioActivo() {
             return store.state.user;
         },
+        indicadoresTraslado() {
+            return config.parametros.indicadoresTraslado;
+        },
     },
     async created() {
+        this.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
         this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
     },
     methods: {
@@ -291,7 +358,6 @@ export default {
             this.form.cliente = null;
             this.clientes = [];
             await this.$nextTick();
-
             this.clientes = nuevoPredio
                 ? await listarClientesPorPredio(
                       this.form.zona.codigo,
@@ -310,12 +376,62 @@ export default {
             this.form.destino = null;
             this.destinos = [];
             await this.$nextTick();
+
+            this.destinos = nuevoCliente
+                ? await listarDestinosPorCliente(
+                      this.form.zona.codigo,
+                      this.form.proveedor.rutProveedor,
+                      this.form.predio.rolPredio,
+                      this.form.cliente.rutCliente
+                  )
+                : [];
+
+            if (this.destinos.length === 1) {
+                this.form.destino = this.destinos[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".destino-cliente .smart-select")
+                    .setValueText(this.form.destino.destinoCliente);
+                this.cargarInformacionDestino();
+            }
+
+            this.obtenerIndicadorTraslado();
+
+            const ref = this.$refs.clienteAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
         },
 
+        obtenerIndicadorTraslado() {
+            if (
+                clienteEsEmisor(this.form.cliente.rutCliente, this.empresa.rut)
+            ) {
+                this.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
+            }
+        },
         async handleDestinoChange(e) {
             const nuevoDestino = e.target.value;
             this.form.destino =
                 this.destinos.find((p) => p.destino === nuevoDestino) || null;
+            await this.$nextTick();
+            this.cargarInformacionDestino();
+        },
+
+        cargarInformacionDestino() {
+            const ref = this.$refs.destinoAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
+        },
+
+        handleTrasvasijeChange(val) {
+            if (val) {
+                this.form.ventaPiso = false; // al marcar trasvasije, desmarca venta piso
+            }
+        },
+        handleVentaPisoChange(val) {
+            if (val) {
+                this.form.trasvasije = false; // al marcar venta piso, desmarca trasvasije
+            }
         },
 
         back() {
@@ -323,7 +439,7 @@ export default {
                 "¿Desea cancelar el ingreso de GDE?",
                 "Confirmar",
                 () => {
-                    this.$f7.views.main?.router?.navigate("/home/", {
+                    f7.views.main?.router?.navigate("/home/", {
                         reloadAll: true,
                     });
                 }

@@ -25,7 +25,6 @@ export default class CarguioDAO {
         try {
             const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio);
             for (const item of data) {
-                console.log(item);
                 await getBaseDao().eliminar(item);
             }
 

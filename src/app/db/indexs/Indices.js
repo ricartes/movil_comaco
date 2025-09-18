@@ -55,9 +55,16 @@ export async function crearIndicesTipo(db) {
         //proveedor
         { ddoc: 'idx_proveedor_encargado_proveedor', fields: ['type', 'codEncargado', 'rutProveedor'] },
 
-       
 
-      
+
+
+        // orden-compra → predios por zona/proveedor/predio/cliente
+        { ddoc: 'idx_oc_zona_prov_predio_cli', fields: ['type', 'codEncargado', 'rutProveedor', 'rolPredio', 'rutCliente'] },
+
+        // (opcional) si consultas mucho por zona+proveedor solamente:
+        { ddoc: 'idx_oc_zona_prov', fields: ['type', 'codEncargado', 'rutProveedor'] },
+
+
 
 
         // === error_envio (si lo usas con fechas) ===
