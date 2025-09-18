@@ -266,6 +266,86 @@
                     </option>
                 </select>
             </f7-list-item>
+
+            <f7-list-item
+                v-if="form.largoProducto"
+                :key="`${form.producto?.codProducto}${form.largoProducto}`"
+                title="Transportista"
+                class="transportista"
+                ref="transportista"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.transportista?.rutTransportista || ''"
+                    @change="handleTransportistaChange"
+                >
+                    <option value="" disabled>
+                        Seleccione un Transportista
+                    </option>
+                    <option
+                        v-for="p in transportistas"
+                        :key="p.rutTransportista"
+                        :value="p.rutTransportista"
+                    >
+                        {{ p.rutTransportista }} {{ p.nomTransportista }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.transportista"
+                :key="`${form.transportista?.rutTransportista}`"
+                title="Patente Camión"
+                class="patente-camion"
+                ref="patenteCamion"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.patenteCamion?.patCamion || ''"
+                    @change="handlePatenteCamionChange"
+                >
+                    <option value="" disabled>Seleccione Patente camión</option>
+                    <option
+                        v-for="p in patentes"
+                        :key="p.patCamion"
+                        :value="p.patCamion"
+                    >
+                        {{ p.patCamion }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="
+                    form.patenteCamion && form.patenteCamion.vigencia == false
+                "
+            >
+                <f7-block class="mb-2 no-margin-top">
+                    <div
+                        class="alert alert-danger"
+                        style="
+                            border: 1px solid #ebccd1;
+                            background-color: #f2dede;
+                            color: #a94442;
+                            border-radius: 6px;
+                            padding: 10px 15px;
+                            font-size: 14px;
+                        "
+                    >
+                        <i
+                            class="f7-icons"
+                            style="font-size: 16px; margin-right: 6px"
+                        >
+                            exclamationmark_circle
+                        </i>
+                        La <strong>patente del camión</strong> no se encuentra
+                        vigente. <strong>No podrá continuar</strong> en la
+                        emisión de la GDE.
+                    </div>
+                </f7-block>
+            </f7-list-item>
         </f7-list>
     </f7-page>
 </template>
@@ -276,6 +356,10 @@ import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
+import {
+    listarTransportistas,
+    listarPatentesPorTransportista,
+} from "@/app/services/Parametros/TransportistaService";
 import {
     listarProductosPorClienteDestino,
     listarLargosPorProducto,
@@ -310,6 +394,8 @@ export default {
             destinos: [],
             productos: [],
             largosProducto: [],
+            transportistas: [],
+            patentes: [],
             form: {
                 empresa: null,
                 zona: null, // objeto zona seleccionado
@@ -322,6 +408,8 @@ export default {
                 ventaPiso: false,
                 producto: null,
                 largoProducto: null,
+                transportista: null,
+                patenteCamion: null,
             },
         };
     },
@@ -336,6 +424,7 @@ export default {
     async created() {
         this.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
         this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
+        this.transportistas = await listarTransportistas();
     },
     methods: {
         async handleZonaChange(e) {
@@ -490,6 +579,28 @@ export default {
             }
 
             this.cargarInformacionProducto();
+        },
+
+        async handleTransportistaChange(e) {
+            const nuevoTransportista = e.target.value;
+            this.form.transportista =
+                this.transportistas.find(
+                    (p) => p.rutTransportista === nuevoTransportista
+                ) || null;
+
+            await this.$nextTick();
+
+            this.patentes = await listarPatentesPorTransportista(
+                nuevoTransportista
+            );
+        },
+
+        async handlePatenteCamionChange(e) {
+            const nuevaPatente = e.target.value;
+            this.form.patenteCamion =
+                this.patentes.find((p) => p.patCamion === nuevaPatente) || null;
+
+            await this.$nextTick();
         },
 
         cargarInformacionProducto() {

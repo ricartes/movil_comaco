@@ -1,5 +1,7 @@
 import config from '@/Common/json/config.json'
 import TransportistaDTO from '@/app/DTO/Parametros/TransportistaDTO'
+import TransportistaSimpleDTO from '@/app/DTO/Parametros/TransportistaSimpleDTO'
+import PatenteCamionDTO from '@/app/DTO/Parametros/PatenteCamionDTO'
 import { makeId } from './_id'
 
 /**
@@ -48,5 +50,18 @@ export function transportistaDocToDTO(doc) {
         doc.nomTransportista,
         doc.rutTransportista,
         doc.vigencia
+    )
+}
+
+export function transportistaSimpleDocToDTO(doc) {
+    return new TransportistaSimpleDTO(
+        doc
+    )
+}
+
+
+export function patenteDocToDTO(doc) {
+    return new PatenteCamionDTO(
+        doc
     )
 }
