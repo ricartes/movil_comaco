@@ -1,0 +1,44 @@
+<template>
+    <div class="card data-table data-table-init">
+        <div class="card-content">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="label-cell">Producto</td>
+                        <td class="label-cell">
+                            {{ producto.nombreProducto }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Unidad medida</td>
+                        <td class="label-cell">
+                            {{ producto.unidadMedida }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="label-cell">Resolución SAG</td>
+                        <td class="label-cell">
+                            {{ producto.sag }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Observación</td>
+                        <td class="label-cell">
+                            {{ producto.categoria ?? "" }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</template>
+
+<script>
+export default {
+    name: "InformacionProducto",
+    props: {
+        producto: { type: Object, required: true },
+    },
+};
+</script>

@@ -15,7 +15,7 @@ import GdeDAO from '@/app/DAO/GdeDAO';
 import ProveedorDAO from '@/app/DAO/Parametros/ProveedorDAO';
 import PredioDAO from '@/app/DAO/Parametros/PredioDAO';
 import ClienteDAO from '@/app/DAO/Parametros/ClienteDAO';
-
+import ProductoDAO from '@/app/DAO/Parametros/ProductoDAO';
 // Inicializa UsuarioDAO con la instancia de la base de datos
 // La función acepta la instancia de la base de datos como parámetro
 let _baseDAO;
@@ -35,6 +35,7 @@ let _zonaDao;
 let _proveedorDao;
 let _predioDao;
 let _clienteDao;
+let _productoDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -55,6 +56,7 @@ export function initializeServices(dbInstance) {
     _proveedorDao = new ProveedorDAO(dbInstance);
     _predioDao = new PredioDAO(dbInstance);
     _clienteDao = new ClienteDAO(dbInstance);
+    _productoDao = new ProductoDAO(dbInstance);
 }
 
 export function getBaseDao() {
@@ -166,6 +168,13 @@ export function getClienteDao() {
         throw new Error("_clienteDao no ha sido inicializado.");
     }
     return _clienteDao;
+}
+
+export function getProductoDao() {
+    if (!_productoDao) {
+        throw new Error("_productoDao no ha sido inicializado.");
+    }
+    return _productoDao;
 }
 
 export function getGdeDao() {

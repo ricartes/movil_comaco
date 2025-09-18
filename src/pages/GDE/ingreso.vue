@@ -111,14 +111,12 @@
                 v-if="form.cliente"
             >
                 <f7-accordion-content>
-                    <div class="card data-table data-table-init">
-                        <informacion-cliente
-                            v-if="form.cliente"
-                            :cliente="form.cliente"
-                            :indicador-traslado="form.indicadorTraslado"
-                        >
-                        </informacion-cliente>
-                    </div>
+                    <informacion-cliente
+                        v-if="form.cliente"
+                        :cliente="form.cliente"
+                        :indicador-traslado="form.indicadorTraslado"
+                    >
+                    </informacion-cliente>
                 </f7-accordion-content>
             </f7-list-item>
 
@@ -217,16 +215,54 @@
                 :smart-select-params="ssParams"
             >
                 <select
-                    :value="form.producto?.destinoCliente || ''"
-                    @change="handleDestinoChange"
+                    :value="form.producto?.codProducto || ''"
+                    @change="handleProductoChange"
                 >
                     <option value="" disabled>Seleccione un Producto</option>
                     <option
                         v-for="p in productos"
-                        :key="p.destinoCliente"
-                        :value="p.destinoCliente"
+                        :key="p.codProducto"
+                        :value="p.codProducto"
                     >
-                        {{ p.destinoCliente }}
+                        {{ p.nombreProducto }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                accordion-item
+                accordion-opened
+                title="Información del producto"
+                class="producto-info"
+                ref="productoAccordion"
+                v-if="form.producto"
+            >
+                <f7-accordion-content>
+                    <InformacionProducto
+                        v-if="form.producto"
+                        :producto="form.producto"
+                    />
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.producto"
+                :key="form.producto?.codProducto"
+                title="Largo (Metros)"
+                class="largo-producto"
+                ref="largoProducto"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.largoProducto || ''"
+                    v-model.number="form.largoProducto"
+                >
+                    <option value="" disabled>
+                        Seleccione un Largo (Metros)
+                    </option>
+                    <option v-for="p in largosProducto" :key="p" :value="p">
+                        {{ p }} Metro(s)
                     </option>
                 </select>
             </f7-list-item>
@@ -240,8 +276,13 @@ import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
+import {
+    listarProductosPorClienteDestino,
+    listarLargosPorProducto,
+} from "@/app/services/Parametros/ProductoService";
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
+import InformacionProducto from "@/pages/GDE/Ingreso/InformacionProducto.vue";
 import store from "@/js/store";
 import {
     listarDestinosPorCliente,
@@ -252,7 +293,7 @@ import config from "@/Common/json/config.json";
 
 export default {
     name: "GDEIngreso",
-    components: { InformacionCliente, InformacionDestino },
+    components: { InformacionCliente, InformacionDestino, InformacionProducto },
     data() {
         return {
             ssParams: {
@@ -268,6 +309,7 @@ export default {
             clientes: [],
             destinos: [],
             productos: [],
+            largosProducto: [],
             form: {
                 empresa: null,
                 zona: null, // objeto zona seleccionado
@@ -279,6 +321,7 @@ export default {
                 trasvasije: false,
                 ventaPiso: false,
                 producto: null,
+                largoProducto: null,
             },
         };
     },
@@ -393,6 +436,7 @@ export default {
                     .get(".destino-cliente .smart-select")
                     .setValueText(this.form.destino.destinoCliente);
                 this.cargarInformacionDestino();
+                this.cargarProductos();
             }
 
             this.obtenerIndicadorTraslado();
@@ -415,6 +459,55 @@ export default {
                 this.destinos.find((p) => p.destino === nuevoDestino) || null;
             await this.$nextTick();
             this.cargarInformacionDestino();
+            this.cargarProductos();
+        },
+
+        async handleProductoChange(e) {
+            const nuevoProducto = Number(e.target.value);
+            this.form.producto =
+                this.productos.find((p) => p.codProducto === nuevoProducto) ||
+                null;
+
+            await this.$nextTick();
+
+            this.largosProducto = this.form.destino
+                ? await listarLargosPorProducto(
+                      this.form.zona.codigo,
+                      this.form.proveedor.rutProveedor,
+                      this.form.predio.rolPredio,
+                      this.form.cliente.rutCliente,
+                      this.form.destino.destinoCliente,
+                      nuevoProducto
+                  )
+                : [];
+
+            if (this.largosProducto.length === 1) {
+                this.form.largoProducto = this.largosProducto[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".largo-producto .smart-select")
+                    .setValueText(this.form.largoProducto);
+            }
+
+            this.cargarInformacionProducto();
+        },
+
+        cargarInformacionProducto() {
+            const ref = this.$refs.productoAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
+        },
+
+        async cargarProductos() {
+            this.productos = this.form.destino
+                ? await listarProductosPorClienteDestino(
+                      this.form.zona.codigo,
+                      this.form.proveedor.rutProveedor,
+                      this.form.predio.rolPredio,
+                      this.form.cliente.rutCliente,
+                      this.form.destino.destinoCliente
+                  )
+                : [];
         },
 
         cargarInformacionDestino() {
