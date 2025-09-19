@@ -61,6 +61,7 @@
                 v-if="form.proveedor"
                 :key="form.proveedor?.rutProveedor"
                 title="Predio"
+                class="select-predio"
                 smart-select
                 :smart-select-params="ssParams"
             >
@@ -84,6 +85,7 @@
                 v-if="form.predio"
                 :key="form.predio?.rolPredio"
                 title="Cliente"
+                class="select-cliente"
                 smart-select
                 :smart-select-params="ssParams"
             >
@@ -382,7 +384,51 @@
                         :key="p.rutChofer"
                         :value="p.rutChofer"
                     >
-                        {{ p.rutChofer }} {{ p.nomChofer }}
+                        {{ p.nomChofer }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.conductor"
+                :key="`${form.conductor.rutChofer}`"
+                title="Carguio"
+                class="carguio-select"
+                ref="carguio"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.carguio?.rutCarguio || ''"
+                    @change="handleCarguioChange"
+                >
+                    <option value="" disabled>Seleccione Carguio</option>
+                    <option
+                        v-for="p in carguios"
+                        :key="p.rutCarguio"
+                        :value="p.rutCarguio"
+                    >
+                        {{ p.nombreCarguio }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.carguio"
+                :key="`${form.carguio.rutCarguio}`"
+                title="Patente Carguio"
+                class="patente-carguio-select"
+                ref="patenteCarguio"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.patenteCarguio || ''"
+                    @change="handleCarguioChange"
+                >
+                    <option value="" disabled>Seleccione Carguio</option>
+                    <option v-for="p in patentesCarguio" :key="p" :value="p">
+                        {{ p }}
                     </option>
                 </select>
             </f7-list-item>
@@ -392,11 +438,14 @@
 
 <script>
 import { f7 } from "framework7-vue";
-import UsuarioService from "@/app/services/UsuarioService";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
+import {
+    listarCarguios,
+    listarPatentesCarguioPorRut,
+} from "@/app/services/Parametros/CarguioService";
 import {
     listarTransportistas,
     listarPatentesPorTransportista,
@@ -441,6 +490,8 @@ export default {
             patentes: [],
             patentesCarro: [],
             conductores: [],
+            carguios: [],
+            patentesCarguio: [],
             form: {
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,
@@ -459,6 +510,8 @@ export default {
                 patenteCamion: null,
                 patenteCarro: null,
                 conductor: null,
+                carguio: null,
+                patenteCarguio: null,
             },
         };
     },
@@ -482,6 +535,7 @@ export default {
         this.form.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
         this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
         this.transportistas = await listarTransportistas();
+        this.carguios = await listarCarguios();
     },
     methods: {
         generarDatosEmisor() {
@@ -499,13 +553,8 @@ export default {
                 this.zonas.find((z) => z.codigo === nuevoCodigo) || null;
 
             const aplicarCambio = async () => {
+                this.resetDesde("zona"); // 👈 limpia todo
                 this.form.zona = nuevaZona;
-
-                // limpiar dependientes
-                this.form.proveedor = null;
-                this.proveedores = [];
-                this.form.predio = null;
-                this.predios = [];
 
                 await this.$nextTick(); // fuerza re-render de los smart-select dependientes
 
@@ -531,13 +580,8 @@ export default {
                 this.proveedores.find((p) => p.rutProveedor === nuevoRut) ||
                 null;
 
-            // limpiar predio antes de recargar lista
+            this.resetDesde("proveedor"); // limpia desde proveedor en adelante
             this.form.proveedor = nuevoProv;
-            this.form.predio = null;
-            this.form.cliente = null;
-            this.predios = [];
-            this.clientes = [];
-
             await this.$nextTick(); // re-render del smart-select "Predio"
 
             this.predios = nuevoProv
@@ -546,6 +590,15 @@ export default {
                       nuevoProv.rutProveedor
                   )
                 : [];
+
+            if (this.predios.length === 1) {
+                this.form.predio = this.predios[0];
+                await this.$nextTick();
+                this.cargarClientes();
+                f7.smartSelect
+                    .get(".select-predio .smart-select")
+                    .setValueText(this.form.predio.predio);
+            }
         },
 
         async handlePredioChange(e) {
@@ -553,16 +606,31 @@ export default {
             this.form.predio =
                 this.predios.find((p) => p.rolPredio === nuevoPredio) || null;
 
-            this.form.cliente = null;
-            this.clientes = [];
             await this.$nextTick();
-            this.clientes = nuevoPredio
+            this.resetDesde("predio"); // limpia desde predio en adelante
+            this.cargarClientes();
+        },
+
+        async cargarClientes() {
+            this.form.cliente = null;
+            this.clientes = this.form.predio
                 ? await listarClientesPorPredio(
                       this.form.zona.codigo,
                       this.form.proveedor.rutProveedor,
-                      nuevoPredio.rolPredio
+                      this.form.predio.rolPredio
                   )
                 : [];
+
+            if (this.clientes.length === 1) {
+                this.form.cliente = this.clientes[0];
+                await this.$nextTick();
+                this.cargarDestinosCliente();
+                f7.smartSelect
+                    .get(".select-cliente .smart-select")
+                    .setValueText(
+                        `${this.form.cliente.rutCliente} ${this.form.cliente.razonSocialCliente}`
+                    );
+            }
         },
 
         async handleClienteChange(e) {
@@ -571,11 +639,12 @@ export default {
                 this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
                 null;
 
-            this.form.destino = null;
-            this.destinos = [];
+            this.resetDesde("cliente"); // limpia desde predio en adelante
             await this.$nextTick();
+        },
 
-            this.destinos = nuevoCliente
+        async cargarDestinosCliente() {
+            this.destinos = this.form.cliente
                 ? await listarDestinosPorCliente(
                       this.form.zona.codigo,
                       this.form.proveedor.rutProveedor,
@@ -593,9 +662,7 @@ export default {
                 this.cargarInformacionDestino();
                 this.cargarProductos();
             }
-
             this.obtenerIndicadorTraslado();
-
             const ref = this.$refs.clienteAccordion;
             const el = ref?.$el || ref?.el || ref; // el DOM real
             if (el) f7.accordion.open(el);
@@ -616,6 +683,7 @@ export default {
             this.form.destino =
                 this.destinos.find((p) => p.destino === nuevoDestino) || null;
             await this.$nextTick();
+            this.resetDesde("destino"); // limpia desde destino en adelante
             this.cargarInformacionDestino();
             this.cargarProductos();
         },
@@ -627,6 +695,7 @@ export default {
                 null;
 
             await this.$nextTick();
+            this.resetDesde("producto"); // limpia desde producto en adelante
 
             this.cargarLargosProducto();
             this.cargarInformacionProducto();
@@ -661,6 +730,7 @@ export default {
                 ) || null;
 
             await this.$nextTick();
+            this.resetDesde("transportista"); // limpia desde transportista en adelante
 
             this.patentes = this.form.transportista
                 ? await listarPatentesPorTransportista(nuevoTransportista)
@@ -673,6 +743,7 @@ export default {
                 this.patentes.find((p) => p.patCamion === nuevaPatente) || null;
 
             await this.$nextTick();
+            this.resetDesde("patCamion"); // limpia desde patente camion en adelante
 
             this.patentesCarro =
                 await listarPatentesCarroPorTransportistaCamion(
@@ -691,6 +762,7 @@ export default {
         },
 
         async handlePatenteCarroChange(e) {
+            this.resetDesde("patCarro"); // limpia desde patente carro en adelante
             this.cargarConductores();
         },
 
@@ -720,6 +792,33 @@ export default {
                 null;
 
             await this.$nextTick();
+        },
+
+        async handleCarguioChange(e) {
+            const nuevoCarguio = e.target.value;
+            this.form.carguio =
+                this.carguios.find((p) => p.rutCarguio === nuevoCarguio) ||
+                null;
+
+            await this.$nextTick();
+            this.resetDesde("carguio"); // limpia desde carguio en adelante
+            this.cargarPatentesCarguio();
+        },
+
+        async cargarPatentesCarguio() {
+            this.patentesCarguio = this.form.carguio
+                ? await listarPatentesCarguioPorRut(
+                      this.form.carguio.rutCarguio
+                  )
+                : [];
+
+            if (this.patentesCarguio.length === 1) {
+                this.form.patenteCarguio = this.patentesCarguio[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".patente-carguio-select .smart-select")
+                    .setValueText(this.form.patenteCarguio);
+            }
         },
 
         cargarInformacionProducto() {
@@ -764,6 +863,80 @@ export default {
         handleVentaPisoChange(val) {
             if (val) {
                 this.form.trasvasije = false; // al marcar venta piso, desmarca trasvasije
+            }
+        },
+
+        resetDesde(nivel) {
+            // Orden de dependencia: zona → proveedor → predio → cliente → destino → producto → largo → transportista → patCamion → patCarro → conductor
+            if (nivel === "zona") {
+                this.form.proveedor = null;
+                this.proveedores = [];
+                // sigue
+                nivel = "proveedor";
+            }
+            if (nivel === "proveedor") {
+                this.form.predio = null;
+                this.predios = [];
+                // sigue
+                nivel = "predio";
+            }
+            if (nivel === "predio") {
+                this.form.cliente = null;
+                this.clientes = [];
+                // sigue
+                nivel = "cliente";
+            }
+            if (nivel === "cliente") {
+                this.form.destino = null;
+                this.destinos = [];
+                // sigue
+                nivel = "destino";
+            }
+            if (nivel === "destino") {
+                this.form.producto = null;
+                this.productos = [];
+                this.form.largoProducto = null;
+                this.largosProducto = [];
+                // sigue
+                nivel = "producto";
+            }
+            if (nivel === "producto") {
+                this.form.largoProducto = null;
+                this.largosProducto = [];
+                // sigue
+                nivel = "largo";
+            }
+            if (nivel === "largo") {
+                this.form.transportista = null; // puedes mantener transportistas globales si quieres
+                this.patentes = [];
+                // sigue
+                nivel = "transportista";
+            }
+            if (nivel === "transportista") {
+                this.form.patenteCamion = null;
+                this.patentes = [];
+                // sigue
+                nivel = "patCamion";
+            }
+            if (nivel === "patCamion") {
+                this.form.patenteCarro = null;
+                this.patentesCarro = [];
+                // sigue
+                nivel = "patCarro";
+            }
+            if (nivel === "patCarro") {
+                this.form.conductor = null;
+                this.conductores = [];
+                nivel = "conductor";
+            }
+            if (nivel === "conductor") {
+                this.form.carguio = null;
+                nivel = "carguio";
+            }
+            if (nivel === "carguio") {
+                this.patentesCarguio = [];
+                this.form.patenteCarguio = null;
+                nivel = "patenteCarguio";
             }
         },
 

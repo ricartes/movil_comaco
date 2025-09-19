@@ -15,9 +15,40 @@ export default class CarguioDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio)
-        return docs.map(carguioDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio);
+
+        const map = new Map();
+        for (const d of docs) {
+            const rut = String(d.rutCarguio ?? '').trim();
+            if (!rut) continue;          // descarta nulos/vacíos
+            if (!map.has(rut)) map.set(rut, d); // primer doc por rutCarguio
+        }
+
+        return Array.from(map.values()).map(carguioDocToDTO);
     }
+
+    async listarPatentesPorRut(rutCarguio) {
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.carguio);
+
+        const norm = v => String(v ?? '').trim().toUpperCase();
+        const rutIn = String(rutCarguio ?? '').trim();
+
+        // filtra por rutCarguio y toma solo patentes válidas
+        const set = new Set(
+            docs
+                .filter(d =>
+                    String(d.rutCarguio ?? '').trim() === rutIn &&
+                    norm(d.patenteCarguio) !== ''
+                )
+                .map(d => norm(d.patenteCarguio))  // distinct por normalización
+        );
+
+        // devuelve array de strings (ordenado)
+        return Array.from(set).sort();
+    }
+
+
+
 
 
 

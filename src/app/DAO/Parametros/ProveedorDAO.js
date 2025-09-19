@@ -22,7 +22,7 @@ export default class proveedorDAO {
 
     // ProveedorService.js
     async listarPorZona(codEncargado) {
-        // (opcional pero recomendado) asegura índice para estos campos
+        // índice opcional pero recomendado
         await this.db.createIndex({
             index: { fields: ['type', 'codEncargado', 'rutProveedor'] }
         });
@@ -31,16 +31,22 @@ export default class proveedorDAO {
             selector: {
                 type: config.bd.tipoEntidad.ordenCompra,
                 codEncargado,
-                // solo con rutProveedor != null y != "" (evita nulos/vacíos)
                 rutProveedor: { $ne: null }
-            },
-            // si quieres excluir strings vacíos explícitamente:
-            // use_index: 'idx-type-codEncargado-rutProveedor'
+            }
         });
 
-        return res.docs
-            .filter(d => String(d.rutProveedor || '').trim() !== '')
-            .map(proveedorDocToDTO);
+        // distinct por rutProveedor
+        const map = new Map();
+        for (const d of res.docs) {
+            const rut = String(d.rutProveedor ?? '').trim();
+            if (!rut) continue;              // evita vacíos
+            if (!map.has(rut)) {
+                map.set(rut, d);               // guarda el primer doc de ese rut
+            }
+        }
+
+        return Array.from(map.values()).map(proveedorDocToDTO);
     }
+
 
 }

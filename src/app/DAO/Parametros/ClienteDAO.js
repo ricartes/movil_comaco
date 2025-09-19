@@ -22,50 +22,53 @@ export default class PredioDAO {
 
     // PredioService.js
     async listarPorPredio(codEncargado, rutProveedor, rolPredio) {
-        // (opcional pero recomendado) asegura índice para estos campos
-
-
         const res = await this.db.find({
             selector: {
                 type: config.bd.tipoEntidad.ordenCompra,
                 codEncargado,
                 rutProveedor,
-                rolPredio,
-                // solo con rutPredio != null y != "" (evita nulos/vacíos)
-                //rutCliente: { $ne: null }
+                rolPredio
             },
-            // si quieres excluir strings vacíos explícitamente:
             use_index: 'idx_oc_zona_prov_predio_cli',
-
         });
 
-        return res.docs
-            .filter(d => String(d.rutCliente || '').trim() !== '')
-            .map(clienteDocToDTO);
+        const map = new Map();
+        for (const d of res.docs) {
+            const rut = String(d.rutCliente ?? '').trim();
+            if (!rut) continue;
+            if (!map.has(rut)) {
+                map.set(rut, d);
+            }
+        }
+
+        return Array.from(map.values()).map(clienteDocToDTO);
     }
+
 
 
     async listarDestinosPorCliente(codEncargado, rutProveedor, rolPredio, rutCliente) {
-        // (opcional pero recomendado) asegura índice para estos campos
-
         const res = await this.db.find({
             selector: {
                 type: config.bd.tipoEntidad.ordenCompra,
                 codEncargado,
                 rutProveedor,
                 rolPredio,
-                rutCliente,
-                // solo con rutPredio != null y != "" (evita nulos/vacíos)
-                //destinoCliente: { $ne: null }
+                rutCliente
             },
             use_index: 'idx_oc_zona_prov_predio_cli',
-            // si quieres excluir strings vacíos explícitamente:
-            // use_index: 'idx-type-codEncargado-rutPredio'
         });
 
-        return res.docs
-            .filter(d => String(d.destinoCliente || '').trim() !== '')
-            .map(destinoClienteDocToDTO);
+        const map = new Map();
+        for (const d of res.docs) {
+            const destino = String(d.destinoCliente ?? '').trim();
+            if (!destino) continue;
+            if (!map.has(destino)) {
+                map.set(destino, d);
+            }
+        }
+
+        return Array.from(map.values()).map(destinoClienteDocToDTO);
     }
+
 
 }
