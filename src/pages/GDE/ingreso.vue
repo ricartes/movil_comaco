@@ -392,17 +392,18 @@
             <f7-list-item
                 v-if="this.form.conductor"
                 :key="`${form.conductor.rutChofer}`"
-                title="Carguio"
+                :title="`Carguios, máximo  ${maximoCarguios}`"
                 class="carguio-select"
                 ref="carguio"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
-                    :value="form.carguio?.rutCarguio || ''"
+                    name="carguios"
+                    multiple
+                    maxlength="2"
                     @change="handleCarguioChange"
                 >
-                    <option value="" disabled>Seleccione Carguio</option>
                     <option
                         v-for="p in carguios"
                         :key="p.rutCarguio"
@@ -414,19 +415,19 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="this.form.carguio"
-                :key="`${form.carguio.rutCarguio}`"
-                title="Patente Carguio"
+                v-if="this.form.carguios.length > 0"
+                :title="`Patentes carguios, máximo  ${maximoCarguios}`"
                 class="patente-carguio-select"
                 ref="patenteCarguio"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
-                    :value="form.patenteCarguio || ''"
-                    @change="handleCarguioChange"
+                    name="patentes-carguios"
+                    multiple
+                    maxlength="2"
+                    @change="handlePatentesCarguioChange"
                 >
-                    <option value="" disabled>Seleccione Carguio</option>
                     <option v-for="p in patentesCarguio" :key="p" :value="p">
                         {{ p }}
                     </option>
@@ -466,6 +467,7 @@ import {
 } from "@/app/services/Parametros/ClienteService";
 import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
 import config from "@/Common/json/config.json";
+import { val, value } from "dom7";
 
 export default {
     name: "GDEIngreso",
@@ -510,8 +512,8 @@ export default {
                 patenteCamion: null,
                 patenteCarro: null,
                 conductor: null,
-                carguio: null,
-                patenteCarguio: null,
+                carguios: [],
+                patentesCarguio: null,
             },
         };
     },
@@ -528,6 +530,9 @@ export default {
         },
         indicadoresTraslado() {
             return config.parametros.indicadoresTraslado;
+        },
+        maximoCarguios() {
+            return config.parametros.maximoCarguios;
         },
     },
     async created() {
@@ -795,30 +800,58 @@ export default {
         },
 
         async handleCarguioChange(e) {
-            const nuevoCarguio = e.target.value;
-            this.form.carguio =
-                this.carguios.find((p) => p.rutCarguio === nuevoCarguio) ||
-                null;
+            // array de valores seleccionados
+            const values = Array.from(e.target.selectedOptions).map(
+                (o) => o.value
+            );
+            // buscar los objetos carguio correspondientes
+            this.form.carguios = values
+                .map((v) => this.carguios.find((p) => p.rutCarguio === v))
+                .filter(Boolean); // descarta nulls*/
 
             await this.$nextTick();
-            this.resetDesde("carguio"); // limpia desde carguio en adelante
+            this.resetDesde("carguio"); // limpia dependencias
             this.cargarPatentesCarguio();
         },
 
-        async cargarPatentesCarguio() {
-            this.patentesCarguio = this.form.carguio
-                ? await listarPatentesCarguioPorRut(
-                      this.form.carguio.rutCarguio
-                  )
-                : [];
+        async handlePatentesCarguioChange(e) {
+            const values = Array.from(e.target.selectedOptions).map(
+                (o) => o.value
+            );
+            // buscar los objetos carguio correspondientes
+            this.form.patentesCarguio = values
+                .map((v) => this.carguios.find((p) => p.patenteCarguio === v))
+                .filter(Boolean); // descarta nulls*/
 
-            if (this.patentesCarguio.length === 1) {
-                this.form.patenteCarguio = this.patentesCarguio[0];
-                await this.$nextTick();
-                f7.smartSelect
-                    .get(".patente-carguio-select .smart-select")
-                    .setValueText(this.form.patenteCarguio);
+
+            console.log(this.form.patentesCarguio);
+            await this.$nextTick();
+            this.resetDesde("patenteCarguio"); // limpia dependencias
+        },
+
+        async cargarPatentesCarguio() {
+            // si no hay carguios seleccionados, resetea
+            if (!this.form.carguios?.length) {
+                this.patentesCarguio = [];
+                this.form.patenteCarguio = null;
+                return;
             }
+
+            // array de ruts seleccionados
+            const ruts = this.form.carguios.map((c) => c.rutCarguio);
+
+            // obtener las patentes de todos los ruts seleccionados
+            const resultados = await Promise.all(
+                ruts.map((rut) => listarPatentesCarguioPorRut(rut))
+            );
+
+            // aplanar y quitar duplicados
+            const set = new Set();
+            this.patentesCarguio = resultados.flat().filter((p) => {
+                if (set.has(p)) return false;
+                set.add(p);
+                return true;
+            });
         },
 
         cargarInformacionProducto() {
@@ -937,6 +970,11 @@ export default {
                 this.patentesCarguio = [];
                 this.form.patenteCarguio = null;
                 nivel = "patenteCarguio";
+            }
+             if (nivel === "patenteCarguio") {
+                /*this.patentesCarguio = [];
+                this.form.patenteCarguio = null;
+                nivel = "patenteCarguio";*/
             }
         },
 

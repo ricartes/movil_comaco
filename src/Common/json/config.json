@@ -69,7 +69,7 @@
                 "texto": "NULA"
             }
         },
-        "transformarAlturaAMetros": true,
+        "maximoCarguios": 2,
         "valorTransformacionMetros": 100,
         "validaEquipoMovil": true,
         "habilitaPdf": true,
