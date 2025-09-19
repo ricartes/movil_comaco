@@ -55,6 +55,20 @@
                 "texto": "SOLO TRASLADO"
             }
         },
+        "estadosGuia": {
+            "BORRADOR": {
+                "id": "B",
+                "texto": "BORRADOR"
+            },
+            "EMITIDA": {
+                "id": "E",
+                "texto": "EMITIDA"
+            },
+            "NULA": {
+                "id": "N",
+                "texto": "NULA"
+            }
+        },
         "transformarAlturaAMetros": true,
         "valorTransformacionMetros": 100,
         "validaEquipoMovil": true,

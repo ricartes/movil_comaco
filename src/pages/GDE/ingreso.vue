@@ -209,7 +209,7 @@
                 v-if="form.destino"
                 :key="form.destino?.destinoCliente"
                 title="Producto"
-                class="rroducto"
+                class="select-producto"
                 ref="producto"
                 smart-select
                 :smart-select-params="ssParams"
@@ -317,11 +317,7 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="
-                    form.patenteCamion && form.patenteCamion.vigencia == false
-                "
-            >
+            <f7-list-item v-if="patenteCamionNoVigente">
                 <f7-block class="mb-2 no-margin-top">
                     <div
                         class="alert alert-danger"
@@ -346,12 +342,57 @@
                     </div>
                 </f7-block>
             </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.patenteCamion && !patenteCamionNoVigente"
+                :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`"
+                title="Patente Carro"
+                class="patente-carro"
+                ref="patenteCarro"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.patenteCarro || ''"
+                    @change="handlePatenteCarroChange"
+                >
+                    <option value="" disabled>Seleccione Patente carro</option>
+                    <option v-for="p in patentesCarro" :key="p" :value="p">
+                        {{ p }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.patenteCarro"
+                :key="`${form.patenteCarro}`"
+                title="Conductor"
+                class="conductor-select"
+                ref="conductor"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.conductor?.rutChofer || ''"
+                    @change="handleConductorChange"
+                >
+                    <option value="" disabled>Seleccione Conductor</option>
+                    <option
+                        v-for="p in conductores"
+                        :key="p.rutChofer"
+                        :value="p.rutChofer"
+                    >
+                        {{ p.rutChofer }} {{ p.nomChofer }}
+                    </option>
+                </select>
+            </f7-list-item>
         </f7-list>
     </f7-page>
 </template>
 
 <script>
 import { f7 } from "framework7-vue";
+import UsuarioService from "@/app/services/UsuarioService";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
@@ -359,6 +400,8 @@ import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteServic
 import {
     listarTransportistas,
     listarPatentesPorTransportista,
+    listarPatentesCarroPorTransportistaCamion,
+    listarConductoresPorCamionYCarro,
 } from "@/app/services/Parametros/TransportistaService";
 import {
     listarProductosPorClienteDestino,
@@ -396,7 +439,11 @@ export default {
             largosProducto: [],
             transportistas: [],
             patentes: [],
+            patentesCarro: [],
+            conductores: [],
             form: {
+                emisor: null,
+                estado: config.parametros.estadosGuia.BORRADOR,
                 empresa: null,
                 zona: null, // objeto zona seleccionado
                 proveedor: null, // objeto proveedor seleccionado
@@ -410,10 +457,19 @@ export default {
                 largoProducto: null,
                 transportista: null,
                 patenteCamion: null,
+                patenteCarro: null,
+                conductor: null,
             },
         };
     },
     computed: {
+        patenteCamionNoVigente() {
+            return (
+                this.form?.patenteCamion != null &&
+                this.form.patenteCamion.vigencia === false
+            );
+        },
+
         usuarioActivo() {
             return store.state.user;
         },
@@ -422,11 +478,21 @@ export default {
         },
     },
     async created() {
-        this.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
+        this.generarDatosEmisor();
+        this.form.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
         this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
         this.transportistas = await listarTransportistas();
     },
     methods: {
+        generarDatosEmisor() {
+            this.form.emisor = {
+                rut: this.usuarioActivo.rut,
+                empresa: this.usuarioActivo.empresa,
+                nombre: this.usuarioActivo.nombre,
+                email: this.usuarioActivo.email,
+                rol: this.usuarioActivo.rol,
+            };
+        },
         async handleZonaChange(e) {
             const nuevoCodigo = e.target.value;
             const nuevaZona =
@@ -537,7 +603,10 @@ export default {
 
         obtenerIndicadorTraslado() {
             if (
-                clienteEsEmisor(this.form.cliente.rutCliente, this.empresa.rut)
+                clienteEsEmisor(
+                    this.form.cliente.rutCliente,
+                    this.form.empresa.rut
+                )
             ) {
                 this.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
             }
@@ -559,6 +628,11 @@ export default {
 
             await this.$nextTick();
 
+            this.cargarLargosProducto();
+            this.cargarInformacionProducto();
+        },
+
+        async cargarLargosProducto() {
             this.largosProducto = this.form.destino
                 ? await listarLargosPorProducto(
                       this.form.zona.codigo,
@@ -566,7 +640,7 @@ export default {
                       this.form.predio.rolPredio,
                       this.form.cliente.rutCliente,
                       this.form.destino.destinoCliente,
-                      nuevoProducto
+                      this.form.producto.codProducto
                   )
                 : [];
 
@@ -577,8 +651,6 @@ export default {
                     .get(".largo-producto .smart-select")
                     .setValueText(this.form.largoProducto);
             }
-
-            this.cargarInformacionProducto();
         },
 
         async handleTransportistaChange(e) {
@@ -590,15 +662,62 @@ export default {
 
             await this.$nextTick();
 
-            this.patentes = await listarPatentesPorTransportista(
-                nuevoTransportista
-            );
+            this.patentes = this.form.transportista
+                ? await listarPatentesPorTransportista(nuevoTransportista)
+                : [];
         },
 
         async handlePatenteCamionChange(e) {
             const nuevaPatente = e.target.value;
             this.form.patenteCamion =
                 this.patentes.find((p) => p.patCamion === nuevaPatente) || null;
+
+            await this.$nextTick();
+
+            this.patentesCarro =
+                await listarPatentesCarroPorTransportistaCamion(
+                    this.form.transportista.rutTransportista,
+                    nuevaPatente
+                );
+
+            if (this.patentesCarro.length === 1) {
+                this.form.patenteCarro = this.patentesCarro[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".patente-carro .smart-select")
+                    .setValueText(this.form.patenteCarro);
+                this.cargarConductores();
+            }
+        },
+
+        async handlePatenteCarroChange(e) {
+            this.cargarConductores();
+        },
+
+        async cargarConductores() {
+            this.conductores = this.form.patenteCarro
+                ? await listarConductoresPorCamionYCarro(
+                      this.form.transportista.rutTransportista,
+                      this.form.patenteCamion.patCamion,
+                      this.form.patenteCarro
+                  )
+                : [];
+
+            if (this.conductores.length === 1) {
+                this.form.conductor = this.conductores[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".conductor-select .smart-select")
+                    .setValueText(this.form.conductor.nomChofer);
+                this.cargarConductores();
+            }
+        },
+
+        async handleConductorChange(e) {
+            const nuevoConductor = e.target.value;
+            this.form.conductor =
+                this.conductores.find((p) => p.rutChofer === nuevoConductor) ||
+                null;
 
             await this.$nextTick();
         },
@@ -619,6 +738,16 @@ export default {
                       this.form.destino.destinoCliente
                   )
                 : [];
+
+            if (this.productos.length === 1) {
+                this.form.producto = this.productos[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".select-producto .smart-select")
+                    .setValueText(this.form.producto.nombreProducto);
+                this.cargarLargosProducto();
+                this.cargarInformacionProducto();
+            }
         },
 
         cargarInformacionDestino() {
