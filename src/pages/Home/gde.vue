@@ -19,36 +19,78 @@
         </div>
 
         <!-- Lista -->
-        <f7-list v-else media-list strong inset>
+        <f7-list media-list v-else>
             <f7-list-item
                 v-for="g in items"
                 :key="g._id || g.folio"
-                :title="`Folio ${g.folio}`"
-                :subtitle="formatFecha(g.fechaEmision)"
-                :after="formatMoney(g.valorTotal)"
+                :title="`Folio ${g.folio ?? '—'}`"
+                :subtitle="g.estado?.texto ?? 'SIN ESTADO'"
                 @click="openDetalle(g)"
             >
+                <!-- Ícono a la izquierda -->
                 <template #media>
                     <f7-icon f7="doc_text_fill"></f7-icon>
                 </template>
+
+                <!-- Línea principal -->
                 <template #text>
                     <div class="row-line">
-                        <span class="chip">{{ g.unidadMedida }}</span>
+                        <span class="chip color-blue">{{
+                            g.producto?.unidadMedida ?? ""
+                        }}</span>
                         <span class="muted"
-                            >Vol: {{ formatVolumen(g.volumenTotal) }}</span
+                            >Producto:
+                            {{ g.producto?.nombreProducto ?? "" }}</span
                         >
                         <span class="muted"
-                            >Traslado: {{ g.tipoTraslado }}</span
+                            >Largo: {{ g.largoProducto ?? "" }}</span
+                        >
+                    </div>
+
+                    <div class="row-line">
+                        <span class="muted"
+                            >Zona: {{ g.zona?.descripcion ?? "" }}</span
+                        >
+                        <span class="muted"
+                            >Cliente:
+                            {{ g.cliente?.razonSocialCliente ?? "" }}</span
+                        >
+                    </div>
+
+                    <div class="row-line">
+                        <span class="muted"
+                            >Transportista:
+                            {{ g.transportista?.nomTransportista ?? "" }}</span
+                        >
+                        <span class="muted"
+                            >Camión:
+                            {{ g.patenteCamion?.patCamion ?? "" }}</span
+                        >
+                        <span class="muted"
+                            >Carro: {{ g.patenteCarro ?? "" }}</span
+                        >
+                    </div>
+
+                    <div class="row-line">
+                        <span class="muted"
+                            >Conductor: {{ g.conductor?.nomChofer ?? "" }}</span
+                        >
+                    </div>
+
+                    <div class="row-line">
+                        <span class="muted"
+                            >Destino:
+                            {{ g.destino?.destinoCliente ?? "" }}</span
+                        >
+                    </div>
+
+                    <div class="row-line">
+                        <span class="muted"
+                            >Fecha: {{ formatFecha(g.createdAt) }}</span
                         >
                     </div>
                 </template>
             </f7-list-item>
-
-            <!-- loading footer para infinite -->
-            <div v-if="loadingMore" class="list-footer">Cargando…</div>
-            <div v-else-if="!hasMore && items.length" class="list-footer">
-                No hay más
-            </div>
         </f7-list>
 
         <!-- FAB crear -->

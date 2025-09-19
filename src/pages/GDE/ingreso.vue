@@ -392,7 +392,7 @@
             <f7-list-item
                 v-if="this.form.conductor"
                 :key="`${form.conductor.rutChofer}`"
-                :title="`Carguios, máximo  ${maximoCarguios}`"
+                :title="`Carguios (${maximoCarguios})`"
                 class="carguio-select"
                 ref="carguio"
                 smart-select
@@ -401,7 +401,7 @@
                 <select
                     name="carguios"
                     multiple
-                    maxlength="2"
+                    :maxlength="maximoCarguios"
                     @change="handleCarguioChange"
                 >
                     <option
@@ -415,8 +415,8 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="this.form.carguios.length > 0"
-                :title="`Patentes carguios, máximo  ${maximoCarguios}`"
+                v-if="this.form.carguios.length === maximoCarguios"
+                :title="`Patentes carguios (${maximoCarguios})`"
                 class="patente-carguio-select"
                 ref="patenteCarguio"
                 smart-select
@@ -425,7 +425,7 @@
                 <select
                     name="patentes-carguios"
                     multiple
-                    maxlength="2"
+                    :maxlength="maximoCarguios"
                     @change="handlePatentesCarguioChange"
                 >
                     <option v-for="p in patentesCarguio" :key="p" :value="p">
@@ -433,7 +433,100 @@
                     </option>
                 </select>
             </f7-list-item>
+
+            <f7-list-item
+                v-if="
+                    this.form.predio &&
+                    this.form.patentesCarguio.length === maximoCarguios
+                "
+                :title="`Rodal`"
+                class="rodal-select"
+                ref="rodal"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.rodal?.codrodal || ''"
+                    @change="handleRodalChange"
+                >
+                    <option value="" disabled>Seleccione Rodal</option>
+                    <option
+                        v-for="p in rodales"
+                        :key="p.codrodal"
+                        :value="p.codrodal"
+                    >
+                        {{ p.nomrodal }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                accordion-item
+                accordion-opened
+                title="Información del rodal"
+                class="rodal-info"
+                ref="rodalAccordion"
+                v-if="form.rodal"
+            >
+                <f7-accordion-content>
+                    <InformacionRodal v-if="form.rodal" :rodal="form.rodal" />
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.rodal"
+                :title="`Empresa contratista`"
+                class="empresa-contratista-select"
+                ref="empresaContratista"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.empresaContratista?.rutContratista || ''"
+                    @change="handleEmpresacontratistaChange"
+                >
+                    <option value="" disabled>
+                        Seleccione Empresa contratista
+                    </option>
+                    <option
+                        v-for="p in empresasContratista"
+                        :key="p.rutContratista"
+                        :value="p.rutContratista"
+                    >
+                        {{ p.nombreContratista }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.empresaContratista"
+                :title="`Línea`"
+                class="linea-contratista-select"
+                ref="lineaContratista"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="form.linea?.codLinea || ''"
+                    @change="handleLineacontratistaChange"
+                >
+                    <option value="" disabled>Seleccione Línea</option>
+                    <option
+                        v-for="p in lineasContratista"
+                        :key="p.codLinea"
+                        :value="p.codLinea"
+                    >
+                        {{ p.nombreLinea }}
+                    </option>
+                </select>
+            </f7-list-item>
         </f7-list>
+
+        <f7-block v-if="form.linea" class="text-align-center">
+            <f7-button fill large color="blue" @click="ingresar">
+                Ingresar
+            </f7-button>
+        </f7-block>
     </f7-page>
 </template>
 
@@ -443,6 +536,10 @@ import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
+import {
+    listarEmpresasContratistasPorOrigen,
+    listarLineasPorOrigenYEmpresaContratista,
+} from "@/app/services/Parametros/EmpresaContratistaService";
 import {
     listarCarguios,
     listarPatentesCarguioPorRut,
@@ -460,18 +557,25 @@ import {
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
 import InformacionProducto from "@/pages/GDE/Ingreso/InformacionProducto.vue";
+import InformacionRodal from "@/pages/GDE/Ingreso/InformacionRodal.vue";
 import store from "@/js/store";
 import {
     listarDestinosPorCliente,
     clienteEsEmisor,
 } from "@/app/services/Parametros/ClienteService";
+import { listarRodalesPorOrigen } from "@/app/services/Parametros/RodalService";
 import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
+import { ingresarGde } from "@/app/services/GdeService";
 import config from "@/Common/json/config.json";
-import { val, value } from "dom7";
 
 export default {
     name: "GDEIngreso",
-    components: { InformacionCliente, InformacionDestino, InformacionProducto },
+    components: {
+        InformacionCliente,
+        InformacionDestino,
+        InformacionProducto,
+        InformacionRodal,
+    },
     data() {
         return {
             ssParams: {
@@ -494,6 +598,9 @@ export default {
             conductores: [],
             carguios: [],
             patentesCarguio: [],
+            rodales: [],
+            empresasContratista: [],
+            lineasContratista: [],
             form: {
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,
@@ -513,7 +620,10 @@ export default {
                 patenteCarro: null,
                 conductor: null,
                 carguios: [],
-                patentesCarguio: null,
+                patentesCarguio: [],
+                rodal: null,
+                empresaContratista: null,
+                linea: null,
             },
         };
     },
@@ -600,6 +710,7 @@ export default {
                 this.form.predio = this.predios[0];
                 await this.$nextTick();
                 this.cargarClientes();
+                this.cargarRodales();
                 f7.smartSelect
                     .get(".select-predio .smart-select")
                     .setValueText(this.form.predio.predio);
@@ -613,6 +724,7 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("predio"); // limpia desde predio en adelante
+            this.cargarRodales();
             this.cargarClientes();
         },
 
@@ -786,7 +898,6 @@ export default {
                 f7.smartSelect
                     .get(".conductor-select .smart-select")
                     .setValueText(this.form.conductor.nomChofer);
-                this.cargarConductores();
             }
         },
 
@@ -820,11 +931,9 @@ export default {
             );
             // buscar los objetos carguio correspondientes
             this.form.patentesCarguio = values
-                .map((v) => this.carguios.find((p) => p.patenteCarguio === v))
+                .map((v) => this.patentesCarguio.find((p) => p === v))
                 .filter(Boolean); // descarta nulls*/
 
-
-            console.log(this.form.patentesCarguio);
             await this.$nextTick();
             this.resetDesde("patenteCarguio"); // limpia dependencias
         },
@@ -833,7 +942,6 @@ export default {
             // si no hay carguios seleccionados, resetea
             if (!this.form.carguios?.length) {
                 this.patentesCarguio = [];
-                this.form.patenteCarguio = null;
                 return;
             }
 
@@ -854,12 +962,68 @@ export default {
             });
         },
 
+        async handleRodalChange(e) {
+            const nuevoRodal = Number(e.target.value);
+            this.form.rodal =
+                this.rodales.find((p) => p.codrodal === nuevoRodal) || null;
+
+            await this.$nextTick();
+            this.resetDesde("rodal"); // limpia desde rodal en adelante
+            this.cargarInformacionRodal();
+            this.cargarEmpresasContratistas();
+        },
+
+        async handleEmpresacontratistaChange(e) {
+            const nuevaEmpresa = e.target.value;
+            this.form.empresaContratista =
+                this.empresasContratista.find(
+                    (p) => p.rutContratista === nuevaEmpresa
+                ) || null;
+            await this.$nextTick();
+            this.resetDesde("empresaContratista"); // limpia desde empresa contratista en adelante
+            this.cargarLineasContratistas();
+        },
+
+        async handleLineacontratistaChange(e) {
+            const nuevaLinea = Number(e.target.value);
+            this.form.linea =
+                this.lineasContratista.find((p) => p.codLinea === nuevaLinea) ||
+                null;
+            await this.$nextTick();
+        },
+        cargarInformacionRodal() {
+            const ref = this.$refs.rodalAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
+        },
         cargarInformacionProducto() {
             const ref = this.$refs.productoAccordion;
             const el = ref?.$el || ref?.el || ref; // el DOM real
             if (el) f7.accordion.open(el);
         },
 
+        async cargarRodales() {
+            this.rodales = this.form.predio
+                ? await listarRodalesPorOrigen(this.form.predio.rolPredio)
+                : [];
+        },
+
+        async cargarEmpresasContratistas() {
+            this.empresasContratista = this.form.predio
+                ? await listarEmpresasContratistasPorOrigen(
+                      this.form.predio.rolPredio
+                  )
+                : [];
+        },
+
+        async cargarLineasContratistas() {
+            this.lineasContratista = this.form.empresaContratista
+                ? await listarLineasPorOrigenYEmpresaContratista(
+                      this.form.predio.rolPredio,
+                      this.form.empresaContratista.rutContratista
+                  )
+                : [];
+        },
         async cargarProductos() {
             this.productos = this.form.destino
                 ? await listarProductosPorClienteDestino(
@@ -915,7 +1079,9 @@ export default {
             }
             if (nivel === "predio") {
                 this.form.cliente = null;
+                this.form.rodal = null;
                 this.clientes = [];
+                this.rodales = [];
                 // sigue
                 nivel = "cliente";
             }
@@ -963,19 +1129,44 @@ export default {
                 nivel = "conductor";
             }
             if (nivel === "conductor") {
-                this.form.carguio = null;
+                this.form.carguios = [];
                 nivel = "carguio";
             }
             if (nivel === "carguio") {
                 this.patentesCarguio = [];
-                this.form.patenteCarguio = null;
+                this.form.patentesCarguio = [];
                 nivel = "patenteCarguio";
             }
-             if (nivel === "patenteCarguio") {
-                /*this.patentesCarguio = [];
-                this.form.patenteCarguio = null;
-                nivel = "patenteCarguio";*/
+            if (nivel === "patenteCarguio") {
+                this.form.rodal = null;
+                nivel = "rodal";
             }
+            if (nivel === "rodal") {
+                this.form.empresaContratista = null;
+                this.empresasContratista = [];
+                nivel = "empresaContratista";
+            }
+            if (nivel === "empresaContratista") {
+                this.form.linea = null;
+                this.lineasContratista = [];
+                nivel = "lineaContratista";
+            }
+        },
+
+        async ingresar() {
+            // guardar form en store
+            //store.commit("setGDEForm", this.form);
+            console.log(this.form);
+
+            await ingresarGde(this.form);
+            f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
+                f7.views.main?.router?.navigate("/home/", {
+                    //TODO: IR AL DETALLE
+                    reloadAll: true,
+                });
+            });
+            // navegar a ingreso detalles
+            //f7.views.main.router.navigate("/gde/ingreso-detalles");
         },
 
         back() {

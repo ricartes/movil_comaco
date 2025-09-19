@@ -5,7 +5,7 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
-    getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresContratistaDao, getRodalDao,
+    getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
     getZonaDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
@@ -135,7 +135,7 @@ const CargaParametrosService = {
             rut,
             ruta: config.rutas.RescatarEmpresaContratista,
             mapper: mapServerEmpresaContratistaToDoc,
-            daoGetter: getEmpresContratistaDao,
+            daoGetter: getEmpresaContratistaDao,
             nombre: 'Empresa contratista',
         })
     },

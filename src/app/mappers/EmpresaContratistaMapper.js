@@ -3,6 +3,8 @@ import config from '@/Common/json/config.json'
 import { makeId } from './_id'
 import { normalizeRut, normalizeText } from './_normalize'
 import EmpresaContratistaDTO from '@/app/DTO/Parametros/EmpresaContratistaDTO'
+import EmpresaContratistaSimpleDTO from '@/app/DTO/Parametros/EmpresaContratistaSimpleDTO';
+import LineaContratistaDTO from '@/app/DTO/Parametros/LineaContratistaDTO';
 
 /** row tal cual del WS */
 export function mapServerEmpresaContratistaToDoc(row) {
@@ -45,3 +47,16 @@ export function empresaContratistaDocToDTO(doc) {
         doc.nombreLinea ?? null
     );
 }
+
+export function empresaContratistaSimpleDocToDTO(doc) {
+    return new EmpresaContratistaSimpleDTO(
+        doc
+    )
+}
+
+export function lineaContratistaDocToDTO(doc) {
+    return new LineaContratistaDTO(
+        doc
+    )
+}
+

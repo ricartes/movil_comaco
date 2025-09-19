@@ -35,6 +35,10 @@ export default class BaseDAO {
         }
     }
 
+
+
+
+
     async eliminar(item) {
         try {
             // Marcar el documento para la eliminación añadiendo _deleted: true

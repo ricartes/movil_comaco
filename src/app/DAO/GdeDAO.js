@@ -1,6 +1,6 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { gdeDocToDTO } from '@/app/mappers/gdeMapper'
+import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper'
 
 let instance = null;
 
@@ -23,29 +23,35 @@ export default class GdeDAO {
         const res = await this.db.find({
             selector: {
                 type: config.bd.tipoEntidad.gde,
-                empId: Number(empId),                  // ⬅️ empId aquí
-                codDespachador: String(rut),
+                rutEmisor: rut,
+                empId: Number(empId),
             },
             use_index: 'idx_gde_empId_rut',
         })
-        return res.docs.map(gdeDocToDTO)
+        return res.docs;
     }
 
     async listarPorEmpresaYRutPaginado(empId, rut, { limit = 20, skip = 0 } = {}) {
         const res = await this.db.find({
-            selector: { type: 'gde', empId: Number(empId), codDespachador: String(rut) },
+            selector: { type: 'gde' },
             use_index: 'idx_gde_empId_rut',
             limit,
             skip,
             sort: undefined, // (con mango, sólo puedes sort si fields están indexados)
         })
-        return res.docs.map(gdeDocToDTO)
+        console.log(res);
+        return res.docs;
     }
 
 
     async insertar(gde) {
         try {
-            return await getBaseDao().insertar(gde);
+
+            
+
+            const gdeInsert = makeGdeDoc(gde);
+            console.log(gdeInsert);
+            return await getBaseDao().insertar(gdeInsert);
 
         } catch (error) {
             console.error("Error al insertar gde:", error);

@@ -71,7 +71,7 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_err_fecha', fields: ['type', 'fechaHora'] },
 
 
-        { ddoc: 'idx_gde_empId_rut', fields: ['type', 'empId', 'codDespachador'] },
+        { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
 
 
     ];

@@ -128,7 +128,7 @@ export function getCarguioDao() {
     return _carguioDao;
 }
 
-export function getEmpresContratistaDao() {
+export function getEmpresaContratistaDao() {
     if (!_empresaContratistaDao) {
         throw new Error("_empresaContratistaDao no ha sido inicializado.");
     }

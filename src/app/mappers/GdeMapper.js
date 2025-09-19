@@ -2,30 +2,20 @@
 import config from '@/Common/json/config.json'
 import { makeId } from './_id'
 import GdeDTO from '@/app/DTO/GdeDTO'
-
+import { sanitizeForPouch } from "@/app/helpers/JsonHelpers";
 function toYMD(fecha) {
     if (fecha instanceof Date) return fecha.toISOString().slice(0, 10)
     if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fecha
     throw new Error('fechaEmision debe ser Date o "YYYY-MM-DD"')
 }
 
-export function makeGdeDoc(raw, empId) {
-    if (!raw?.folio) throw new Error('folio requerido')
-    if (!empId) throw new Error('empId requerido')
-
+export function makeGdeDoc(raw) {
+    const gdePlana = sanitizeForPouch(raw);
     return {
-        _id: makeId(config.bd.tipoEntidad.gde, empId, String(raw.folio)),
         type: config.bd.tipoEntidad.gde,
-
-        empId: Number(empId),                   // ⬅️ ahora este nombre
-        folio: Number(raw.folio),
-        fechaEmision: toYMD(raw.fechaEmision),
-        tipoTraslado: raw.tipoTraslado ?? 'V',
-        codDespachador: raw.codDespachador ?? null,
-        unidadMedida: raw.unidadMedida ?? 'MR',
-        volumenTotal: Number(raw.volumenTotal ?? 0),
-        valorTotal: Number(raw.valorTotal ?? 0),
-
+        empId: Number(raw.empresa?.id ?? raw.zona?.empId ?? 0),   // denormalizado
+        rutEmisor: String(raw.emisor?.rut ?? '').trim(),          // denormalizado
+        ...gdePlana,
         createdAt: new Date().toISOString(),
     }
 }
