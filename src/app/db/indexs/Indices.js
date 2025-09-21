@@ -73,6 +73,11 @@ export async function crearIndicesTipo(db) {
 
         { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
 
+        { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
+
+        // 👇 Nuevo índice para ordenar por fecha
+        { ddoc: 'idx_gde_empId_rut_createdAt', fields: ['type', 'empId', 'rutEmisor', 'createdAt'] },
+
 
     ];
 

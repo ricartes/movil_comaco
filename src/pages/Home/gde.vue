@@ -8,7 +8,8 @@
         :infinite-distance="100"
         @infinite="onInfinite"
     >
-        <f7-navbar title="Guias de despacho" />
+        <f7-navbar title="Guías de despacho" />
+
         <!-- Empty state -->
         <div v-if="!loading && items.length === 0" class="empty">
             <f7-icon f7="doc_text" size="48"></f7-icon>
@@ -19,22 +20,38 @@
         </div>
 
         <!-- Lista -->
-        <f7-list media-list v-else>
+        <f7-list media-list class="gde-list" v-else>
             <f7-list-item
                 v-for="g in items"
-                :key="g._id || g.folio"
-                :title="`Folio ${g.folio ?? '—'}`"
-                :subtitle="g.estado?.texto ?? 'SIN ESTADO'"
+                :key="g._id"
+                :title="folioText(g)"
                 @click="openDetalle(g)"
             >
-                <!-- Ícono a la izquierda -->
+                <!-- ícono -->
                 <template #media>
-                    <f7-icon f7="doc_text_fill"></f7-icon>
+                    <f7-icon f7="doc_text_fill" />
                 </template>
 
-                <!-- Línea principal -->
+                <!-- derecha del título: fecha -->
+                <template #after>
+                    {{ formatFecha(g.createdAt) }}
+                </template>
+
+                <!-- debajo del título: estado como chip -->
+                <template #subtitle>
+                    <span
+                        class="chip chip-small"
+                        :class="estadoChipClass(g.estado?.id)"
+                    >
+                        <span class="chip-label">{{
+                            g.estado?.texto ?? "SIN ESTADO"
+                        }}</span>
+                    </span>
+                </template>
+
+                <!-- bloque de texto (máx 2 líneas) -->
                 <template #text>
-                    <div class="row-line">
+                    <div class="line">
                         <span class="chip color-blue">{{
                             g.producto?.unidadMedida ?? ""
                         }}</span>
@@ -42,53 +59,20 @@
                             >Producto:
                             {{ g.producto?.nombreProducto ?? "" }}</span
                         >
-                        <span class="muted"
-                            >Largo: {{ g.largoProducto ?? "" }}</span
+                        <span v-if="g.largoProducto" class="muted"
+                            >· Largo: {{ g.largoProducto }}</span
                         >
                     </div>
+                </template>
 
-                    <div class="row-line">
-                        <span class="muted"
-                            >Zona: {{ g.zona?.descripcion ?? "" }}</span
-                        >
-                        <span class="muted"
-                            >Cliente:
-                            {{ g.cliente?.razonSocialCliente ?? "" }}</span
-                        >
-                    </div>
-
-                    <div class="row-line">
-                        <span class="muted"
-                            >Transportista:
-                            {{ g.transportista?.nomTransportista ?? "" }}</span
-                        >
-                        <span class="muted"
-                            >Camión:
-                            {{ g.patenteCamion?.patCamion ?? "" }}</span
-                        >
-                        <span class="muted"
-                            >Carro: {{ g.patenteCarro ?? "" }}</span
-                        >
-                    </div>
-
-                    <div class="row-line">
-                        <span class="muted"
-                            >Conductor: {{ g.conductor?.nomChofer ?? "" }}</span
-                        >
-                    </div>
-
-                    <div class="row-line">
-                        <span class="muted"
-                            >Destino:
-                            {{ g.destino?.destinoCliente ?? "" }}</span
-                        >
-                    </div>
-
-                    <div class="row-line">
-                        <span class="muted"
-                            >Fecha: {{ formatFecha(g.createdAt) }}</span
-                        >
-                    </div>
+                <!-- pie: transportista y patentes en una sola línea -->
+                <template #footer>
+                    <span class="muted">
+                        Origen: {{ g.predio?.predio ?? "" }} </span
+                    ><br />
+                    <span class="muted">
+                        Cliente: {{ g.cliente?.razonSocialCliente ?? "" }}
+                    </span>
                 </template>
             </f7-list-item>
         </f7-list>
@@ -101,169 +85,183 @@
 </template>
 
 <script>
-import { onMounted, ref, computed } from "vue";
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
-import {
-    listarPorEmpresaYRutPaginado,
-    listarPorEmpresaYRut,
-} from "@/app/services/GdeService";
+import { listarPorEmpresaYRutPaginado } from "@/app/services/GdeService";
 
 const PAGE_SIZE = 20;
 
 export default {
     name: "GdePage",
-    setup() {
-        const user = computed(() => store.state.user);
-        const empId = computed(() => user.value?.empresa ?? user.value?.empId); // por si aún usas "empresa"
-        const rut = computed(() => String(user.value?.rut || ""));
 
-        const items = ref([]);
-        const loading = ref(true);
-        const loadingMore = ref(false);
-        const hasMore = ref(true);
-        const skip = ref(0);
+    data() {
+        return {
+            items: [],
+            loading: true,
+            loadingMore: false,
+            hasMore: true,
+            skip: 0,
+            loaded: false,
+            _firstLoadInFlight: null,
+        };
+    },
 
-        // cache para fallback (si DAO no tiene paginado)
-        let fullCache = null;
+    computed: {
+        user() {
+            return store.state.user;
+        },
+        empId() {
+            return this.user?.empresa ?? this.user?.empId;
+        },
+        rut() {
+            return String(this.user?.rut || "");
+        },
+    },
 
-        async function fetchPage({ reset = false } = {}) {
-            if (!empId.value || !rut.value) return;
-
-            if (reset) {
-                items.value = [];
-                skip.value = 0;
-                hasMore.value = true;
-                fullCache = null;
+    methods: {
+        // ---- UI helpers
+        folioText(g) {
+            return ` ${
+                g?.folio != null ? `Folio ${g.folio}` : "Sin folio asignado."
+            }`;
+        },
+        estadoChipClass(id) {
+            switch ((id || "").toUpperCase()) {
+                case "B":
+                    return "chip-outline color-gray"; // BORRADOR
+                case "E":
+                    return "chip-fill color-blue"; // EMITIDA
+                case "A":
+                    return "chip-fill color-green"; // ACEPTADA
+                case "R":
+                    return "chip-fill color-red"; // RECHAZADA
+                default:
+                    return "chip-outline color-gray";
             }
-
-            // 1) Si el DAO ofrece método paginado, úsalo
-            if (typeof listarPorEmpresaYRutPaginado === "function") {
-                const page =
-                    (await listarPorEmpresaYRutPaginado(
-                        Number(empId.value),
-                        rut.value,
-                        { limit: PAGE_SIZE, skip: skip.value }
-                    )) || [];
-
-                if (reset) items.value = page;
-                else items.value = items.value.concat(page);
-
-                hasMore.value = page.length === PAGE_SIZE;
-                skip.value += page.length;
-                return;
-            }
-
-            // 2) Fallback: cargar todo una vez y paginar en memoria
-            if (!fullCache) {
-                fullCache = await listarPorEmpresaYRut(
-                    Number(empId.value),
-                    rut.value
-                );
-            }
-            const slice = fullCache.slice(skip.value, skip.value + PAGE_SIZE);
-            if (reset) items.value = slice;
-            else items.value = items.value.concat(slice);
-
-            hasMore.value = skip.value + slice.length < fullCache.length;
-            skip.value += slice.length;
-        }
-
-        async function onRefresh(done) {
-            try {
-                await fetchPage({ reset: true });
-            } catch (e) {
-                f7.toast
-                    .create({
-                        text: e.message || "Error al actualizar",
-                        closeTimeout: 2000,
-                    })
-                    .open();
-            } finally {
-                done?.();
-            }
-        }
-
-        async function onInfinite() {
-            if (loadingMore.value || !hasMore.value) return;
-            loadingMore.value = true;
-            try {
-                await fetchPage();
-            } catch (e) {
-                f7.toast
-                    .create({
-                        text: e.message || "Error al cargar más",
-                        closeTimeout: 2000,
-                    })
-                    .open();
-            } finally {
-                loadingMore.value = false;
-            }
-        }
-
-        function onCrear() {
-            // Navega a tu flujo de creación de GDE (ajusta la ruta)
-            f7.views.main?.router?.navigate("/gde/ingreso/");
-        }
-
-        function openDetalle(g) {
-            // Ajusta la ruta al detalle si la tienes
-            f7.views.main?.router?.navigate(`/gde/${g.folio}`);
-        }
-
-        function formatFecha(ymd) {
-            // ymd = "YYYY-MM-DD"
-            if (!ymd) return "-";
-            // muestra en formato DD-MM-YYYY
-            const [Y, M, D] = ymd.split("-");
-            return `${D}-${M}-${Y}`;
-        }
-
-        function formatMoney(n) {
+        },
+        formatFecha(iso) {
+            if (!iso) return "-";
+            const d = new Date(iso);
+            if (isNaN(d)) return "-";
+            return d.toLocaleDateString("es-CL", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+            });
+        },
+        formatMoney(n) {
             const v = Number(n || 0);
             return v.toLocaleString("es-CL", {
                 style: "currency",
                 currency: "CLP",
                 maximumFractionDigits: 0,
             });
-        }
-
-        function formatVolumen(n) {
+        },
+        formatVolumen(n) {
             const v = Number(n || 0);
             return v.toLocaleString("es-CL", {
                 minimumFractionDigits: 3,
                 maximumFractionDigits: 3,
             });
-        }
+        },
 
-        onMounted(async () => {
+        // ---- Data
+
+        async ensureLoaded() {
+            // si ya hay una carga en curso, espera esa misma
+            if (this._firstLoadInFlight) return this._firstLoadInFlight;
+
+            // crea la promesa una sola vez
+            this._firstLoadInFlight = (async () => {
+                try {
+                    this.loading = true;
+                    await this.fetchPage({ reset: true }); // siempre recarga
+                    this.loaded = true; // opcional, puede servir para debug
+                } finally {
+                    this.loading = false;
+                    this._firstLoadInFlight = null; // liberar candado
+                }
+            })();
+
+            return this._firstLoadInFlight;
+        },
+
+        async fetchPage({ reset = false } = {}) {
+            if (!this.empId || !this.rut) return;
+
+            if (reset) {
+                this.items = [];
+                this.skip = 0;
+                this.hasMore = true;
+            }
+
+            const page =
+                (await listarPorEmpresaYRutPaginado(
+                    Number(this.empId),
+                    this.rut,
+                    {
+                        limit: PAGE_SIZE,
+                        skip: this.skip,
+                    }
+                )) || [];
+
+            if (reset) this.items = page;
+            else this.items = this.items.concat(page);
+
+            this.hasMore = page.length === PAGE_SIZE;
+            this.skip += page.length;
+        },
+
+        async refreshList() {
+            // 👈 uso manual o pull-to-refresh
             try {
-                await fetchPage({ reset: true });
+                this.loading = true;
+                await this.fetchPage({ reset: true });
+            } finally {
+                this.loading = false;
+                this.loaded = true; // ya quedó “cargado”
+            }
+        },
+
+        async onRefresh(done) {
+            try {
+                await this.fetchPage({ reset: true });
             } catch (e) {
                 f7.toast
                     .create({
-                        text: e.message || "Error cargando guías",
-                        closeTimeout: 2500,
+                        text: e?.message || "Error al actualizar",
+                        closeTimeout: 2000,
                     })
                     .open();
             } finally {
-                loading.value = false;
+                done?.();
             }
-        });
+        },
 
-        return {
-            items,
-            loading,
-            loadingMore,
-            hasMore,
-            onRefresh,
-            onInfinite,
-            onCrear,
-            openDetalle,
-            formatFecha,
-            formatMoney,
-            formatVolumen,
-        };
+        async onInfinite() {
+            if (this.loadingMore || !this.hasMore) return;
+            this.loadingMore = true;
+            try {
+                await this.fetchPage();
+            } catch (e) {
+                f7.toast
+                    .create({
+                        text: e?.message || "Error al cargar más",
+                        closeTimeout: 2000,
+                    })
+                    .open();
+            } finally {
+                this.loadingMore = false;
+            }
+        },
+
+        onCrear() {
+            f7.views.main?.router?.navigate("/gde/ingreso/");
+        },
+
+        openDetalle(g) {
+            f7.views.main?.router?.navigate(`/gde/detalle/${g._id}`);
+        },
     },
 };
 </script>
@@ -284,7 +282,9 @@ export default {
     font-size: 13px;
     margin-top: 2px;
 }
-.row-line {
+
+/* líneas internas ordenadas */
+.line {
     display: flex;
     gap: 10px;
     align-items: center;
@@ -294,10 +294,26 @@ export default {
     color: #6b7280;
     font-size: 12px;
 }
-.list-footer {
-    text-align: center;
-    padding: 12px 0 18px;
-    color: #6b7280;
-    font-size: 13px;
+
+/* clamp amable de F7: máx 2 líneas en el bloque de texto */
+.gde-list .item-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* el footer queda a 1 línea con ellipsis */
+.gde-list .item-footer {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* chip pequeño y discreto para estado */
+.chip-small {
+    --f7-chip-padding-horizontal: 8px;
+    --f7-chip-height: 20px;
+    font-size: 11px;
 }
 </style>

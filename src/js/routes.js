@@ -4,6 +4,7 @@ import Login from '@/pages/login.vue'
 import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
+import GdeDetalle from '@/pages/gde/detalle.vue';
 import store from './store';
 
 
@@ -23,6 +24,10 @@ var routes = [
     {
         path: '/gde/ingreso/',
         component: GdeIngreso,
+    },
+    {
+        path: '/gde/detalle/:id',
+        component: GdeDetalle,
     },
 
     {

@@ -1,8 +1,29 @@
-import config from "@/Common/json/config.json"
+// GdeDAO.js
+import config from "@/Common/json/config.json";
 import { getBaseDao } from "@/app/services/initServices";
-import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper'
+import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper';
 
 let instance = null;
+
+const LIST_FIELDS = [
+    '_id',
+    'folio',
+    'createdAt',
+    'estado.id',
+    'estado.texto',
+    'producto.unidadMedida',
+    'producto.nombreProducto',
+    'largoProducto',
+    'cliente.razonSocialCliente',
+    'predio.predio',
+    'destino.destinoCliente',
+    'transportista.nomTransportista',
+    'patenteCamion.patCamion',
+    'patenteCarro',
+    'volumenTotal',
+    'valorTotal',
+    'zona.descripcion'
+];
 
 export default class GdeDAO {
     constructor(db) {
@@ -13,49 +34,55 @@ export default class GdeDAO {
         return instance;
     }
 
-
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.gde)
-        return docs.map(gdeDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.gde);
+        return docs.map(gdeDocToDTO);
     }
 
-    async listarPorEmpresaYRut(empId, rut) {
-        const res = await this.db.find({
-            selector: {
-                type: config.bd.tipoEntidad.gde,
-                rutEmisor: rut,
-                empId: Number(empId),
-            },
-            use_index: 'idx_gde_empId_rut',
-        })
-        return res.docs;
+    async obtener(id) {
+        const doc = await this.db.get(id);
+        return doc; // doc completo
     }
 
     async listarPorEmpresaYRutPaginado(empId, rut, { limit = 20, skip = 0 } = {}) {
         const res = await this.db.find({
-            selector: { type: 'gde' },
-            use_index: 'idx_gde_empId_rut',
+            selector: {
+                type: config.bd.tipoEntidad.gde,
+                empId: Number(empId),
+                rutEmisor: String(rut)
+            },
+            sort: [
+                { type: 'asc' },
+                { empId: 'asc' },
+                { rutEmisor: 'asc' },
+                { createdAt: 'desc' }
+            ],
             limit,
             skip,
-            sort: undefined, // (con mango, sólo puedes sort si fields están indexados)
-        })
-        console.log(res);
+            fields: LIST_FIELDS
+            // use_index: 'idx_gde_empId_rut_createdAt' // si lo nombraste
+        });
+        console.log(res.docs);
         return res.docs;
     }
 
+    async listarPorEmpresaYRut(empId, rut) {
+        // versión NO paginada (usa el mismo método con limit grande)
+        return this.listarPorEmpresaYRutPaginado(empId, rut, {
+            limit: Number.MAX_SAFE_INTEGER,
+            skip: 0
+        });
+    }
 
     async insertar(gde) {
         try {
-
-            
-
             const gdeInsert = makeGdeDoc(gde);
-            console.log(gdeInsert);
-            return await getBaseDao().insertar(gdeInsert);
-
+            const res = await getBaseDao().insertar(gdeInsert); // 👈 usar gdeInsert
+            const doc = await this.db.get(res.id);
+            return doc; // retorna completo con _id y _rev
         } catch (error) {
             console.error("Error al insertar gde:", error);
-            throw error;  // Re-lanzar para manejo externo
+            throw error;
         }
     }
 }
