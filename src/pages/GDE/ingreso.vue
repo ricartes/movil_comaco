@@ -534,6 +534,7 @@
 
 <script>
 import { f7 } from "framework7-vue";
+import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
@@ -632,6 +633,7 @@ export default {
                 empresaContratista: null,
                 linea: null,
                 ordenCompra: null,
+                ubicacion: null,
                 totales: {
                     mr: { volumen: 0, valor: 0 },
                     m3: { volumen: 0, valor: 0 },
@@ -1203,7 +1205,7 @@ export default {
         async ingresar() {
             // guardar form en store
             //store.commit("setGDEForm", this.form);
-
+            this.form.ubicacion = await getLocationOnce();
             const gdeInsertada = await ingresarGde(this.form);
             f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
                 f7.views.main?.router?.navigate(

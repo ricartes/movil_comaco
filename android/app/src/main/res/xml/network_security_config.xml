@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Permite cleartext SOLO a estos hosts -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">gestiona-002-site20.anytempurl.com</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- emulador -->
+        <!-- agrega más <domain> si hace falta -->
+    </domain-config>
+
+    <!-- Todo lo demás sigue el valor por defecto (bloqueado) -->
+</network-security-config>
