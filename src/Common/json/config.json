@@ -80,6 +80,8 @@
         },
         "maximoCarguios": 2,
         "cantidadBancos": 6,
+        "diametroDesde": 14,
+        "diametroHasta": 72,
         "valorTransformacionMetros": 100,
         "validaEquipoMovil": true,
         "habilitaPdf": true,

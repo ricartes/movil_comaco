@@ -30,6 +30,8 @@
                     <DetalleM3
                         v-if="doc.producto.unidadMedida === unidadesMedida.M3"
                         :doc="doc"
+                        :gde-id="id"
+                        @doc-updated="(patch) => Object.assign(doc, patch)"
                     />
 
                     <DetalleMR
@@ -46,10 +48,29 @@
                             doc.producto.unidadMedida === unidadesMedida.TON
                         "
                         :doc="doc"
+                        :gde-id="id"
+                        @doc-updated="(patch) => Object.assign(doc, patch)"
                     />
                     <div v-else>
                         <span>No hay detalle para la unidad seleccionada.</span>
                     </div>
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="doc"
+                accordion-item
+                accordion-opened
+                title="Comentarios"
+                class="comentarios"
+                :properties="{ opened: true }"
+            >
+                <f7-accordion-content>
+                    <DetalleComentario
+                        v-if="doc"
+                        :doc="doc"
+                        @doc-updated="(p) => Object.assign(doc, p)"
+                    />
                 </f7-accordion-content>
             </f7-list-item>
 
@@ -76,12 +97,20 @@ import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
 import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";
 import DetalleTon from "@/pages/GDE/Detalle/DetalleTon.vue";
 import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
+import DetalleComentario from "@/pages/GDE/Detalle/DetalleComentario.vue";
 import config from "@/Common/json/config.json";
 
 export default {
     name: "GdeDetalle",
     props: { id: String },
-    components: { EncabezadoGde, DatosGde, DetalleM3, DetalleMR, DetalleTon },
+    components: {
+        EncabezadoGde,
+        DatosGde,
+        DetalleM3,
+        DetalleMR,
+        DetalleTon,
+        DetalleComentario,
+    },
 
     data() {
         return {
@@ -116,6 +145,7 @@ export default {
             this.doc = await obtenerGde(this.id);
             await this.$nextTick();
             f7.accordion.open(".detalle-unidad");
+            f7.accordion.open(".comentarios");
         } catch (e) {
             this.error = e?.message || "Error al cargar la guía";
         } finally {

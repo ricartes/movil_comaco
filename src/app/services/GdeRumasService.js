@@ -1,30 +1,24 @@
-import config from "@/Common/json/config.json";
+// src/app/services/GdeRumasService.js
 import { getGdeDao } from "@/app/services/initServices";
+import config from "@/Common/json/config.json";
 
-
+/** público: asegura que exista detalleMR en la GDE */
 export async function ensureDetalleMR(gdeId) {
     const dao = getGdeDao();
-    let doc = await dao.obtener(gdeId); // doc completo
+    let doc = await dao.obtener(gdeId);
 
     if (!Array.isArray(doc.detalleMR)) {
         const detalleMR = generarDetalleMR(doc);
         doc.detalleMR = detalleMR;
 
-        // inicializa totales MR en 0 si no existe estructura
+        // totales MR en 0 si faltan
         doc = initTotalesMRIfMissing(doc);
 
-        // guarda inmediatamente
-        // si tu DAO ya tiene `actualizar`, úsalo; si no, this.db.put(doc)
-        if (typeof dao.actualizar === "function") {
-            await dao.actualizar(doc);
-        } else {
-            await dao.db.put(doc); // según tu implementación
-        }
-
+        // GUARDAR por el DAO
+        doc = await dao.actualizar(doc);
         return { doc, detalleMR };
     }
 
-    // ya existía
     return { doc, detalleMR: doc.detalleMR };
 }
 
@@ -38,12 +32,10 @@ export function generarDetalleMR(doc) {
     );
 }
 
-
 export async function saveDetalleMR(gdeId, detalleMR) {
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
-    // set y recalcular totales MR
     doc.detalleMR = detalleMR;
 
     const volumen = detalleMR.reduce((a, b) => a + Number(b.volumen || 0), 0);
@@ -51,21 +43,13 @@ export async function saveDetalleMR(gdeId, detalleMR) {
 
     doc = initTotalesMRIfMissing(doc);
     doc.totales.mr.volumen = volumen;
-    doc.totales.mr.valor = Math.round(valor);
+    doc.totales.mr.valor = Math.round(valor); // CLP entero
 
-
-    if (typeof dao.actualizar === "function") {
-        await dao.actualizar(doc);
-    } else {
-        await dao.db.put(doc);
-    }
+    doc = await dao.actualizar(doc);
     return doc;
 }
 
-/**
- * @returns {{id:number, ancho:number, largo:number, precioUnitario:number,
- * alturaIzquierda:number, alturaDerecha:number, volumen:number, totalPrecio:number}}
- */
+/** DTO por fila/banco MR */
 function makeDetalleMRBanco(id, largo, precioUnitario) {
     return {
         id,
@@ -79,19 +63,11 @@ function makeDetalleMRBanco(id, largo, precioUnitario) {
     };
 }
 
-
-
 function initTotalesMRIfMissing(doc) {
-    if (!doc.totales || typeof doc.totales !== "object") {
-        doc.totales = {};
-    }
-    // forma “escalable” por unidad
-    if (!doc.totales.mr) {
-        doc.totales.mr = { volumen: 0, valor: 0 };
-    }
-    // si mantienes también campos antiguos/planos:
+    if (!doc.totales || typeof doc.totales !== "object") doc.totales = {};
+    if (!doc.totales.mr) doc.totales.mr = { volumen: 0, valor: 0 };
+    // si mantienes alias legacy:
     if (doc.totales.totalMr == null) doc.totales.totalMr = 0;
     if (doc.totales.volMr == null) doc.totales.volMr = 0;
-
     return doc;
 }

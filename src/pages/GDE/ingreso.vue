@@ -260,6 +260,7 @@
                 <select
                     :value="form.largoProducto || ''"
                     v-model.number="form.largoProducto"
+                    @change="handleLargoProductoChange"
                 >
                     <option value="" disabled>
                         Seleccione un Largo (Metros)
@@ -556,6 +557,9 @@ import {
     listarLargosPorProducto,
     obtenerPrecioProducto,
 } from "@/app/services/Parametros/ProductoService";
+
+import { obtenerOrdenCompra } from "@/app/services/Parametros/OrdenCompraService";
+
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
 import InformacionProducto from "@/pages/GDE/Ingreso/InformacionProducto.vue";
@@ -627,6 +631,7 @@ export default {
                 rodal: null,
                 empresaContratista: null,
                 linea: null,
+                ordenCompra: null,
                 totales: {
                     mr: { volumen: 0, valor: 0 },
                     m3: { volumen: 0, valor: 0 },
@@ -827,6 +832,22 @@ export default {
             this.cargarInformacionProducto();
         },
 
+        async obtenerOrdenCompra() {
+            this.form.ordenCompra = await obtenerOrdenCompra(
+                this.form.zona.codigo,
+                this.form.proveedor.rutProveedor,
+                this.form.predio.rolPredio,
+                this.form.cliente.rutCliente,
+                this.form.destino.destinoCliente,
+                this.form.producto.codProducto,
+                this.form.largoProducto
+            );
+        },
+
+        async handleLargoProductoChange(e) {
+            await this.obtenerOrdenCompra();
+        },
+
         async cargarPrecioProducto() {
             if (this.form.producto) {
                 this.form.precioProducto = await obtenerPrecioProducto(
@@ -834,8 +855,6 @@ export default {
                     this.form.producto.codProducto,
                     this.form.cliente.rutCliente
                 );
-
-                console.log(this.form.precioProducto);
             } else {
                 this.form.precioProducto = null;
             }
@@ -855,6 +874,7 @@ export default {
 
             if (this.largosProducto.length === 1) {
                 this.form.largoProducto = this.largosProducto[0];
+                await this.obtenerOrdenCompra();
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".largo-producto .smart-select")

@@ -12,7 +12,7 @@
                         <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
                     </tr>
                     <tr>
-                        <td class="label-cell"><b>Precio:</b></td>
+                        <td class="label-cell"><b>Precio unitario:</b></td>
                         <td class="label-cell">
                             {{
                                 formatMoneyCLP(doc.precioProducto?.precio ?? 0)
@@ -29,28 +29,29 @@
                             </f7-badge>
                         </td>
                     </tr>
+                    <tr>
+                        <td class="label-cell"><b>Ingreso TON:</b></td>
+                        <td></td>
+                    </tr>
                 </tbody>
             </table>
 
             <f7-block strong inset>
-                <div class="section-title">Ingreso de Volumen</div>
-
                 <f7-list no-hairlines-md>
                     <f7-list-input
                         label="Volumen (TON)"
                         type="number"
                         placeholder="Ingrese volumen"
                         clear-button
-                        v-model.number="volumen"
-                        @input="onVolumenChange"
+                        :value="volumen"
+                        @input="onInputVolumen"
                     />
                 </f7-list>
 
-                <div class="totales mt-2">
-                    <div><b>Total volumen TON:</b> {{ volumen }}</div>
-                    <div>
-                        <b>Total guía (CLP):</b> {{ formatMoneyCLP(valor) }}
-                    </div>
+                <div class="stack-line totals">
+                    <span><b>Total Volumen TON:</b> {{ volumen }}</span>
+                    <span class="sep">•</span>
+                    <span><b>Total Guía:</b> {{ formatMoneyCLP(valor) }}</span>
                 </div>
             </f7-block>
         </f7-card-content>
@@ -80,6 +81,15 @@ export default {
         this.valor = valor;
     },
     methods: {
+        onInputVolumen(payload) {
+            // F7 a veces emite el valor crudo, otras el evento
+            const raw =
+                typeof payload === "object" ? payload?.target?.value : payload;
+            const v = Number(raw);
+            this.volumen = isNaN(v) ? 0 : v;
+            this.onVolumenChange(); // guarda en Pouch vía servicio
+        },
+
         async onVolumenChange() {
             const precio = Number(this.doc?.precioProducto?.precio || 0);
             const { volumen, valor } = await actualizarTotalesTon(
@@ -89,16 +99,7 @@ export default {
             );
             this.volumen = volumen;
             this.valor = valor;
-            // Si quieres avisar al padre:
-            this.$emit("updated:ton", { volumen, valor });
-        },
-        formatMoneyCLP(n) {
-            const v = Number(n || 0);
-            return v.toLocaleString("es-CL", {
-                style: "currency",
-                currency: "CLP",
-                maximumFractionDigits: 0,
-            });
+            this.$emit("doc-updated", { totales: { ton: { volumen, valor } } });
         },
     },
 };
@@ -115,5 +116,17 @@ export default {
 }
 .mt-2 {
     margin-top: 8px;
+}
+
+.stack-line {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    font-size: 14px;
+    padding: 4px 0;
+}
+.sep {
+    opacity: 0.6;
 }
 </style>

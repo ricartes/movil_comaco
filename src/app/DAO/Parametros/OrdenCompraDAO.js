@@ -20,6 +20,29 @@ export default class OrdenCompraDAO {
     }
 
 
+    async obtenerPorDatos(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto, largoTrozo) {
+
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                codEncargado,
+                rutProveedor,
+                rolPredio,
+                rutCliente,
+                destinoCliente,
+                codProducto,
+                largoTrozo
+
+            },
+            limit: 1
+        });
+
+        if (docs.length === 0) {
+            return null; // No se encontró ningún precio vigente
+        }
+        return ocDocToDTO(docs[0]); // Retorna el primer documento mapeado a DTO
+    }
+
 
     async eliminarTodos() {
         try {

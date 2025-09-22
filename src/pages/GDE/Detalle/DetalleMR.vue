@@ -12,7 +12,7 @@
                         <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
                     </tr>
                     <tr>
-                        <td class="label-cell"><b>Precio:</b></td>
+                        <td class="label-cell"><b>Precio unitario:</b></td>
                         <td class="label-cell">
                             {{
                                 formatMoneyCLP(doc.precioProducto?.precio ?? 0)
