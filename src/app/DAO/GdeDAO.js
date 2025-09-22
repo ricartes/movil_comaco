@@ -20,8 +20,9 @@ const LIST_FIELDS = [
     'transportista.nomTransportista',
     'patenteCamion.patCamion',
     'patenteCarro',
-    'volumenTotal',
-    'valorTotal',
+    'totales.mr.volumen',
+    'totales.m3.volumen',
+    'totales.ton.volumen',
     'zona.descripcion'
 ];
 
@@ -62,7 +63,6 @@ export default class GdeDAO {
             fields: LIST_FIELDS
             // use_index: 'idx_gde_empId_rut_createdAt' // si lo nombraste
         });
-        console.log(res.docs);
         return res.docs;
     }
 

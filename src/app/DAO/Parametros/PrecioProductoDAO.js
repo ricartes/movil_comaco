@@ -21,6 +21,27 @@ export default class PrecioProductoDAO {
 
 
 
+    async obtenerPorProductoVigente(empId, codProducto, rutCliente) {
+        const hoy = new Date().toISOString().slice(0, 10); // Formato 'YYYY-MM-DD'
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.precio,
+                empresaId: empId,
+                "cliente.rut": rutCliente,
+                codigoProducto: codProducto,
+                fechaInicial: { "$lte": hoy }, //preguntar si se incluyenb las fechas
+                fechaFinal: { "$gte": hoy }
+            },
+            limit: 1
+        });
+
+        if (docs.length === 0) {
+            return null; // No se encontró ningún precio vigente
+        }
+        return precioDocToDTO(docs[0]); // Retorna el primer documento mapeado a DTO
+    }
+
+
     async eliminarTodos() {
         try {
             const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.precio);

@@ -16,9 +16,10 @@ import 'framework7/css/bundle';
 // Import Icons and App Custom Styles
 import '../css/icons.css';
 import '../css/app.less';
-import store from '@/js/store' 
+import store from '@/js/store'
 // Import App Component
 import App from '../components/app.vue';
+import formattersMixin from '@/js/mixins/formatters'
 
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
@@ -33,13 +34,16 @@ Framework7.use(Framework7Vue);
             initializeServices(localDbInstance)
         }
 
-        await store.dispatch('hydrate') 
+        await store.dispatch('hydrate')
         // 3) Crea y monta la app
         const app = createApp(App)
         registerComponents(app)
 
         // (opcional) exponer la DB por provide/inject
         app.provide('localDb', localDbInstance)
+
+        app.mixin(formattersMixin)
+
 
         app.mount('#app')
     } catch (err) {

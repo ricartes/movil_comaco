@@ -15,22 +15,48 @@
             <div class="text-color-red">{{ error }}</div>
         </f7-block>
 
-        <f7-card class="summary-card" v-else>
-            <f7-card-content>
-                <div class="summary-row">
-                    <div><b>Folio:</b> {{ doc.folio ?? "Sin folio" }}</div>
-                    <div><b>Estado:</b> {{ doc.estado?.texto ?? "—" }}</div>
-                </div>
-                <div class="summary-row">
-                    <div><b>Creada:</b> {{ formatFecha(doc.createdAt) }}</div>
-                </div>
-            </f7-card-content>
-        </f7-card>
+        <EncabezadoGde v-else :doc="doc" />
+
         <f7-list>
+            <f7-list-item
+                v-if="doc && doc.producto"
+                accordion-item
+                accordion-opened
+                :title="detalleTitle"
+                class="detalle-unidad"
+                :properties="{ opened: true }"
+            >
+                <f7-accordion-content>
+                    <DetalleM3
+                        v-if="doc.producto.unidadMedida === unidadesMedida.M3"
+                        :doc="doc"
+                    />
+
+                    <DetalleMR
+                        v-else-if="
+                            doc.producto.unidadMedida === unidadesMedida.MR
+                        "
+                        :doc="doc"
+                        :gde-id="id"
+                        @doc-updated="(patch) => Object.assign(doc, patch)"
+                    />
+
+                    <DetalleTon
+                        v-else-if="
+                            doc.producto.unidadMedida === unidadesMedida.TON
+                        "
+                        :doc="doc"
+                    />
+                    <div v-else>
+                        <span>No hay detalle para la unidad seleccionada.</span>
+                    </div>
+                </f7-accordion-content>
+            </f7-list-item>
+
             <f7-list-item
                 accordion-item
                 accordion-opened
-                title="Información de la Guía"
+                title="Datos de la Guía (pulse para expandir)"
                 class="info-guia"
                 :properties="{ opened: true }"
             >
@@ -45,12 +71,17 @@
 <script>
 import { f7 } from "framework7-vue";
 import { obtenerGde } from "@/app/services/GdeService";
-import DatosGde from "./Detalle/DatosGde.vue";
+import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
+import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
+import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";
+import DetalleTon from "@/pages/GDE/Detalle/DetalleTon.vue";
+import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
+import config from "@/Common/json/config.json";
 
 export default {
     name: "GdeDetalle",
     props: { id: String },
-    components: { DatosGde },
+    components: { EncabezadoGde, DatosGde, DetalleM3, DetalleMR, DetalleTon },
 
     data() {
         return {
@@ -60,13 +91,31 @@ export default {
         };
     },
 
+    computed: {
+        unidadesMedida() {
+            return config.parametros.unidadesMedida;
+        },
+        detalleTitle() {
+            const unidad = this.doc?.producto?.unidadMedida;
+            switch (unidad) {
+                case this.unidadesMedida.M3:
+                    return "Detalle M3:";
+                case this.unidadesMedida.MR:
+                    return "Detalle MR:";
+                case this.unidadesMedida.TON:
+                    return "Detalle Ton:";
+                default:
+                    return "Detalle:";
+            }
+        },
+    },
+
     async mounted() {
         try {
             if (!this.id) throw new Error("ID no proporcionado");
             this.doc = await obtenerGde(this.id);
-            console.log(this.doc);
             await this.$nextTick();
-            f7.accordion.open(".info-guia");
+            f7.accordion.open(".detalle-unidad");
         } catch (e) {
             this.error = e?.message || "Error al cargar la guía";
         } finally {
@@ -75,17 +124,6 @@ export default {
     },
 
     methods: {
-        formatFecha(iso) {
-            if (!iso) return "—";
-            const d = new Date(iso);
-            return isNaN(d)
-                ? "—"
-                : d.toLocaleDateString("es-CL", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                  });
-        },
         back() {
             // vuelve a la vista anterior
             f7.views.main?.router?.navigate("/home/", {

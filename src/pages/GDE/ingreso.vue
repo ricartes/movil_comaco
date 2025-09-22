@@ -237,12 +237,13 @@
                 title="Información del producto"
                 class="producto-info"
                 ref="productoAccordion"
-                v-if="form.producto"
+                v-if="form.producto && form.precioProducto"
             >
                 <f7-accordion-content>
                     <InformacionProducto
-                        v-if="form.producto"
+                        v-if="form.producto && form.precioProducto"
                         :producto="form.producto"
+                        :precioProducto="form.precioProducto"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -553,6 +554,7 @@ import {
 import {
     listarProductosPorClienteDestino,
     listarLargosPorProducto,
+    obtenerPrecioProducto,
 } from "@/app/services/Parametros/ProductoService";
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
@@ -614,6 +616,7 @@ export default {
                 trasvasije: false,
                 ventaPiso: false,
                 producto: null,
+                precioProducto: null,
                 largoProducto: null,
                 transportista: null,
                 patenteCamion: null,
@@ -624,6 +627,11 @@ export default {
                 rodal: null,
                 empresaContratista: null,
                 linea: null,
+                totales: {
+                    mr: { volumen: 0, valor: 0 },
+                    m3: { volumen: 0, valor: 0 },
+                    ton: { volumen: 0, valor: 0 },
+                },
             },
         };
     },
@@ -813,9 +821,24 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("producto"); // limpia desde producto en adelante
-
+            this.cargarPrecioProducto();
             this.cargarLargosProducto();
+            await this.$nextTick();
             this.cargarInformacionProducto();
+        },
+
+        async cargarPrecioProducto() {
+            if (this.form.producto) {
+                this.form.precioProducto = await obtenerPrecioProducto(
+                    this.usuarioActivo.empresa,
+                    this.form.producto.codProducto,
+                    this.form.cliente.rutCliente
+                );
+
+                console.log(this.form.precioProducto);
+            } else {
+                this.form.precioProducto = null;
+            }
         },
 
         async cargarLargosProducto() {
@@ -996,11 +1019,13 @@ export default {
             const el = ref?.$el || ref?.el || ref; // el DOM real
             if (el) f7.accordion.open(el);
         },
-        cargarInformacionProducto() {
+        async cargarInformacionProducto() {
+            await this.$nextTick();
             const ref = this.$refs.productoAccordion;
-            const el = ref?.$el || ref?.el || ref; // el DOM real
+            const el = ref?.$el || ref?.el || ref;
             if (el) f7.accordion.open(el);
         },
+        // .
 
         async cargarRodales() {
             this.rodales = this.form.predio
@@ -1041,7 +1066,9 @@ export default {
                 f7.smartSelect
                     .get(".select-producto .smart-select")
                     .setValueText(this.form.producto.nombreProducto);
-                this.cargarLargosProducto();
+                await this.cargarPrecioProducto();
+                await this.cargarLargosProducto();
+                await this.$nextTick();
                 this.cargarInformacionProducto();
             }
         },
@@ -1156,14 +1183,16 @@ export default {
         async ingresar() {
             // guardar form en store
             //store.commit("setGDEForm", this.form);
-            console.log(this.form);
 
-            await ingresarGde(this.form);
+            const gdeInsertada = await ingresarGde(this.form);
             f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
-                f7.views.main?.router?.navigate("/home/", {
-                    //TODO: IR AL DETALLE
-                    reloadAll: true,
-                });
+                f7.views.main?.router?.navigate(
+                    `/gde/detalle/${gdeInsertada._id}`,
+                    {
+                        //TODO: IR AL DETALLE
+                        reloadAll: true,
+                    }
+                );
             });
             // navegar a ingreso detalles
             //f7.views.main.router.navigate("/gde/ingreso-detalles");

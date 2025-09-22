@@ -20,6 +20,22 @@ export default class ParametroGeneralDAO {
     }
 
 
+    // ...existing code...
+    async obtener(empId, id) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.parametroGeneral,
+                empId,
+                id
+            },
+            limit: 1
+        });
+        if (docs.length === 0) {
+            return null;
+        }
+        return parametroGeneralDocToDTO(docs[0]);
+    }
+
 
     async eliminarTodos() {
         try {

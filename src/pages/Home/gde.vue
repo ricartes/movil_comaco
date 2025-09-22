@@ -53,14 +53,10 @@
                 <template #text>
                     <div class="line">
                         <span class="chip color-blue">{{
-                            g.producto?.unidadMedida ?? ""
+                            chipUnidadConVolumen(g)
                         }}</span>
-                        <span class="muted"
-                            >Producto:
+                        <span class="muted">
                             {{ g.producto?.nombreProducto ?? "" }}</span
-                        >
-                        <span v-if="g.largoProducto" class="muted"
-                            >· Largo: {{ g.largoProducto }}</span
                         >
                     </div>
                 </template>
@@ -71,7 +67,8 @@
                         Origen: {{ g.predio?.predio ?? "" }} </span
                     ><br />
                     <span class="muted">
-                        Cliente: {{ g.cliente?.razonSocialCliente ?? "" }}
+                        Destino: {{ g.cliente?.razonSocialCliente ?? "" }}
+                        {{ g.destino?.destinoCliente ?? "" }}
                     </span>
                 </template>
             </f7-list-item>
@@ -139,30 +136,22 @@ export default {
                     return "chip-outline color-gray";
             }
         },
-        formatFecha(iso) {
-            if (!iso) return "-";
-            const d = new Date(iso);
-            if (isNaN(d)) return "-";
-            return d.toLocaleDateString("es-CL", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-            });
+        chipUnidadConVolumen(g) {
+            const um = g.producto?.unidadMedida || "";
+            const v = this.volumenSegunUM(g);
+            if (v == null) return um; // si no hay volumen, solo UM
+            const num = Number(v);
+            if (isNaN(num)) return um;
+            return `${num.toFixed(2)} ${um}`; // ej: "MR · 6.39"
         },
-        formatMoney(n) {
-            const v = Number(n || 0);
-            return v.toLocaleString("es-CL", {
-                style: "currency",
-                currency: "CLP",
-                maximumFractionDigits: 0,
-            });
-        },
-        formatVolumen(n) {
-            const v = Number(n || 0);
-            return v.toLocaleString("es-CL", {
-                minimumFractionDigits: 3,
-                maximumFractionDigits: 3,
-            });
+
+        volumenSegunUM(g) {
+            const um = g.producto?.unidadMedida;
+            const t = g.totales || {};
+            if (um === "MR") return t.mr?.volumen;
+            if (um === "M3") return t.m3?.volumen;
+            if (um === "TON") return t.ton?.volumen;
+            return null;
         },
 
         // ---- Data

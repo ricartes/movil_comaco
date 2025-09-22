@@ -50,106 +50,113 @@ function formatFecha(iso?: string) {
 </script>
 
 <template>
-    <f7-block>
-        <div class="section">
-            <div class="section-title">Origen</div>
-            <dl class="kv">
-                <dt>Zona</dt>
-                <dd>{{ props.doc?.zona?.descripcion ?? "—" }}</dd>
-                <dt>Proveedor</dt>
-                <dd>{{ props.doc?.proveedor?.nomProveedor ?? "—" }}</dd>
-                <dt>Predio</dt>
-                <dd>{{ props.doc?.predio?.predio ?? "—" }}</dd>
-            </dl>
-        </div>
+    <f7-card>
+        <f7-card-content>
+            <div class="section">
+                <div class="section-title">Origen</div>
+                <dl class="kv">
+                    <dt>Zona</dt>
+                    <dd>{{ props.doc?.zona?.descripcion ?? "—" }}</dd>
+                    <dt>Proveedor</dt>
+                    <dd>{{ props.doc?.proveedor?.nomProveedor ?? "—" }}</dd>
+                    <dt>Predio</dt>
+                    <dd>{{ props.doc?.predio?.predio ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Destino</div>
-            <dl class="kv">
-                <dt>Cliente</dt>
-                <dd>{{ props.doc?.cliente?.razonSocialCliente ?? "—" }}</dd>
-                <dt>Destino</dt>
-                <dd>{{ props.doc?.destino?.destinoCliente ?? "—" }}</dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Destino</div>
+                <dl class="kv">
+                    <dt>Cliente</dt>
+                    <dd>{{ props.doc?.cliente?.razonSocialCliente ?? "—" }}</dd>
+                    <dt>Destino</dt>
+                    <dd>{{ props.doc?.destino?.destinoCliente ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Producto</div>
-            <dl class="kv">
-                <dt>Nombre</dt>
-                <dd>{{ props.doc?.producto?.nombreProducto ?? "—" }}</dd>
-                <dt>UM</dt>
-                <dd>{{ props.doc?.producto?.unidadMedida ?? "—" }}</dd>
-                <dt>Largo</dt>
-                <dd>{{ props.doc?.largoProducto ?? "—" }}</dd>
-                <dt>Categoría</dt>
-                <dd>{{ props.doc?.producto?.categoria ?? "—" }}</dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Producto</div>
+                <dl class="kv">
+                    <dt>Nombre</dt>
+                    <dd>{{ props.doc?.producto?.nombreProducto ?? "—" }}</dd>
+                    <dt>UM</dt>
+                    <dd>{{ props.doc?.producto?.unidadMedida ?? "—" }}</dd>
+                    <dt>Largo</dt>
+                    <dd>{{ props.doc?.largoProducto ?? "—" }}</dd>
+                    <dt>Categoría</dt>
+                    <dd>{{ props.doc?.producto?.categoria ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Transporte</div>
-            <dl class="kv">
-                <dt>Transportista</dt>
-                <dd>{{ props.doc?.transportista?.nomTransportista ?? "—" }}</dd>
-                <dt>Camión</dt>
-                <dd>{{ props.doc?.patenteCamion?.patCamion ?? "—" }}</dd>
-                <dt>Carro</dt>
-                <dd>{{ props.doc?.patenteCarro ?? "—" }}</dd>
-                <dt>Conductor</dt>
-                <dd>{{ props.doc?.conductor?.nomChofer ?? "—" }}</dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Transporte</div>
+                <dl class="kv">
+                    <dt>Transportista</dt>
+                    <dd>
+                        {{ props.doc?.transportista?.nomTransportista ?? "—" }}
+                    </dd>
+                    <dt>Camión</dt>
+                    <dd>{{ props.doc?.patenteCamion?.patCamion ?? "—" }}</dd>
+                    <dt>Carro</dt>
+                    <dd>{{ props.doc?.patenteCarro ?? "—" }}</dd>
+                    <dt>Conductor</dt>
+                    <dd>{{ props.doc?.conductor?.nomChofer ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Empresa Contratista</div>
-            <dl class="kv">
-                <dt>Contratista</dt>
-                <dd>
-                    {{
-                        props.doc?.empresaContratista?.nombreContratista ?? "—"
-                    }}
-                </dd>
-                <dt>RUT</dt>
-                <dd>
-                    {{ props.doc?.empresaContratista?.rutContratista ?? "—" }}
-                </dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Empresa Contratista</div>
+                <dl class="kv">
+                    <dt>Contratista</dt>
+                    <dd>
+                        {{
+                            props.doc?.empresaContratista?.nombreContratista ??
+                            "—"
+                        }}
+                    </dd>
+                    <dt>RUT</dt>
+                    <dd>
+                        {{
+                            props.doc?.empresaContratista?.rutContratista ?? "—"
+                        }}
+                    </dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Rodal</div>
-            <dl class="kv">
-                <dt>Origen</dt>
-                <dd>{{ props.doc?.rodal?.codOrigen ?? "—" }}</dd>
-                <dt>Código Rodal</dt>
-                <dd>{{ props.doc?.rodal?.codrodal ?? "—" }}</dd>
-                <dt>Nombre Rodal</dt>
-                <dd>{{ props.doc?.rodal?.nomrodal ?? "—" }}</dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Rodal</div>
+                <dl class="kv">
+                    <dt>Origen</dt>
+                    <dd>{{ props.doc?.rodal?.codOrigen ?? "—" }}</dd>
+                    <dt>Código Rodal</dt>
+                    <dd>{{ props.doc?.rodal?.codrodal ?? "—" }}</dd>
+                    <dt>Nombre Rodal</dt>
+                    <dd>{{ props.doc?.rodal?.nomrodal ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section">
-            <div class="section-title">Línea</div>
-            <dl class="kv">
-                <dt>Código</dt>
-                <dd>{{ props.doc?.linea?.codLinea ?? "—" }}</dd>
-                <dt>Nombre</dt>
-                <dd>{{ props.doc?.linea?.nombreLinea ?? "—" }}</dd>
-            </dl>
-        </div>
+            <div class="section">
+                <div class="section-title">Línea</div>
+                <dl class="kv">
+                    <dt>Código</dt>
+                    <dd>{{ props.doc?.linea?.codLinea ?? "—" }}</dd>
+                    <dt>Nombre</dt>
+                    <dd>{{ props.doc?.linea?.nombreLinea ?? "—" }}</dd>
+                </dl>
+            </div>
 
-        <div class="section meta">
-            <dl class="kv">
-                <dt>Folio</dt>
-                <dd>{{ props.doc?.folio ?? "Sin folio" }}</dd>
-                <dt>Estado</dt>
-                <dd>{{ props.doc?.estado?.texto ?? "—" }}</dd>
-                <dt>Creada</dt>
-                <dd>{{ formatFecha(props.doc?.createdAt) }}</dd>
-            </dl>
-        </div>
-    </f7-block>
+            <div class="section meta">
+                <dl class="kv">
+                    <dt>Folio</dt>
+                    <dd>{{ props.doc?.folio ?? "Sin folio" }}</dd>
+                    <dt>Estado</dt>
+                    <dd>{{ props.doc?.estado?.texto ?? "—" }}</dd>
+                    <dt>Creada</dt>
+                    <dd>{{ formatFecha(props.doc?.createdAt) }}</dd>
+                </dl>
+            </div>
+        </f7-card-content>
+    </f7-card>
 </template>
 
 <style scoped>

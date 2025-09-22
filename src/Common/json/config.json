@@ -69,7 +69,17 @@
                 "texto": "NULA"
             }
         },
+        "parametrosGenerales": {
+            "precioPorDefecto": 2
+        },
+        "unidadesMedida": {
+            "M3": "M3",
+            "MR": "MR",
+            "TON": "TON",
+            "BDMT": "BDMT"
+        },
         "maximoCarguios": 2,
+        "cantidadBancos": 6,
         "valorTransformacionMetros": 100,
         "validaEquipoMovil": true,
         "habilitaPdf": true,

@@ -10,6 +10,19 @@
                         </td>
                     </tr>
                     <tr>
+                        <td class="label-cell">Precio</td>
+                        <td class="label-cell">
+                            ${{ precioProducto.precio }}
+                            <f7-badge
+                                v-if="precioProducto.indicadorPrecioPorDefecto"
+                                color="orange"
+                                style="margin-left: 8px"
+                            >
+                                por defecto
+                            </f7-badge>
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="label-cell">Unidad medida</td>
                         <td class="label-cell">
                             {{ producto.unidadMedida }}
@@ -39,6 +52,7 @@ export default {
     name: "InformacionProducto",
     props: {
         producto: { type: Object, required: true },
+        precioProducto: { type: Object, required: true },
     },
 };
 </script>
