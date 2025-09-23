@@ -1201,23 +1201,47 @@ export default {
                 nivel = "lineaContratista";
             }
         },
-
         async ingresar() {
-            // guardar form en store
-            //store.commit("setGDEForm", this.form);
-            this.form.ubicacion = await getLocationOnce();
-            const gdeInsertada = await ingresarGde(this.form);
-            f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
-                f7.views.main?.router?.navigate(
-                    `/gde/detalle/${gdeInsertada._id}`,
-                    {
-                        //TODO: IR AL DETALLE
-                        reloadAll: true,
-                    }
+            try {
+                // Mostrar preloader
+                f7.dialog.preloader("Guardando GDE…");
+
+                // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
+                let ubicacion = null;
+                try {
+                    ubicacion = await getLocationOnce();
+                } catch (geoErr) {
+                    // Puedes notificar suave, pero no bloquees el guardado
+                    console.warn("No se pudo obtener ubicación:", geoErr);
+                }
+
+                // Adjuntar ubicación (aunque sea null)
+                this.form.ubicacion = ubicacion;
+
+                // Guardar GDE
+                const gdeInsertada = await ingresarGde(this.form);
+
+                // Éxito
+                f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
+                    f7.views.main?.router?.navigate(
+                        `/gde/detalle/${gdeInsertada._id}`,
+                        {
+                            reloadAll: true,
+                        }
+                    );
+                });
+            } catch (err) {
+                console.error(err);
+                f7.dialog.alert(
+                    err?.message || "Ocurrió un error al ingresar la GDE.",
+                    "Error"
                 );
-            });
-            // navegar a ingreso detalles
-            //f7.views.main.router.navigate("/gde/ingreso-detalles");
+            } finally {
+                // Cerrar preloader siempre
+                try {
+                    f7.dialog.close(); // cierra el preloader dialog si está abierto
+                } catch {}
+            }
         },
 
         back() {
