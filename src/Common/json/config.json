@@ -91,6 +91,7 @@
     },
     "rutas": {
         "Login_Movil": "auth/login",
+        "ValidarDispositivo":"auth/dispositivo",
         "RescatarOrdenCompra": "orden-compra",
         "RescatarOrdenVenta": "orden-venta",
         "RescatarTransportista": "transportista",

@@ -195,6 +195,7 @@ export default {
             pendingLogin: null, // { user, session } luego del login web OK
         };
     },
+    created() {},
     computed: {
         canSubmit() {
             if (this.requierePin) return /^\d{4,8}$/.test(this.form.pin);

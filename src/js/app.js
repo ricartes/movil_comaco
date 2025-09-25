@@ -21,6 +21,7 @@ import store from '@/js/store'
 import App from '../components/app.vue';
 import formattersMixin from '@/js/mixins/formatters'
 
+
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
 

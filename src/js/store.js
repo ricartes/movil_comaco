@@ -6,14 +6,31 @@ const TOKEN_KEY = 'auth_token'
 const RUT_KEY = 'auth_rut'
 const EMPRESA_KEY = 'auth_empresa'
 
+// NUEVAS claves para dispositivo
+const DISPO_UID_KEY = 'dispo_uid'
+const DISPO_ESTADO_KEY = 'dispo_estado'     // p.ej. 'EN_SOLICITUD' | 'VIGENTE' | 'BLOQUEADO'
+const DISPO_BLOQUEA_KEY = 'dispo_bloquea'    // 'true' | 'false'
+const DISPO_LASTCHECK_KEY = 'dispo_lastcheck'  // epoch (string)
+
 const store = createStore({
-    state: { user: null, token: null, offline: false, ready: false },
+    state: {
+        user: null, token: null, offline: false, ready: false,
+        dispositivo: {
+            bloqueado: false,
+            estado: null,
+            uid: null,
+            lastCheck: null,
+        },
+    },
     getters: {
         isAuth({ state }) { return !!state.user },
         user({ state }) { return state.user },
         token({ state }) { return state.token },
         offline({ state }) { return state.offline },
         ready({ state }) { return state.ready },
+        isBloqueado({ state }) { return !!state.dispositivo.bloqueado },
+        estadoDispositivo({ state }) { return state.dispositivo.estado },
+        dispositivoUid({ state }) { return state.dispositivo.uid },
     },
     actions: {
         async hydrate({ state }) {
@@ -43,6 +60,24 @@ const store = createStore({
                 }
 
                 state.offline = !state.token && !!state.user
+
+                // ====== Dispositivo (persistido)
+                const [
+                    { value: dUid } = {},
+                    { value: dEstado } = {},
+                    { value: dBloquea } = {},
+                    { value: dLast } = {},
+                ] = await Promise.all([
+                    Preferences.get({ key: DISPO_UID_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: DISPO_ESTADO_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: DISPO_BLOQUEA_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: DISPO_LASTCHECK_KEY }).catch(() => ({ value: null })),
+                ])
+
+                state.dispositivo.uid = dUid || null
+                state.dispositivo.estado = dEstado || null
+                state.dispositivo.bloqueado = (dBloquea === 'true')
+                state.dispositivo.lastCheck = dLast ? Number(dLast) : null
             } finally {
                 // ✅ garantizado: evita quedarse en “Cargando…”
                 state.ready = true
@@ -77,6 +112,29 @@ const store = createStore({
             await Preferences.remove({ key: RUT_KEY })
             await Preferences.remove({ key: EMPRESA_KEY })
             window.dispatchEvent(new CustomEvent('auth:logout'))
+        },
+
+        async setDispositivoResult({ state }, { uid, estado, bloquea, message }) {
+            state.dispositivo.uid = uid ?? null
+            state.dispositivo.estado = estado ?? null
+            state.dispositivo.bloqueado = !!bloquea
+            state.dispositivo.lastCheck = Date.now()
+
+            await Preferences.set({ key: DISPO_UID_KEY, value: String(state.dispositivo.uid ?? '') })
+            await Preferences.set({ key: DISPO_ESTADO_KEY, value: String(state.dispositivo.estado ?? '') })
+            await Preferences.set({ key: DISPO_BLOQUEA_KEY, value: state.dispositivo.bloqueado ? 'true' : 'false' })
+            await Preferences.set({ key: DISPO_LASTCHECK_KEY, value: String(state.dispositivo.lastCheck) })
+
+            // opcional: emite un evento global
+            window.dispatchEvent(new CustomEvent('device:validated', { detail: { uid, estado, bloquea, message } }))
+        },
+
+        async clearDispositivo({ state }) {
+            state.dispositivo = { bloqueado: false, estado: null, uid: null, lastCheck: null }
+            await Preferences.remove({ key: DISPO_UID_KEY })
+            await Preferences.remove({ key: DISPO_ESTADO_KEY })
+            await Preferences.remove({ key: DISPO_BLOQUEA_KEY })
+            await Preferences.remove({ key: DISPO_LASTCHECK_KEY })
         },
     },
 })

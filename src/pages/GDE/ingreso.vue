@@ -662,10 +662,10 @@ export default {
     },
     async created() {
         this.generarDatosEmisor();
+        this.cargarZonas();
+        this.cargarTransportistas();
+        this.cargarCarguios();
         this.form.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
-        this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
-        this.transportistas = await listarTransportistas();
-        this.carguios = await listarCarguios();
     },
     methods: {
         generarDatosEmisor() {
@@ -677,6 +677,19 @@ export default {
                 rol: this.usuarioActivo.rol,
             };
         },
+
+        async cargarZonas() {
+            this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
+        },
+
+        async cargarTransportistas() {
+            this.transportistas = await listarTransportistas();
+        },
+
+        async cargarCarguios() {
+            this.carguios = await listarCarguios();
+        },
+
         async handleZonaChange(e) {
             const nuevoCodigo = e.target.value;
             const nuevaZona =

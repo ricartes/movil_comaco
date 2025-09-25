@@ -2,10 +2,30 @@ import { Network } from '@capacitor/network';
 import { Geolocation } from '@capacitor/geolocation';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { Device } from '@capacitor/device';
 
 
 var Utilidades = {
+
+    async buildDispositivoPayload() {
+        // UID
+        const id = await Device.getId();           // { identifier: string }
+        // Info SO
+        const info = await Device.getInfo();       // { model, platform, operatingSystem, osVersion, manufacturer, ... }
+        // App
+        const app = await App.getInfo();           // { version, name, ... }
+
+        return {
+            uid: id.identifier,                      // obligatorio
+            modelo: info.model ?? null,
+            fabricante: info.manufacturer ?? null,
+            plataforma: info.platform ?? null,       // 'ios' | 'android' | 'web'
+            versionSo: info.osVersion ?? null,
+            versionApp: app.version ?? null,
+            // fcmToken: lo agregaremos aparte si lo tienes
+        };
+    },
 
     async verificarConexion() {
         return await Network.getStatus();

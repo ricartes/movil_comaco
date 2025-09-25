@@ -1,6 +1,7 @@
 
 
 import Login from '@/pages/login.vue'
+import Bloqueado from '@/pages/Bloqueado.vue'
 import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
@@ -16,6 +17,10 @@ var routes = [
     {
         path: '/login/',
         component: Login,
+    },
+    {
+        path: '/bloqueado/',
+        component: Bloqueado,
     },
     {
         path: '/home/',
