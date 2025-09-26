@@ -78,9 +78,9 @@ export default {
                                 "No fue posible validar el dispositivo. Bloqueado por defecto.",
                         });
                         //TODO: DESCOMENTAR
-                        /*f7.views.main?.router?.navigate("/bloqueado/", {
+                        f7.views.main?.router?.navigate("/bloqueado/", {
                             reloadAll: true,
-                        });*/
+                        });
                     }
                 } finally {
                     f7.dialog.close();

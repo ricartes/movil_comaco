@@ -298,7 +298,7 @@
 
             <f7-list-item
                 v-if="form.transportista"
-                :key="`${form.transportista?.rutTransportista}`"
+                :key="`pc-${form.transportista?.rutTransportista}`"
                 title="Patente Camión"
                 class="patente-camion"
                 ref="patenteCamion"
@@ -306,6 +306,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-pc-${form.transportista?.rutTransportista}`"
                     :value="form.patenteCamion?.patCamion || ''"
                     @change="handlePatenteCamionChange"
                 >
