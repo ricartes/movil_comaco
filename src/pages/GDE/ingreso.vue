@@ -31,13 +31,12 @@
                 </select>
             </f7-list-item>
 
-            <!-- PROVEEDOR -->
-
             <!-- PROVEEDOR: depende de zona -->
             <f7-list-item
                 v-if="form.zona"
                 :key="form.zona?.codigo"
                 title="Proveedor"
+                class="select-zona"
                 smart-select
                 :smart-select-params="ssParams"
             >
@@ -392,9 +391,27 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="this.form.conductor"
+                accordion-item
+                accordion-opened
+                title="Información del Conductor"
+                class="conductor-info"
+                ref="conductorAccordion"
+                v-if="form.conductor"
+            >
+                <f7-accordion-content>
+                    <InformacionConductor
+                        v-if="form.conductor"
+                        :conductor="form.conductor"
+                        @validez="onValidezConductor"
+                        @update:conductor="onUpdateConductor"
+                    />
+                </f7-accordion-content>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="this.form.conductor && this.conductorValido"
                 :key="`${form.conductor.rutChofer}`"
-                :title="`Carguios (${maximoCarguios})`"
+                :title="`Carguios (Ingrese ${maximoCarguios})`"
                 class="carguio-select"
                 ref="carguio"
                 smart-select
@@ -418,7 +435,7 @@
 
             <f7-list-item
                 v-if="this.form.carguios.length === maximoCarguios"
-                :title="`Patentes carguios (${maximoCarguios})`"
+                :title="`Patentes carguios (Ingrese ${maximoCarguios})`"
                 class="patente-carguio-select"
                 ref="patenteCarguio"
                 smart-select
@@ -565,6 +582,7 @@ import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
 import InformacionProducto from "@/pages/GDE/Ingreso/InformacionProducto.vue";
 import InformacionRodal from "@/pages/GDE/Ingreso/InformacionRodal.vue";
+import InformacionConductor from "@/pages/GDE/Ingreso/InformacionConductor.vue";
 import store from "@/js/store";
 import {
     listarDestinosPorCliente,
@@ -581,6 +599,7 @@ export default {
         InformacionCliente,
         InformacionDestino,
         InformacionProducto,
+        InformacionConductor,
         InformacionRodal,
     },
     data() {
@@ -608,6 +627,7 @@ export default {
             rodales: [],
             empresasContratista: [],
             lineasContratista: [],
+            conductorValido: true,
             form: {
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,
@@ -680,6 +700,14 @@ export default {
 
         async cargarZonas() {
             this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
+            if (this.zonas.length === 1) {
+                this.form.zona = this.zonas[0];
+                await this.cargarProveedores();
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".select-zona .smart-select")
+                    .setValueText(this.form.zona.descripcion);
+            }
         },
 
         async cargarTransportistas() {
@@ -688,6 +716,12 @@ export default {
 
         async cargarCarguios() {
             this.carguios = await listarCarguios();
+        },
+
+        async cargarProveedores() {
+            this.proveedores = this.form.zona
+                ? await listarProveedoresPorZona(this.form.zona.codigo)
+                : [];
         },
 
         async handleZonaChange(e) {
@@ -700,11 +734,7 @@ export default {
                 this.form.zona = nuevaZona;
 
                 await this.$nextTick(); // fuerza re-render de los smart-select dependientes
-
-                // cargar proveedores de la zona seleccionada
-                this.proveedores = nuevaZona
-                    ? await listarProveedoresPorZona(nuevaZona.codigo)
-                    : [];
+                this.cargarProveedores();
             };
 
             if (this.form.proveedor || this.form.predio) {
@@ -893,7 +923,41 @@ export default {
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".largo-producto .smart-select")
-                    .setValueText(this.form.largoProducto);
+                    .setValueText(`${this.form.largoProducto} Metro(s)`);
+            }
+        },
+
+        async cargarPatentesCamion() {
+            this.patentes = this.form.transportista
+                ? await listarPatentesPorTransportista(
+                      this.form.transportista.rutTransportista
+                  )
+                : [];
+
+            if (this.patentes.length === 1) {
+                this.form.patenteCamion = this.patentes[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".patente-camion .smart-select")
+                    .setValueText(this.form.patenteCamion.patCamion);
+            }
+        },
+
+        async cargarPatentesCarro() {
+            this.patentesCarro = this.form.patenteCamion
+                ? await listarPatentesCarroPorTransportistaCamion(
+                      this.form.transportista.rutTransportista,
+                      this.form.patenteCamion.patCamion
+                  )
+                : [];
+
+            if (this.patentesCarro.length === 1) {
+                this.form.patenteCarro = this.patentesCarro[0];
+                await this.$nextTick();
+                f7.smartSelect
+                    .get(".patente-carro .smart-select")
+                    .setValueText(this.form.patenteCarro);
+                this.cargarConductores();
             }
         },
 
@@ -906,10 +970,7 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("transportista"); // limpia desde transportista en adelante
-
-            this.patentes = this.form.transportista
-                ? await listarPatentesPorTransportista(nuevoTransportista)
-                : [];
+            await this.cargarPatentesCamion();
         },
 
         async handlePatenteCamionChange(e) {
@@ -919,21 +980,7 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("patCamion"); // limpia desde patente camion en adelante
-
-            this.patentesCarro =
-                await listarPatentesCarroPorTransportistaCamion(
-                    this.form.transportista.rutTransportista,
-                    nuevaPatente
-                );
-
-            if (this.patentesCarro.length === 1) {
-                this.form.patenteCarro = this.patentesCarro[0];
-                await this.$nextTick();
-                f7.smartSelect
-                    .get(".patente-carro .smart-select")
-                    .setValueText(this.form.patenteCarro);
-                this.cargarConductores();
-            }
+            await this.cargarPatentesCarro();
         },
 
         async handlePatenteCarroChange(e) {
@@ -953,6 +1000,7 @@ export default {
             if (this.conductores.length === 1) {
                 this.form.conductor = this.conductores[0];
                 await this.$nextTick();
+                this.cargarInformacionConductor();
                 f7.smartSelect
                     .get(".conductor-select .smart-select")
                     .setValueText(this.form.conductor.nomChofer);
@@ -966,6 +1014,7 @@ export default {
                 null;
 
             await this.$nextTick();
+            this.cargarInformacionConductor();
         },
 
         async handleCarguioChange(e) {
@@ -1106,6 +1155,12 @@ export default {
                 await this.$nextTick();
                 this.cargarInformacionProducto();
             }
+        },
+
+        cargarInformacionConductor() {
+            const ref = this.$refs.conductorAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
         },
 
         cargarInformacionDestino() {
@@ -1255,6 +1310,18 @@ export default {
                     f7.dialog.close(); // cierra el preloader dialog si está abierto
                 } catch {}
             }
+        },
+
+        onUpdateConductor(nuevo) {
+            this.form.conductor = nuevo;
+            f7.smartSelect
+                .get(".conductor-select .smart-select")
+                .setValueText(this.form.conductor.nomChofer);
+        },
+
+        onValidezConductor(v) {
+            // v = { rut: boolean, nombre: boolean, ok: boolean }
+            this.conductorValido = v;
         },
 
         back() {

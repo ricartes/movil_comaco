@@ -7,7 +7,12 @@
                 El dispositivo no tiene acceso a la aplicación. Favor contactar
                 al administrador para que apruebe el acceso
             </p>
-            <p class="text-align-center">{{ uid }}</p>
+            <f7-block>
+                <p class="text-align-center text-color-black text-large">
+                    {{ uid }}
+                </p>
+            </f7-block>
+
             <f7-button fill @click="reintentar"
                 >Reintentar validación</f7-button
             >

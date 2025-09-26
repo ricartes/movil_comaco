@@ -45,7 +45,9 @@
 
                     <DetalleTon
                         v-else-if="
-                            doc.producto.unidadMedida === unidadesMedida.TON
+                            doc.producto.unidadMedida === unidadesMedida.TON ||
+                            doc.producto.unidadMedida === unidadesMedida.BDMT ||
+                            doc.producto.unidadMedida === unidadesMedida.M3ST
                         "
                         :doc="doc"
                         :gde-id="id"
@@ -132,7 +134,11 @@ export default {
                 case this.unidadesMedida.MR:
                     return "Detalle MR:";
                 case this.unidadesMedida.TON:
-                    return "Detalle Ton:";
+                    return "Detalle Astillas:";
+                case this.unidadesMedida.BDMT:
+                    return "Detalle Astillas:";
+                case this.unidadesMedida.M3ST:
+                    return "Detalle Astillas:";
                 default:
                     return "Detalle:";
             }

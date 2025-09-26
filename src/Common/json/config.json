@@ -76,9 +76,10 @@
             "M3": "M3",
             "MR": "MR",
             "TON": "TON",
-            "BDMT": "BDMT"
+            "BDMT": "BDMT",
+            "M3ST": "M3ST"
         },
-        "maximoCarguios": 2,
+        "maximoCarguios": 1,
         "cantidadBancos": 6,
         "diametroDesde": 14,
         "diametroHasta": 72,

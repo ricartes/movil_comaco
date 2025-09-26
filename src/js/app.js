@@ -20,7 +20,7 @@ import store from '@/js/store'
 // Import App Component
 import App from '../components/app.vue';
 import formattersMixin from '@/js/mixins/formatters'
-
+import rutMixin from '@/js/mixins/rut'
 
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
@@ -44,6 +44,7 @@ Framework7.use(Framework7Vue);
         app.provide('localDb', localDbInstance)
 
         app.mixin(formattersMixin)
+        app.mixin(rutMixin)
 
 
         app.mount('#app')
