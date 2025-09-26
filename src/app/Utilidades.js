@@ -4,6 +4,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Device } from '@capacitor/device';
+import dayjs from "dayjs";
 
 
 var Utilidades = {
@@ -25,6 +26,12 @@ var Utilidades = {
             versionApp: app.version ?? null,
             // fcmToken: lo agregaremos aparte si lo tienes
         };
+    },
+
+
+    fechaHoraActual() {
+
+        return dayjs().format("YYYY-MM-DD HH:mm:ss");
     },
 
     async verificarConexion() {

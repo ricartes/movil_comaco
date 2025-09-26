@@ -18,7 +18,6 @@ export default class UsuarioDAO {
             });
             return resultado;
         } catch (error) {
-            console.error("Error al crear usuario:", error);
             throw error; // Re-lanzar para manejo externo
         }
     }

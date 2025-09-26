@@ -6,7 +6,7 @@ import Utilidades from '../Utilidades'
 var UsuarioWebService = {
 
 
-    async loginWs(rut, password) {
+    async loginWs(rut, password, location) {
         const uuid = await Utilidades.getUIDevice();
         const url = (
             Constantes.direccionServidorPredeterminado +
@@ -17,6 +17,7 @@ var UsuarioWebService = {
         params.append('rut', rut);
         params.append('password', password);
         params.append('uuid', uuid);
+        params.append('location', JSON.stringify(location));
         const options = {
             url,
             headers: {

@@ -42,13 +42,11 @@ export default {
                 await store.dispatch("hydrate");
 
                 // Preloader mientras validamos dispositivo
-                const pre = f7.preloader.show();
+                f7.dialog.preloader("Validando acceso");
 
                 try {
                     const res = await bootstrapValidacionDispositivo();
                     await store.dispatch("setDispositivoResult", res);
-
-                    console.log(res);
 
                     if (res.bloquea) {
                         f7.views.main?.router?.navigate("/bloqueado/", {
@@ -79,12 +77,12 @@ export default {
                             message:
                                 "No fue posible validar el dispositivo. Bloqueado por defecto.",
                         });
-                        f7.views.main?.router?.navigate("/bloqueado/", {
+                        /*f7.views.main?.router?.navigate("/bloqueado/", {
                             reloadAll: true,
-                        });
+                        });*/
                     }
                 } finally {
-                    f7.preloader.hide(pre);
+                    f7.dialog.close();
                 }
             });
         });

@@ -646,7 +646,7 @@ export default {
         patenteCamionNoVigente() {
             return (
                 this.form?.patenteCamion != null &&
-                this.form.patenteCamion.vigencia === false
+                this.form.patenteCamion.vigencia === true
             );
         },
 

@@ -3,7 +3,11 @@
     <f7-page>
         <f7-navbar title="Dispositivo bloqueado" />
         <f7-block>
-            <p>Tu dispositivo está bloqueado o no fue posible validarlo.</p>
+            <p>
+                El dispositivo no tiene acceso a la aplicación. Favor contactar
+                al administrador para que apruebe el acceso
+            </p>
+            <p class="text-align-center">{{ uid }}</p>
             <f7-button fill @click="reintentar"
                 >Reintentar validación</f7-button
             >
@@ -15,14 +19,22 @@
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import { bootstrapValidacionDispositivo } from "@/js/bootstrap-dispositivo";
+import Utilidades from "@/app/Utilidades";
 
 export default {
+    data() {
+        return {
+            uid: true,
+        };
+    },
+    async created() {
+        this.uid = await Utilidades.getUIDevice();
+    },
     methods: {
         async reintentar() {
-            const pre = f7.preloader.show();
+            f7.dialog.preloader("Validando acceso");
             try {
                 const res = await bootstrapValidacionDispositivo();
-                console.log(res);
                 await store.dispatch("setDispositivoResult", res);
                 if (!res.bloquea) {
                     f7.views.main?.router?.navigate("/login/", {
@@ -34,7 +46,7 @@ export default {
             } catch (e) {
                 f7.dialog.alert("Error al validar. Intenta más tarde.");
             } finally {
-                f7.preloader.hide(pre);
+                f7.dialog.close();
             }
         },
     },

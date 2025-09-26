@@ -91,7 +91,7 @@
     },
     "rutas": {
         "Login_Movil": "auth/login",
-        "ValidarDispositivo":"auth/dispositivo",
+        "ValidarDispositivo": "auth/dispositivo",
         "RescatarOrdenCompra": "orden-compra",
         "RescatarOrdenVenta": "orden-venta",
         "RescatarTransportista": "transportista",
@@ -120,7 +120,8 @@
             "errorEnvio": "error_envio",
             "gde": "gde",
             "zona": "zona",
-            "proveedor": "proveedor"
+            "proveedor": "proveedor",
+            "trazabilidad": "trazabilidad"
         }
     }
 }

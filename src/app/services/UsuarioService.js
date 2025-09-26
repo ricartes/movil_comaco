@@ -1,10 +1,12 @@
 
 import { getToken, derivePinHash, verifyPin } from "../Seguridad";
 import { loginWs } from "@/app/webservices/UsuarioWebService";
-import { getUsuarioDao } from './initServices';
+import { getUsuarioDao } from '@/app/services/initServices';
+import { getTrazabilidadDao } from "@/app/services/initServices";
 import Utilidades from "../Utilidades";
 import { Preferences } from '@capacitor/preferences'
 import { mapServerUserToDoc } from '@/app/mappers/userMapper'
+
 
 
 
@@ -70,13 +72,14 @@ var UsuarioService = {
      * 
      * @param {*} username 
      * @param {*} passwordIngresado 
+     * @param {*} location 
      * @returns 
      */
-    async loginWeb(rut, passwordIngresado) {
+    async loginWeb(rut, passwordIngresado, location) {
         try {
 
             const rutNum = String(rut).replace(/\D/g, '')
-            const resp = await loginWs(rutNum, passwordIngresado)
+            const resp = await loginWs(rutNum, passwordIngresado, location)
             // Backend SIEMPRE entrega "status" true/false → no lances error aquí
             if (!resp?.status) {
                 return { status: false, message: resp?.message || 'Credenciales inválidas' }
@@ -95,6 +98,16 @@ var UsuarioService = {
             // Mapea y persiste usuario en PouchDB
             const userDoc = mapServerUserToDoc(d.user)
 
+            const trazabilidad = {
+                rut: rutNum,
+                location: location ?? null,               // objeto o null
+                fecha: Utilidades.fechaHoraActual(),
+                dispositivo: await Utilidades.getUIDevice(),
+                evento: 'LOGIN_WEB_OK',
+            };
+            await getTrazabilidadDao().insertar(trazabilidad);
+
+
             return { status: true, message: resp.message || 'Login OK', session, user: userDoc }
         } catch (ex) {
             console.log(ex);
@@ -109,13 +122,24 @@ var UsuarioService = {
     },
 
 
-    async guardarUsuarioLocalConPin(userDoc, pin) {
+    async guardarUsuarioLocalConPin(userDoc, pin, location) {
         if (!/^\d{4,8}$/.test(pin)) throw new Error('PIN invalido')
         const deviceId = await Utilidades.getUIDevice()
         const salt = `u:${userDoc.rut}|d:${deviceId}`
         const hash = await derivePinHash(pin, salt)
 
         const doc = { ...userDoc, offlinePinSalt: salt, offlinePinHash: hash }
+
+        const trazabilidad = {
+            rut: userDoc.rut,
+            location: location ?? null,               // objeto o null
+            fecha: Utilidades.fechaHoraActual(),
+            dispositivo: deviceId,
+            evento: 'PIN_GUARDADO_OK',
+        };
+        await getTrazabilidadDao().insertar(trazabilidad);
+
+
         await getUsuarioDao().insertar(doc) // o upsert si tu DAO lo maneja
         return doc
     },
@@ -125,12 +149,25 @@ var UsuarioService = {
     /**
      * Valida PIN offline contra lo guardado en PouchDB
      */
-    async validarPIN(rut, pin) {
-        const user = await getUsuarioDao().obtenerPorRut(rut)
-        if (!user || !user.offlinePinSalt || !user.offlinePinHash) return false
-        return await verifyPin(pin, user.offlinePinSalt, user.offlinePinHash)
-    },
+    async validarPIN(rut, pin, location) {
+        const user = await getUsuarioDao().obtenerPorRut(rut);
+        if (!user || !user.offlinePinSalt || !user.offlinePinHash) return false;
 
+        const esValido = await verifyPin(pin, user.offlinePinSalt, user.offlinePinHash);
+        if (!esValido) return false;
+
+        // Objeto de trazabilidad
+        const trazabilidad = {
+            rut,
+            location: location ?? null,
+            fecha: Utilidades.fechaHoraActual(),
+            dispositivo: await Utilidades.getUIDevice(),
+            evento: "LOGIN_PIN_OK"
+        };
+
+        await getTrazabilidadDao().insertar(trazabilidad);
+
+    }
 }
 export default UsuarioService;
 

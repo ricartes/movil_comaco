@@ -171,6 +171,7 @@ import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import logoSrc from "@/assets/img/logo.png";
 import UsuarioService from "@/app/services/UsuarioService";
+import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 
 export default {
     name: "LoginPage",
@@ -294,10 +295,12 @@ export default {
             if (!this.canSubmit || this.loading) return;
             this.loading = true;
             try {
+                const location = await getLocationOnce();
                 if (this.requierePin) {
                     const ok = await UsuarioService.validarPIN(
                         this.form.rut,
-                        this.form.pin
+                        this.form.pin,
+                        location
                     );
                     if (!ok) throw new Error("PIN incorrecto");
                     const user = await UsuarioService.obtenerPorRut(
@@ -313,7 +316,8 @@ export default {
                 if (this.requierePassword) {
                     const loginWeb = await UsuarioService.loginWeb(
                         this.form.rut,
-                        this.form.password
+                        this.form.password,
+                        location
                     );
                     if (!loginWeb.status) {
                         f7.dialog.alert(
@@ -352,9 +356,11 @@ export default {
 
             this.loading = true;
             try {
+                 const location = await getLocationOnce();
                 await UsuarioService.guardarUsuarioLocalConPin(
                     this.pendingLogin.user,
-                    this.pin1
+                    this.pin1,
+                    location
                 );
                 await store.dispatch("setSessionOnline", {
                     user: this.pendingLogin.user,
@@ -383,6 +389,13 @@ export default {
 </script>
 
 <style scoped>
+@media (min-width: 768px) {
+    .login-container {
+        max-width: 600px;
+        margin: auto;
+    }
+}
+
 /* Fondo y centrado */
 .login-page {
     background: #f5f7fb;
@@ -429,6 +442,7 @@ export default {
 .login-card .item-input-wrap {
     margin-bottom: 12px;
 }
+
 .login-card .login-btn {
     width: 100%;
     display: block;
