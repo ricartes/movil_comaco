@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "io.framework7.myapp"
+    namespace "io.gestionasi.gdefds"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.framework7.myapp"
+        applicationId "io.gestionasi.gdefds"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

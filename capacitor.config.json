@@ -1,5 +1,5 @@
 {
-    "appId": "io.framework7.myapp",
+    "appId": "io.gestionasi.gdefds",
     "appName": "GdeFds",
     "bundledWebRuntime": false,
     "npmClient": "npm",

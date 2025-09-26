@@ -7,6 +7,7 @@ import Utilidades from '../app/Utilidades';
 export async function bootstrapValidacionDispositivo() {
     const payload = await Utilidades.buildDispositivoPayload();
     const fcmToken = await getFcmTokenOrNull();
+
     if (fcmToken) payload.fcmToken = fcmToken;
 
     return validarDispositivo(payload); // { uid, estado, bloquea, message }

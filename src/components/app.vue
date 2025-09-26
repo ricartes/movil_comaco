@@ -48,6 +48,8 @@ export default {
                     const res = await bootstrapValidacionDispositivo();
                     await store.dispatch("setDispositivoResult", res);
 
+                    console.log(res);
+
                     if (res.bloquea) {
                         f7.views.main?.router?.navigate("/bloqueado/", {
                             reloadAll: true,

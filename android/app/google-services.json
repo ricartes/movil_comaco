@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "27000788297",
+    "project_id": "gdefds",
+    "storage_bucket": "gdefds.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:27000788297:android:4003713e3fc812678ff698",
+        "android_client_info": {
+          "package_name": "io.gestionasi.gdefds"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0c9TBDaHgq-hkNawVBKvM0d2kymiKpi8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-package io.framework7.myapp;
+package io.gestionasi.gdefds;
 
 import com.getcapacitor.BridgeActivity;
 

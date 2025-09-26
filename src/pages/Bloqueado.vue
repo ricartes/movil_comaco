@@ -22,6 +22,7 @@ export default {
             const pre = f7.preloader.show();
             try {
                 const res = await bootstrapValidacionDispositivo();
+                console.log(res);
                 await store.dispatch("setDispositivoResult", res);
                 if (!res.bloquea) {
                     f7.views.main?.router?.navigate("/login/", {
