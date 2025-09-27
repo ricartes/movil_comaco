@@ -41,7 +41,13 @@ export default class PredioDAO {
             }
         }
 
-        return Array.from(map.values()).map(predioDocToDTO);
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nA = (a.predio || '').toLowerCase();
+                const nB = (b.predio || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(predioDocToDTO);
     }
 
 

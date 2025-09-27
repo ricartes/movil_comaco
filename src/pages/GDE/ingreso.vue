@@ -1418,7 +1418,7 @@ export default {
                 "¿Desea cancelar el ingreso de GDE?",
                 "Confirmar",
                 () => {
-                    f7.views.main?.router?.navigate("/home/", {
+                    f7.views.main?.router?.navigate("/home/?tab=gde", {
                         reloadAll: true,
                     });
                 }

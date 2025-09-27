@@ -103,6 +103,18 @@ export default class GdeDAO {
         throw Object.assign(new Error('Document update conflict'), { status: 409 });
     }
 
+
+    async eliminar(gde) {
+        try {
+            await getBaseDao().eliminar(gde);
+
+        } catch (error) {
+            console.error("Error al eliminar gde", error);
+            throw error;  // Re-lanzar para manejo externo
+        }
+    }
+
+
     // === NUEVO: actualizar campos superficiales (merge shallow) ===
 
     async updateCampos(id, patchObj) {

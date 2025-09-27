@@ -16,3 +16,7 @@ export async function obtenerGde(id) {
 export async function ingresarGde(gde) {
     return await getGdeDao().insertar(gde); // devuelve doc completo
 }
+
+export async function descartarGde(gde) {
+    return await getGdeDao().eliminar(gde); // devuelve doc completo
+}

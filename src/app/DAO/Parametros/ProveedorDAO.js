@@ -45,7 +45,13 @@ export default class proveedorDAO {
             }
         }
 
-        return Array.from(map.values()).map(proveedorDocToDTO);
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nA = (a.nomProveedor || '').toLowerCase();
+                const nB = (b.nomProveedor || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(proveedorDocToDTO);
     }
 
 

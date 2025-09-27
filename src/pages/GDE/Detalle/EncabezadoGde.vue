@@ -29,18 +29,5 @@
 export default {
     name: "EncabezadoGde",
     props: { doc: Object, required: true },
-    methods: {
-        formatFecha(iso) {
-            if (!iso) return "—";
-            const d = new Date(iso);
-            return isNaN(d)
-                ? "—"
-                : d.toLocaleDateString("es-CL", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                  });
-        },
-    },
 };
 </script>

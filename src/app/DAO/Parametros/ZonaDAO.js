@@ -15,9 +15,17 @@ export default class ZonaDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.zona)
-        return docs.map(zonaDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.zona);
+
+        return docs
+            .sort((a, b) => {
+                const descA = (a.descripcion || '').toLowerCase();
+                const descB = (b.descripcion || '').toLowerCase();
+                return descA.localeCompare(descB);
+            })
+            .map(zonaDocToDTO);
     }
+
 
     async listarPorEmpresa(empId) {
 
@@ -28,7 +36,13 @@ export default class ZonaDAO {
 
             },
         })
-        return res.docs.map(zonaDocToDTO);
+        return res.docs
+            .sort((a, b) => {
+                const descA = (a.descripcion || '').toLowerCase();
+                const descB = (b.descripcion || '').toLowerCase();
+                return descA.localeCompare(descB);
+            })
+            .map(zonaDocToDTO);
     }
 
 

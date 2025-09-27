@@ -24,7 +24,13 @@ export default class CarguioDAO {
             if (!map.has(rut)) map.set(rut, d); // primer doc por rutCarguio
         }
 
-        return Array.from(map.values()).map(carguioDocToDTO);
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nombreA = (a.nombreCarguio || '').toLowerCase();
+                const nombreB = (b.nombreCarguio || '').toLowerCase();
+                return nombreA.localeCompare(nombreB);
+            })
+            .map(carguioDocToDTO);
     }
 
     async listarPatentesPorRut(rutCarguio) {

@@ -87,19 +87,37 @@
                     <datos-gde :doc="doc" />
                 </f7-accordion-content>
             </f7-list-item>
+
+            <f7-list-item
+                v-if="doc"
+                accordion-item
+                accordion-opened
+                title="Opciones"
+                class="opciones-guia"
+                :properties="{ opened: true }"
+            >
+                <f7-accordion-content>
+                    <opciones-gde
+                        v-if="doc"
+                        :doc="doc"
+                        @descartar="onDescartar"
+                    />
+                </f7-accordion-content>
+            </f7-list-item>
         </f7-list>
     </f7-page>
 </template>
 
 <script>
 import { f7 } from "framework7-vue";
-import { obtenerGde } from "@/app/services/GdeService";
+import { obtenerGde, descartarGde } from "@/app/services/GdeService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
 import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
 import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";
 import DetalleTon from "@/pages/GDE/Detalle/DetalleTon.vue";
 import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
 import DetalleComentario from "@/pages/GDE/Detalle/DetalleComentario.vue";
+import OpcionesGde from "@/pages/GDE/Detalle/OpcionesGde.vue";
 import config from "@/Common/json/config.json";
 
 export default {
@@ -112,6 +130,7 @@ export default {
         DetalleMR,
         DetalleTon,
         DetalleComentario,
+        OpcionesGde,
     },
 
     data() {
@@ -152,6 +171,7 @@ export default {
             await this.$nextTick();
             f7.accordion.open(".detalle-unidad");
             f7.accordion.open(".comentarios");
+            f7.accordion.open(".opciones-guia");
         } catch (e) {
             this.error = e?.message || "Error al cargar la guía";
         } finally {
@@ -160,9 +180,26 @@ export default {
     },
 
     methods: {
+        async onDescartar(doc) {
+            try {
+                await descartarGde(doc);
+                f7.dialog.alert(
+                    "Guía descartada correctamente.",
+                    "Éxito",
+                    () => {
+                        this.back(); // se ejecuta al cerrar el alert
+                    }
+                );
+            } catch (err) {
+                f7.dialog.alert(
+                    err.message || "Error al descartar la guía",
+                    "Error"
+                );
+            }
+        },
         back() {
             // vuelve a la vista anterior
-            f7.views.main?.router?.navigate("/home/", {
+            f7.views.main?.router?.navigate("/home/?tab=gde", {
                 reloadAll: true,
             });
         },

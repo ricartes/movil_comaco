@@ -55,6 +55,7 @@ import menuPage from "@/pages/Home/menu.vue";
 
 export default {
     name: "TabsLayout",
+    props: { f7router: Object },
     components: { dashboard, gde, menuPage },
     data() {
         return {
@@ -62,15 +63,17 @@ export default {
         };
     },
     methods: {
-        onPageAfterIn() {
-            // Asegura que Framework7 esté listo antes de mostrar el tab
-            if (f7 && f7.tab) {
-                f7.tab.show(`#view-${this.activeTab}`);
+        async onPageAfterIn() {
+            const url = f7.views.main?.router?.currentRoute?.url || "";
+            const params = new URLSearchParams(url.split("?")[1] || "");
+            const qtab = params.get("tab");
+            await this.$nextTick();
+            if (qtab === "gde") {
+                this.showGdeTab();
+            } else if (qtab === "menu") {
+                this.showMenuTab();
             } else {
-                // fallback en caso de que aún no esté listo
-                this.$nextTick(() =>
-                    f7?.tab?.show?.(`#view-${this.activeTab}`)
-                );
+                this.showHomeTab();
             }
         },
 
@@ -87,7 +90,6 @@ export default {
         showGdeTab() {
             this.activeTab = "gde";
             f7?.tab?.show?.("#view-gde");
-            // ❌ quitar: this.$refs.gdeRef?.refreshList?.();
         },
 
         onGdeTabShow() {

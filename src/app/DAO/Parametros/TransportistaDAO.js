@@ -28,9 +28,15 @@ export default class TransportistaDAO {
             }
         }
 
-        // ahora aplicas tu mapper a los docs únicos
-        return Array.from(map.values()).map(transportistaSimpleDocToDTO);
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nA = (a.nomTransportista || '').toLowerCase();
+                const nB = (b.nomTransportista || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(transportistaSimpleDocToDTO);
     }
+
 
     async listarPatentesPorTransportista(rutTransportista) {
         const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.transportista);

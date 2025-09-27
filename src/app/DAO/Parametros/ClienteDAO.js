@@ -37,11 +37,17 @@ export default class PredioDAO {
             const rut = String(d.rutCliente ?? '').trim();
             if (!rut) continue;
             if (!map.has(rut)) {
-                map.set(rut, d);
+                map.set(rut, d); // primer doc por rutCliente
             }
         }
 
-        return Array.from(map.values()).map(clienteDocToDTO);
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nA = (a.razonSocialCliente || '').toLowerCase();
+                const nB = (b.razonSocialCliente || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(clienteDocToDTO);
     }
 
 
