@@ -41,6 +41,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="'sel-zona-' + (form.zona?.codigo || '')"
                     :value="form.proveedor?.rutProveedor || ''"
                     @change="handleProveedorChange"
                 >
@@ -65,6 +66,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="'sel-predio-' + (form.proveedor?.rutProveedor || '')"
                     :value="form.predio?.rolPredio || ''"
                     @change="handlePredioChange"
                 >
@@ -89,6 +91,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="'sel-cliente-' + (form.predio?.rolPredio || '')"
                     :value="form.cliente?.rutCliente || ''"
                     @change="handleClienteChange"
                 >
@@ -131,6 +134,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="'sel-destino-' + (form.cliente?.rutCliente || '')"
                     :value="form.destino?.destinoCliente || ''"
                     @change="handleDestinoChange"
                 >
@@ -181,29 +185,12 @@
                 @change="handleVentaPisoChange"
             />
 
-            <f7-list-item v-if="form.destino">
-                <f7-block class="mb-2 no-margin-top">
-                    <div
-                        class="alert alert-info"
-                        style="
-                            border: 1px solid #bce8f1;
-                            background-color: #d9edf7;
-                            color: #31708f;
-                            border-radius: 6px;
-                            padding: 10px 15px;
-                            font-size: 14px;
-                        "
-                    >
-                        <i
-                            class="f7-icons"
-                            style="font-size: 16px; margin-right: 6px"
-                            >info_circle</i
-                        >
-                        Seleccionar entre <strong>Trasvasije</strong> o
-                        <strong>Venta en piso</strong>. Al elegir una opción, la
-                        otra se deshabilitará automáticamente.
-                    </div></f7-block
-                >
+            <f7-list-item v-if="form.destino" class="li-alert no-padding">
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Seleccionar entre Trasvasije o Venta en piso. Al elegir una
+                    opción, la otra se deshabilitará automáticamente.
+                </div>
             </f7-list-item>
 
             <f7-list-item
@@ -216,6 +203,9 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="
+                        'sel-producto-' + (form.destino?.destinoCliente || '')
+                    "
                     :value="form.producto?.codProducto || ''"
                     @change="handleProductoChange"
                 >
@@ -257,6 +247,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="'sel-largo-' + (form.producto?.codProducto || '')"
                     :value="form.largoProducto || ''"
                     v-model.number="form.largoProducto"
                     @change="handleLargoProductoChange"
@@ -280,6 +271,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-transportista-${form.producto?.codProducto}-${form.largoProducto}`"
                     :value="form.transportista?.rutTransportista || ''"
                     @change="handleTransportistaChange"
                 >
@@ -321,31 +313,33 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item v-if="patenteCamionNoVigente">
-                <f7-block class="mb-2 no-margin-top">
-                    <div
-                        class="alert alert-danger"
-                        style="
-                            border: 1px solid #ebccd1;
-                            background-color: #f2dede;
-                            color: #a94442;
-                            border-radius: 6px;
-                            padding: 10px 15px;
-                            font-size: 14px;
-                        "
+            <f7-block
+                strong
+                v-if="patenteCamionNoVigente"
+                class="alert-wrapper"
+            >
+                <div
+                    class="alert alert-danger"
+                    style="
+                        border: 1px solid #ebccd1;
+                        background-color: #f2dede;
+                        color: #a94442;
+                        border-radius: 6px;
+                        padding: 10px 15px;
+                        font-size: 14px;
+                    "
+                >
+                    <i
+                        class="f7-icons"
+                        style="font-size: 16px; margin-right: 6px"
                     >
-                        <i
-                            class="f7-icons"
-                            style="font-size: 16px; margin-right: 6px"
-                        >
-                            exclamationmark_circle
-                        </i>
-                        La <strong>patente del camión</strong> no se encuentra
-                        vigente. <strong>No podrá continuar</strong> en la
-                        emisión de la GDE.
-                    </div>
-                </f7-block>
-            </f7-list-item>
+                        exclamationmark_circle
+                    </i>
+                    La <strong>patente del camión</strong> no se encuentra
+                    vigente. <strong>No podrá continuar</strong> en la emisión
+                    de la GDE.
+                </div>
+            </f7-block>
 
             <f7-list-item
                 v-if="this.form.patenteCamion && !patenteCamionNoVigente"
@@ -357,6 +351,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-pcarro-${form.transportista?.rutTransportista}-${form.patenteCamion?.patCamion}`"
                     :value="form.patenteCarro || ''"
                     @change="handlePatenteCarroChange"
                 >
@@ -377,6 +372,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-conductor-${form.patenteCarro || ''}`"
                     :value="form.conductor?.rutChofer || ''"
                     @change="handleConductorChange"
                 >
@@ -419,6 +415,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-carguio-${form.conductor?.rutChofer || ''}`"
                     name="carguios"
                     multiple
                     :maxlength="maximoCarguios"
@@ -436,6 +433,9 @@
 
             <f7-list-item
                 v-if="this.form.carguios.length === maximoCarguios"
+                :key="`pcarg-${(form.carguios || [])
+                    .map((c) => c.rutCarguio)
+                    .join(',')}`"
                 :title="`Patentes carguios (Ingrese ${maximoCarguios})`"
                 class="patente-carguio-select"
                 ref="patenteCarguio"
@@ -443,6 +443,9 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-pcarg-${(form.carguios || [])
+                        .map((c) => c.rutCarguio)
+                        .join(',')}`"
                     name="patentes-carguios"
                     multiple
                     :maxlength="maximoCarguios"
@@ -459,6 +462,9 @@
                     this.form.predio &&
                     this.form.patentesCarguio.length === maximoCarguios
                 "
+                :key="`rodal-${form.predio?.rolPredio || ''}-${(
+                    form.patentesCarguio || []
+                ).join(',')}`"
                 :title="`Rodal`"
                 class="rodal-select"
                 ref="rodal"
@@ -466,6 +472,9 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-rodal-${form.predio?.rolPredio || ''}-${(
+                        form.patentesCarguio || []
+                    ).join(',')}`"
                     :value="form.rodal?.codrodal || ''"
                     @change="handleRodalChange"
                 >
@@ -494,6 +503,7 @@
             </f7-list-item>
 
             <f7-list-item
+                :key="`empcont-${form.rodal?.codrodal || ''}`"
                 v-if="this.form.rodal"
                 :title="`Empresa contratista`"
                 class="empresa-contratista-select"
@@ -502,6 +512,7 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-empcont-${form.rodal?.codrodal || ''}`"
                     :value="form.empresaContratista?.rutContratista || ''"
                     @change="handleEmpresacontratistaChange"
                 >
@@ -519,6 +530,7 @@
             </f7-list-item>
 
             <f7-list-item
+                :key="`linea-${form.empresaContratista?.rutContratista || ''}`"
                 v-if="this.form.empresaContratista"
                 :title="`Línea`"
                 class="linea-contratista-select"
@@ -527,6 +539,9 @@
                 :smart-select-params="ssParams"
             >
                 <select
+                    :key="`sel-linea-${
+                        form.empresaContratista?.rutContratista || ''
+                    }`"
                     :value="form.linea?.codLinea || ''"
                     @change="handleLineacontratistaChange"
                 >
@@ -937,7 +952,11 @@ export default {
 
             if (this.patentes.length === 1) {
                 this.form.patenteCamion = this.patentes[0];
+
                 await this.$nextTick();
+                if (!this.patenteCamionNoVigente) {
+                    await this.cargarPatentesCarro();
+                }
                 f7.smartSelect
                     .get(".patente-camion .smart-select")
                     .setValueText(this.form.patenteCamion.patCamion);
@@ -981,7 +1000,10 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("patCamion"); // limpia desde patente camion en adelante
-            await this.cargarPatentesCarro();
+
+            if (!this.patenteCamionNoVigente) {
+                await this.cargarPatentesCarro();
+            }
         },
 
         async handlePatenteCarroChange(e) {
@@ -1186,12 +1208,17 @@ export default {
             if (nivel === "zona") {
                 this.form.proveedor = null;
                 this.proveedores = [];
+                this.clearSmartSelect(
+                    ".select-zona",
+                    "Seleccione un Proveedor…"
+                );
                 // sigue
                 nivel = "proveedor";
             }
             if (nivel === "proveedor") {
                 this.form.predio = null;
                 this.predios = [];
+                this.clearSmartSelect(".select-predio", "Seleccione un Predio");
                 // sigue
                 nivel = "predio";
             }
@@ -1200,12 +1227,22 @@ export default {
                 this.form.rodal = null;
                 this.clientes = [];
                 this.rodales = [];
+                this.clearSmartSelect(
+                    ".select-cliente",
+                    "Seleccione un Cliente"
+                );
+                this.clearSmartSelect(".rodal-select", "Seleccione Rodal");
                 // sigue
                 nivel = "cliente";
             }
             if (nivel === "cliente") {
                 this.form.destino = null;
                 this.destinos = [];
+                this.clearSmartSelect(
+                    ".destino-cliente",
+                    "Seleccione un Destino"
+                );
+
                 // sigue
                 nivel = "destino";
             }
@@ -1214,59 +1251,110 @@ export default {
                 this.productos = [];
                 this.form.largoProducto = null;
                 this.largosProducto = [];
+
+                this.clearSmartSelect(
+                    ".select-producto",
+                    "Seleccione un Producto"
+                );
+                this.clearSmartSelect(
+                    ".largo-producto",
+                    "Seleccione un Largo (Metros)"
+                );
                 // sigue
                 nivel = "producto";
             }
             if (nivel === "producto") {
                 this.form.largoProducto = null;
                 this.largosProducto = [];
+                this.clearSmartSelect(
+                    ".largo-producto",
+                    "Seleccione un Largo (Metros)"
+                );
                 // sigue
                 nivel = "largo";
             }
             if (nivel === "largo") {
                 this.form.transportista = null; // puedes mantener transportistas globales si quieres
                 this.patentes = [];
+                this.clearSmartSelect(
+                    ".transportista",
+                    "Seleccione un Transportista"
+                );
+
                 // sigue
                 nivel = "transportista";
             }
             if (nivel === "transportista") {
                 this.form.patenteCamion = null;
                 this.patentes = [];
+                this.clearSmartSelect(
+                    ".patente-camion",
+                    "Seleccione Patente camión"
+                );
+
                 // sigue
                 nivel = "patCamion";
             }
             if (nivel === "patCamion") {
                 this.form.patenteCarro = null;
                 this.patentesCarro = [];
+                this.clearSmartSelect(
+                    ".patente-carro",
+                    "Seleccione Patente carro"
+                );
                 // sigue
                 nivel = "patCarro";
             }
             if (nivel === "patCarro") {
                 this.form.conductor = null;
                 this.conductores = [];
+                this.clearSmartSelect(
+                    ".conductor-select",
+                    "Seleccione Conductor"
+                );
+
                 nivel = "conductor";
             }
             if (nivel === "conductor") {
                 this.form.carguios = [];
+                this.clearSmartSelect(".carguio-select", "Seleccione Carguíos");
+
                 nivel = "carguio";
             }
             if (nivel === "carguio") {
                 this.patentesCarguio = [];
                 this.form.patentesCarguio = [];
+                this.clearSmartSelect(
+                    ".patente-carguio-select",
+                    "Seleccione Patentes carguío"
+                );
+
                 nivel = "patenteCarguio";
             }
             if (nivel === "patenteCarguio") {
                 this.form.rodal = null;
+                this.clearSmartSelect(".rodal-select", "Seleccione Rodal");
+
                 nivel = "rodal";
             }
             if (nivel === "rodal") {
                 this.form.empresaContratista = null;
                 this.empresasContratista = [];
+                this.clearSmartSelect(
+                    ".empresa-contratista-select",
+                    "Seleccione Empresa contratista"
+                );
+
                 nivel = "empresaContratista";
             }
             if (nivel === "empresaContratista") {
                 this.form.linea = null;
                 this.lineasContratista = [];
+                this.clearSmartSelect(
+                    ".linea-contratista-select",
+                    "Seleccione Línea"
+                );
+
                 nivel = "lineaContratista";
             }
         },
@@ -1339,3 +1427,31 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.alert {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+.alert i {
+    font-size: 16px;
+    margin-right: 6px;
+}
+
+/* variantes */
+.alert-info {
+    border: 1px solid #bce8f1;
+    background: #d9edf7;
+    color: #31708f;
+}
+.alert-danger {
+    border: 1px solid #ebccd1;
+    background: #f2dede;
+    color: #a94442;
+}
+</style>
