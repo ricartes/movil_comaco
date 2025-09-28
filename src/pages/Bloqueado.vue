@@ -4,12 +4,16 @@
         <f7-navbar title="Dispositivo bloqueado" />
         <f7-block>
             <p>
-                El dispositivo no tiene acceso a la aplicación. Favor contactar
-                al administrador para que apruebe el acceso
+                El dispositivo no tiene acceso a la aplicación. Esto puede ser
+                porque se encuentre bloqueado o la versión de su aplicación no
+                corresponde con la vigente.
             </p>
             <f7-block>
                 <p class="text-align-center text-color-black text-large">
-                    {{ uid }}
+                    Versión app {{ versionApp }}
+                </p>
+                <p class="text-align-center text-color-black text-large">
+                    UID {{ uid }}
                 </p>
             </f7-block>
 
@@ -30,10 +34,12 @@ export default {
     data() {
         return {
             uid: true,
+            versionApp: null,
         };
     },
     async created() {
         this.uid = await Utilidades.getUIDevice();
+        this.versionApp = await Utilidades.obtenerVersionApp();
     },
     methods: {
         async reintentar() {

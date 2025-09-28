@@ -29,6 +29,13 @@ var Utilidades = {
     },
 
 
+    async obtenerVersionApp() {
+        const app = await App.getInfo();
+
+        return app.version ?? null;
+
+    },
+
     fechaHoraActual() {
 
         return dayjs().format("YYYY-MM-DD HH:mm:ss");
