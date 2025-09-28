@@ -23,3 +23,20 @@ export function listenForFcmMessages(onMessage, onBackground) {
         console.warn('No se pudo inicializar listener de FCM:', e);
     }
 }
+
+
+export function extractPushData(event) {
+    // Algunos entregan { notification: { title, body, data } }
+    // Otros ponen data directo en event.data
+    const n = event?.notification ?? {};
+    const data = n?.data ?? event?.data ?? {};
+
+    // Título/cuerpo pueden venir en:
+    // - notification.title/body
+    // - event.title/body (algunos plugins)
+    // - data._title/_body (nuestro duplicado)
+    const title = n?.title ?? event?.title ?? data?._title ?? '';
+    const body = n?.body ?? event?.body ?? data?._body ?? '';
+
+    return { data, title, body };
+}

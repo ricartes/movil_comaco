@@ -12,7 +12,10 @@ import capacitorApp from "../js/capacitor-app.js";
 import routes from "../js/routes.js";
 import store from "../js/store";
 import { bootstrapValidacionDispositivo } from "@/js/bootstrap-dispositivo";
-import { listenForFcmMessages } from "@/app/services/firebaseMessaging";
+import {
+    listenForFcmMessages,
+    extractPushData,
+} from "@/app/services/firebaseMessaging";
 
 export default {
     setup() {
@@ -33,89 +36,107 @@ export default {
             },
         };
 
+        // guard local del componente
+        let pushGuard = false;
+
+        // === 1) Validación central ===
+        const runValidacionAcceso = async () => {
+            f7.dialog.preloader("Validando acceso");
+            try {
+                const res = await bootstrapValidacionDispositivo();
+                await store.dispatch("setDispositivoResult", res);
+
+                if (res.bloquea) {
+                    f7.views.main?.router?.navigate("/bloqueado/", {
+                        reloadAll: true,
+                    });
+                } else {
+                    f7.views.main?.router?.navigate("/login/", {
+                        reloadAll: true,
+                    });
+                }
+            } catch (err) {
+                const previoBloqueado = store.getters.isBloqueado;
+                const previoTieneUid = !!store.getters.dispositivoUid;
+
+                if (previoTieneUid && !previoBloqueado) {
+                    f7.views.main?.router?.navigate("/login/", {
+                        reloadAll: true,
+                    });
+                } else {
+                    await store.dispatch("setDispositivoResult", {
+                        uid: store.getters.dispositivoUid ?? null,
+                        estado: "DESCONOCIDO",
+                        bloquea: true,
+                        message:
+                            "No fue posible validar el dispositivo. Bloqueado por defecto.",
+                    });
+                    f7.views.main?.router?.navigate("/bloqueado/", {
+                        reloadAll: true,
+                    });
+                }
+            } finally {
+                f7.dialog.close();
+            }
+        };
+
+        // === 2) Handler específico: device ===
+        const handleDeviceIntent = async (intent, { title, body }) => {
+            if (intent !== "device:block" && intent !== "device:unblock")
+                return false;
+            if (pushGuard) return true;
+
+            pushGuard = true;
+            f7.dialog.alert(
+                body || "El dispositivo cambió de estado.",
+                title || "Dispositivo",
+                async () => {
+                    pushGuard = false;
+                    await runValidacionAcceso();
+                }
+            );
+            return true; // se procesó
+        };
+
+        // === 3) Dispatcher de intents ===
+        const handlePushIntent = async (payload) => {
+            const { data, title, body } = payload;
+            const intent = (data?.intent || "").toLowerCase();
+            if (!intent) return;
+
+            // delega a handlers
+            if (await handleDeviceIntent(intent, { title, body })) return;
+
+            // fallback
+            console.log("Intent no controlado:", intent, payload);
+            f7.toast
+                .create({
+                    text: `Intent recibido: ${intent}`,
+                    closeTimeout: 2000,
+                })
+                .open();
+        };
+
         onMounted(() => {
             f7ready(async () => {
                 if (device.capacitor) {
                     capacitorApp.init(f7);
-                }
 
-                listenForFcmMessages(
-                    (msg) => {
-                        // Foreground: app abierta
-                        f7.toast
-                            .create({
-                                text: `🔔 ${
-                                    msg?.notification?.title || "Notificación"
-                                }: ${msg?.notification?.body || ""}`,
-                                closeTimeout: 4000,
-                                position: "top",
-                            })
-                            .open();
-                    },
-                    (msg) => {
-                        // Background: el usuario tocó la notificación
-                        const data = msg?.notification?.data || {};
-                        console.log(
-                            "👉 Notificación abrió app con data:",
-                            data
-                        );
-
-                        // Ejemplo: si es de tipo "guia", navegar directo
-                        if (data.type === "guia" && data.id) {
-                            f7.views.main?.router?.navigate(
-                                `/gde/detalle/${data.id}`
-                            );
+                    // listeners SOLO en nativo
+                    listenForFcmMessages(
+                        async (msg) => {
+                            const payload = extractPushData(msg);
+                            await handlePushIntent(payload);
+                        },
+                        async (msg) => {
+                            const payload = extractPushData(msg);
+                            await handlePushIntent(payload);
                         }
-                    }
-                );
-
-                // Asegura que el store levante lo persistido (usuario + dispositivo)
-                await store.dispatch("hydrate");
-
-                // Preloader mientras validamos dispositivo
-                f7.dialog.preloader("Validando acceso");
-
-                try {
-                    const res = await bootstrapValidacionDispositivo();
-                    await store.dispatch("setDispositivoResult", res);
-
-                    if (res.bloquea) {
-                        f7.views.main?.router?.navigate("/bloqueado/", {
-                            reloadAll: true,
-                        });
-                    } else {
-                        // si además quieres redirigir a login sólo si no hay sesión:
-                        f7.views.main?.router?.navigate("/login/", {
-                            reloadAll: true,
-                        });
-                    }
-                } catch (err) {
-                    // FALLÓ VALIDACIÓN REMOTA
-                    const previoBloqueado = store.getters.isBloqueado;
-                    const previoTieneUid = !!store.getters.dispositivoUid;
-
-                    if (previoTieneUid && !previoBloqueado) {
-                        // había estado guardado y NO estaba bloqueado → dejar pasar
-                        f7.views.main?.router?.navigate("/login/", {
-                            reloadAll: true,
-                        });
-                    } else {
-                        // primera vez (o previo bloqueado) → bloquear por defecto
-                        await store.dispatch("setDispositivoResult", {
-                            uid: store.getters.dispositivoUid ?? null,
-                            estado: "DESCONOCIDO",
-                            bloquea: true,
-                            message:
-                                "No fue posible validar el dispositivo. Bloqueado por defecto.",
-                        });
-                        //TODO: DESCOMENTAR
-                        f7.views.main?.router?.navigate("/bloqueado/", {
-                            reloadAll: true,
-                        });
-                    }
-                } finally {
-                    f7.dialog.close();
+                    );
                 }
+
+                await store.dispatch("hydrate");
+                await runValidacionAcceso();
             });
         });
 

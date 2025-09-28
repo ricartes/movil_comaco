@@ -17,6 +17,10 @@
         "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
     },
     "parametros": {
+        "estadoBloqueoDispositivo": {
+            "BLOQUEADO": "3",
+            "DESBLOQUEADO": "2"
+        },
         "cantidadParametrosDescarga": 4,
         "cantidadMaximaRumas": 20,
         "cantidadFotosPermitida": 1,

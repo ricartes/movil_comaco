@@ -22,6 +22,7 @@ import App from '../components/app.vue';
 import formattersMixin from '@/js/mixins/formatters'
 import rutMixin from '@/js/mixins/rut'
 import framework7Mixin from '@/js/mixins/framework7'
+import validacionMixin from '@/js/mixins/validacionMixin'
 
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
@@ -47,7 +48,7 @@ Framework7.use(Framework7Vue);
         app.mixin(formattersMixin)
         app.mixin(rutMixin)
         app.mixin(framework7Mixin)
-
+        app.mixin(validacionMixin)
 
         app.mount('#app')
     } catch (err) {
