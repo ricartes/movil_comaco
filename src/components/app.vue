@@ -12,6 +12,7 @@ import capacitorApp from "../js/capacitor-app.js";
 import routes from "../js/routes.js";
 import store from "../js/store";
 import { bootstrapValidacionDispositivo } from "@/js/bootstrap-dispositivo";
+import { listenForFcmMessages } from "@/app/services/firebaseMessaging";
 
 export default {
     setup() {
@@ -37,6 +38,36 @@ export default {
                 if (device.capacitor) {
                     capacitorApp.init(f7);
                 }
+
+                listenForFcmMessages(
+                    (msg) => {
+                        // Foreground: app abierta
+                        f7.toast
+                            .create({
+                                text: `🔔 ${
+                                    msg?.notification?.title || "Notificación"
+                                }: ${msg?.notification?.body || ""}`,
+                                closeTimeout: 4000,
+                                position: "top",
+                            })
+                            .open();
+                    },
+                    (msg) => {
+                        // Background: el usuario tocó la notificación
+                        const data = msg?.notification?.data || {};
+                        console.log(
+                            "👉 Notificación abrió app con data:",
+                            data
+                        );
+
+                        // Ejemplo: si es de tipo "guia", navegar directo
+                        if (data.type === "guia" && data.id) {
+                            f7.views.main?.router?.navigate(
+                                `/gde/detalle/${data.id}`
+                            );
+                        }
+                    }
+                );
 
                 // Asegura que el store levante lo persistido (usuario + dispositivo)
                 await store.dispatch("hydrate");
