@@ -44,7 +44,7 @@ export async function ensureTotalesInit(id) {
  */
 export async function actualizarTotalesTon(id, volumen, precioUnitario) {
     const dao = getGdeDao();
-    const doc = await dao.obtener(id);
+    let doc = await dao.obtener(id);
 
     const precio = Number(
         precioUnitario ?? doc?.precioProducto?.precio ?? 0
@@ -52,15 +52,13 @@ export async function actualizarTotalesTon(id, volumen, precioUnitario) {
     const vol = Number(volumen || 0);
     const valor = toIntCLP(vol * precio);
 
+    doc.totales.ton.volumen = volumen;
+    doc.totales.ton.valor = Math.round(valor); // CLP entero
+
     // Neto/IVA/Total sólo por TON (sin sumar otras UMs)
     const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.TON ?? "TON", { sumAllUMs: false });
     applyTotals(doc, totals); // deja neto, ivaPct, ivaMonto, total en doc.totales
 
-    await dao.updateByPath(id, "totales.ton", { volumen: vol, valor });
-    await dao.updateByPath(id, "totales.neto", toIntCLP(totals.neto));
-    await dao.updateByPath(id, "totales.ivaPct", Number(totals.ivaPct));
-    await dao.updateByPath(id, "totales.ivaMonto", toIntCLP(totals.ivaMonto));
-    await dao.updateByPath(id, "totales.total", toIntCLP(totals.total));
-
-    return { volumen: vol, valor };
+    doc = await dao.actualizar(doc);
+    return doc;
 }

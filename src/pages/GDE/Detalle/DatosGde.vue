@@ -77,12 +77,17 @@ interface GdeDoc {
     patentesCarguio?: string[];
     ubicacion?: unknown | null;
     totales?: {
+        neto: number;
         mr?: { volumen?: number; valor?: number };
         m3?: { volumen?: number; valor?: number };
         ton?: { volumen?: number; valor?: number };
         totalMr?: number;
         volMr?: number;
+        ivaPct?: number;
+        ivaMonto?: number;
+        total?: number;
     };
+
     comentarios?: {
         cosechaPagada?: boolean;
         maderaPagada?: boolean;
@@ -384,20 +389,31 @@ function formatCoord(n?: number | null) {
                         {{ formatNum(props.doc?.totales?.mr?.volumen) }} /
                         {{ formatCLP(props.doc?.totales?.mr?.valor ?? null) }}
                     </dd>
+
                     <dt>M3 (vol/valor)</dt>
                     <dd>
                         {{ formatNum(props.doc?.totales?.m3?.volumen) }} /
                         {{ formatCLP(props.doc?.totales?.m3?.valor ?? null) }}
                     </dd>
+
                     <dt>TON (vol/valor)</dt>
                     <dd>
                         {{ formatNum(props.doc?.totales?.ton?.volumen) }} /
                         {{ formatCLP(props.doc?.totales?.ton?.valor ?? null) }}
                     </dd>
-                    <dt>Total MR</dt>
-                    <dd>{{ formatNum(props.doc?.totales?.totalMr) }}</dd>
-                    <dt>Volumen MR</dt>
-                    <dd>{{ formatNum(props.doc?.totales?.volMr) }}</dd>
+
+                    <!-- AJUSTADOS: solo totales -->
+                    <dt>Neto</dt>
+                    <dd>{{ formatCLP(props.doc?.totales?.neto ?? null) }}</dd>
+
+                    <dt>IVA</dt>
+                    <dd>
+                        {{ props.doc?.totales?.ivaPct ?? 19 }}% /
+                        {{ formatCLP(props.doc?.totales?.ivaMonto ?? null) }}
+                    </dd>
+
+                    <dt>Total</dt>
+                    <dd>{{ formatCLP(props.doc?.totales?.total ?? null) }}</dd>
                 </dl>
             </div>
 
@@ -457,7 +473,7 @@ function formatCoord(n?: number | null) {
                             formatCoord(props.doc?.comentarios?.puntoY ?? null)
                         }}
                     </dd>
-                    <dt>Notas</dt>
+                    <dt>Comentarios</dt>
                     <dd>{{ props.doc?.comentarios?.comentarios || "—" }}</dd>
                 </dl>
             </div>

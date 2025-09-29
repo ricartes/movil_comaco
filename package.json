@@ -20,12 +20,14 @@
         "last 5 Firefox versions"
     ],
     "dependencies": {
+        "@capacitor-community/file-opener": "^7.0.1",
         "@capacitor-firebase/messaging": "^7.3.1",
         "@capacitor/android": "^7.4.3",
         "@capacitor/app": "^7.1.0",
         "@capacitor/browser": "^7.0.2",
         "@capacitor/core": "^7.4.3",
         "@capacitor/device": "^7.0.2",
+        "@capacitor/file-viewer": "^1.0.4",
         "@capacitor/filesystem": "^7.1.4",
         "@capacitor/geolocation": "^7.1.5",
         "@capacitor/keyboard": "^7.0.3",

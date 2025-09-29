@@ -31,7 +31,21 @@
                         v-if="doc.producto.unidadMedida === unidadesMedida.M3"
                         :doc="doc"
                         :gde-id="id"
-                        @doc-updated="(patch) => Object.assign(doc, patch)"
+                        @doc-updated="
+                            (patch) => {
+                                if (patch.totales) {
+                                    doc.totales = {
+                                        ...doc.totales,
+                                        ...patch.totales,
+                                    };
+                                }
+                                // Actualizar otras propiedades planas igualmente si vienen
+                                Object.keys(patch).forEach((key) => {
+                                    if (key !== 'totales')
+                                        doc[key] = patch[key];
+                                });
+                            }
+                        "
                     />
 
                     <DetalleMR
@@ -40,7 +54,21 @@
                         "
                         :doc="doc"
                         :gde-id="id"
-                        @doc-updated="(patch) => Object.assign(doc, patch)"
+                        @doc-updated="
+                            (patch) => {
+                                if (patch.totales) {
+                                    doc.totales = {
+                                        ...doc.totales,
+                                        ...patch.totales,
+                                    };
+                                }
+                                // Actualizar otras propiedades planas igualmente si vienen
+                                Object.keys(patch).forEach((key) => {
+                                    if (key !== 'totales')
+                                        doc[key] = patch[key];
+                                });
+                            }
+                        "
                     />
 
                     <DetalleTon
@@ -51,7 +79,21 @@
                         "
                         :doc="doc"
                         :gde-id="id"
-                        @doc-updated="(patch) => Object.assign(doc, patch)"
+                        @doc-updated="
+                            (patch) => {
+                                if (patch.totales) {
+                                    doc.totales = {
+                                        ...doc.totales,
+                                        ...patch.totales,
+                                    };
+                                }
+                                // Actualizar otras propiedades planas igualmente si vienen
+                                Object.keys(patch).forEach((key) => {
+                                    if (key !== 'totales')
+                                        doc[key] = patch[key];
+                                });
+                            }
+                        "
                     />
                     <div v-else>
                         <span>No hay detalle para la unidad seleccionada.</span>
@@ -120,7 +162,8 @@ import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
 import DetalleComentario from "@/pages/GDE/Detalle/DetalleComentario.vue";
 import OpcionesGde from "@/pages/GDE/Detalle/OpcionesGde.vue";
 import config from "@/Common/json/config.json";
-import { generateGdePdf } from "@/js/utils/gdePdfTemplate";
+import { buildDefinition } from "@/js/utils/gdePdfTemplate";
+import { createPdfAndOpen } from "@/js/utils/pdfNative";
 
 export default {
     name: "GdeDetalle",
@@ -183,9 +226,11 @@ export default {
     },
 
     methods: {
-        async onGenerarPDF(doc) {
+        async onGenerarPDF() {
             if (!this.doc) return;
-            generateGdePdf(this.doc); // <-- aquí
+            const def = buildDefinition(this.doc);
+            const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
+            await createPdfAndOpen(def, filename);
         },
         async onDescartar(doc) {
             try {

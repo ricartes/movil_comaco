@@ -168,8 +168,11 @@ export default {
         // Preparar persistencia con debounce
         this._persistDebounced = debounce(async () => {
             const updated = await saveDetalleMR(this.gdeId, this.detalleMR);
-            // avisa al padre por si quiere refrescar totales/encabezado
-            this.$emit("doc-updated", { totales: updated.totales });
+
+            // Emitir totales actualizado sin neto, ivaMonto, total
+            this.$emit("doc-updated", {
+                totales: updated.totales,
+            });
         }, 300);
     },
     methods: {

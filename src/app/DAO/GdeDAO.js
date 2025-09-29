@@ -88,10 +88,13 @@ export default class GdeDAO {
         let attempt = 0;
         while (attempt < MAX_RETRIES) {
             try {
-                return await this.db.put(doc);
+                const putResult = await this.db.put(doc);
+                // Obtener doc actualizado después del put
+                const updatedDoc = await this.db.get(putResult.id);
+                return updatedDoc;
             } catch (e) {
                 if (e?.status === 409) {
-                    // recarga y mergea; reintenta
+                    // Recarga y mergea; reintenta
                     const fresh = await this.db.get(doc._id);
                     doc = { ...fresh, ...doc, _rev: fresh._rev };
                     attempt++;

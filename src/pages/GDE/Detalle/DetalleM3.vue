@@ -199,9 +199,13 @@ export default {
             this._saveTimer = setTimeout(() => this.persist(), 250);
         },
         async persist() {
-            await saveDetalleM3(this.doc._id, this.filas, this.precioUnitario);
+            const updated = await saveDetalleM3(
+                this.doc._id,
+                this.filas,
+                this.precioUnitario
+            );
             this.$emit("doc-updated", {
-                totales: { volumen: this.totalVolumen, valor: this.totalValor },
+                totales: updated.doc.totales,
             });
         },
     },

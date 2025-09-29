@@ -92,14 +92,16 @@ export default {
 
         async onVolumenChange() {
             const precio = Number(this.doc?.precioProducto?.precio || 0);
-            const { volumen, valor } = await actualizarTotalesTon(
+            const updated = await actualizarTotalesTon(
                 this.doc._id,
                 this.volumen,
                 precio
             );
-            this.volumen = volumen;
-            this.valor = valor;
-            this.$emit("doc-updated", { totales: { ton: { volumen, valor } } });
+
+            this.volumen = Number(updated.totales?.ton?.volumen) || 0;
+            this.valor = Number(updated.totales?.ton?.valor) || 0;
+
+            this.$emit("doc-updated", { totales: updated.totales });
         },
     },
 };
