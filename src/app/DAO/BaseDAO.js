@@ -41,19 +41,22 @@ export default class BaseDAO {
 
     async eliminar(item) {
         try {
-            // Marcar el documento para la eliminación añadiendo _deleted: true
+            // Obtener última versión del documento
+            const currentDoc = await this.db.get(item._id);
+        
+            // Marcar para eliminación con la revisión actual
             const documentoParaEliminar = {
-                ...item,
-                _deleted: true
+                ...currentDoc,
+                _deleted: true,
             };
 
-            // Eliminar el documento
+            // Eliminar documento usando la revisión correcta
             const respuestaEliminacion = await this.db.put(documentoParaEliminar);
 
             return respuestaEliminacion;
         } catch (error) {
             console.error("Error al eliminar documento:", error);
-            throw error;  // Re-lanzar para manejo externo
+            throw error;
         }
     }
 }
