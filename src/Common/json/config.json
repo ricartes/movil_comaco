@@ -109,7 +109,8 @@
         "RescatarCarguios": "carguio",
         "RescatarEmpresaContratista": "empresa-contratista",
         "RescatarRodales": "rodal",
-        "RescatarZonas": "zona"
+        "RescatarZonas": "zona",
+        "RescatarGeocercas": "geocerca"
     },
     "bd": {
         "tipoEntidad": {
@@ -128,7 +129,8 @@
             "gde": "gde",
             "zona": "zona",
             "proveedor": "proveedor",
-            "trazabilidad": "trazabilidad"
+            "trazabilidad": "trazabilidad",
+            "geocerca": "geocerca"
         }
     }
 }

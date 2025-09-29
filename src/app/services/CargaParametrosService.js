@@ -6,7 +6,7 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
     getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
-    getZonaDao
+    getZonaDao, getGeocercaDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
@@ -19,7 +19,7 @@ import { mapServerCarguioToDoc } from '@/app/mappers/carguioMapper'
 import { mapServerEmpresaContratistaToDoc } from '@/app/mappers/empresaContratistaMapper'
 import { mapServerRodalToDoc } from '@/app/mappers/rodalMapper'
 import { mapServerZonaToDoc } from '@/app/mappers/ZonaMapper'
-
+import { mapServerGeocercaToDoc } from '@/app/mappers/GeocercaMapper'
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
     const token = store.state.token
@@ -158,6 +158,17 @@ const CargaParametrosService = {
             mapper: mapServerZonaToDoc,
             daoGetter: getZonaDao,
             nombre: 'Zonas',
+        })
+    },
+
+    cargarGeocercas(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarGeocercas,
+            mapper: mapServerGeocercaToDoc,
+            daoGetter: getGeocercaDao,
+            nombre: 'Geocercas',
         })
     },
 }

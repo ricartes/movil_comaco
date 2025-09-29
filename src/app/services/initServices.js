@@ -16,6 +16,7 @@ import ProveedorDAO from '@/app/DAO/Parametros/ProveedorDAO';
 import PredioDAO from '@/app/DAO/Parametros/PredioDAO';
 import ClienteDAO from '@/app/DAO/Parametros/ClienteDAO';
 import ProductoDAO from '@/app/DAO/Parametros/ProductoDAO';
+import GeocercaDAO from '@/app/DAO/Parametros/GeocercaDAO';
 import TrazabilidadDAO from '@/app/DAO/TrazabilidadDAO';
 // Inicializa UsuarioDAO con la instancia de la base de datos
 // La función acepta la instancia de la base de datos como parámetro
@@ -38,6 +39,7 @@ let _predioDao;
 let _clienteDao;
 let _productoDao;
 let _trazabilidadDao;
+let _geocercaDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -60,6 +62,7 @@ export function initializeServices(dbInstance) {
     _clienteDao = new ClienteDAO(dbInstance);
     _productoDao = new ProductoDAO(dbInstance);
     _trazabilidadDao = new TrazabilidadDAO(dbInstance);
+    _geocercaDao = new GeocercaDAO(dbInstance);
 }
 
 export function getBaseDao() {
@@ -178,6 +181,13 @@ export function getProductoDao() {
         throw new Error("_productoDao no ha sido inicializado.");
     }
     return _productoDao;
+}
+
+export function getGeocercaDao() {
+    if (!_geocercaDao) {
+        throw new Error("_geocercaDao no ha sido inicializado.");
+    }
+    return _geocercaDao;
 }
 
 export function getGdeDao() {

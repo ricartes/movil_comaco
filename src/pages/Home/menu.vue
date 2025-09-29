@@ -156,6 +156,15 @@ export default {
                             this.user.rut
                         ),
                 },
+
+                {
+                    key: "Geocercas",
+                    run: () =>
+                        CargaParametrosService.cargarGeocercas(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
             ];
 
             const total = tasks.length;
