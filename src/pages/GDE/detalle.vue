@@ -101,6 +101,7 @@
                         v-if="doc"
                         :doc="doc"
                         @descartar="onDescartar"
+                        @generar-pdf="onGenerarPDF"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -119,6 +120,7 @@ import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
 import DetalleComentario from "@/pages/GDE/Detalle/DetalleComentario.vue";
 import OpcionesGde from "@/pages/GDE/Detalle/OpcionesGde.vue";
 import config from "@/Common/json/config.json";
+import { generateGdePdf } from "@/js/utils/gdePdfTemplate";
 
 export default {
     name: "GdeDetalle",
@@ -172,6 +174,7 @@ export default {
             f7.accordion.open(".detalle-unidad");
             f7.accordion.open(".comentarios");
             f7.accordion.open(".opciones-guia");
+            console.log(this.doc);
         } catch (e) {
             this.error = e?.message || "Error al cargar la guía";
         } finally {
@@ -180,6 +183,10 @@ export default {
     },
 
     methods: {
+        async onGenerarPDF(doc) {
+            if (!this.doc) return;
+            generateGdePdf(this.doc); // <-- aquí
+        },
         async onDescartar(doc) {
             try {
                 await descartarGde(doc);

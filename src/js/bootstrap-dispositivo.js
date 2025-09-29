@@ -10,5 +10,7 @@ export async function bootstrapValidacionDispositivo() {
 
     if (fcmToken) payload.fcmToken = fcmToken;
 
+    console.log(fcmToken);
+
     return validarDispositivo(payload); // { uid, estado, bloquea, message }
 }

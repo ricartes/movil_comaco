@@ -20,6 +20,20 @@ export default class ParametroGeneralDAO {
     }
 
 
+    async listarPorEmpresa(empId) {
+
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.parametroGeneral,
+                empId: Number(empId)
+            },
+        })
+        return res.docs
+            .map(parametroGeneralDocToDTO);
+    }
+
+
+
     // ...existing code...
     async obtener(empId, id) {
         const { docs } = await this.db.find({

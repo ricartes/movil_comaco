@@ -606,6 +606,7 @@ import {
 } from "@/app/services/Parametros/ClienteService";
 import { listarRodalesPorOrigen } from "@/app/services/Parametros/RodalService";
 import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
+import { listarParametrosGenerales } from "@/app/services/Parametros/ParametrosGeneralService";
 import { ingresarGde } from "@/app/services/GdeService";
 import config from "@/Common/json/config.json";
 
@@ -670,6 +671,7 @@ export default {
                 linea: null,
                 ordenCompra: null,
                 ubicacion: null,
+                parametrosGenerales: [],
                 totales: {
                     mr: { volumen: 0, valor: 0 },
                     m3: { volumen: 0, valor: 0 },
@@ -702,6 +704,9 @@ export default {
         this.cargarTransportistas();
         this.cargarCarguios();
         this.form.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
+        this.form.parametrosGenerales = await listarParametrosGenerales(
+            this.usuarioActivo.empresa
+        );
     },
     methods: {
         generarDatosEmisor() {

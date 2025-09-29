@@ -1,22 +1,43 @@
 <template>
     <f7-list inset strong>
-        <f7-list-button
-            title="Emitir guía"
-            color="green"
-            fill
+        <f7-list-item
+            link
             @click="onEmitir"
+            title="Emitir guía"
+            class="text-green-600"
         >
-        </f7-list-button>
+            <template #media>
+                <f7-icon ios="f7:paperplane_fill" md="material:send"></f7-icon>
+            </template>
+        </f7-list-item>
 
-        <f7-list-button
-            title="Descartar borrador"
-            color="red"
-            outline
-            @click="onDescartar"
+        <f7-list-item
+            link
+            @click="onGenerarPDF"
+            title="Generar PDF"
+            class="text-green-600"
         >
-        </f7-list-button>
+            <template #media>
+                <f7-icon
+                    ios="f7:doc_text_fill"
+                    md="material:picture_as_pdf"
+                ></f7-icon>
+            </template>
+        </f7-list-item>
+
+        <f7-list-item
+            link
+            @click="onDescartar"
+            title="Descartar borrador"
+            class="text-red-600"
+        >
+            <template #media>
+                <f7-icon ios="f7:trash_fill" md="material:delete"></f7-icon>
+            </template>
+        </f7-list-item>
     </f7-list>
 </template>
+
 
 <script>
 import { f7 } from "framework7-vue";
@@ -32,6 +53,10 @@ export default {
         onEmitir() {
             // puedes validar this.doc acá si quieres
             this.$emit("emitir", this.doc);
+        },
+
+        onGenerarPDF() {
+            this.$emit("generar-pdf", this.doc);
         },
         onDescartar() {
             f7.dialog.confirm(
