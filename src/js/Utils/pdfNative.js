@@ -27,6 +27,15 @@ export async function createPdfAndOpen(definition, filename) {
         pdfMake.createPdf(definition).getBase64((b64) => resolve(b64));
     });
 
+    try {
+        await Filesystem.deleteFile({
+            directory: Directory.Cache,
+            path: `gde/${filename}`,
+        });
+    } catch (e) {
+        // No existe, ok
+    }
+
     const timestamp = new Date().getTime(); // milisegundos
     const uniqueFilename = filename.replace(/\.pdf$/, '') + `-${timestamp}.pdf`;
 
