@@ -1,6 +1,11 @@
 // src/app/services/GdeRumasService.js
 import { getGdeDao } from "@/app/services/initServices";
+import { toNum, computeDocTotals, applyTotals } from "@/app/helpers/TotalesHelpers";
+
 import config from "@/Common/json/config.json";
+
+
+
 
 /** público: asegura que exista detalleMR en la GDE */
 export async function ensureDetalleMR(gdeId) {
@@ -44,6 +49,11 @@ export async function saveDetalleMR(gdeId, detalleMR) {
     doc = initTotalesMRIfMissing(doc);
     doc.totales.mr.volumen = volumen;
     doc.totales.mr.valor = Math.round(valor); // CLP entero
+
+    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.MR ?? "MR", { sumAllUMs: false });
+
+    console.log(totals);
+    applyTotals(doc, totals);
 
     doc = await dao.actualizar(doc);
     return doc;

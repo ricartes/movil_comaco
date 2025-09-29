@@ -671,12 +671,15 @@ export default {
                 linea: null,
                 ordenCompra: null,
                 ubicacion: null,
-                parametrosGenerales: [],
                 totales: {
                     mr: { volumen: 0, valor: 0 },
                     m3: { volumen: 0, valor: 0 },
                     ton: { volumen: 0, valor: 0 },
                 },
+                neto: 0,
+                ivaPct: 19,
+                ivaMonto: 0,
+                total: 0,
             },
         };
     },
@@ -697,6 +700,16 @@ export default {
         maximoCarguios() {
             return config.parametros.maximoCarguios;
         },
+
+        parametrosGenerales() {
+            return config.parametros.parametrosGenerales;
+        },
+
+        ivaPorDefecto() {
+            return config.parametros.ivaPorDefecto;
+        },
+
+        obtenerIva() {},
     },
     async created() {
         this.generarDatosEmisor();
@@ -707,8 +720,39 @@ export default {
         this.form.parametrosGenerales = await listarParametrosGenerales(
             this.usuarioActivo.empresa
         );
+        this.generarPorcentajeIva();
     },
     methods: {
+        async generarPorcentajeIva() {
+            try {
+                const empresaId = this?.usuarioActivo?.empresa ?? 1;
+                const parametros = await listarParametrosGenerales(empresaId);
+
+                // Busca primero por id=3 y empId=empresa; si no, por glosa "IVA"
+                const arr = Array.isArray(parametros) ? parametros : [];
+                const pById = arr.find(
+                    (p) =>
+                        Number(p.id) ===
+                            this.parametrosGenerales.porcentajeIva &&
+                        String(p.empId) === String(empresaId)
+                );
+                const pByGlosa = arr.find(
+                    (p) =>
+                        String(p.empId) === String(empresaId) &&
+                        String(p.glosa || "").toUpperCase() === "IVA"
+                );
+
+                const raw = pById?.valor ?? pByGlosa?.valor;
+                const n = Number(raw);
+
+                this.form.ivaPct =
+                    Number.isFinite(n) && n > 0 ? n : this.ivaPorDefecto; // ← fallback 19
+            } catch (err) {
+                console.error("Error cargando IVA:", err);
+                this.form.ivaPct = this.ivaPorDefecto; // fallback en error
+            }
+        },
+
         generarDatosEmisor() {
             this.form.emisor = {
                 rut: this.usuarioActivo.rut,

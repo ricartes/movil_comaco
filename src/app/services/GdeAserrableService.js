@@ -1,6 +1,11 @@
 // src/app/services/GdeAserrableService.js
 import { getGdeDao } from "@/app/services/initServices";
+import { toNum, computeDocTotals, applyTotals } from "@/app/helpers/TotalesHelpers";
 import config from "@/Common/json/config.json";
+
+
+
+
 function toIntCLP(n) {
     const v = Number(n || 0);
     return Math.round(v);
@@ -121,11 +126,7 @@ export async function saveDetalleM3(gdeId, detalleM3, precioUnitarioFallback) {
     doc.totales.volM3 = volTotal;
     doc.totales.totalM3 = toIntCLP(valorTotal);
 
-    if (typeof dao.actualizar === "function") {
-        await dao.actualizar(doc);
-    } else {
-        await dao.db.put(doc);
-    }
+    await dao.actualizar(doc);
 
     return { doc, detalleM3: filas, totales: { volumen: volTotal, valor: toIntCLP(valorTotal) } };
 }
@@ -180,6 +181,10 @@ export async function updateM3Item(gdeId, diametro, trozos) {
     doc.totales.m3.valor = toIntCLP(valorTotal);
     doc.totales.volM3 = volTotal;
     doc.totales.totalM3 = toIntCLP(valorTotal);
+
+    // === NUEVO: calcular neto/IVA/total con helpers (solo M3) ===
+    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.M3 ?? "M3", { sumAllUMs: false });
+    applyTotals(doc, totals); // deja neto/ivaPct/ivaMonto/total en doc.totales
 
     if (typeof dao.actualizar === "function") {
         await dao.actualizar(doc);

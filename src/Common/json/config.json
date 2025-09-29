@@ -17,6 +17,7 @@
         "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
     },
     "parametros": {
+        "ivaPorDefecto": 19,
         "estadoBloqueoDispositivo": {
             "BLOQUEADO": "3",
             "DESBLOQUEADO": "2"
@@ -74,7 +75,8 @@
             }
         },
         "parametrosGenerales": {
-            "precioPorDefecto": 2
+            "precioPorDefecto": 2,
+            "porcentajeIva": 3
         },
         "unidadesMedida": {
             "M3": "M3",

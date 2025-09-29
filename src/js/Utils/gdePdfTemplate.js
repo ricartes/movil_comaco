@@ -1,7 +1,7 @@
 // src/utils/gdePdfTemplate.js
 import pdfMake from "pdfmake/build/pdfmake";
 import "pdfmake/build/vfs_fonts";
-
+import config from "@/Common/json/config.json";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
@@ -14,15 +14,10 @@ const PAGE_W = 595;          // ancho A4 en pt
 const BOX_CONTENT_MIN = 70;
 
 
-function getIvaPct(doc) {
-    const params = Array.isArray(doc?.parametrosGenerales) ? doc.parametrosGenerales : [];
-    // Prioridad: id=3 y empId=1; si no está, por glosa "IVA"
-    const pById = params.find(p => String(p.empId) === '1' && Number(p.id) === 3);
-    const pByGlosa = params.find(p => String(p.empId) === '1' && String(p.glosa).toUpperCase() === 'IVA');
-    const raw = pById?.valor ?? pByGlosa?.valor;
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : 19; // fallback 19%
-}
+const getIvaPct = (doc) => {
+    const n = Number(doc?.ivaPct);
+    return Number.isFinite(n) && n > 0 ? n : config.parametros.ivaPorDefecto;
+};
 
 
 function fDate(x) {
@@ -91,6 +86,7 @@ const gridNoOuterLayout = {
     paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
 };
 
+const toNum = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
 // =============== Header ===============
 function headerBoxRight(doc) {
@@ -320,12 +316,49 @@ function buildComentarioFull(doc) {
     };
 }
 
+function extractTotals(doc) {
+    // 1) Si ya vienen todos, usarlos tal cual
+    const netoIn = doc?.totales?.neto;
+    const ivaPctIn = doc?.totales?.ivaPct ?? doc?.ivaPct;
+    const ivaIn = doc?.totales?.ivaMonto;
+    const totalIn = doc?.totales?.total;
+
+    const hasAll =
+        Number.isFinite(Number(netoIn)) &&
+        Number.isFinite(Number(ivaPctIn)) &&
+        Number.isFinite(Number(ivaIn)) &&
+        Number.isFinite(Number(totalIn));
+
+    if (hasAll) {
+        return {
+            neto: Number(netoIn),
+            ivaPct: Number(ivaPctIn),
+            ivaMonto: Number(ivaIn),
+            total: Number(totalIn),
+        };
+    }
+
+    // 2) Fallback: calcular con lo disponible
+    const netoCalc =
+        toNum(doc?.totales?.neto,
+            // si no hay neto, suma valores por UM como respaldo
+            toNum(doc?.totales?.m3?.valor) +
+            toNum(doc?.totales?.mr?.valor) +
+            toNum(doc?.totales?.ton?.valor)
+        );
+
+    const ivaPct = getIvaPct(doc);
+    const ivaMonto = Math.round(netoCalc * (ivaPct / 100));
+    const total = Math.round(netoCalc + ivaMonto);
+
+    return { neto: netoCalc, ivaPct, ivaMonto, total };
+}
+
 // =============== Transporte + Totales ===============
 function buildTransporteYTotales(doc) {
-    const ivaPct = getIvaPct(doc);
-    const neto = (doc?.totales?.m3?.valor || doc?.totales?.mr?.valor || doc?.totales?.ton?.valor || 0);
-    const iva = Math.round(neto * 0.19);
-    const total = Math.round(neto + iva);
+
+
+    const { neto, ivaPct, ivaMonto, total } = extractTotals(doc);
 
     const transporteBox = {
         width: "*",
@@ -359,7 +392,7 @@ function buildTransporteYTotales(doc) {
                         widths: ["*", 110],
                         body: [
                             [{ text: "NETO:", alignment: "right", bold: true }, { text: fCLP(neto), alignment: "right" }],
-                            [{ text: `I.V.A (${ivaPct}%):`, alignment: "right", bold: true }, { text: fCLP(iva), alignment: "right" }],
+                            [{ text: `I.V.A (${ivaPct}%):`, alignment: "right", bold: true }, { text: fCLP(ivaMonto), alignment: "right" }],
                             [{ text: "TOTAL:", alignment: "right", bold: true, fontSize: 11 }, { text: fCLP(total), alignment: "right", bold: true, fontSize: 11 }],
                         ]
                     },
