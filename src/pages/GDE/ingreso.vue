@@ -81,9 +81,42 @@
                 </select>
             </f7-list-item>
 
+            <f7-list-item v-if="mostrarMensajeInfo" class="li-alert no-padding">
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    {{ form.datosGeocerca.mensajeValidacion }}
+                </div>
+            </f7-list-item>
+
+            <f7-block
+                strong
+                v-if="form.datosGeocerca.validada === false"
+                class="alert-wrapper"
+            >
+                <div
+                    class="alert alert-danger"
+                    style="
+                        border: 1px solid #ebccd1;
+                        background-color: #f2dede;
+                        color: #a94442;
+                        border-radius: 6px;
+                        padding: 10px 15px;
+                        font-size: 14px;
+                    "
+                >
+                    <i
+                        class="f7-icons"
+                        style="font-size: 16px; margin-right: 6px"
+                    >
+                        exclamationmark_circle
+                    </i>
+                    {{ form.datosGeocerca.mensajeValidacion }}
+                </div>
+            </f7-block>
+
             <!-- CLIENTE: depende de predio -->
             <f7-list-item
-                v-if="form.predio"
+                v-if="form.predio && form.datosGeocerca.validada === true"
                 :key="form.predio?.rolPredio"
                 title="Cliente"
                 class="select-cliente"
@@ -570,7 +603,10 @@ import { f7 } from "framework7-vue";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
-import { listarPrediosPorProveedor } from "@/app/services/Parametros/PredioService";
+import {
+    listarPrediosPorProveedor,
+    validarGeocercaPredio,
+} from "@/app/services/Parametros/PredioService";
 import { listarClientesPorPredio } from "@/app/services/Parametros/ClienteService";
 import {
     listarEmpresasContratistasPorOrigen,
@@ -671,6 +707,11 @@ export default {
                 linea: null,
                 ordenCompra: null,
                 ubicacion: null,
+                datosGeocerca: {
+                    geocerca: null,
+                    validada: true,
+                    mensajeValidacion: "",
+                },
                 totales: {
                     mr: { volumen: 0, valor: 0 },
                     m3: { volumen: 0, valor: 0 },
@@ -684,6 +725,12 @@ export default {
         };
     },
     computed: {
+        mostrarMensajeInfo() {
+            return (
+                this.form.datosGeocerca.validada === true &&
+                this.form.datosGeocerca.mensajeValidacion?.length > 0
+            );
+        },
         patenteCamionNoVigente() {
             return (
                 this.form?.patenteCamion != null &&
@@ -708,8 +755,6 @@ export default {
         ivaPorDefecto() {
             return config.parametros.ivaPorDefecto;
         },
-
-        obtenerIva() {},
     },
     async created() {
         this.generarDatosEmisor();
@@ -832,8 +877,13 @@ export default {
             if (this.predios.length === 1) {
                 this.form.predio = this.predios[0];
                 await this.$nextTick();
-                this.cargarClientes();
-                this.cargarRodales();
+
+                await this.validarGeocerca();
+                if (this.form.datosGeocerca.validada === true) {
+                    this.cargarClientes();
+                    this.cargarRodales();
+                }
+
                 f7.smartSelect
                     .get(".select-predio .smart-select")
                     .setValueText(this.form.predio.predio);
@@ -847,8 +897,41 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("predio"); // limpia desde predio en adelante
-            this.cargarRodales();
-            this.cargarClientes();
+            await this.validarGeocerca();
+            if (this.form.datosGeocerca.validada === true) {
+                this.cargarRodales();
+                this.cargarClientes();
+            }
+        },
+
+        async validarGeocerca() {
+            f7.dialog.preloader("Espere por favor...");
+
+            // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
+            let ubicacion = null;
+            try {
+                ubicacion = await getLocationOnce();
+                if (!ubicacion) {
+                    throw new Error("Ubicación no disponible");
+                }
+                const resultadoValidacion = await validarGeocercaPredio(
+                    this.form.predio.rolPredio,
+                    ubicacion.lat,
+                    ubicacion.lng
+                );
+                this.form.datosGeocerca.validada = resultadoValidacion.validada;
+                this.form.datosGeocerca.geocerca = resultadoValidacion.geocerca;
+                this.form.datosGeocerca.mensajeValidacion =
+                    resultadoValidacion.mensajeValidacion;
+                console.log(this.form.datosGeocerca);
+            } catch (geoErr) {
+                this.form.datosGeocerca.validada = false;
+                this.form.datosGeocerca.mensajeValidacion =
+                    "No podrá continuar con la emisión debido a que la ubicación no se encuentra disponible";
+                console.warn("No se pudo obtener ubicación:", geoErr);
+            } finally {
+                f7.dialog.close();
+            }
         },
 
         async cargarClientes() {

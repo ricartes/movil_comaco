@@ -1,5 +1,5 @@
 import config from '@/Common/json/config.json'
-import GeocercaDTO from '@/app/DTO/Parametros/GeocercalDTO'
+import GeocercaDTO from '@/app/DTO/Parametros/GeocercaDTO'
 import { makeId } from './_id'
 
 /** Backend → Doc PouchDB */

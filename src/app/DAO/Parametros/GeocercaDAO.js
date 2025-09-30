@@ -34,6 +34,22 @@ export default class GeocercaDAO {
     }
 
 
+    async obtenerPorPredio(rolPredio) {
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.geocerca,
+                rolPredio: rolPredio   // 👈 filtra por rolPredio
+            },
+            limit: 1, // optimiza: solo un doc
+        });
+
+        const doc = res.docs[0] || null;
+        return doc ? geocercaDocToDTO(doc) : null;
+    }
+
+
+
+
 
 
     async eliminarTodos() {
