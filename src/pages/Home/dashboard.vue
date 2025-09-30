@@ -1,5 +1,5 @@
 <template>
-    <f7-navbar title="Dasboard" />
+    <f7-navbar title="Dashboard" />
 
     <f7-block strong>
         <div>Hola, {{ user?.nombre || "Usuario" }}</div>

@@ -923,11 +923,10 @@ export default {
                 this.form.datosGeocerca.geocerca = resultadoValidacion.geocerca;
                 this.form.datosGeocerca.mensajeValidacion =
                     resultadoValidacion.mensajeValidacion;
-                console.log(this.form.datosGeocerca);
             } catch (geoErr) {
                 this.form.datosGeocerca.validada = false;
                 this.form.datosGeocerca.mensajeValidacion =
-                    "No podrá continuar con la emisión debido a que la ubicación no se encuentra disponible";
+                    "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
                 console.warn("No se pudo obtener ubicación:", geoErr);
             } finally {
                 f7.dialog.close();
