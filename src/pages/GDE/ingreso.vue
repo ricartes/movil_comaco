@@ -13,6 +13,7 @@
             <!-- ZONA -->
             <f7-list-item
                 title="Zona"
+                class="select-zona"
                 smart-select
                 :smart-select-params="ssParams"
             >
@@ -36,12 +37,12 @@
                 v-if="form.zona"
                 :key="form.zona?.codigo"
                 title="Proveedor"
-                class="select-zona"
+                class="select-proveedor"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
-                    :key="'sel-zona-' + (form.zona?.codigo || '')"
+                    :key="'sel-proveedor-' + (form.zona?.codigo || '')"
                     :value="form.proveedor?.rutProveedor || ''"
                     @change="handleProveedorChange"
                 >
@@ -51,7 +52,7 @@
                         :key="p.rutProveedor"
                         :value="p.rutProveedor"
                     >
-                        {{ p.nomProveedor }}
+                        {{ p.rutProveedor }} {{ p.nomProveedor }}
                     </option>
                 </select>
             </f7-list-item>
@@ -76,7 +77,7 @@
                         :key="p.rolPredio"
                         :value="p.rolPredio"
                     >
-                        {{ p.predio }}
+                        {{ p.rolPredio }} {{ p.predio }}
                     </option>
                 </select>
             </f7-list-item>
@@ -116,7 +117,10 @@
 
             <!-- CLIENTE: depende de predio -->
             <f7-list-item
-                v-if="form.predio && form.datosGeocerca.validada === true"
+                v-if="
+                    this.form.predio &&
+                    this.form.datosGeocerca.validada === true
+                "
                 :key="form.predio?.rolPredio"
                 title="Cliente"
                 class="select-cliente"
@@ -727,8 +731,9 @@ export default {
     computed: {
         mostrarMensajeInfo() {
             return (
+                !!this.form.predio &&
                 this.form.datosGeocerca.validada === true &&
-                this.form.datosGeocerca.mensajeValidacion?.length > 0
+                (this.form.datosGeocerca.mensajeValidacion || "").length > 0
             );
         },
         patenteCamionNoVigente() {
@@ -740,6 +745,9 @@ export default {
 
         usuarioActivo() {
             return store.state.user;
+        },
+        validaGeocerca() {
+            return config.parametros.validaGeocerca;
         },
         indicadoresTraslado() {
             return config.parametros.indicadoresTraslado;
@@ -832,6 +840,18 @@ export default {
             this.proveedores = this.form.zona
                 ? await listarProveedoresPorZona(this.form.zona.codigo)
                 : [];
+
+            if (this.proveedores.length === 1) {
+                this.form.proveedor = this.proveedores[0];
+                await this.$nextTick();
+                await this.cargarPredios();
+
+                f7.smartSelect
+                    .get(".select-proveedor .smart-select")
+                    .setValueText(
+                        `${this.form.proveedor.rutProveedor} ${this.form.proveedor.nomProveedor}`
+                    );
+            }
         },
 
         async handleZonaChange(e) {
@@ -857,6 +877,31 @@ export default {
             }
         },
 
+        async cargarPredios() {
+            this.predios = this.form.proveedor
+                ? await listarPrediosPorProveedor(
+                      this.form.zona.codigo,
+                      this.form.proveedor.rutProveedor
+                  )
+                : [];
+
+            if (this.predios.length === 1) {
+                this.form.predio = this.predios[0];
+                await this.$nextTick();
+                await this.validarGeocerca();
+                if (this.form.datosGeocerca.validada === true) {
+                    this.cargarClientes();
+                    this.cargarRodales();
+                }
+
+                f7.smartSelect
+                    .get(".select-predio .smart-select")
+                    .setValueText(
+                        `${this.form.predio.rolPredio} ${this.form.predio.predio}`
+                    );
+            }
+        },
+
         async handleProveedorChange(e) {
             const nuevoRut = e.target.value;
             const nuevoProv =
@@ -867,27 +912,7 @@ export default {
             this.form.proveedor = nuevoProv;
             await this.$nextTick(); // re-render del smart-select "Predio"
 
-            this.predios = nuevoProv
-                ? await listarPrediosPorProveedor(
-                      this.form.zona.codigo,
-                      nuevoProv.rutProveedor
-                  )
-                : [];
-
-            if (this.predios.length === 1) {
-                this.form.predio = this.predios[0];
-                await this.$nextTick();
-
-                await this.validarGeocerca();
-                if (this.form.datosGeocerca.validada === true) {
-                    this.cargarClientes();
-                    this.cargarRodales();
-                }
-
-                f7.smartSelect
-                    .get(".select-predio .smart-select")
-                    .setValueText(this.form.predio.predio);
-            }
+            await this.cargarPredios();
         },
 
         async handlePredioChange(e) {
@@ -905,31 +930,39 @@ export default {
         },
 
         async validarGeocerca() {
-            f7.dialog.preloader("Espere por favor...");
+            if (this.validaGeocerca) {
+                f7.dialog.preloader("Espere por favor...");
 
-            // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
-            let ubicacion = null;
-            try {
-                ubicacion = await getLocationOnce();
-                if (!ubicacion) {
-                    throw new Error("Ubicación no disponible");
+                // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
+                let ubicacion = null;
+                try {
+                    ubicacion = await getLocationOnce();
+                    if (!ubicacion) {
+                        throw new Error("Ubicación no disponible");
+                    }
+                    const resultadoValidacion = await validarGeocercaPredio(
+                        this.form.predio.rolPredio,
+                        ubicacion.lat,
+                        ubicacion.lng
+                    );
+                    this.form.datosGeocerca.validada =
+                        resultadoValidacion.validada;
+                    this.form.datosGeocerca.geocerca =
+                        resultadoValidacion.geocerca;
+                    this.form.datosGeocerca.mensajeValidacion =
+                        resultadoValidacion.mensajeValidacion;
+                } catch (geoErr) {
+                    this.form.datosGeocerca.validada = false;
+                    this.form.datosGeocerca.mensajeValidacion =
+                        "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
+                    console.warn("No se pudo obtener ubicación:", geoErr);
+                } finally {
+                    f7.dialog.close();
                 }
-                const resultadoValidacion = await validarGeocercaPredio(
-                    this.form.predio.rolPredio,
-                    ubicacion.lat,
-                    ubicacion.lng
-                );
-                this.form.datosGeocerca.validada = resultadoValidacion.validada;
-                this.form.datosGeocerca.geocerca = resultadoValidacion.geocerca;
+            } else {
+                this.form.datosGeocerca.validada = true;
                 this.form.datosGeocerca.mensajeValidacion =
-                    resultadoValidacion.mensajeValidacion;
-            } catch (geoErr) {
-                this.form.datosGeocerca.validada = false;
-                this.form.datosGeocerca.mensajeValidacion =
-                    "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
-                console.warn("No se pudo obtener ubicación:", geoErr);
-            } finally {
-                f7.dialog.close();
+                    "Validación geocerca desactivada desde configuración.";
             }
         },
 
@@ -946,6 +979,7 @@ export default {
             if (this.clientes.length === 1) {
                 this.form.cliente = this.clientes[0];
                 await this.$nextTick();
+                this.mostrarInformacionCliente();
                 this.cargarDestinosCliente();
                 f7.smartSelect
                     .get(".select-cliente .smart-select")
@@ -953,6 +987,12 @@ export default {
                         `${this.form.cliente.rutCliente} ${this.form.cliente.razonSocialCliente}`
                     );
             }
+        },
+
+        mostrarInformacionCliente() {
+            const ref = this.$refs.clienteAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
         },
 
         async handleClienteChange(e) {
@@ -963,6 +1003,7 @@ export default {
 
             this.resetDesde("cliente"); // limpia desde predio en adelante
             await this.$nextTick();
+            this.mostrarInformacionCliente();
         },
 
         async cargarDestinosCliente() {
@@ -985,9 +1026,6 @@ export default {
                 this.cargarProductos();
             }
             this.obtenerIndicadorTraslado();
-            const ref = this.$refs.clienteAccordion;
-            const el = ref?.$el || ref?.el || ref; // el DOM real
-            if (el) f7.accordion.open(el);
         },
 
         obtenerIndicadorTraslado() {
@@ -1003,7 +1041,9 @@ export default {
         async handleDestinoChange(e) {
             const nuevoDestino = e.target.value;
             this.form.destino =
-                this.destinos.find((p) => p.destino === nuevoDestino) || null;
+                this.destinos.find((p) => p.destinoCliente === nuevoDestino) ||
+                null;
+
             await this.$nextTick();
             this.resetDesde("destino"); // limpia desde destino en adelante
             this.cargarInformacionDestino();
@@ -1053,7 +1093,7 @@ export default {
         },
 
         async cargarLargosProducto() {
-            this.largosProducto = this.form.destino
+            this.largosProducto = this.form.producto
                 ? await listarLargosPorProducto(
                       this.form.zona.codigo,
                       this.form.proveedor.rutProveedor,
@@ -1333,6 +1373,11 @@ export default {
                 this.form.trasvasije = false; // al marcar venta piso, desmarca trasvasije
             }
         },
+        reiniciarDatosGeocerca() {
+            this.form.datosGeocerca.geocerca = null;
+            this.form.datosGeocerca.validada = true;
+            this.form.datosGeocerca.mensajeValidacion = "";
+        },
 
         resetDesde(nivel) {
             // Orden de dependencia: zona → proveedor → predio → cliente → destino → producto → largo → transportista → patCamion → patCarro → conductor
@@ -1340,7 +1385,7 @@ export default {
                 this.form.proveedor = null;
                 this.proveedores = [];
                 this.clearSmartSelect(
-                    ".select-zona",
+                    ".select-proveedor",
                     "Seleccione un Proveedor…"
                 );
                 // sigue
@@ -1349,6 +1394,7 @@ export default {
             if (nivel === "proveedor") {
                 this.form.predio = null;
                 this.predios = [];
+                this.reiniciarDatosGeocerca();
                 this.clearSmartSelect(".select-predio", "Seleccione un Predio");
                 // sigue
                 nivel = "predio";
@@ -1356,6 +1402,7 @@ export default {
             if (nivel === "predio") {
                 this.form.cliente = null;
                 this.form.rodal = null;
+
                 this.clientes = [];
                 this.rodales = [];
                 this.clearSmartSelect(

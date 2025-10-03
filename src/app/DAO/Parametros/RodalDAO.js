@@ -20,8 +20,8 @@ export default class RodalDAO {
     }
 
     async listarPorOrigen(codOrigen) {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.rodal);
 
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.rodal);
         // filtra solo por codOrigen
         const filtrados = docs.filter(d => String(d.codOrigen ?? '').trim() === String(codOrigen ?? '').trim());
 
@@ -29,7 +29,7 @@ export default class RodalDAO {
 
         // distinct por codRodal
         const map = new Map();
-        for (const d of docs) { //TODO: CAMBIAR A filtrados
+        for (const d of filtrados) {
             const key = String(d.codrodal ?? '').trim();
             if (!key) continue;
             if (!map.has(key)) map.set(key, d);

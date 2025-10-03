@@ -17,6 +17,7 @@
         "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
     },
     "parametros": {
+        "validaGeocerca": false,
         "ivaPorDefecto": 19,
         "estadoBloqueoDispositivo": {
             "BLOQUEADO": "3",
