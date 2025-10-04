@@ -11,9 +11,11 @@ const PAGE_TOP = HEADER_H;   // contenido inicia bajo el header
 const FIRST_BLOCK_TOP_GAP = 14;
 const PAGE_BOTTOM = 60;
 const PAGE_W = 595;          // ancho A4 en pt
-const BOX_CONTENT_MIN = 70;
-
-
+const BOX_CONTENT_MIN = 71;
+const RIGHT_BOX_W = 220;
+const CANCHAS_INDENT = 24;
+const TAMANO_LETRA_ELEMENTOS = 9;
+const TAMANO_LETRA_SUCURSALES = 8;
 const getIvaPct = (doc) => {
     const n = Number(doc?.ivaPct);
     return Number.isFinite(n) && n > 0 ? n : config.parametros.ivaPorDefecto;
@@ -83,7 +85,7 @@ const gridNoOuterLayout = {
     vLineWidth: () => 0,          // sin verticales
     hLineColor: () => brand.border,
     vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
+    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 3,
 };
 
 const toNum = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -93,6 +95,7 @@ function headerBoxRight(doc) {
     const rut = (doc?.empresa?.rut != null ? String(doc.empresa.rut) : "—") + (doc?.empresa?.dv ? "-" + doc.empresa.dv : "");
     const folio = doc?.folio != null ? String(doc.folio) : "—";
     const ciudad = U(doc?.empresa?.ciudad);
+    const fechaEmision = fDate(doc?.fechaEmision) || "—";
 
     return {
         stack: [
@@ -101,51 +104,153 @@ function headerBoxRight(doc) {
                     widths: ["*"],
                     body: [[{
                         stack: [
-                            { text: rut, alignment: "center", fontSize: 12, bold: true, margin: [0, 6, 0, 6] },
-                            { text: "GUÍA DE DESPACHO\nELECTRÓNICA", alignment: "center", fontSize: 13, bold: true, margin: [0, 2, 0, 6] },
-                            { text: "N° " + folio, alignment: "center", fontSize: 12, bold: true, margin: [0, 2, 0, 6] },
+                            { text: `R.U.T.: ${rut}`, alignment: "center", fontSize: 12, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
+                            { text: "GUÍA DE DESPACHO\nELECTRÓNICA", alignment: "center", fontSize: 13, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
+                            { text: `N°: ${folio}`, alignment: "center", fontSize: 12, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
                         ]
                     }]]
                 },
                 layout: {
-                    hLineWidth: () => 1.4, vLineWidth: () => 1.4,
-                    hLineColor: () => brand.border, vLineColor: () => brand.border,
-                    paddingLeft: () => 10, paddingRight: () => 10, paddingTop: () => 6, paddingBottom: () => 6,
+                    hLineWidth: () => 1.5,
+                    vLineWidth: () => 1.5,
+                    hLineColor: () => "#b71c1c",
+                    vLineColor: () => "#b71c1c",
+                    paddingLeft: () => 10,
+                    paddingRight: () => 10,
+                    paddingTop: () => 6,
+                    paddingBottom: () => 6,
                 },
-                margin: [0, 0, 0, 6],
+                margin: [0, 0, 0, 4],
             },
-            { text: `S.I.I. - ${ciudad}`, alignment: "center", fontSize: 10, margin: [0, 2, 0, 0] },
+            // Texto bajo el cuadro
+            {
+                text: `S.I.I. - ${ciudad}`,
+                alignment: "center",
+                fontSize: 10,
+                bold: true,
+                color: "#b71c1c",
+                margin: [0, 2, 0, 2],
+            },
+            // 👇 Nueva línea de fecha en negro
+            {
+                text: [
+                    { text: "FECHA: ", bold: true },
+                    { text: fechaEmision || "—" }
+                ],
+                alignment: "center",
+                fontSize: TAMANO_LETRA_SUCURSALES,
+                color: "#000000",
+                margin: [0, 70, 0, 0], // 👈 mantienes la distancia que te funcionó bien
+            },
+
         ]
     };
 }
 
-function buildHeaderHero(doc) {
-    const left = {
-        width: "*",
-        stack: [
-            { text: U(doc?.empresa?.razonSocial || ""), fontSize: 12, bold: true, alignment: "center", margin: [0, 0, 0, 4] },
-            {
-                text: U(doc?.empresa?.giro || doc?.empresa?.actividadSII || doc?.empresa?.actividadEconomica || ""),
-                fontSize: 9, color: brand.gray, alignment: "center", lineHeight: 1.0, margin: [0, 0, 0, 6],
-            },
-            { text: U(doc?.empresa?.direccion), fontSize: 9, color: brand.gray, alignment: "center" },
-            { text: U(doc?.empresa?.telefono ? `${doc.empresa.telefono} - FAX` : "FAX"), fontSize: 9, color: brand.gray, alignment: "center" },
-            { text: U(doc?.empresa?.ciudad), fontSize: 9, color: brand.gray, alignment: "center" },
-        ],
-    };
-    const right = { width: 260, stack: [headerBoxRight(doc)] };
 
-    const band = { margin: [PAGE_X, 6, PAGE_X, 4], columns: [left, right], columnGap: 24 };
+
+
+
+function buildHeaderLeft(doc) {
+    const emp = doc?.empresa || {};
+    const sucursales = Array.isArray(emp.sucursales) ? emp.sucursales : [];
+    const s0 = sucursales[0] || null;          // primera sucursal (la de “Sucursal:”)
+    const canchas = sucursales.slice(1);       // resto
+
+    const leftStack = [
+        // Título y giro/actividad
+        { text: U(emp.razonSocial || ''), fontSize: 12, bold: true, alignment: 'center', margin: [0, 0, 0, 4] },
+        {
+            text: U(emp.giro || emp.actividadSII || emp.actividadEconomica || ''),
+            fontSize: 9, color: brand.gray, alignment: 'center', lineHeight: 1.0, margin: [0, 0, 0, 6],
+        },
+    ];
+
+    // 🔴 IMPORTANTE: ESTE BLOQUE REEMPLAZA a los push antiguos de “Casa Matriz / Sucursal”
+    leftStack.push({
+        table: {
+            widths: ['*'], // fuerza que el contenido tome todo el ancho del panel izquierdo
+            body: [[{
+                stack: [
+                    { text: 'Casa Matriz:', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 2] },
+                    {
+                        text: fmtLineaDireccion(emp.direccion, emp.comuna, emp.ciudad),
+                        fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', noWrap: false
+                    },
+                    {
+                        text: U(fmtTelefono(emp.telefono)),
+                        fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', margin: [0, 0, 0, 6], noWrap: false
+                    },
+
+                    // Sucursal principal (solo si existe s0)
+                    ...(s0 ? [
+                        { text: 'Sucursal:', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 2] },
+                        {
+                            text: fmtLineaDireccion(s0.direccion, s0.comuna, s0.region),
+                            fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', noWrap: false
+                        },
+                        {
+                            text: U(fmtTelefono(s0.telefono)),
+                            fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', margin: [0, 0, 0, 2], noWrap: false
+                        },
+                    ] : []),
+                ],
+            }]],
+        },
+        layout: 'noBorders',
+        margin: [0, 0, 0, 4],
+    });
+
+    // CANCHAS DE ACOPIO en 2 columnas
+    if (canchas.length > 0) {
+        leftStack.push({ text: 'CANCHAS DE ACOPIO', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 6] });
+
+        const filas = chunk(canchas, 2);
+        filas.forEach(par => {
+            leftStack.push({
+                margin: [CANCHAS_INDENT, 0, 0, 0],   // bloque desplazado a la derecha
+                table: {
+                    widths: ['*', '*'],               // 👈 ocupa todo el ancho disponible
+                    body: [[
+                        canchaBlock(par[0]),
+                        canchaBlock(par[1]),
+                    ]]
+                },
+                layout: 'noBorders'
+            });
+        });
+    }
+
+
+
+
+    return { width: '*', stack: leftStack };
+}
+
+
+// ========= Reemplazo de buildHeaderHero =========
+function buildHeaderHero(doc) {
+    const left = buildHeaderLeft(doc);             // ocupa el ancho restante
+    const right = { width: RIGHT_BOX_W, stack: [headerBoxRight(doc)] };
+
+    const band = {
+        margin: [PAGE_X, 6, PAGE_X, 4],
+        columns: [left, right],
+        columnGap: 16, // más estrecho para ganar espacio al texto
+    };
+
     const bottomLine = {
         canvas: [{ type: "line", x1: PAGE_X, x2: PAGE_W - PAGE_X, y1: 0, y2: 0, lineWidth: 1, lineColor: brand.border }],
-        margin: [0, 6, 0, 0],   // antes [0, 3, 0, 0]
+        margin: [0, 6, 0, 0],
     };
-    return { stack: [band, bottomLine] };
+
+    return { stack: [band] };
 }
 
 // =============== Box 1: Cliente vs Fechas/Traslado ===============
 function buildBoxClienteFechas(doc) {
     const left = {
+        fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Nombre", doc?.cliente?.razonSocialCliente),
             kvLine("R.U.T", doc?.cliente?.rutCliente),
@@ -156,6 +261,7 @@ function buildBoxClienteFechas(doc) {
         ],
     };
     const right = {
+        fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Fecha Emisión", fDate(doc?.createdAt)),
             kvLine("Fecha Vencimiento", "—"),
@@ -176,6 +282,7 @@ function buildBoxClienteFechas(doc) {
 // =============== Box 2: Operación ===============
 function buildBoxOperacion(doc) {
     const left = {
+        fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Hora Llegada", doc?.comentarios?.horaLlegada ? `${fDate(doc.comentarios.horaLlegada)} ${fTime(doc.comentarios.horaLlegada)}` : "—"),
             kvLine("Contratista", doc?.empresaContratista?.nombreContratista),
@@ -190,6 +297,7 @@ function buildBoxOperacion(doc) {
         ],
     };
     const right = {
+        fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
             kvLine("OC", "—"),
@@ -228,21 +336,25 @@ const boxedLayoutDetail = {
 // =============== Detalle (M3) ===============
 function buildDetalleM3(doc) {
     const header = [
-        { text: "DETALLE", bold: true, alignment: "left" },
-        { text: "TROZOS", bold: true, alignment: "center" },
-        { text: "CANTIDAD", bold: true, alignment: "center" },
-        { text: "UND.", bold: true, alignment: "center" },
-        { text: "P.UNITARIO", bold: true, alignment: "center" },
-        { text: "P.TOTAL", bold: true, alignment: "center" },
+        { text: "DETALLE", bold: true, alignment: "left", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "TROZOS", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "CANTIDAD", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "UND.", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "P.UNITARIO", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "P.TOTAL", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
     ];
-    const body = [header, [
-        { text: " ", noWrap: true },
-        { text: " ", alignment: "center" },
-        { text: " ", alignment: "center" },
-        { text: " ", alignment: "center" },
-        { text: " ", alignment: "center" },
-        { text: " ", alignment: "center" },
-    ]];
+
+    const body = [
+        header,
+        [
+            { text: " ", noWrap: true, fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        ]
+    ];
 
     return {
         margin: [PAGE_X, 10, PAGE_X, 4],
@@ -251,44 +363,51 @@ function buildDetalleM3(doc) {
     };
 }
 
+
 // =============== Detalle (MR) — 1 sola fila ===============
 function buildDetalleMR(doc) {
     const header = [
-        { text: "DETALLE", bold: true, alignment: "left" },
-        { text: "CANTIDAD", bold: true, alignment: "center" },
-        { text: "UND.", bold: true, alignment: "center" },
-        { text: "P.UNITARIO", bold: true, alignment: "center" },
-        { text: "P.TOTAL", bold: true, alignment: "center" },
+        { text: "DETALLE", bold: true, alignment: "left", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "CANTIDAD", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "UND.", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "P.UNITARIO", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+        { text: "P.TOTAL", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
     ];
 
-    const descCell = { text: truncate(doc?.producto?.nombreProducto, 80), noWrap: true };
+    const descCell = { text: truncate(doc?.producto?.nombreProducto, 80), noWrap: true, fontSize: TAMANO_LETRA_ELEMENTOS };
 
     const cantidad = (doc?.totales?.mr?.volumen ?? doc?.totales?.totalMr ?? doc?.totales?.volMr ?? null);
     const punit = doc?.precioProducto?.precio ?? null;
     const ptotal = (cantidad != null && punit != null) ? Math.round(Number(cantidad) * Number(punit)) : null;
 
-    const body = [header, [
-        descCell,
-        {
-            text: cantidad != null
-                ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
-                : "—",
-            alignment: "center"
-        },
-        { text: "MR", alignment: "center" },
-        {
-            text: punit != null
-                ? Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                : "—",
-            alignment: "center"
-        },
-        {
-            text: ptotal != null
-                ? Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                : "—",
-            alignment: "center"
-        },
-    ]];
+    const body = [
+        header,
+        [
+            descCell,
+            {
+                text: cantidad != null
+                    ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                    : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+            { text: "MR", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            {
+                text: punit != null
+                    ? Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+            {
+                text: ptotal != null
+                    ? Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+        ]
+    ];
 
     return {
         margin: [PAGE_X, 10, PAGE_X, 4],
@@ -304,12 +423,12 @@ function buildDetallePorUM(doc) {
 // =============== Comentario ===============
 function buildComentarioFull(doc) {
     return {
-        margin: [PAGE_X, 4, PAGE_X, 4],
+        margin: [PAGE_X, 3, PAGE_X, 3],
         table: {
             widths: ["*"],
             body: [
-                [{ text: "COMENTARIO:", bold: true }],
-                [{ text: fStr(doc?.comentarios?.comentarios), margin: [0, 8, 0, 20] }],
+                [{ text: "COMENTARIO:", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS, }],
+                [{ text: fStr(doc?.comentarios?.comentarios), margin: [0, 8, 0, 10], fontSize: TAMANO_LETRA_ELEMENTOS, }],
             ],
         },
         layout: boxedLayoutTight,
@@ -356,8 +475,6 @@ function extractTotals(doc) {
 
 // =============== Transporte + Totales ===============
 function buildTransporteYTotales(doc) {
-
-
     const { neto, ivaPct, ivaMonto, total } = extractTotals(doc);
 
     const transporteBox = {
@@ -365,14 +482,26 @@ function buildTransporteYTotales(doc) {
         table: {
             widths: ["*"],
             body: [
-                [{ text: "DATOS TRANSPORTE", bold: true }],
+                [{ text: "DATOS TRANSPORTE", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS }],
                 [{
-                    margin: [0, 8, 0, 8],
+                    margin: [0, 0, 0, 0],
                     minHeight: BOX_CONTENT_MIN,
+                    // 👇 fontSize por defecto para este bloque
+                    fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
                         { text: [{ text: "Transportista: ", bold: true }, fStr(doc?.transportista?.nomTransportista)] },
-                        { text: [{ text: "Patente: ", bold: true }, fStr(doc?.patenteCamion?.patCamion), { text: ".  Carro: ", bold: true }, fStr(doc?.patenteCarro)] },
-                        { text: [{ text: "Nombre Chofer: ", bold: true }, fStr(doc?.conductor?.nomChofer), { text: ".  RUT Chofer: ", bold: true }, fStr(doc?.conductor?.rutChofer)] },
+                        {
+                            text: [
+                                { text: "Patente: ", bold: true }, fStr(doc?.patenteCamion?.patCamion),
+                                { text: ".  Carro: ", bold: true }, fStr(doc?.patenteCarro)
+                            ]
+                        },
+                        {
+                            text: [
+                                { text: "Nombre Chofer: ", bold: true }, fStr(doc?.conductor?.nomChofer),
+                                { text: ".  RUT Chofer: ", bold: true }, fStr(doc?.conductor?.rutChofer)
+                            ]
+                        },
                     ]
                 }]
             ]
@@ -384,39 +513,48 @@ function buildTransporteYTotales(doc) {
         width: 220,
         table: {
             widths: ["*"],
-            body: [[
-                {
-                    margin: [0, 8, 0, 5],
-                    minHeight: BOX_CONTENT_MIN,
-                    table: {
-                        widths: ["*", 110],
-                        body: [
-                            [{ text: "NETO:", alignment: "right", bold: true }, { text: fCLP(neto), alignment: "right" }],
-                            [{ text: `I.V.A (${ivaPct}%):`, alignment: "right", bold: true }, { text: fCLP(ivaMonto), alignment: "right" }],
-                            [{ text: "TOTAL:", alignment: "right", bold: true, fontSize: 11 }, { text: fCLP(total), alignment: "right", bold: true, fontSize: 11 }],
-                        ]
-                    },
-                    layout: gridNoOuterLayout,
-                }
-            ]]
+            body: [[{
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+                margin: [0, 0, 0, 0],
+                minHeight: BOX_CONTENT_MIN,
+                table: {
+                    widths: ["*", 110],
+                    body: [
+                        [
+                            { text: "NETO:", alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS },
+                            { text: fCLP(neto), alignment: "right", fontSize: TAMANO_LETRA_ELEMENTOS }
+                        ],
+                        [
+                            { text: `I.V.A (${ivaPct}%):`, alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS },
+                            { text: fCLP(ivaMonto), alignment: "right", fontSize: TAMANO_LETRA_ELEMENTOS }
+                        ],
+                        [
+                            { text: "TOTAL:", alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 },
+                            { text: fCLP(total), alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 }
+                        ],
+                    ]
+                },
+                layout: gridNoOuterLayout,
+            }]]
         },
         layout: boxedOuterOnly,
     };
 
     return {
         margin: [PAGE_X, 6, PAGE_X, 14],
-        columns: [transporteBox, { width: 12, text: "" }, totalesBox], // gap más angosto
+        columns: [transporteBox, { width: 12, text: "" }, totalesBox],
         columnGap: 0,
     };
 }
+
 
 // =============== Footer ===============
 function buildFooter(current, totalPages) {
     return {
         margin: [PAGE_X, 6, PAGE_X, 12],
         columns: [
-            { text: "Documento de previsualización (sin timbre/folio)", fontSize: 8, color: brand.gray },
-            { text: `Página ${current} de ${totalPages}`, fontSize: 8, color: brand.gray, alignment: "right" },
+            { text: "Documento de previsualización (sin timbre/folio)", fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray },
+            { text: `Página ${current} de ${totalPages}`, fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: "right" },
         ],
     };
 }
@@ -426,8 +564,81 @@ function truncate(s, max = 80) {
     return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
+function fmtTelefono(t) {
+    return t ? `Fono: ${U(t)}` : "";
+}
+function fmtLineaDireccion(d, comuna, regionOCiudad) {
+    const a = U(d).trim();
+    const b = [U(comuna), U(regionOCiudad)].filter(Boolean).join(" - "); // MISMA LÍNEA
+    return [a, b].filter(Boolean).join("  "); // separa con espacios, no con \n
+}
+
+
+
+// 👉 reemplaza toda esta función
+function estimateHeaderHeight(doc) {
+    const emp = doc?.empresa || {};
+    const sucursales = Array.isArray(emp.sucursales) ? emp.sucursales : [];
+    const hasSucursal0 = sucursales.length > 0;
+    const canchasCount = Math.max(0, sucursales.length - 1);
+    const filasCanchas = Math.ceil(canchasCount / 2);
+
+    // líneas base (tamaños actuales: título 8, giro 9, resto 8/6)
+    let h = 88;                // título + giro + pequeños márgenes
+    h += 40;                   // "Casa Matriz" (título + dirección + fono)
+    if (hasSucursal0) h += 38; // "Sucursal" (título + dirección + fono)
+
+    if (canchasCount > 0) {
+        h += 14;                 // "CANCHAS DE ACOPIO"
+        h += filasCanchas * 40;  // ~40 pt por FILA de 2 canchas (nombre+2 líneas)
+    }
+
+    h += 14; // padding inferior del header
+
+    // mínimos y máximos más generosos
+    const min = 140;
+    const max = 240; // si sigues corto, sube a 260
+    return Math.max(min, Math.min(Math.ceil(h), max));
+}
+
+
+
+
+
+// === helpers para canchas en 2 columnas ===
+function chunk(arr, size = 2) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+}
+function canchaBlock(s) {
+    if (!s) return { text: "" };
+
+    // Normaliza y recorta dirección si es muy larga
+    const direccion = U(s.direccion || "").trim();
+    const dirCorta = direccion.length > 60 ? direccion.slice(0, 57) + "…" : direccion;
+
+    // Comuna y región combinadas
+    const linea2 = [U(s.comuna), U(s.region)].filter(Boolean).join(" - ");
+
+    return {
+        width: "*",
+        stack: [
+            // Nombre cancha en negrita
+            { text: U(s.nombre || ""), bold: true, fontSize: 7, margin: [0, 0, 0, 1] },
+            // Dirección (línea 1)
+            { text: dirCorta, fontSize: 7, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
+            // Comuna y región (línea 2)
+            { text: linea2, fontSize: 7, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
+        ],
+        margin: [0, 0, 0, 4],
+    };
+}
+
+
 // =============== Doc Definition público ===============
 export function buildDefinition(doc) {
+    const topMargin = Math.max(80, estimateHeaderHeight(doc) - 24);
     const box1 = buildBoxClienteFechas(doc);
     const box2 = buildBoxOperacion(doc);
     const detalle = buildDetallePorUM(doc);
@@ -436,7 +647,7 @@ export function buildDefinition(doc) {
 
     return {
         pageSize: "A4",
-        pageMargins: [PAGE_X, PAGE_TOP, PAGE_X, PAGE_BOTTOM],
+        pageMargins: [PAGE_X, topMargin, PAGE_X, PAGE_BOTTOM],
         watermark: isDraft(doc) ? {
             text: "BORRADOR",
             color: "#000000",
@@ -446,7 +657,7 @@ export function buildDefinition(doc) {
             fontSize: 140    // ajusta a gusto
         } : undefined,
 
-        header: () => buildHeaderHero(doc),
+        header: (currentPage) => (currentPage === 1 ? buildHeaderHero(doc) : null),
         content: [box1, box2, detalle, comentarioFull, transporteYTotales],
         defaultStyle: { fontSize: 10 },
     };

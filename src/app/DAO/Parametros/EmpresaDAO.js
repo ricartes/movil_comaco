@@ -29,6 +29,7 @@ export default class EmpresaDAO {
             limit: 1, // 👈 optimiza: solo un doc
         });
 
+
         const doc = res.docs[0] || null;
         return doc ? empresaDocToDTO(doc) : null;
     }

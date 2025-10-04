@@ -48,7 +48,7 @@ export default {
         doc: { type: Object, required: true },
         loading: { type: Boolean, default: false }, // para deshabilitar mientras procesa
     },
-    emits: ["emitir", "descartar"],
+    emits: ["emitir", "descartar", "generar-pdf"],
     methods: {
         onEmitir() {
             // puedes validar this.doc acá si quieres

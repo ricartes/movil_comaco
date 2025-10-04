@@ -686,6 +686,7 @@ export default {
             lineasContratista: [],
             conductorValido: true,
             form: {
+                fechaEmision: null,
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,
                 empresa: null,

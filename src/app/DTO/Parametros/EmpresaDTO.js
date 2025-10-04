@@ -17,6 +17,7 @@ export default class EmpresaDTO {
         numeroResolucion,
         codigoSII,
         actividadSII,
+        sucursales,
 
         // opcionales si viene desde PouchDB
         _id = undefined,
@@ -38,5 +39,6 @@ export default class EmpresaDTO {
         this.numeroResolucion = numeroResolucion
         this.codigoSII = codigoSII
         this.actividadSII = actividadSII
+        this.sucursales = sucursales
     }
 }
