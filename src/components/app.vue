@@ -98,6 +98,14 @@ export default {
             return true; // se procesó
         };
 
+        const handleFolioIntent = async (intent, payload) => {
+            if (intent !== "folio:loaded") return false;
+            if (pushGuard) return true;
+
+            alert("llamar a carga folios");
+            return true; // se procesó
+        };
+
         // === 3) Dispatcher de intents ===
         const handlePushIntent = async (payload) => {
             const { data, title, body } = payload;
@@ -106,9 +114,10 @@ export default {
 
             // delega a handlers
             if (await handleDeviceIntent(intent, { title, body })) return;
+            if (await handleFolioIntent(intent, payload)) return;
 
             // fallback
-            console.log("Intent no controlado:", intent, payload);
+
             f7.toast
                 .create({
                     text: `Intent recibido: ${intent}`,

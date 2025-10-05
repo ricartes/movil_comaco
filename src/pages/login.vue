@@ -46,7 +46,7 @@
                             v-if="requierePin"
                             label="PIN"
                             type="password"
-                            placeholder="4 a 8 dígitos"
+                            placeholder="4 dígitos"
                             clear-button
                             inputmode="numeric"
                             pattern="[0-9]*"
