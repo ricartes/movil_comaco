@@ -111,7 +111,8 @@
         "RescatarEmpresaContratista": "empresa-contratista",
         "RescatarRodales": "rodal",
         "RescatarZonas": "zona",
-        "RescatarGeocercas": "geocerca"
+        "RescatarGeocercas": "geocerca",
+        "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio"
     },
     "bd": {
         "tipoEntidad": {
@@ -131,7 +132,9 @@
             "zona": "zona",
             "proveedor": "proveedor",
             "trazabilidad": "trazabilidad",
-            "geocerca": "geocerca"
+            "geocerca": "geocerca",
+            "siiUsuarioRangoFolio": "sii-usuario-rango-folio",
+            "folio": "folio"
         }
     }
 }

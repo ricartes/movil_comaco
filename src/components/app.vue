@@ -16,6 +16,7 @@ import {
     listenForFcmMessages,
     extractPushData,
 } from "@/app/services/firebaseMessaging";
+import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService.js";
 
 export default {
     setup() {
