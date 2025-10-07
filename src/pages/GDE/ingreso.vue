@@ -766,15 +766,24 @@ export default {
         },
     },
     async created() {
-        this.generarDatosEmisor();
-        this.cargarZonas();
-        this.cargarTransportistas();
-        this.cargarCarguios();
-        this.form.empresa = await obtenerEmpresa(this.usuarioActivo.empresa);
-        this.form.parametrosGenerales = await listarParametrosGenerales(
-            this.usuarioActivo.empresa
-        );
-        this.generarPorcentajeIva();
+        f7.dialog.preloader("Cargando...");
+        try {
+            this.generarDatosEmisor();
+            await this.cargarZonas();
+            await this.cargarTransportistas();
+            await this.cargarCarguios();
+            this.form.empresa = await obtenerEmpresa(
+                this.usuarioActivo.empresa
+            );
+            this.form.parametrosGenerales = await listarParametrosGenerales(
+                this.usuarioActivo.empresa
+            );
+            await this.generarPorcentajeIva();
+        } catch (ex) {
+            f7.dialog.alert("Ha ocurrido un error al iniciar registro.");
+        } finally {
+            f7.dialog.close();
+        }
     },
     methods: {
         async generarPorcentajeIva() {
