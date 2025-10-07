@@ -180,7 +180,7 @@ export default {
 
     data() {
         return {
-            loading: true,
+            loading: false,
             error: null,
             doc: null,
         };

@@ -22,6 +22,13 @@ const getIvaPct = (doc) => {
 };
 
 
+
+function bulletsColumns(bullets) {
+    if (bullets.length >= 36) return 3;
+    if (bullets.length >= 18) return 2;
+    return 1;
+}
+
 function fDate(x) {
     if (!x) return "—";
     const d = new Date(x);
@@ -335,6 +342,13 @@ const boxedLayoutDetail = {
 
 // =============== Detalle (M3) ===============
 function buildDetalleM3(doc) {
+    // util local: divide un array en N columnas
+    const chunkM3 = (arr, cols) => {
+        const out = Array.from({ length: cols }, () => []);
+        arr.forEach((item, i) => out[i % cols].push(item));
+        return out;
+    };
+
     const header = [
         { text: "DETALLE", bold: true, alignment: "left", fontSize: TAMANO_LETRA_ELEMENTOS },
         { text: "TROZOS", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
@@ -348,20 +362,17 @@ function buildDetalleM3(doc) {
     const categoria = producto.categoria ? `(${producto.categoria})` : "";
     const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
 
-    // detalleM3 → solo los que tienen trozos > 0
+    // Solo filas con trozos > 0
     const filas = (doc?.detalleM3 ?? []).filter(f => Number(f.trozos) > 0);
+    const bullets = filas.map(f => `• ${f.diametro}: ${f.trozos}`);
+    const totalTrozos = filas.reduce((sum, f) => sum + Number(f.trozos || 0), 0);
 
-    // construir líneas con sangría, que pueden fluir naturalmente a la siguiente página
-    const lineasDetalle = filas.map(f => `• ${f.diametro}: ${f.trozos}`).join("\n");
-
-    const descCell = {
+    // Celda de descripción (resumen)
+    const descResumen = {
         text: [
             { text: truncate(producto.nombreProducto ?? "", 80), bold: true },
             categoria ? { text: `\n${categoria}`, italics: true } : {},
             sagInfo ? { text: `\n${sagInfo}` } : {},
-            lineasDetalle
-                ? { text: `\n${lineasDetalle}`, fontSize: TAMANO_LETRA_ELEMENTOS - 1, margin: [10, 2, 0, 0] }
-                : {},
         ],
         noWrap: false,
         fontSize: TAMANO_LETRA_ELEMENTOS,
@@ -369,58 +380,77 @@ function buildDetalleM3(doc) {
 
     const cantidad = doc?.totales?.m3?.volumen ?? doc?.totales?.totalM3 ?? null;
     const punit = doc?.precioProducto?.precio ?? null;
-    const ptotal =
-        cantidad != null && punit != null
-            ? Math.round(Number(cantidad) * Number(punit))
-            : null;
+    const ptotal = (cantidad != null && punit != null)
+        ? Math.round(Number(cantidad) * Number(punit))
+        : null;
 
-    const totalTrozos = filas.reduce((sum, f) => sum + Number(f.trozos || 0), 0);
+    // Decide dinámicamente cuántas columnas usar para los bullets
+    // (1 si son pocos, 2 si medianos, 3 si muchos)
+    const colsCount = bullets.length >= 20 ? 10 : (bullets.length >= 8 ? 9 : 8);
+    const bulletsCols = chunkM3(bullets, colsCount).map(col => ({
+        width: '*',
+        // texto en bloque para que pdfMake pueda partir verticalmente
+        text: col.join('\n'),
+        fontSize: TAMANO_LETRA_ELEMENTOS - 1,
+        margin: [8, 0, 0, 0],
+        noWrap: false,
+    }));
 
     const body = [
         header,
+        // 1) Fila principal (resumen)
         [
-            descCell,
-            { text: totalTrozos.toString(), alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            descResumen,
+            { text: String(totalTrozos), alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
             {
-                text:
-                    cantidad != null
-                        ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
-                        : "—",
+                text: (cantidad != null)
+                    ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                    : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
             },
             { text: getUM(doc), alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
             {
-                text:
-                    punit != null
-                        ? `$${Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0 })}`
-                        : "—",
+                text: (punit != null)
+                    ? `$${Number(punit).toLocaleString("es-CL", { maximumFractionDigits: 0 })}`
+                    : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
             },
             {
-                text:
-                    ptotal != null
-                        ? Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0 })
-                        : "—",
+                text: (ptotal != null)
+                    ? Number(ptotal).toLocaleString("es-CL", { maximumFractionDigits: 0 })
+                    : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
             },
+        ],
+
+        // 2) Fila ancha para el detalle de diámetros (usa todo el ancho de la tabla)
+        [
+            {
+                colSpan: 6,
+                border: [true, false, true, true],   // pegado a la fila de arriba
+                margin: [6, 4, 6, 4],
+                // Distribuye el detalle en columnas para aprovechar el ancho
+                columns: bulletsCols,
+                columnGap: 16,
+            },
+            {}, {}, {}, {}, {},
         ],
     ];
 
     return {
         margin: [PAGE_X, 10, PAGE_X, 4],
         table: {
-            headerRows: 1,             // mantiene encabezado
-            dontBreakRows: false,      // permite que se partan filas largas
+            headerRows: 1,        // el header se repite si parte en otra página
+            dontBreakRows: false, // permite partir verticalmente el detalle si es largo
             widths: ["*", 60, 70, 50, 70, 80],
             body,
         },
-        layout: boxedLayoutDetail,   // mantiene el borde completo
+        layout: boxedLayoutDetail, // borde exterior del bloque
     };
 }
-
 
 
 // Helper: obtiene volumen según UM
