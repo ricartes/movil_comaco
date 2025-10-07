@@ -10,29 +10,61 @@ import dayjs from "dayjs";
 var Utilidades = {
 
     async buildDispositivoPayload() {
-        // UID
-        const id = await Device.getId();           // { identifier: string }
-        // Info SO
-        const info = await Device.getInfo();       // { model, platform, operatingSystem, osVersion, manufacturer, ... }
-        // App
-        const app = await App.getInfo();           // { version, name, ... }
+        if (!Capacitor.isNativePlatform()) {
+            // Entorno web o PWA
+            return {
+                uid: 'web-' + Math.random().toString(36).substring(2, 10),
+                modelo: null,
+                fabricante: null,
+                plataforma: 'web',
+                versionSo: null,
+                versionApp: null,
+            };
+        }
 
-        return {
-            uid: id.identifier,                      // obligatorio
-            modelo: info.model ?? null,
-            fabricante: info.manufacturer ?? null,
-            plataforma: info.platform ?? null,       // 'ios' | 'android' | 'web'
-            versionSo: info.osVersion ?? null,
-            versionApp: app.version ?? null,
-            // fcmToken: lo agregaremos aparte si lo tienes
-        };
+        try {
+            const [id, info, app] = await Promise.all([
+                Device.getId(),
+                Device.getInfo(),
+                App.getInfo(),
+            ]);
+
+            return {
+                uid: id.identifier,
+                modelo: info.model ?? null,
+                fabricante: info.manufacturer ?? null,
+                plataforma: info.platform ?? null, // 'ios' | 'android'
+                versionSo: info.osVersion ?? null,
+                versionApp: app.version ?? null,
+            };
+        } catch (e) {
+            console.warn('Error obteniendo datos del dispositivo:', e);
+            return {
+                uid: null,
+                modelo: null,
+                fabricante: null,
+                plataforma: null,
+                versionSo: null,
+                versionApp: null,
+            };
+        }
     },
 
 
     async obtenerVersionApp() {
-        const app = await App.getInfo();
+        if (!Capacitor.isNativePlatform()) {
+            // opcional: si quieres solo Android nativo:
+            // return null;
+            return null;
+        }
 
-        return app.version ?? null;
+        try {
+            const info = await App.getInfo();
+            return info?.version ?? null;
+        } catch (e) {
+            // En caso de que algún dispositivo/ROM no lo implemente bien
+            return null;
+        }
 
     },
 

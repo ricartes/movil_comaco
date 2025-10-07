@@ -46,7 +46,6 @@ export default {
             f7.dialog.preloader("Validando acceso");
             try {
                 const res = await bootstrapValidacionDispositivo();
-                console.log(res);
                 await store.dispatch("setDispositivoResult", res);
                 if (!res.bloquea) {
                     f7.views.main?.router?.navigate("/login/", {

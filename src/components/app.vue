@@ -16,8 +16,7 @@ import {
     listenForFcmMessages,
     extractPushData,
 } from "@/app/services/firebaseMessaging";
-import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService.js";
-
+import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 export default {
     setup() {
         const device = getDevice();
@@ -99,12 +98,60 @@ export default {
             return true; // se procesó
         };
 
-        const handleFolioIntent = async (intent, payload) => {
+        const handleFolioIntent = async (intent, payload = {}) => {
             if (intent !== "folio:loaded") return false;
             if (pushGuard) return true;
+            if (
+                store.state.user &&
+                store.state.user.empresa &&
+                store.state.user.rut
+            ) {
+                // tomar empId/rut desde el push si vienen; si no, desde el usuario actual
+                const empId = store.state.user.empresa;
+                const rut = store.state.user.rut;
 
-            alert("llamar a carga folios");
-            return true; // se procesó
+                try {
+                    pushGuard = true;
+                    f7.dialog.preloader("Cargando folios…");
+
+                    const resultado = await cargarFoliosDesdeWeb(empId, rut);
+
+                    if (resultado?.ok) {
+                        const inserted = Number(resultado.inserted ?? 0);
+                        const confirmed = Array.isArray(resultado.confirmed)
+                            ? resultado.confirmed.length
+                            : 0;
+
+                        const msg = `
+        <div class="text-start">
+          <p><strong>Folios cargados correctamente.</strong></p>
+          <ul class="mt-2 mb-0">
+            <li><b>Documentos insertados:</b> ${inserted}</li>
+            <li><b>Confirmados:</b> ${confirmed}</li>
+          </ul>
+        </div>
+      `;
+                        f7.dialog.alert(msg, "Carga completada");
+                    } else {
+                        f7.dialog.alert(
+                            "No se cargaron folios o la respuesta fue inválida.",
+                            "Aviso"
+                        );
+                    }
+                } catch (ex) {
+                    console.error("Error al cargar folios:", ex);
+                    const detail = ex?.message || String(ex);
+                    f7.dialog.alert(
+                        `Ha ocurrido un error al cargar los folios:<br><small>${detail}</small>`,
+                        "Error"
+                    );
+                } finally {
+                    f7.dialog.close();
+                    pushGuard = false;
+                }
+            }
+
+            return true;
         };
 
         // === 3) Dispatcher de intents ===
@@ -132,17 +179,19 @@ export default {
                 if (device.capacitor) {
                     capacitorApp.init(f7);
 
-                    // listeners SOLO en nativo
-                    listenForFcmMessages(
-                        async (msg) => {
-                            const payload = extractPushData(msg);
-                            await handlePushIntent(payload);
-                        },
-                        async (msg) => {
-                            const payload = extractPushData(msg);
-                            await handlePushIntent(payload);
-                        }
-                    );
+                    if (device.android) {
+                        // listeners SOLO en nativo
+                        listenForFcmMessages(
+                            async (msg) => {
+                                const payload = extractPushData(msg);
+                                await handlePushIntent(payload);
+                            },
+                            async (msg) => {
+                                const payload = extractPushData(msg);
+                                await handlePushIntent(payload);
+                            }
+                        );
+                    }
                 }
 
                 await store.dispatch("hydrate");

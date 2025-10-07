@@ -19,6 +19,32 @@ const CargaParametrosWebServices = {
 
         return data // JSON parseado
     },
+
+    /**
+   * POST genérico enviando JSON al backend
+   * @param {Object} body - cuerpo de la solicitud (JSON)
+   * @param {string} ruta - ruta relativa del endpoint (ej: 'api/sii-usuario-rango-folio/confirmar')
+   * @param {string} token - token Bearer JWT
+   */
+    async postJson(body, ruta, token) {
+        const uuid = await Utilidades.getUIDevice()
+        const url = urlJoin(apiBase(), ruta)
+
+        const { data } = await CapacitorHttp.post({
+            url,
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            data: {
+                ...body,
+                uuid, // opcional: mantener trazabilidad del dispositivo
+            },
+        })
+
+        return data // JSON parseado
+    },
 }
 
 export default CargaParametrosWebServices

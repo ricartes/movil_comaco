@@ -45,6 +45,7 @@ import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import config from "@/Common/json/config.json";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
+import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 
 export default {
     name: "MenuPage",
@@ -207,12 +208,49 @@ export default {
                 );
             }
         },
-        onCargarFolios() {
-            // TODO: llama a tu servicio para folios
-            f7.toast
-                .create({ text: "Cargando folios…", closeTimeout: 1500 })
-                .open();
+        async onCargarFolios() {
+            try {
+                f7.dialog.preloader("Cargando folios…");
+
+                const resultado = await cargarFoliosDesdeWeb(
+                    this.user.empresa,
+                    this.user.rut
+                );
+
+                // ✅ si todo ok, mostramos resumen con info
+                if (resultado?.ok) {
+                    const msg = `
+                <div class="text-start">
+                    <p><strong>Folios cargados correctamente.</strong></p>
+                    <ul class="mt-2 mb-0">
+                        <li><b>Documentos insertados:</b> ${
+                            resultado.inserted
+                        }</li>
+                        <li><b>Confirmados:</b> ${
+                            resultado.confirmed?.length || 0
+                        }</li>
+                    </ul>
+                </div>
+            `;
+                    f7.dialog.alert(msg, "Carga completada");
+                } else {
+                    f7.dialog.alert(
+                        "No se cargaron folios o la respuesta fue inválida."
+                    );
+                }
+            } catch (ex) {
+                console.error("Error al cargar folios:", ex);
+                f7.dialog.alert(
+                    `Ha ocurrido un error al cargar los folios:<br><small>${
+                        ex.message || ex
+                    }</small>`,
+                    "Error"
+                );
+            } finally {
+                f7.dialog.close();
+            }
         },
+
         onConfig() {
             // Si tienes ruta de settings, navega. Si no, muestra aviso.
             const router = f7.views.main?.router;

@@ -112,7 +112,8 @@
         "RescatarRodales": "rodal",
         "RescatarZonas": "zona",
         "RescatarGeocercas": "geocerca",
-        "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio"
+        "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
+        "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar"
     },
     "bd": {
         "tipoEntidad": {
