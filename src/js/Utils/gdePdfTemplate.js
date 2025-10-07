@@ -419,7 +419,7 @@ function buildDetalleM3(doc) {
             },
             {
                 text: (ptotal != null)
-                    ? Number(ptotal).toLocaleString("es-CL", { maximumFractionDigits: 0 })
+                    ? `$${Number(ptotal).toLocaleString("es-CL", { maximumFractionDigits: 0 })}`
                     : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
