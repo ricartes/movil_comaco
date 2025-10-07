@@ -394,7 +394,7 @@ function buildDetalleMR(doc) {
             { text: "MR", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
             {
                 text: punit != null
-                    ? Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    ? `$${Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                     : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
