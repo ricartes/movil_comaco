@@ -126,6 +126,10 @@ export async function saveDetalleM3(gdeId, detalleM3, precioUnitarioFallback) {
     doc.totales.volM3 = volTotal;
     doc.totales.totalM3 = toIntCLP(valorTotal);
 
+        // === NUEVO: calcular neto/IVA/total con helpers (solo M3) ===
+    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.M3 ?? "M3", { sumAllUMs: false });
+    applyTotals(doc, totals); // deja neto/ivaPct/ivaMonto/total en doc.totales
+
     await dao.actualizar(doc);
 
     return { doc, detalleM3: filas, totales: { volumen: volTotal, valor: toIntCLP(valorTotal) } };

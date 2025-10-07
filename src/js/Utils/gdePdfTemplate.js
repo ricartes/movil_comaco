@@ -344,27 +344,107 @@ function buildDetalleM3(doc) {
         { text: "P.TOTAL", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
     ];
 
+    const producto = doc?.producto ?? {};
+    const categoria = producto.categoria ? `(${producto.categoria})` : "";
+    const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
+
+    // detalleM3 → solo los que tienen trozos > 0
+    const filas = (doc?.detalleM3 ?? []).filter(f => Number(f.trozos) > 0);
+
+    // construir líneas con sangría, que pueden fluir naturalmente a la siguiente página
+    const lineasDetalle = filas.map(f => `• ${f.diametro}: ${f.trozos}`).join("\n");
+
+    const descCell = {
+        text: [
+            { text: truncate(producto.nombreProducto ?? "", 80), bold: true },
+            categoria ? { text: `\n${categoria}`, italics: true } : {},
+            sagInfo ? { text: `\n${sagInfo}` } : {},
+            lineasDetalle
+                ? { text: `\n${lineasDetalle}`, fontSize: TAMANO_LETRA_ELEMENTOS - 1, margin: [10, 2, 0, 0] }
+                : {},
+        ],
+        noWrap: false,
+        fontSize: TAMANO_LETRA_ELEMENTOS,
+    };
+
+    const cantidad = doc?.totales?.m3?.volumen ?? doc?.totales?.totalM3 ?? null;
+    const punit = doc?.precioProducto?.precio ?? null;
+    const ptotal =
+        cantidad != null && punit != null
+            ? Math.round(Number(cantidad) * Number(punit))
+            : null;
+
+    const totalTrozos = filas.reduce((sum, f) => sum + Number(f.trozos || 0), 0);
+
     const body = [
         header,
         [
-            { text: " ", noWrap: true, fontSize: TAMANO_LETRA_ELEMENTOS },
-            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
-            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
-            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
-            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
-            { text: " ", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
-        ]
+            descCell,
+            { text: totalTrozos.toString(), alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            {
+                text:
+                    cantidad != null
+                        ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                        : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+            { text: getUM(doc), alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            {
+                text:
+                    punit != null
+                        ? `$${Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0 })}`
+                        : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+            {
+                text:
+                    ptotal != null
+                        ? Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0 })
+                        : "—",
+                alignment: "center",
+                fontSize: TAMANO_LETRA_ELEMENTOS,
+            },
+        ],
     ];
 
     return {
         margin: [PAGE_X, 10, PAGE_X, 4],
-        table: { headerRows: 1, widths: ["*", 60, 70, 50, 70, 80], body },
-        layout: boxedLayoutDetail,
+        table: {
+            headerRows: 1,             // mantiene encabezado
+            dontBreakRows: false,      // permite que se partan filas largas
+            widths: ["*", 60, 70, 50, 70, 80],
+            body,
+        },
+        layout: boxedLayoutDetail,   // mantiene el borde completo
     };
 }
 
 
+
+// Helper: obtiene volumen según UM
+function getVolumenByUM(doc, um) {
+    const t = doc?.totales || {};
+    switch (um) {
+        case config.parametros.unidadesMedida.MR:
+            return t?.mr?.volumen ?? t?.totalMr ?? t?.volMr ?? null;
+        case config.parametros.unidadesMedida.TON:
+        case config.parametros.unidadesMedida.BDMT:
+        case config.parametros.unidadesMedida.M3ST:
+            // ✅ Todas usan la misma fuente (totales.ton)
+            return t?.ton?.volumen ?? t?.totalTon ?? t?.volTon ?? null;
+        default:
+            // fallback clásico (M3 normal)
+            return t?.m3?.volumen ?? t?.totalM3 ?? t?.volM3 ?? null;
+    }
+}
+
+
+
+
 // =============== Detalle (MR) — 1 sola fila ===============
+// Ajuste en buildDetalleMR: cantidad según UM
 function buildDetalleMR(doc) {
     const header = [
         { text: "DETALLE", bold: true, alignment: "left", fontSize: TAMANO_LETRA_ELEMENTOS },
@@ -374,9 +454,22 @@ function buildDetalleMR(doc) {
         { text: "P.TOTAL", bold: true, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
     ];
 
-    const descCell = { text: truncate(doc?.producto?.nombreProducto, 80), noWrap: true, fontSize: TAMANO_LETRA_ELEMENTOS };
+    const producto = doc?.producto ?? {};
+    const categoria = producto.categoria ? `(${producto.categoria})` : "";
+    const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
 
-    const cantidad = (doc?.totales?.mr?.volumen ?? doc?.totales?.totalMr ?? doc?.totales?.volMr ?? null);
+    const um = getUM(doc);
+    const descCell = {
+        text: [
+            { text: truncate(producto.nombreProducto ?? "", 80), bold: true },
+            categoria ? { text: `\n${categoria}`, italics: true } : {},
+            sagInfo ? { text: `\n${sagInfo}` } : {},
+        ],
+        noWrap: false,
+        fontSize: TAMANO_LETRA_ELEMENTOS,
+    };
+
+    const cantidad = getVolumenByUM(doc, um);
     const punit = doc?.precioProducto?.precio ?? null;
     const ptotal = (cantidad != null && punit != null) ? Math.round(Number(cantidad) * Number(punit)) : null;
 
@@ -386,12 +479,12 @@ function buildDetalleMR(doc) {
             descCell,
             {
                 text: cantidad != null
-                    ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                    ? Number(cantidad).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
             },
-            { text: "MR", alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
+            { text: um, alignment: "center", fontSize: TAMANO_LETRA_ELEMENTOS },
             {
                 text: punit != null
                     ? `$${Number(punit).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
@@ -401,7 +494,7 @@ function buildDetalleMR(doc) {
             },
             {
                 text: ptotal != null
-                    ? Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    ? `$${Number(ptotal).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                     : "—",
                 alignment: "center",
                 fontSize: TAMANO_LETRA_ELEMENTOS,
@@ -416,15 +509,27 @@ function buildDetalleMR(doc) {
     };
 }
 
+
+// Usa MR-table para MR/TON/BDMT/M3ST, de lo contrario M3-table
 function buildDetallePorUM(doc) {
-    return getUM(doc) === "MR" ? buildDetalleMR(doc) : buildDetalleM3(doc);
+    const um = getUM(doc);
+    const umMRLike = [
+        config.parametros.unidadesMedida.MR,
+        config.parametros.unidadesMedida.TON,
+        config.parametros.unidadesMedida.BDMT,
+        config.parametros.unidadesMedida.M3ST,
+    ];
+    return umMRLike.includes(um) ? buildDetalleMR(doc) : buildDetalleM3(doc);
 }
+
 
 // =============== Comentario ===============
 function buildComentarioFull(doc) {
     return {
+        unbreakable: true,
         margin: [PAGE_X, 3, PAGE_X, 3],
         table: {
+            dontBreakRows: true,
             widths: ["*"],
             body: [
                 [{ text: "COMENTARIO:", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS, }],
@@ -480,6 +585,7 @@ function buildTransporteYTotales(doc) {
     const transporteBox = {
         width: "*",
         table: {
+            dontBreakRows: true,
             widths: ["*"],
             body: [
                 [{ text: "DATOS TRANSPORTE", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS }],
@@ -512,12 +618,14 @@ function buildTransporteYTotales(doc) {
     const totalesBox = {
         width: 220,
         table: {
+            dontBreakRows: true,
             widths: ["*"],
             body: [[{
                 fontSize: TAMANO_LETRA_ELEMENTOS,
                 margin: [0, 0, 0, 0],
                 minHeight: BOX_CONTENT_MIN,
                 table: {
+                    dontBreakRows: true,
                     widths: ["*", 110],
                     body: [
                         [
@@ -541,6 +649,7 @@ function buildTransporteYTotales(doc) {
     };
 
     return {
+        unbreakable: true,
         margin: [PAGE_X, 6, PAGE_X, 14],
         columns: [transporteBox, { width: 12, text: "" }, totalesBox],
         columnGap: 0,
@@ -639,29 +748,58 @@ function canchaBlock(s) {
 // =============== Doc Definition público ===============
 export function buildDefinition(doc) {
     const topMargin = Math.max(80, estimateHeaderHeight(doc) - 24);
+
+    const pageMarginsAll = [PAGE_X, 16, PAGE_X, PAGE_BOTTOM];
+
     const box1 = buildBoxClienteFechas(doc);
     const box2 = buildBoxOperacion(doc);
     const detalle = buildDetallePorUM(doc);
     const comentarioFull = buildComentarioFull(doc);
     const transporteYTotales = buildTransporteYTotales(doc);
 
+    // 1) Header como contenido absoluto en y=16 (no recortado por el margen)
+    const headerHeroAbs = {
+        absolutePosition: { x: PAGE_X, y: 16 },
+        // ancho sugerido igual al contenido normal
+        width: PAGE_W - (PAGE_X * 2),
+        // usa el mismo contenido que buildHeaderHero(doc) devolvía antes
+        ...buildHeaderHero(doc),
+    };
+
+    // 2) Spacer sólo en la primera página para despegar el contenido real
+    const firstPageSpacer = { text: "", margin: [0, (topMargin - 16), 0, 0] };
+
     return {
         pageSize: "A4",
-        pageMargins: [PAGE_X, topMargin, PAGE_X, PAGE_BOTTOM],
+        pageMargins: pageMarginsAll,
         watermark: isDraft(doc) ? {
             text: "BORRADOR",
             color: "#000000",
-            opacity: 0.10,   // más chico = más tenue
+            opacity: 0.10,
             bold: true,
             italics: false,
-            fontSize: 140    // ajusta a gusto
+            fontSize: 140
         } : undefined,
 
-        header: (currentPage) => (currentPage === 1 ? buildHeaderHero(doc) : null),
-        content: [box1, box2, detalle, comentarioFull, transporteYTotales],
+        // 👇 sin header repetido
+        // header: null,
+
+        // Background sólo si quieres dibujar algo repetido detrás; aquí no lo usamos
+        // background: null,
+
+        // Primero pintamos el header absoluto (se dibuja encima),
+        // luego el spacer para la pág. 1, y después el contenido normal.
+        content: [
+            headerHeroAbs,
+            firstPageSpacer,
+            box1, box2, detalle, comentarioFull, transporteYTotales
+        ],
         defaultStyle: { fontSize: 10 },
     };
 }
+
+
+
 
 // =============== Generador ===============
 export function generateGdePdf(doc, filename = `GDE-${doc?.folio || "borrador"}.pdf`) {

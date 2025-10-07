@@ -85,6 +85,7 @@
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import { listarPorEmpresaYRutPaginado } from "@/app/services/GdeService";
+import config from "@/Common/json/config.json";
 
 const PAGE_SIZE = 20;
 
@@ -137,23 +138,37 @@ export default {
             }
         },
         chipUnidadConVolumen(g) {
-            const um = g.producto?.unidadMedida || "";
+            const U = config.parametros.unidadesMedida;
+            const um = (g.producto?.unidadMedida || "").toUpperCase();
             const v = this.volumenSegunUM(g);
-            if (v == null) return um; // si no hay volumen, solo UM
-            const num = Number(v);
-            if (isNaN(num)) return um;
-            return `${num.toFixed(2)} ${um}`; // ej: "MR · 6.39"
+            if (v == null || isNaN(Number(v))) return um;
+
+            const decs = um === U.MR ? 3 : 2;
+            return `${Number(v).toFixed(decs)} ${um}`;
         },
 
         volumenSegunUM(g) {
-            const um = g.producto?.unidadMedida;
+            const um = (g.producto?.unidadMedida || "").toUpperCase();
             const t = g.totales || {};
-            if (um === "MR") return t.mr?.volumen;
-            if (um === "M3") return t.m3?.volumen;
-            if (um === "TON") return t.ton?.volumen;
-            return null;
-        },
+            const U = config.parametros.unidadesMedida; // alias para acortar
 
+            switch (um) {
+                case U.MR:
+                    return t.mr?.volumen ?? null;
+                case U.M3:
+                    return t.m3?.volumen ?? null;
+                case U.TON:
+                case U.BDMT:
+                case U.M3ST:
+                    // ✅ comparten el mismo nodo
+                    return t.ton?.volumen ?? null;
+                default:
+                    // fallback amigable
+                    return (
+                        t.m3?.volumen ?? t.mr?.volumen ?? t.ton?.volumen ?? null
+                    );
+            }
+        },
         // ---- Data
 
         async ensureLoaded() {

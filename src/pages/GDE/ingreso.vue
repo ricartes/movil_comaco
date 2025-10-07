@@ -1567,7 +1567,7 @@ export default {
                 const gdeInsertada = await ingresarGde(this.form);
 
                 // Éxito
-                f7.dialog.alert("GDE ingresada correctamente", "Éxito", () => {
+                f7.dialog.alert("GDE ingresada correctamente.", "Éxito", () => {
                     f7.views.main?.router?.navigate(
                         `/gde/detalle/${gdeInsertada._id}`,
                         {

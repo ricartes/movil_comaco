@@ -210,6 +210,7 @@ export default {
     },
 
     async mounted() {
+        f7.dialog.preloader("Cargando...");
         try {
             if (!this.id) throw new Error("ID no proporcionado");
             this.doc = await obtenerGde(this.id);
@@ -217,20 +218,26 @@ export default {
             f7.accordion.open(".detalle-unidad");
             f7.accordion.open(".comentarios");
             f7.accordion.open(".opciones-guia");
-            console.log(this.doc);
         } catch (e) {
             this.error = e?.message || "Error al cargar la guía";
         } finally {
-            this.loading = false;
+            f7.dialog.close();
         }
     },
 
     methods: {
         async onGenerarPDF() {
-            if (!this.doc) return;
-            const def = buildDefinition(this.doc);
-            const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
-            await createPdfAndOpen(def, filename);
+            f7.dialog.preloader("Generando PDF...");
+            try {
+                if (!this.doc) return;
+                const def = buildDefinition(this.doc);
+                const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
+                await createPdfAndOpen(def, filename);
+            } catch (e) {
+                f7.dialog.alert("Ha ocurrido un error al generar el PDF");
+            } finally {
+                f7.dialog.close();
+            }
         },
         async onDescartar(doc) {
             try {

@@ -30,16 +30,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="label-cell"><b>Ingreso TON:</b></td>
+                        <td class="label-cell">
+                            <b
+                                >Ingreso
+                                {{ doc.producto?.unidadMedida ?? "TON" }}:</b
+                            >
+                        </td>
                         <td></td>
                     </tr>
                 </tbody>
             </table>
 
-            <f7-block strong inset>
+            <f7-block strong inset class="margin-top">
                 <f7-list no-hairlines-md>
                     <f7-list-input
-                        label="Volumen (TON)"
+                        label="Volumen"
                         type="number"
                         placeholder="Ingrese volumen"
                         clear-button
@@ -49,7 +54,13 @@
                 </f7-list>
 
                 <div class="stack-line totals">
-                    <span><b>Total Volumen TON:</b> {{ volumen }}</span>
+                    <span
+                        ><b
+                            >Total Volumen
+                            {{ doc.producto?.unidadMedida ?? "TON" }}:</b
+                        >
+                        {{ volumen }}</span
+                    >
                     <span class="sep">•</span>
                     <span><b>Total Guía:</b> {{ formatMoneyCLP(valor) }}</span>
                 </div>

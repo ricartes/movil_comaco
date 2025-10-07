@@ -205,6 +205,7 @@ export default {
                 this.precioUnitario
             );
             this.$emit("doc-updated", {
+                detalleM3: updated.doc.detalleM3,
                 totales: updated.doc.totales,
             });
         },
@@ -242,6 +243,18 @@ export default {
     font-variant-numeric: tabular-nums;
 }
 
+/* Ajustes de ancho para columnas específicas */
+.tabla.m3 th:nth-child(2),
+.tabla.m3 td:nth-child(2) {
+    width: 80px; /* 👈 más estrecha la columna Trozos */
+}
+
+.tabla.m3 th:nth-child(5),
+.tabla.m3 td:nth-child(5) {
+    width: 100px; /* 👈 más espacio para los botones ± */
+}
+
+/* Estilo del stepper */
 .stepper {
     display: flex;
     gap: 6px;
@@ -255,5 +268,21 @@ export default {
     height: 28px;
     line-height: 26px;
     text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.sbtn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+/* 👇 Hace que el input de trozos no se expanda demasiado */
+.tabla.m3 td:nth-child(2) .input,
+.tabla.m3 td:nth-child(2) input {
+    max-width: 60px;
+    text-align: right;
 }
 </style>
+
