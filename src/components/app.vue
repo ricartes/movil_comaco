@@ -123,14 +123,14 @@ export default {
                             : 0;
 
                         const msg = `
-        <div class="text-start">
-          <p><strong>Folios cargados correctamente.</strong></p>
-          <ul class="mt-2 mb-0">
-            <li><b>Documentos insertados:</b> ${inserted}</li>
-            <li><b>Confirmados:</b> ${confirmed}</li>
-          </ul>
-        </div>
-      `;
+                            <div class="text-start">
+                            <p><strong>Folios cargados correctamente.</strong></p>
+                            <ul class="mt-2 mb-0">
+                                <li><b>Documentos insertados:</b> ${inserted}</li>
+                                <li><b>Confirmados:</b> ${confirmed}</li>
+                            </ul>
+                            </div>
+                        `;
                         f7.dialog.alert(msg, "Carga completada");
                     } else {
                         f7.dialog.alert(

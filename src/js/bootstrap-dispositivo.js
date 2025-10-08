@@ -6,9 +6,14 @@ import Utilidades from '../app/Utilidades';
 
 export async function bootstrapValidacionDispositivo() {
     const payload = await Utilidades.buildDispositivoPayload();
-    const fcmToken = await getFcmTokenOrNull();
 
-    if (fcmToken) payload.fcmToken = fcmToken;
+    // 🔹 Obtener token + datos de proyecto Firebase
+    const fcmData = await getFcmTokenWithInfo();
+    if (fcmData) {
+        payload.fcmToken = fcmData.token;
+        payload.proyectoClienteId = fcmData.projectId;
+        payload.remitenteClienteId = fcmData.senderId;
+    }
 
 
     return validarDispositivo(payload); // { uid, estado, bloquea, message }

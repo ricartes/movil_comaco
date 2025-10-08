@@ -203,7 +203,7 @@ export default {
                     .map((s) =>
                         s.ok
                             ? `• ${s.key}: OK (${s.count})`
-                            : `• ${s.key}: <b>ERROR</b> — ${s.error}`
+                            : `• ${s.key}: <b>ERROR</b>`
                     )
                     .join("<br>");
                 f7.dialog.alert(
