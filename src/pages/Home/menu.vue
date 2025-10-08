@@ -30,6 +30,12 @@
             <template #media><f7-icon f7="doc_on_doc_fill" /></template>
         </f7-list-item>
 
+        <f7-list-item title="Listado Folios" @click="onListadoFolios">
+            <template #media>
+                <f7-icon ios="f7:doc_on_doc" md="material:confirmation_number"
+            /></template>
+        </f7-list-item>
+
         <f7-list-item title="Configuración general" @click="onConfig">
             <template #media><f7-icon f7="gear" /></template>
         </f7-list-item>
@@ -251,17 +257,18 @@ export default {
             }
         },
 
-        onConfig() {
-            // Si tienes ruta de settings, navega. Si no, muestra aviso.
+        onListadoFolios() {
             const router = f7.views.main?.router;
-            if (router) router.navigate("/settings/", { reloadCurrent: false });
-            else
-                f7.toast
-                    .create({
-                        text: "Configuración próximamente",
-                        closeTimeout: 1200,
-                    })
-                    .open();
+            if (router) router.navigate("/folios/listado/");
+        },
+
+        onConfig() {
+            f7.toast
+                .create({
+                    text: "Configuración próximamente",
+                    closeTimeout: 1200,
+                })
+                .open();
         },
         async logout() {
             f7.dialog.confirm(

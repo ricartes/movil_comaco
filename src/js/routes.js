@@ -6,6 +6,7 @@ import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
 import GdeDetalle from '@/pages/gde/detalle.vue';
+import ListadoFolios from '@/pages/folios/listado.vue';
 import store from './store';
 
 
@@ -21,6 +22,10 @@ var routes = [
     {
         path: '/bloqueado/',
         component: Bloqueado,
+    },
+    {
+        path: '/folios/listado',
+        component: ListadoFolios,
     },
     {
         path: '/home/',

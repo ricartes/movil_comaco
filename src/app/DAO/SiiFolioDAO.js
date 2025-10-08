@@ -1,4 +1,7 @@
+import config from "@/Common/json/config.json";
 import { getBaseDao } from "@/app/services/initServices";
+import { urfDocToDTO } from "@/app/mappers/SiiUsuarioRangoFolioMapper";
+import { folioDocToDTO } from "@/app/mappers/SiiFolioMapper";
 
 let instance = null;
 
@@ -7,9 +10,62 @@ export default class SiiFolioDAO {
         if (!instance) {
             this.db = db;
             instance = this;
+            this.ensureIndexes?.();
         }
         return instance;
     }
+
+    async ensureIndexes() {
+        try {
+            await this.db.createIndex({
+                index: { fields: ["type", "empId", "rutUsuario"] },
+            });
+        } catch (_) {
+            /* no-op si ya existe */
+        }
+    }
+
+    async listarUsuarioRangoFolioPorRut(empId, rut) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.siiUsuarioRangoFolio,
+                empId: empId,
+                rutUsuario: rut,
+            },
+        });
+
+        return docs
+            .sort((a, b) => Number(b.urfId) - Number(a.urfId)) // urfId desc
+            .map(urfDocToDTO);
+    }
+
+    async listarFoliosPorUrf(empId, urfId) {
+        try {
+
+           
+            const res = await this.db.find({
+                selector: {
+                    type: config.bd.tipoEntidad.folio,
+                    empId: Number(empId),
+                    urfId: Number(urfId),
+                },
+                // si el índice existe con 'folio', puedes pedir sort por folio:
+                // sort: [{ type: "asc" }, { empId: "asc" }, { urfId: "asc" }, { folio: "asc" }],
+            });
+
+    
+
+            // ordenar en memoria por si el sort no está disponible
+            const docs = (res.docs || []).sort((a, b) => Number(a.folio) - Number(b.folio));
+
+            // devolver DTOs (si prefieres docs crudos, cambia el map)
+            return docs.map(folioDocToDTO);
+        } catch (error) {
+            console.error("Error al listar folios por URF:", error);
+            throw error;
+        }
+    }
+
 
     /**
      * Inserta un documento de tipo USUARIO_RANGO_FOLIO
