@@ -1,6 +1,6 @@
 // src/js/services/bootstrap-dispositivo.js
 
-import { getFcmTokenOrNull } from '../app/services/push';
+import { getFcmTokenWithInfo } from '../app/services/push';
 import { validarDispositivo } from '../app/services/DispositivoService';
 import Utilidades from '../app/Utilidades';
 
@@ -14,6 +14,8 @@ export async function bootstrapValidacionDispositivo() {
         payload.proyectoClienteId = fcmData.projectId;
         payload.remitenteClienteId = fcmData.senderId;
     }
+
+    console.log(payload);
 
 
     return validarDispositivo(payload); // { uid, estado, bloquea, message }

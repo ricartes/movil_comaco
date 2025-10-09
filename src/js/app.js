@@ -37,7 +37,7 @@ Framework7.use(Framework7Vue);
             initializeServices(localDbInstance)
         }
 
-        await store.dispatch('hydrate')
+        //await store.dispatch('hydrate')
         // 3) Crea y monta la app
         const app = createApp(App)
         registerComponents(app)

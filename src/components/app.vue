@@ -9,6 +9,8 @@ import { onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import { getDevice } from "framework7/lite-bundle";
 import capacitorApp from "../js/capacitor-app.js";
+import { App as CapacitorApp } from "@capacitor/app";
+
 import routes from "../js/routes.js";
 import store from "../js/store";
 import { bootstrapValidacionDispositivo } from "@/js/bootstrap-dispositivo";
@@ -17,6 +19,25 @@ import {
     extractPushData,
 } from "@/app/services/firebaseMessaging";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
+
+let lastBack = 0;
+let toastInstance = null;
+
+function handleDoubleBackToExit() {
+    const now = Date.now();
+    if (now - lastBack < 2000) {
+        CapacitorApp.exitApp();
+    } else {
+        if (toastInstance) toastInstance.close();
+        toastInstance = f7.toast.create({
+            text: "Presiona nuevamente para salir",
+            closeTimeout: 1500,
+        });
+        toastInstance.open();
+        lastBack = now;
+    }
+}
+
 export default {
     setup() {
         const device = getDevice();
@@ -191,6 +212,61 @@ export default {
                                 await handlePushIntent(payload);
                             }
                         );
+                        CapacitorApp.addListener("backButton", () => {
+                            const app = f7;
+                            if (!app) return;
+
+                            // 1) Cierra capas de UI primero (para que back no navegue)
+                            if (app.dialog?.opened) {
+                                app.dialog.close();
+                                return;
+                            }
+                            const actionsOpened = document.querySelector(
+                                ".actions-modal.modal-in"
+                            );
+                            if (actionsOpened) {
+                                app.actions.close(actionsOpened);
+                                return;
+                            }
+                            const sheetOpened = document.querySelector(
+                                ".sheet-modal.modal-in"
+                            );
+                            if (sheetOpened) {
+                                app.sheet.close(sheetOpened);
+                                return;
+                            }
+                            const popupOpened =
+                                document.querySelector(".popup.modal-in");
+                            if (popupOpened) {
+                                app.popup.close(popupOpened);
+                                return;
+                            }
+                            const popoverOpened =
+                                document.querySelector(".popover.modal-in");
+                            if (popoverOpened) {
+                                app.popover.close(popoverOpened);
+                                return;
+                            }
+
+                            // 2) Ruta actual
+                            const route =
+                                app.views.main?.router?.currentRoute?.path ||
+                                "";
+
+                            // 3) Si estás en Home (tabs) → bloquear (no volver al login)
+                            if (
+                                route.startsWith("/login") ||
+                                route.startsWith("/home")
+                            ) {
+                                handleDoubleBackToExit();
+                                // (opcional) doble toque para salir:
+                                // handleDoubleBackToExit();
+                                return;
+                            }
+
+                            // 5) Resto de pantallas → navegar atrás
+                            
+                        });
                     }
                 }
 

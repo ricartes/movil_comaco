@@ -14,59 +14,15 @@ const TOKEN_KEY = 'auth_token'
 
 var UsuarioService = {
 
-    /**
-     * 
-     * @returns 
-     */
-    obtenerUltimoUsuarioIdentificado() {
-        //const dao = new UsuarioDAO(localDbInstance);
-        return new Promise(async (resolve, reject) => {
-            try {
-                const token = await getToken();
-                resolve(token ? this.obtenerUsuarioDesdeJWT(token) : null);
-            } catch (ex) {
-                reject(ex);
-            }
+    async eliminarUsuarioLocalPorRut(rut) {
 
-        });
-    },
-
-    async validarTokenAccesoDesdeWebservice() {
-        let acceso = null;
-        return new Promise(async (resolve, reject) => {
-            try {
-                const token = await getToken();
-                if (token) {
-                    acceso = await UsuarioWebService.validarTokenAcceso(token);
-                }
-                resolve(acceso);
-            } catch (ex) {
-                reject(ex);
-            }
-
-        });
-
-    },
-
-    /**
-     * 
-     * @returns 
-     */
-    async eliminarUsuarioAutentificado() {
         try {
-            const token = await getToken();
-            if (token) {
-                const datosUsaurio = this.obtenerUsuarioDesdeJWT(token)
-                await getUsuarioDao().eliminar(datosUsaurio.username);
-                //const usuarioObtenido = await getUsuarioDao().obtener(username);
-                removeToken();
-            }
+            await getUsuarioDao().eliminarPorRut(rut);
         } catch (ex) {
             throw ex;
         }
-
-        return true
     },
+
 
     /**
      * 
@@ -128,6 +84,8 @@ var UsuarioService = {
         const salt = `u:${userDoc.rut}|d:${deviceId}`
         const hash = await derivePinHash(pin, salt)
 
+
+
         const doc = { ...userDoc, offlinePinSalt: salt, offlinePinHash: hash }
 
         const trazabilidad = {
@@ -166,6 +124,8 @@ var UsuarioService = {
         };
 
         await getTrazabilidadDao().insertar(trazabilidad);
+
+        return true;
 
     }
 }

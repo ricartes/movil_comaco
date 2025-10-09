@@ -847,20 +847,27 @@ export default {
         },
 
         async cargarProveedores() {
-            this.proveedores = this.form.zona
-                ? await listarProveedoresPorZona(this.form.zona.codigo)
-                : [];
+            f7.dialog.preloader("Cargando...");
+            try {
+                this.proveedores = this.form.zona
+                    ? await listarProveedoresPorZona(this.form.zona.codigo)
+                    : [];
 
-            if (this.proveedores.length === 1) {
-                this.form.proveedor = this.proveedores[0];
-                await this.$nextTick();
-                await this.cargarPredios();
+                if (this.proveedores.length === 1) {
+                    this.form.proveedor = this.proveedores[0];
+                    await this.$nextTick();
+                    await this.cargarPredios();
 
-                f7.smartSelect
-                    .get(".select-proveedor .smart-select")
-                    .setValueText(
-                        `${this.form.proveedor.rutProveedor} ${this.form.proveedor.nomProveedor}`
-                    );
+                    f7.smartSelect
+                        .get(".select-proveedor .smart-select")
+                        .setValueText(
+                            `${this.form.proveedor.rutProveedor} ${this.form.proveedor.nomProveedor}`
+                        );
+                }
+            } catch (e) {
+                f7.dialog.alert("Ha ocurrido un error al cargar proveedores.");
+            } finally {
+                f7.dialog.close();
             }
         },
 

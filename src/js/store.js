@@ -96,19 +96,21 @@ const store = createStore({
 
         async setSessionOffline({ state }, { user }) {
             state.user = user
-            state.token = null
             state.offline = true
-            await Preferences.remove({ key: TOKEN_KEY })
+
+            // 👇 asegura que el token esté en memoria (sin tocar Preferences)
+            const { value: persistedToken } = await Preferences.get({ key: TOKEN_KEY }).catch(() => ({ value: null }))
+            if (persistedToken) state.token = persistedToken
+
             await Preferences.set({ key: RUT_KEY, value: String(user.rut) })
             await Preferences.set({ key: EMPRESA_KEY, value: String(user.empresa ?? '') })
             window.dispatchEvent(new CustomEvent('auth:login'))
         },
 
+
         async clearSession({ state }) {
             state.user = null
-            state.token = null
             state.offline = false
-            await Preferences.remove({ key: TOKEN_KEY })
             await Preferences.remove({ key: RUT_KEY })
             await Preferences.remove({ key: EMPRESA_KEY })
             window.dispatchEvent(new CustomEvent('auth:logout'))

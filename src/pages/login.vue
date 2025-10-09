@@ -50,7 +50,7 @@
                             clear-button
                             inputmode="numeric"
                             pattern="[0-9]*"
-                            maxlength="8"
+                            maxlength="4"
                             :disabled="showPinSetup || loading"
                             v-model:value="form.pin"
                             @input="onPinInput"
@@ -160,6 +160,28 @@
                     >
                         {{ loading ? "Procesando…" : "Iniciar sesión" }}
                     </f7-button>
+
+                    <div
+                        v-if="requierePin && !showPinSetup"
+                        style="
+                            text-align: center;
+                            margin-top: 10px;
+                            margin-bottom: 12px;
+                        "
+                    >
+                        <f7-link
+                            class="text-color-primary"
+                            style="font-size: 15px; font-weight: 500"
+                            :disabled="
+                                loading ||
+                                checkingRut ||
+                                !/^\d{7,9}$/.test(form.rut)
+                            "
+                            @click.prevent="onForgotPinClickSimple"
+                        >
+                            ¿Olvidó su PIN?
+                        </f7-link>
+                    </div>
                 </f7-card-content>
             </f7-card>
         </div>
@@ -217,10 +239,16 @@ export default {
     },
     methods: {
         onPageInit() {
+            this.resetLoginStateAfterPinRemoval();
             const autenticado = !!localStorage.getItem("auth_token");
             if (autenticado) {
                 //console.log(this.paginaPrincipal);
-                this.f7router.navigate(this.paginaPrincipal);
+                this.f7router.navigate(this.paginaPrincipal, {
+                    reloadAll: true,
+                    clearPreviousHistory: true, // 👈 borra /login del stack
+                    // replaceState: true,        // (opcional) alternativa a reloadAll
+                    // animate: false,            // (opcional) sin animación
+                });
             }
         },
         onPinInput(e) {
@@ -309,7 +337,12 @@ export default {
                     await store.dispatch("setSessionOffline", { user });
                     localStorage.setItem("auth_token", "1");
                     window.dispatchEvent(new Event("auth:login"));
-                    this.f7router.navigate(this.paginaPrincipal);
+                    this.f7router.navigate(this.paginaPrincipal, {
+                        reloadAll: true,
+                        clearPreviousHistory: true, // 👈 borra /login del stack
+                        // replaceState: true,        // (opcional) alternativa a reloadAll
+                        // animate: false,            // (opcional) sin animación
+                    });
                     return;
                 }
 
@@ -356,7 +389,7 @@ export default {
 
             this.loading = true;
             try {
-                 const location = await getLocationOnce();
+                const location = await getLocationOnce();
                 await UsuarioService.guardarUsuarioLocalConPin(
                     this.pendingLogin.user,
                     this.pin1,
@@ -368,12 +401,75 @@ export default {
                 });
                 localStorage.setItem("auth_token", "1");
                 window.dispatchEvent(new Event("auth:login"));
-                this.f7router.navigate(this.paginaPrincipal);
+                this.f7router.navigate(this.paginaPrincipal, {
+                    reloadAll: true,
+                    clearPreviousHistory: true, // 👈 borra /login del stack
+                    // replaceState: true,        // (opcional) alternativa a reloadAll
+                    // animate: false,            // (opcional) sin animación
+                });
             } catch (e) {
                 this.pinError = e?.message || "No se pudo guardar el PIN";
             } finally {
                 this.loading = false;
             }
+        },
+
+        async onForgotPinClickSimple() {
+            const rut = (this.form.rut || "").trim();
+            if (!/^\d{7,9}$/.test(rut)) {
+                f7.toast
+                    .create({
+                        text: "Ingrese un RUT válido primero",
+                        closeTimeout: 1500,
+                    })
+                    .open();
+                return;
+            }
+
+            f7.dialog.confirm(
+                "Esto eliminará el PIN almacenado en este dispositivo para este RUT. Luego podrá iniciar sesión con su contraseña y crear un PIN nuevo. Recuerde que debe contar con conexión a Internet.",
+                "¿Olvidó su PIN?",
+                async () => {
+                    this.loading = true;
+                    try {
+                        // Asume que tienes esto: UsuarioService.eliminarUsuarioLocalPorRut(rut)
+                        await UsuarioService.eliminarUsuarioLocalPorRut(rut);
+
+                        this.resetLoginStateAfterPinRemoval();
+
+                        f7.toast
+                            .create({
+                                text: "PIN eliminado. Ingrese su contraseña para crear uno nuevo.",
+                                closeTimeout: 2000,
+                            })
+                            .open();
+                    } catch (e) {
+                        f7.dialog.alert(
+                            e?.message || "No se pudo eliminar el PIN local"
+                        );
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            );
+        },
+
+        resetLoginStateAfterPinRemoval() {
+            // Forzar login por contraseña
+            this.requierePin = false;
+            this.requierePassword = true;
+
+            // limpiar campos y estados
+            this.form.pin = "";
+            this.showPinSetup = false;
+            this.pin1 = "";
+            this.pin2 = "";
+            this.pinError = "";
+            this.pendingLogin = null;
+
+            // opcional: limpiar cualquier sesión offline previa
+            // await store.dispatch('clearSessionOffline'); (si tienes algo así)
+            // this.$forceUpdate();  // rara vez necesario
         },
 
         onCancelPin() {

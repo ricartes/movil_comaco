@@ -28,6 +28,26 @@ export default class UsuarioDAO {
         }
     }
 
+    async eliminarPorRut(rut) {
+        try {
+            const usuario = await this.obtenerPorRut(rut);
+            if (!usuario) {
+                return false; // No existe
+            }
+
+            await this.db.remove(usuario._id, usuario._rev); // usa id y rev para evitar conflictos
+            return true; // Eliminado correctamente
+        } catch (err) {
+            if (err.status === 404) {
+                // No existía → no es un error fatal
+                return false;
+            }
+            console.error('Error eliminando usuario por RUT:', err);
+            throw err;
+        }
+    }
+
+
     async listarPorRut(rut) {
         console.log(config.bd.tipoEntidad.usuario);
         const res = await this.db.find({

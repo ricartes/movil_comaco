@@ -2,6 +2,8 @@
 import { PushNotifications } from '@capacitor/push-notifications';
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { Capacitor } from '@capacitor/core';
+import capConfig from '../../../capacitor.config.json';
+
 
 export async function getFcmTokenWithInfo() {
     try {
@@ -22,11 +24,14 @@ export async function getFcmTokenWithInfo() {
         const token = tokenResp?.token ?? null;
         if (!token) return null;
 
+
         // 4️⃣ Obtener projectId / senderId desde google-services.json
         // ⚠️ En Capacitor no hay API directa, así que lo extraemos del entorno
         // o lo defines en tu .env (más limpio)
-        const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID ?? null;
-        const senderId = import.meta.env.VITE_FIREBASE_SENDER_ID ?? null;
+
+        const extra = capConfig?.extra ?? {};
+        const projectId = extra.FIREBASE_PROJECT_ID ?? null;
+        const senderId = extra.FIREBASE_SENDER_ID ?? null;
 
         return {
             token,
@@ -38,3 +43,4 @@ export async function getFcmTokenWithInfo() {
         return null;
     }
 }
+

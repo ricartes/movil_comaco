@@ -18,5 +18,9 @@
     "android": {
         "adjustMarginsForEdgeToEdge": "auto"
     },
-    "cordova": {}
+    "cordova": {},
+    "extra": {
+        "FIREBASE_PROJECT_ID": "gdefds",
+        "FIREBASE_SENDER_ID": "27000788297"
+    }
 }
