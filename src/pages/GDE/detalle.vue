@@ -69,6 +69,11 @@
                                 });
                             }
                         "
+                        @valid-change="
+                            (v) => {
+                                detalleValidoMR = !!v;
+                            }
+                        "
                     />
 
                     <DetalleTon
@@ -144,6 +149,7 @@
                         :doc="doc"
                         @descartar="onDescartar"
                         @generar-pdf="onGenerarPDF"
+                        @emitir="onEmitir"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -183,6 +189,7 @@ export default {
             loading: false,
             error: null,
             doc: null,
+            detalleValidoMR: true,
         };
     },
 
@@ -207,6 +214,9 @@ export default {
                     return "Detalle:";
             }
         },
+        requiereValidacionMR() {
+            return this.doc?.producto?.unidadMedida === this.unidadesMedida.MR;
+        },
     },
 
     async mounted() {
@@ -226,6 +236,28 @@ export default {
     },
 
     methods: {
+        validarIngresoVolumenes() {
+            if (this.requiereValidacionMR && !this.detalleValidoMR) {
+                f7.dialog.alert(
+                    "Debe existir al menos un banco con volumen mayor a 0 para emitir.",
+                    "Validación"
+                );
+                return false;
+            }
+
+            return true;
+        },
+        async onEmitir() {
+            f7.dialog.preloader("Emitiendo guia...");
+            try {
+                if (this.validarIngresoVolumenes()) {
+                }
+            } catch (e) {
+                f7.dialog.alert("Ha ocurrido un error al emitir la guia");
+            } finally {
+                f7.dialog.close();
+            }
+        },
         async onGenerarPDF() {
             f7.dialog.preloader("Generando PDF...");
             try {

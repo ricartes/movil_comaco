@@ -20,26 +20,6 @@ import {
 } from "@/app/services/firebaseMessaging";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 
-let lastBack = 0;
-let toastInstance = null;
-
-let stateChangeHandle, resumeHandle, visibilityHandle;
-
-function handleDoubleBackToExit() {
-    const now = Date.now();
-    if (now - lastBack < 2000) {
-        CapacitorApp.exitApp();
-    } else {
-        if (toastInstance) toastInstance.close();
-        toastInstance = f7.toast.create({
-            text: "Presiona nuevamente para salir",
-            closeTimeout: 1500,
-        });
-        toastInstance.open();
-        lastBack = now;
-    }
-}
-
 export default {
     setup() {
         const device = getDevice();
@@ -59,20 +39,35 @@ export default {
             },
         };
 
-        // guard local del componente
-        let pushGuard = false;
-
-        let lastValidation = 0; // anti-spam
-        const MIN_RECHECK_MS = 3000; // ventana mínima
-
-        const validateIfNeededSilently = () => {
+        // ------- UI helpers (toast doble back) -------
+        let lastBack = 0;
+        let toastInstance = null;
+        function handleDoubleBackToExit() {
             const now = Date.now();
-            if (now - lastValidation < MIN_RECHECK_MS) return;
-            lastValidation = now;
-            runValidacionAcceso({ silent: true, nonIntrusive: true });
-        };
+            if (now - lastBack < 2000) {
+                CapacitorApp.exitApp();
+            } else {
+                if (toastInstance) toastInstance.close();
+                toastInstance = f7.toast.create({
+                    text: "Presiona nuevamente para salir",
+                    closeTimeout: 1500,
+                });
+                toastInstance.open();
+                lastBack = now;
+            }
+        }
 
-        // === 1) Validación central ===
+        // ------- Guards / referencias de listeners -------
+        let pushGuard = false;
+        let lastValidation = 0;
+        const MIN_RECHECK_MS = 3000;
+
+        let stateChangeHandle = null;
+        let resumeHandle = null;
+        let backHandle = null;
+        let visibilityHandle = null;
+
+        // ------- Validación central (intrusiva) -------
         const runValidacionAcceso = async ({
             silent = false,
             nonIntrusive = false,
@@ -92,7 +87,7 @@ export default {
                     "";
 
                 if (res.bloquea) {
-                    // 🚨 Obligatorio: llevar a /bloqueado
+                    // Llevar a /bloqueado
                     if (!currentPath.startsWith("/bloqueado")) {
                         router?.navigate("/bloqueado/", {
                             ...(silent
@@ -102,25 +97,18 @@ export default {
                         });
                     }
                 } else {
-                    // ✅ Dispositivo OK
+                    // OK: sólo redirige cuando NO es nonIntrusive
                     if (!nonIntrusive) {
-                        // Comportamiento original (redirigir a /login si no estás ya allí)
-                        if (
-                            !currentPath.startsWith("/login") &&
-                            !currentPath.startsWith("/home")
-                        ) {
-                            router?.navigate("/login/", {
-                                ...(silent
-                                    ? { replaceState: true }
-                                    : { reloadAll: true }),
-                                clearPreviousHistory: !silent,
-                            });
-                        }
+                        router?.navigate("/login/", {
+                            ...(silent
+                                ? { replaceState: true }
+                                : { reloadAll: true }),
+                            clearPreviousHistory: !silent,
+                        });
                     }
-                    // Si es nonIntrusive: NO navegamos (te quedas donde estás)
                 }
             } catch (err) {
-                // Si falla la validación: no patear si hay UID, no está bloqueado y estamos offline/silent/nonIntrusive
+                // Manejo de error con contexto
                 const previoBloqueado = store.getters.isBloqueado;
                 const previoTieneUid = !!store.getters.dispositivoUid;
                 const router = f7.views.main?.router;
@@ -138,22 +126,17 @@ export default {
                     navigator.onLine === false;
 
                 if (previoTieneUid && !previoBloqueado) {
-                    if (isOfflineLike || silent || nonIntrusive) {
-                        // Evitamos navegación disruptiva
-                        // console.debug("Validación falló (offline/silent/nonIntrusive). No navegamos.");
-                    } else {
-                        // Solo en flujo intrusivo (arranque normal con red) volver al login si no estamos ahí
-                        if (!currentPath.startsWith("/login")) {
-                            router?.navigate("/login/", {
-                                ...(silent
-                                    ? { replaceState: true }
-                                    : { reloadAll: true }),
-                                clearPreviousHistory: !silent,
-                            });
-                        }
+                    // Si ya tenía UID y no estaba bloqueado: evita navegación disruptiva en offline/silent/nonIntrusive
+                    if (!(isOfflineLike || silent || nonIntrusive)) {
+                        router?.navigate("/login/", {
+                            ...(silent
+                                ? { replaceState: true }
+                                : { reloadAll: true }),
+                            clearPreviousHistory: !silent,
+                        });
                     }
                 } else {
-                    // Sin UID o marcado bloqueado → a /bloqueado
+                    // Sin UID o bloqueado → /bloqueado
                     await store.dispatch("setDispositivoResult", {
                         uid: store.getters.dispositivoUid ?? null,
                         estado: "DESCONOCIDO",
@@ -175,7 +158,16 @@ export default {
             }
         };
 
-        // === 2) Handler específico: device ===
+        // ------- Validación silenciosa (no intrusiva) -------
+        const validateIfNeededSilently = () => {
+            if (!store.getters.ready) return; // no corras antes de hydrate
+            const now = Date.now();
+            if (now - lastValidation < MIN_RECHECK_MS) return;
+            lastValidation = now;
+            runValidacionAcceso({ silent: true, nonIntrusive: true });
+        };
+
+        // ------- Handlers FCM -------
         const handleDeviceIntent = async (intent, { title, body }) => {
             if (intent !== "device:block" && intent !== "device:unblock")
                 return false;
@@ -190,42 +182,36 @@ export default {
                     await runValidacionAcceso();
                 }
             );
-            return true; // se procesó
+            return true;
         };
 
         const handleFolioIntent = async (intent, payload = {}) => {
             if (intent !== "folio:loaded") return false;
             if (pushGuard) return true;
-            if (
-                store.state.user &&
-                store.state.user.empresa &&
-                store.state.user.rut
-            ) {
-                // tomar empId/rut desde el push si vienen; si no, desde el usuario actual
-                const empId = store.state.user.empresa;
-                const rut = store.state.user.rut;
 
+            const { user } = store.state || {};
+            if (user && user.empresa && user.rut) {
                 try {
                     pushGuard = true;
                     f7.dialog.preloader("Cargando folios…");
-
-                    const resultado = await cargarFoliosDesdeWeb(empId, rut);
+                    const resultado = await cargarFoliosDesdeWeb(
+                        user.empresa,
+                        user.rut
+                    );
 
                     if (resultado?.ok) {
                         const inserted = Number(resultado.inserted ?? 0);
                         const confirmed = Array.isArray(resultado.confirmed)
                             ? resultado.confirmed.length
                             : 0;
-
                         const msg = `
-                            <div class="text-start">
-                            <p><strong>Folios cargados correctamente.</strong></p>
-                            <ul class="mt-2 mb-0">
-                                <li><b>Documentos insertados:</b> ${inserted}</li>
-                                <li><b>Confirmados:</b> ${confirmed}</li>
-                            </ul>
-                            </div>
-                        `;
+              <div class="text-start">
+                <p><strong>Folios cargados correctamente.</strong></p>
+                <ul class="mt-2 mb-0">
+                  <li><b>Documentos insertados:</b> ${inserted}</li>
+                  <li><b>Confirmados:</b> ${confirmed}</li>
+                </ul>
+              </div>`;
                         f7.dialog.alert(msg, "Carga completada");
                     } else {
                         f7.dialog.alert(
@@ -234,7 +220,6 @@ export default {
                         );
                     }
                 } catch (ex) {
-                    console.error("Error al cargar folios:", ex);
                     const detail = ex?.message || String(ex);
                     f7.dialog.alert(
                         `Ha ocurrido un error al cargar los folios:<br><small>${detail}</small>`,
@@ -245,21 +230,16 @@ export default {
                     pushGuard = false;
                 }
             }
-
             return true;
         };
 
-        // === 3) Dispatcher de intents ===
         const handlePushIntent = async (payload) => {
-            const { data, title, body } = payload;
+            const { data, title, body } = payload || {};
             const intent = (data?.intent || "").toLowerCase();
             if (!intent) return;
 
-            // delega a handlers
             if (await handleDeviceIntent(intent, { title, body })) return;
             if (await handleFolioIntent(intent, payload)) return;
-
-            // fallback
 
             f7.toast
                 .create({
@@ -269,13 +249,19 @@ export default {
                 .open();
         };
 
+        // ------- Ciclo de vida -------
         onMounted(() => {
             f7ready(async () => {
+                // 1) hidrata primero
+                await store.dispatch("hydrate");
+
+
+
+                // 2) init + listeners después de hydrate
                 if (device.capacitor) {
                     capacitorApp.init(f7);
 
                     if (device.android) {
-                        // listeners SOLO en nativo
                         listenForFcmMessages(
                             async (msg) => {
                                 const payload = extractPushData(msg);
@@ -287,14 +273,13 @@ export default {
                             }
                         );
 
+                        // App state / resume
                         stateChangeHandle = await CapacitorApp.addListener(
                             "appStateChange",
                             ({ isActive }) => {
                                 if (isActive) validateIfNeededSilently();
                             }
                         );
-
-                        // Respaldo (algunas versiones lanzan 'resume')
                         resumeHandle = await CapacitorApp.addListener(
                             "resume",
                             () => {
@@ -302,70 +287,64 @@ export default {
                             }
                         );
 
-                        CapacitorApp.addListener("backButton", () => {
-                            const app = f7;
-                            if (!app) return;
+                        // Botón atrás
+                        backHandle = await CapacitorApp.addListener(
+                            "backButton",
+                            () => {
+                                const app = f7;
+                                if (!app) return;
 
-                            // 1) Cierra capas de UI primero (para que back no navegue)
-                            if (app.dialog?.opened) {
-                                app.dialog.close();
-                                return;
-                            }
-                            const actionsOpened = document.querySelector(
-                                ".actions-modal.modal-in"
-                            );
-                            if (actionsOpened) {
-                                app.actions.close(actionsOpened);
-                                return;
-                            }
-                            const sheetOpened = document.querySelector(
-                                ".sheet-modal.modal-in"
-                            );
-                            if (sheetOpened) {
-                                app.sheet.close(sheetOpened);
-                                return;
-                            }
-                            const popupOpened =
-                                document.querySelector(".popup.modal-in");
-                            if (popupOpened) {
-                                app.popup.close(popupOpened);
-                                return;
-                            }
-                            const popoverOpened =
-                                document.querySelector(".popover.modal-in");
-                            if (popoverOpened) {
-                                app.popover.close(popoverOpened);
-                                return;
-                            }
+                                // Cierra capas primero
+                                if (app.dialog?.opened)
+                                    return app.dialog.close();
+                                const actionsOpened = document.querySelector(
+                                    ".actions-modal.modal-in"
+                                );
+                                if (actionsOpened)
+                                    return app.actions.close(actionsOpened);
+                                const sheetOpened = document.querySelector(
+                                    ".sheet-modal.modal-in"
+                                );
+                                if (sheetOpened)
+                                    return app.sheet.close(sheetOpened);
+                                const popupOpened =
+                                    document.querySelector(".popup.modal-in");
+                                if (popupOpened)
+                                    return app.popup.close(popupOpened);
+                                const popoverOpened =
+                                    document.querySelector(".popover.modal-in");
+                                if (popoverOpened)
+                                    return app.popover.close(popoverOpened);
 
-                            // 2) Ruta actual
-                            const route =
-                                app.views.main?.router?.currentRoute?.path ||
-                                "";
+                                // Ruta actual
+                                const route =
+                                    app.views.main?.router?.currentRoute
+                                        ?.path || "";
 
-                            // 3) Si estás en Home (tabs) → bloquear (no volver al login)
-                            if (
-                                route.startsWith("/login") ||
-                                route.startsWith("/home")
-                            ) {
-                                handleDoubleBackToExit();
-                                // (opcional) doble toque para salir:
-                                // handleDoubleBackToExit();
-                                return;
+                                // En /login o /home -> doble back para salir
+                                if (
+                                    route.startsWith("/login") ||
+                                    route.startsWith("/home")
+                                ) {
+                                    handleDoubleBackToExit();
+                                    return;
+                                }
+
+                                // Otras pantallas: back normal
+                                app.views.main?.router?.back();
                             }
-
-                            // 5) Resto de pantallas → navegar atrás
-                        });
+                        );
                     }
                 }
 
+                // Visibilidad (webview vuelve a primer plano)
                 visibilityHandle = () => {
                     if (document.visibilityState === "visible")
                         validateIfNeededSilently();
                 };
                 document.addEventListener("visibilitychange", visibilityHandle);
 
-                await store.dispatch("hydrate");
+                // 3) validación inicial intrusiva
                 await runValidacionAcceso();
             });
         });
@@ -373,7 +352,14 @@ export default {
         onBeforeUnmount(() => {
             stateChangeHandle?.remove?.();
             resumeHandle?.remove?.();
-            document.removeEventListener("visibilitychange", visibilityHandle);
+            backHandle?.remove?.();
+            if (visibilityHandle) {
+                document.removeEventListener(
+                    "visibilitychange",
+                    visibilityHandle
+                );
+                visibilityHandle = null;
+            }
         });
 
         return { f7params };

@@ -153,6 +153,10 @@ export default {
                 0
             );
         },
+
+        esValido() {
+            return this.detalleMR.some((b) => Number(b.volumen) > 0);
+        },
     },
     async mounted() {
         // Carga/crea el detalle desde Pouch (NO mutamos this.doc)
@@ -173,7 +177,10 @@ export default {
             this.$emit("doc-updated", {
                 totales: updated.totales,
             });
+            this.$emit("valid-change", this.esValido);
         }, 300);
+
+        this.$nextTick(() => this.$emit("valid-change", this.esValido));
     },
     methods: {
         setAnchoSecuencia(valor) {
@@ -184,6 +191,7 @@ export default {
                 this.calcularBanco(idx, /*persistNow*/ false);
             });
             this._persistDebounced?.();
+            this.$emit("valid-change", this.esValido);
         },
 
         onNum(obj, field, e, idx) {
@@ -211,6 +219,8 @@ export default {
 
             // persistir con debounce
             if (persistNow) this._persistDebounced?.();
+
+            this.$emit("valid-change", this.esValido);
         },
     },
     watch: {
@@ -219,11 +229,13 @@ export default {
             if (nv === ov) return;
             this.detalleMR.forEach((_, i) => this.calcularBanco(i, false));
             this._persistDebounced?.();
+            this.$emit("valid-change", this.esValido);
         },
         "doc.precioProducto?.precio"(nv, ov) {
             if (nv === ov) return;
             this.detalleMR.forEach((_, i) => this.calcularBanco(i, false));
             this._persistDebounced?.();
+            this.$emit("valid-change", this.esValido);
         },
     },
 };
