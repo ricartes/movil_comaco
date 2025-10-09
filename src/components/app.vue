@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import { onMounted } from "vue";
+import { onMounted, onBeforeUnmount } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import { getDevice } from "framework7/lite-bundle";
 import capacitorApp from "../js/capacitor-app.js";
@@ -22,6 +22,8 @@ import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 
 let lastBack = 0;
 let toastInstance = null;
+
+let stateChangeHandle, resumeHandle, visibilityHandle;
 
 function handleDoubleBackToExit() {
     const now = Date.now();
@@ -60,31 +62,98 @@ export default {
         // guard local del componente
         let pushGuard = false;
 
+        let lastValidation = 0; // anti-spam
+        const MIN_RECHECK_MS = 3000; // ventana mínima
+
+        const validateIfNeededSilently = () => {
+            const now = Date.now();
+            if (now - lastValidation < MIN_RECHECK_MS) return;
+            lastValidation = now;
+            runValidacionAcceso({ silent: true, nonIntrusive: true });
+        };
+
         // === 1) Validación central ===
-        const runValidacionAcceso = async () => {
-            f7.dialog.preloader("Validando acceso");
+        const runValidacionAcceso = async ({
+            silent = false,
+            nonIntrusive = false,
+        } = {}) => {
+            if (!silent) f7.dialog.preloader("Validando acceso");
             try {
                 const res = await bootstrapValidacionDispositivo();
                 await store.dispatch("setDispositivoResult", res);
 
+                const router = f7.views.main?.router;
+                const currentPath =
+                    router?.currentRoute?.path ||
+                    router?.url ||
+                    (router?.history?.length
+                        ? router.history[router.history.length - 1]
+                        : "") ||
+                    "";
+
                 if (res.bloquea) {
-                    f7.views.main?.router?.navigate("/bloqueado/", {
-                        reloadAll: true,
-                    });
+                    // 🚨 Obligatorio: llevar a /bloqueado
+                    if (!currentPath.startsWith("/bloqueado")) {
+                        router?.navigate("/bloqueado/", {
+                            ...(silent
+                                ? { replaceState: true }
+                                : { reloadAll: true }),
+                            clearPreviousHistory: !silent,
+                        });
+                    }
                 } else {
-                    f7.views.main?.router?.navigate("/login/", {
-                        reloadAll: true,
-                    });
+                    // ✅ Dispositivo OK
+                    if (!nonIntrusive) {
+                        // Comportamiento original (redirigir a /login si no estás ya allí)
+                        if (
+                            !currentPath.startsWith("/login") &&
+                            !currentPath.startsWith("/home")
+                        ) {
+                            router?.navigate("/login/", {
+                                ...(silent
+                                    ? { replaceState: true }
+                                    : { reloadAll: true }),
+                                clearPreviousHistory: !silent,
+                            });
+                        }
+                    }
+                    // Si es nonIntrusive: NO navegamos (te quedas donde estás)
                 }
             } catch (err) {
+                // Si falla la validación: no patear si hay UID, no está bloqueado y estamos offline/silent/nonIntrusive
                 const previoBloqueado = store.getters.isBloqueado;
                 const previoTieneUid = !!store.getters.dispositivoUid;
+                const router = f7.views.main?.router;
+                const currentPath =
+                    router?.currentRoute?.path ||
+                    router?.url ||
+                    (router?.history?.length
+                        ? router.history[router.history.length - 1]
+                        : "") ||
+                    "";
+
+                const isOfflineLike =
+                    typeof navigator !== "undefined" &&
+                    navigator &&
+                    navigator.onLine === false;
 
                 if (previoTieneUid && !previoBloqueado) {
-                    f7.views.main?.router?.navigate("/login/", {
-                        reloadAll: true,
-                    });
+                    if (isOfflineLike || silent || nonIntrusive) {
+                        // Evitamos navegación disruptiva
+                        // console.debug("Validación falló (offline/silent/nonIntrusive). No navegamos.");
+                    } else {
+                        // Solo en flujo intrusivo (arranque normal con red) volver al login si no estamos ahí
+                        if (!currentPath.startsWith("/login")) {
+                            router?.navigate("/login/", {
+                                ...(silent
+                                    ? { replaceState: true }
+                                    : { reloadAll: true }),
+                                clearPreviousHistory: !silent,
+                            });
+                        }
+                    }
                 } else {
+                    // Sin UID o marcado bloqueado → a /bloqueado
                     await store.dispatch("setDispositivoResult", {
                         uid: store.getters.dispositivoUid ?? null,
                         estado: "DESCONOCIDO",
@@ -92,12 +161,17 @@ export default {
                         message:
                             "No fue posible validar el dispositivo. Bloqueado por defecto.",
                     });
-                    f7.views.main?.router?.navigate("/bloqueado/", {
-                        reloadAll: true,
-                    });
+                    if (!currentPath.startsWith("/bloqueado")) {
+                        router?.navigate("/bloqueado/", {
+                            ...(silent
+                                ? { replaceState: true }
+                                : { reloadAll: true }),
+                            clearPreviousHistory: !silent,
+                        });
+                    }
                 }
             } finally {
-                f7.dialog.close();
+                if (!silent) f7.dialog.close();
             }
         };
 
@@ -212,6 +286,22 @@ export default {
                                 await handlePushIntent(payload);
                             }
                         );
+
+                        stateChangeHandle = await CapacitorApp.addListener(
+                            "appStateChange",
+                            ({ isActive }) => {
+                                if (isActive) validateIfNeededSilently();
+                            }
+                        );
+
+                        // Respaldo (algunas versiones lanzan 'resume')
+                        resumeHandle = await CapacitorApp.addListener(
+                            "resume",
+                            () => {
+                                validateIfNeededSilently();
+                            }
+                        );
+
                         CapacitorApp.addListener("backButton", () => {
                             const app = f7;
                             if (!app) return;
@@ -265,14 +355,25 @@ export default {
                             }
 
                             // 5) Resto de pantallas → navegar atrás
-                            
                         });
                     }
                 }
 
+                visibilityHandle = () => {
+                    if (document.visibilityState === "visible")
+                        validateIfNeededSilently();
+                };
+                document.addEventListener("visibilitychange", visibilityHandle);
+
                 await store.dispatch("hydrate");
                 await runValidacionAcceso();
             });
+        });
+
+        onBeforeUnmount(() => {
+            stateChangeHandle?.remove?.();
+            resumeHandle?.remove?.();
+            document.removeEventListener("visibilitychange", visibilityHandle);
         });
 
         return { f7params };

@@ -42,7 +42,7 @@ export default class SiiFolioDAO {
     async listarFoliosPorUrf(empId, urfId) {
         try {
 
-           
+
             const res = await this.db.find({
                 selector: {
                     type: config.bd.tipoEntidad.folio,
@@ -53,7 +53,7 @@ export default class SiiFolioDAO {
                 // sort: [{ type: "asc" }, { empId: "asc" }, { urfId: "asc" }, { folio: "asc" }],
             });
 
-    
+
 
             // ordenar en memoria por si el sort no está disponible
             const docs = (res.docs || []).sort((a, b) => Number(a.folio) - Number(b.folio));
@@ -94,30 +94,25 @@ export default class SiiFolioDAO {
     /**
      * Inserta múltiples documentos, evitando duplicados por _id
      */
+    // src/app/dao/BaseDAO.js (o SiiFolioDAO si lo tienes ahí)
     async bulkInsert(docs = []) {
         if (!Array.isArray(docs) || docs.length === 0) {
             return { ok: true, inserted: 0, conflicts: 0 };
         }
+        const result = await this.db.bulkDocs(docs, { new_edits: true });
 
-        try {
-            const baseDao = getBaseDao();
-            const result = await baseDao.db.bulkDocs(docs, { new_edits: true });
-
-            // Detectar conflictos o errores
-            let inserted = 0;
-            let conflicts = 0;
-
-            for (const r of result) {
-                if (r.ok) inserted++;
-                else if (r.error && r.name === "conflict") conflicts++;
-            }
-
-            return { ok: true, inserted, conflicts };
-        } catch (error) {
-            console.error("Error en bulkInsert:", error);
-            throw error;
+        let inserted = 0, conflicts = 0, otherErrors = 0;
+        for (const r of result) {
+            if (r.ok) inserted++;
+            else if (r.error && r.name === 'conflict') conflicts++;
+            else otherErrors++;
         }
+        if (otherErrors > 0) {
+            throw new Error(`Fallaron ${otherErrors} documentos en bulkInsert`);
+        }
+        return { ok: true, inserted, conflicts };
     }
+
 
     /**
      * Elimina todos los documentos de un batchId (rollback)
