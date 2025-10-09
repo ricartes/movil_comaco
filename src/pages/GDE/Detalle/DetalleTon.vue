@@ -86,10 +86,16 @@ export default {
             valor: 0, // entero CLP
         };
     },
+    computed: {
+        esValido() {
+            return Number(this.volumen) > 0;
+        },
+    },
     async mounted() {
         const { volumen, valor } = await ensureTotalesInit(this.doc._id);
         this.volumen = volumen;
         this.valor = valor;
+        this.$emit("valid-change", this.esValido);
     },
     methods: {
         onInputVolumen(payload) {
@@ -113,6 +119,12 @@ export default {
             this.valor = Number(updated.totales?.ton?.valor) || 0;
 
             this.$emit("doc-updated", { totales: updated.totales });
+        },
+    },
+    watch: {
+        volumen() {
+            // cada vez que cambie, avisa si es válido
+            this.$emit("valid-change", this.esValido);
         },
     },
 };

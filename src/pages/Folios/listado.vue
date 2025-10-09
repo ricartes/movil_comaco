@@ -150,11 +150,11 @@ export default {
         estadoLabel(e) {
             // D/A/U desde config si lo tienes; si no, directamente:
             switch ((e || "").toUpperCase()) {
-                case "D":
+                case config.parametros.estadosFolio.disponible:
                     return "Disponible";
-                case "A":
+                case config.parametros.estadosFolio.asignado:
                     return "Asignado";
-                case "U":
+                case config.parametros.estadosFolio.usado:
                     return "Usado";
                 default:
                     return "—";
@@ -162,11 +162,11 @@ export default {
         },
         chipClass(e) {
             switch ((e || "").toUpperCase()) {
-                case "D":
+                case config.parametros.estadosFolio.disponible:
                     return "chip-outline color-green";
-                case "A":
+                case config.parametros.estadosFolio.asignado:
                     return "chip-outline color-blue";
-                case "U":
+                case config.parametros.estadosFolio.usado:
                     return "chip-outline color-red";
                 default:
                     return "chip-outline color-gray";

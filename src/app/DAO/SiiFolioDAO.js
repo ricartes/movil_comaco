@@ -17,12 +17,13 @@ export default class SiiFolioDAO {
 
     async ensureIndexes() {
         try {
-            await this.db.createIndex({
-                index: { fields: ["type", "empId", "rutUsuario"] },
-            });
-        } catch (_) {
-            /* no-op si ya existe */
-        }
+            // URF por (type, empId, rutUsuario, urfId)
+            await this.db.createIndex({ index: { fields: ["type", "empId", "rutUsuario", "urfId"] } });
+        } catch (_) { }
+        try {
+            // Folios por (type, empId, urfId, estado, folio) -> para ordenar y filtrar
+            await this.db.createIndex({ index: { fields: ["type", "empId", "urfId", "estado", "folio"] } });
+        } catch (_) { }
     }
 
     async listarUsuarioRangoFolioPorRut(empId, rut) {
@@ -155,5 +156,42 @@ export default class SiiFolioDAO {
             console.error("Error al actualizarBatch:", e);
             throw e;
         }
+    }
+
+
+
+    /**
+     * Devuelve el primer folio disponible (estado 'D') para el rut y empresa dados.
+     * Si no hay folios 'D', retorna null.
+     * Retorna un DTO de folio.
+     */
+    async obtenerPrimerFolioDisponible(empId, rut) {
+        // 1) Obtener los URF del usuario
+        const urfs = await this.listarUsuarioRangoFolioPorRut(empId, rut);
+        if (!urfs.length) return null;
+
+        const urfIds = urfs.map((u) => Number(u.urfId));
+
+        // 2) Buscar el primer folio 'D' dentro de esos URF, ordenado por folio asc
+        // (Se apoya en el índice ["type","empId","urfId","estado","folio"])
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.folio,
+                empId: Number(empId),
+                estado: config.parametros.estadosFolio.disponible,
+                urfId: { $in: urfIds },
+            },
+            sort: [
+                { type: "asc" },
+                { empId: "asc" },
+                { urfId: "asc" },
+                { estado: "asc" },
+                { folio: "asc" },
+            ],
+            limit: 1,
+        });
+
+        const doc = (res.docs || [])[0];
+        return doc ? folioDocToDTO(doc) : null;
     }
 }

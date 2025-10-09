@@ -17,9 +17,9 @@ export function buildFoliosDocsFromURF(urfRow, { batchId = null, staging = true 
     const maxU = urfRow.maxOcupado != null ? Number(urfRow.maxOcupado) : null;
     const now = new Date().toISOString();
     const docs = [];
-
+    const estadosFolio = config.parametros.estadosFolio;
     for (let f = Number(folioInicial); f <= Number(folioFinal); f++) {
-        const estado = maxU != null && f <= maxU ? 'U' : 'D'; // usados hasta maxOcupado, resto disponibles
+        const estado = maxU != null && f <= maxU ? estadosFolio.usado : estadosFolio.disponible; // usados hasta maxOcupado, resto disponibles
         docs.push({
             _id: folioDocId(empId, urfId, f),
             type: T.folio,

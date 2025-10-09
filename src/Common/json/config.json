@@ -51,6 +51,11 @@
             "valorMinimo": 0,
             "valorMaximo": 100
         },
+        "estadosFolio": {
+            "disponible": "D",
+            "asignado": "A",
+            "usado": "U"
+        },
         "indicadoresTraslado": {
             "VENTA": {
                 "id": "V",

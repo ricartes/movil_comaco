@@ -27,79 +27,105 @@
                 :properties="{ opened: true }"
             >
                 <f7-accordion-content>
-                    <DetalleM3
+                    <f7-card
+                        class="m3-card detalle-m3-root"
                         v-if="doc.producto.unidadMedida === unidadesMedida.M3"
-                        :doc="doc"
-                        :gde-id="id"
-                        @doc-updated="
-                            (patch) => {
-                                if (patch.totales) {
-                                    doc.totales = {
-                                        ...doc.totales,
-                                        ...patch.totales,
-                                    };
+                    >
+                        <DetalleM3
+                            ref="detalleM3Ref"
+                            :doc="doc"
+                            :gde-id="id"
+                            @doc-updated="
+                                (patch) => {
+                                    if (patch.totales) {
+                                        doc.totales = {
+                                            ...doc.totales,
+                                            ...patch.totales,
+                                        };
+                                    }
+                                    // Actualizar otras propiedades planas igualmente si vienen
+                                    Object.keys(patch).forEach((key) => {
+                                        if (key !== 'totales')
+                                            doc[key] = patch[key];
+                                    });
                                 }
-                                // Actualizar otras propiedades planas igualmente si vienen
-                                Object.keys(patch).forEach((key) => {
-                                    if (key !== 'totales')
-                                        doc[key] = patch[key];
-                                });
-                            }
-                        "
-                    />
+                            "
+                            @valid-change="
+                                (v) => {
+                                    detalleValidoM3 = !!v;
+                                }
+                            "
+                        />
+                    </f7-card>
 
-                    <DetalleMR
+                    <f7-card
+                        class="mr-card detalle-mr-root"
                         v-else-if="
                             doc.producto.unidadMedida === unidadesMedida.MR
                         "
-                        :doc="doc"
-                        :gde-id="id"
-                        @doc-updated="
-                            (patch) => {
-                                if (patch.totales) {
-                                    doc.totales = {
-                                        ...doc.totales,
-                                        ...patch.totales,
-                                    };
+                    >
+                        <DetalleMR
+                            ref="detalleMrRef"
+                            :doc="doc"
+                            :gde-id="id"
+                            @doc-updated="
+                                (patch) => {
+                                    if (patch.totales) {
+                                        doc.totales = {
+                                            ...doc.totales,
+                                            ...patch.totales,
+                                        };
+                                    }
+                                    // Actualizar otras propiedades planas igualmente si vienen
+                                    Object.keys(patch).forEach((key) => {
+                                        if (key !== 'totales')
+                                            doc[key] = patch[key];
+                                    });
                                 }
-                                // Actualizar otras propiedades planas igualmente si vienen
-                                Object.keys(patch).forEach((key) => {
-                                    if (key !== 'totales')
-                                        doc[key] = patch[key];
-                                });
-                            }
-                        "
-                        @valid-change="
-                            (v) => {
-                                detalleValidoMR = !!v;
-                            }
-                        "
-                    />
+                            "
+                            @valid-change="
+                                (v) => {
+                                    detalleValidoMR = !!v;
+                                }
+                            "
+                        />
+                    </f7-card>
 
-                    <DetalleTon
+                    <f7-card
+                        class="ton-card detalle-ton-root"
                         v-else-if="
                             doc.producto.unidadMedida === unidadesMedida.TON ||
                             doc.producto.unidadMedida === unidadesMedida.BDMT ||
                             doc.producto.unidadMedida === unidadesMedida.M3ST
                         "
-                        :doc="doc"
-                        :gde-id="id"
-                        @doc-updated="
-                            (patch) => {
-                                if (patch.totales) {
-                                    doc.totales = {
-                                        ...doc.totales,
-                                        ...patch.totales,
-                                    };
+                    >
+                        <DetalleTon
+                            ref="detalleTonRef"
+                            :doc="doc"
+                            :gde-id="id"
+                            @doc-updated="
+                                (patch) => {
+                                    if (patch.totales) {
+                                        doc.totales = {
+                                            ...doc.totales,
+                                            ...patch.totales,
+                                        };
+                                    }
+                                    // Actualizar otras propiedades planas igualmente si vienen
+                                    Object.keys(patch).forEach((key) => {
+                                        if (key !== 'totales')
+                                            doc[key] = patch[key];
+                                    });
                                 }
-                                // Actualizar otras propiedades planas igualmente si vienen
-                                Object.keys(patch).forEach((key) => {
-                                    if (key !== 'totales')
-                                        doc[key] = patch[key];
-                                });
-                            }
-                        "
-                    />
+                            "
+                            @valid-change="
+                                (v) => {
+                                    detalleValidoTon = !!v;
+                                }
+                            "
+                        />
+                    </f7-card>
+
                     <div v-else>
                         <span>No hay detalle para la unidad seleccionada.</span>
                     </div>
@@ -159,7 +185,7 @@
 
 <script>
 import { f7 } from "framework7-vue";
-import { obtenerGde, descartarGde } from "@/app/services/GdeService";
+import { obtenerGde, descartarGde, emitirGde } from "@/app/services/GdeService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
 import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
 import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";
@@ -190,6 +216,8 @@ export default {
             error: null,
             doc: null,
             detalleValidoMR: true,
+            detalleValidoTon: true,
+            detalleValidoM3: true,
         };
     },
 
@@ -217,6 +245,17 @@ export default {
         requiereValidacionMR() {
             return this.doc?.producto?.unidadMedida === this.unidadesMedida.MR;
         },
+        requiereValidacionM3() {
+            return this.doc?.producto?.unidadMedida === this.unidadesMedida.M3;
+        },
+        requiereValidacionTon() {
+            const u = this.doc?.producto?.unidadMedida;
+            return [
+                this.unidadesMedida.TON,
+                this.unidadesMedida.BDMT,
+                this.unidadesMedida.M3ST,
+            ].includes(u);
+        },
     },
 
     async mounted() {
@@ -236,10 +275,81 @@ export default {
     },
 
     methods: {
+        volverHaciaIngresoMr() {
+            f7.accordion.open(".detalle-unidad");
+
+            // intenta scrollear al root del componente MR
+            const vm = this.$refs.detalleMrRef;
+            // 1) si expone $el (componente Vue)
+            const el =
+                vm?.$el?.querySelector?.(".detalle-mr-root") || vm?.$el || null;
+            // 2) fallback por si quieres scrollear a todo el list-item
+            const fallback = document.querySelector(".detalle-unidad");
+
+            (el || fallback)?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        },
+
+        volverHaciaIngresoM3() {
+            f7.accordion.open(".detalle-unidad");
+
+            // intenta scrollear al root del componente MR
+            const vm = this.$refs.detalleM3Ref;
+            // 1) si expone $el (componente Vue)
+            const el =
+                vm?.$el?.querySelector?.(".detalle-m3-root") || vm?.$el || null;
+            // 2) fallback por si quieres scrollear a todo el list-item
+            const fallback = document.querySelector(".detalle-unidad");
+
+            (el || fallback)?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        },
+
+        volverHaciaIngresoTon() {
+            f7.accordion.open(".detalle-unidad");
+
+            // intenta scrollear al root del componente MR
+            const vm = this.$refs.detalleTonRef;
+            // 1) si expone $el (componente Vue)
+            const el =
+                vm?.$el?.querySelector?.(".detalle-ton-root") ||
+                vm?.$el ||
+                null;
+            // 2) fallback por si quieres scrollear a todo el list-item
+            const fallback = document.querySelector(".detalle-unidad");
+
+            (el || fallback)?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        },
         validarIngresoVolumenes() {
             if (this.requiereValidacionMR && !this.detalleValidoMR) {
+                this.volverHaciaIngresoMr();
                 f7.dialog.alert(
                     "Debe existir al menos un banco con volumen mayor a 0 para emitir.",
+                    "Validación"
+                );
+                return false;
+            }
+
+            if (this.requiereValidacionTon && !this.detalleValidoTon) {
+                this.volverHaciaIngresoTon();
+                f7.dialog.alert(
+                    "Debe ingresar el volumen para emitir.",
+                    "Validación"
+                );
+                return false;
+            }
+
+            if (this.requiereValidacionM3 && !this.detalleValidoM3) {
+                this.volverHaciaIngresoM3();
+                f7.dialog.alert(
+                    "Debe ingresar al menos un díametro para emitir.",
                     "Validación"
                 );
                 return false;
@@ -251,6 +361,12 @@ export default {
             f7.dialog.preloader("Emitiendo guia...");
             try {
                 if (this.validarIngresoVolumenes()) {
+                    await emitirGde(this.doc);
+                    f7.dialog.alert(
+                        "Guía emitida correctamente.",
+                        "Éxito",
+                        () => {}
+                    );
                 }
             } catch (e) {
                 f7.dialog.alert("Ha ocurrido un error al emitir la guia");

@@ -1,5 +1,6 @@
 // GdeService.js
-import { getGdeDao } from "@/app/services/initServices";
+import { getGdeDao, getSiiFolioDao } from "@/app/services/initServices";
+
 
 export async function listarPorEmpresaYRutPaginado(empId, rut, opts) {
     return await getGdeDao().listarPorEmpresaYRutPaginado(empId, rut, opts);
@@ -19,4 +20,10 @@ export async function ingresarGde(gde) {
 
 export async function descartarGde(gde) {
     return await getGdeDao().eliminar(gde); // devuelve doc completo
+}
+
+export async function emitirGde(gde) {
+
+    alert(JSON.stringify(gde));
+
 }

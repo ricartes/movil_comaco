@@ -155,7 +155,7 @@ export default {
         },
 
         esValido() {
-            return this.detalleMR.some((b) => Number(b.volumen) > 0);
+            return this.detalleMR.some(this.bancoEsValido);
         },
     },
     async mounted() {
@@ -183,6 +183,13 @@ export default {
         this.$nextTick(() => this.$emit("valid-change", this.esValido));
     },
     methods: {
+        bancoEsValido(b) {
+            const ancho = Number(b.ancho) ?? 0;
+            const hI = Number(b.alturaIzquierda) ?? 0;
+            const hD = Number(b.alturaDerecha) ?? 0;
+            const vol = Number(b.volumen) ?? 0;
+            return ancho > 0 && hI > 0 && hD > 0 && vol > 0;
+        },
         setAnchoSecuencia(valor) {
             this.anchoSecuencia = valor;
             // Aplicar el mismo ancho a todos + recalcular + guardar

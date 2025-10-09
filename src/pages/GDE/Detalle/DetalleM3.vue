@@ -128,6 +128,11 @@ export default {
         precioUnitario() {
             return Number(this.doc?.precioProducto?.precio || 0);
         },
+        esValido() {
+            return this.filas.some(
+                (f) => Number(f.trozos) > 0 && Number(f.volumen) > 0
+            );
+        },
     },
     async mounted() {
         const { detalleM3 } = await ensureDetalleM3(this.doc._id);
@@ -150,6 +155,7 @@ export default {
         });
         // guardamos una normalización inicial (opcional)
         this.queueSave();
+        this.$emit("valid-change", this.esValido);
     },
     methods: {
         onTrozoInput(idx, payload) {
@@ -192,6 +198,7 @@ export default {
             // ];
 
             this.queueSave();
+            this.$emit("valid-change", this.esValido);
         },
 
         queueSave() {
@@ -208,6 +215,39 @@ export default {
                 detalleM3: updated.doc.detalleM3,
                 totales: updated.doc.totales,
             });
+        },
+        _recalcAllAndEmit() {
+            const largo = this.largo;
+            const precio = this.precioUnitario;
+            this.filas = this.filas.map((f) => {
+                const vol = calcVolumenM3(
+                    f.diametro,
+                    largo,
+                    Number(f.trozos || 0)
+                );
+                return {
+                    ...f,
+                    largo,
+                    precioUnitario: Number(f.precioUnitario ?? precio),
+                    volumen: vol,
+                    totalPrecio: Math.round(
+                        vol * Number(f.precioUnitario ?? precio)
+                    ),
+                };
+            });
+            this.$emit("valid-change", this.esValido);
+            this.queueSave();
+        },
+    },
+    watch: {
+        // Si cambia el largo o el precio de la guía, recalculamos todo y notificamos validez.
+        "doc.largoProducto"(nv, ov) {
+            if (nv === ov) return;
+            this._recalcAllAndEmit();
+        },
+        "doc.precioProducto?.precio"(nv, ov) {
+            if (nv === ov) return;
+            this._recalcAllAndEmit();
         },
     },
 
