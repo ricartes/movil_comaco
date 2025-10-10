@@ -263,12 +263,8 @@ export default {
         },
 
         onConfig() {
-            f7.toast
-                .create({
-                    text: "Configuración próximamente",
-                    closeTimeout: 1200,
-                })
-                .open();
+            const router = f7.views.main?.router;
+            if (router) router.navigate("/configuracion/");
         },
         async logout() {
             f7.dialog.confirm(

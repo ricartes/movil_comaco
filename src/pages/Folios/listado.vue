@@ -70,9 +70,7 @@
 
                 <!-- Swipe actions (izquierda o derecha, como prefieras) -->
                 <f7-swipeout-actions right>
-                    <f7-swipeout-button color="red" @click="onLiberarFolio(f)">
-                        Liberar
-                    </f7-swipeout-button>
+                  
                 </f7-swipeout-actions>
             </f7-list-item>
         </f7-list>

@@ -10,6 +10,7 @@
                             name="cosechaPagada"
                             :checked="form.cosechaPagada"
                             title="Cosecha pagada"
+                            :disabled="soloLectura"
                             @change="onToggle('cosechaPagada', $event)"
                         />
                     </f7-list>
@@ -21,6 +22,7 @@
                             name="maderaPagada"
                             :checked="form.maderaPagada"
                             title="Madera pagada"
+                            :disabled="soloLectura"
                             @change="onToggle('maderaPagada', $event)"
                         />
                     </f7-list>
@@ -32,30 +34,35 @@
                     label="Hora llegada"
                     type="datetime-local"
                     :value="form.horaLlegada"
+                    :disabled="soloLectura"
                     @input="onInput('horaLlegada', $event)"
                 />
                 <f7-list-input
                     label="Hora salida"
                     type="datetime-local"
                     :value="form.horaSalida"
+                    :disabled="soloLectura"
                     @input="onInput('horaSalida', $event)"
                 />
                 <f7-list-input
                     label="Sector origen"
                     type="text"
                     :value="form.sectorOrigen"
+                    :disabled="soloLectura"
                     @input="onInput('sectorOrigen', $event)"
                 />
                 <f7-list-input
                     label="Destino"
                     type="text"
                     :value="form.destino"
+                    :disabled="soloLectura"
                     @input="onInput('destino', $event)"
                 />
                 <f7-list-input
                     label="Guía proveedor"
                     type="text"
                     :value="form.guiaProveedor"
+                    :disabled="soloLectura"
                     @input="onInput('guiaProveedor', $event)"
                 />
                 <f7-list-input
@@ -64,6 +71,7 @@
                     inputmode="decimal"
                     step="0.01"
                     :value="form.volumenProveedor"
+                    :disabled="soloLectura"
                     @input="onInputNum('volumenProveedor', $event)"
                 />
                 <f7-list-input
@@ -74,6 +82,7 @@
                     min="1900"
                     max="2100"
                     :value="form.anioCosecha"
+                    :disabled="soloLectura"
                     @input="onInputInt('anioCosecha', $event)"
                 />
 
@@ -97,6 +106,7 @@
                     inputmode="decimal"
                     step="0.000001"
                     :value="form.puntoX"
+                    :disabled="soloLectura"
                     @input="onInputNum('puntoX', $event)"
                 />
                 <f7-list-input
@@ -105,6 +115,7 @@
                     inputmode="decimal"
                     step="0.000001"
                     :value="form.puntoY"
+                    :disabled="soloLectura"
                     @input="onInputNum('puntoY', $event)"
                 />
 
@@ -113,6 +124,7 @@
                     type="textarea"
                     resizable
                     :value="form.comentarios"
+                    :disabled="soloLectura"
                     @input="onInput('comentarios', $event)"
                 />
             </f7-list>
@@ -129,7 +141,11 @@ import {
 
 export default {
     name: "DetalleComentario",
-    props: { doc: { type: Object, required: true } },
+    props: {
+        doc: { type: Object, required: true },
+        soloLectura: { type: Boolean, default: false },
+    },
+
     data() {
         return {
             form: {

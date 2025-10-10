@@ -49,6 +49,7 @@
                         placeholder="Ingrese volumen"
                         clear-button
                         :value="volumen"
+                        :disabled="soloLectura"
                         @input="onInputVolumen"
                     />
                 </f7-list>
@@ -79,6 +80,7 @@ export default {
     name: "IngresoVolumen",
     props: {
         doc: { type: Object, required: true },
+        soloLectura: { type: Boolean, default: false },
     },
     data() {
         return {

@@ -7,6 +7,7 @@ import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
 import GdeDetalle from '@/pages/gde/detalle.vue';
 import ListadoFolios from '@/pages/folios/listado.vue';
+import Configuracion from '@/pages/configuracion/configuracion.vue';
 import store from './store';
 
 
@@ -24,8 +25,12 @@ var routes = [
         component: Bloqueado,
     },
     {
-        path: '/folios/listado',
+        path: '/folios/listado/',
         component: ListadoFolios,
+    },
+    {
+        path: '/connfiguracion/',
+        component: Configuracion,
     },
     {
         path: '/home/',

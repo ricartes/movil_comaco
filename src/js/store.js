@@ -11,6 +11,8 @@ const DISPO_UID_KEY = 'dispo_uid'
 const DISPO_ESTADO_KEY = 'dispo_estado'     // p.ej. 'EN_SOLICITUD' | 'VIGENTE' | 'BLOQUEADO'
 const DISPO_BLOQUEA_KEY = 'dispo_bloquea'    // 'true' | 'false'
 const DISPO_LASTCHECK_KEY = 'dispo_lastcheck'  // epoch (string)
+const PRN_NAME_KEY = 'printer_name';   // opcional: guarda también address si tu fork lo entrega
+const PRN_ADDR_KEY = 'printer_addr';
 
 const store = createStore({
     state: {

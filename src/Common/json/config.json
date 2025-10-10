@@ -17,6 +17,9 @@
         "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
     },
     "parametros": {
+        "tiposDocumento": {
+            "gde": 52
+        },
         "validaGeocerca": true,
         "ivaPorDefecto": 19,
         "estadoBloqueoDispositivo": {
@@ -72,12 +75,16 @@
                 "texto": "BORRADOR"
             },
             "EMITIDA": {
-                "id": "E",
+                "id": "I",
                 "texto": "EMITIDA"
             },
             "NULA": {
                 "id": "N",
                 "texto": "NULA"
+            },
+            "ENVIADA": {
+                "id": "R",
+                "texto": "ENVIADA"
             }
         },
         "parametrosGenerales": {

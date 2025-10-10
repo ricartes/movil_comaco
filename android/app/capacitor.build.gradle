@@ -24,7 +24,7 @@ dependencies {
     implementation project(':capacitor-share')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-status-bar')
-
+    implementation "androidx.appcompat:appcompat:1.6.1"
 }
 
 

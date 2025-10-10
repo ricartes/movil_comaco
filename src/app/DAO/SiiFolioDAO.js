@@ -194,4 +194,99 @@ export default class SiiFolioDAO {
         const doc = (res.docs || [])[0];
         return doc ? folioDocToDTO(doc) : null;
     }
+
+    /**
+* Devuelve el URF (DTO) asociado a un urfId/empId.
+* (Si quieres validar que pertenezca al rut, pasa rut y lo filtramos.)
+*/
+    async obtenerUrfPorId(empId, urfId, rut = null) {
+        const selector = {
+            type: config.bd.tipoEntidad.siiUsuarioRangoFolio,
+            empId: Number(empId),
+            urfId: Number(urfId),
+        };
+        if (rut != null) selector.rutUsuario = rut;
+
+        const { docs } = await this.db.find({ selector, limit: 1 });
+        const d = (docs || [])[0];
+        return d ? urfDocToDTO(d) : null;
+    }
+
+
+    /**
+   * Convenience: obtiene { folioDTO, urfDTO } del primer folio disponible
+   * para empresa + rut. Si no hay, retorna { folioDTO: null, urfDTO: null }.
+   */
+    async obtenerPrimeroDisponibleConURF(empId, rut) {
+        const folioDTO = await this.obtenerPrimerFolioDisponible(empId, rut);
+        if (!folioDTO) return { folioDTO: null, urfDTO: null };
+        const urfDTO = await this.obtenerUrfPorId(empId, folioDTO.urfId, rut);
+        return { folioDTO, urfDTO };
+    }
+
+
+
+
+    async marcarFolioComoUsado(empId, urfId, folio) {
+        const sel = {
+            selector: {
+                type: config.bd.tipoEntidad.folio,
+                empId: Number(empId),
+                urfId: Number(urfId),
+                folio: Number(folio),
+            },
+            limit: 1,
+        };
+        const res = await this.db.find(sel);
+        const doc = res.docs?.[0];
+        if (!doc) throw new Error(`Folio ${folio} no encontrado`);
+        if (doc.estado === config.parametros.estadosFolio.usado) return { ok: true, already: true };
+
+        doc.estado = config.parametros.estadosFolio.usado;
+        doc.updatedAt = new Date().toISOString();
+        await this.db.put(doc);
+        return { ok: true };
+    }
+
+
+    async recomputarURFStats(empId, urfId) {
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.folio,
+                empId: Number(empId),
+                urfId: Number(urfId),
+            },
+            fields: ['folio', 'estado'],
+        });
+        const folios = res.docs || [];
+        const disponibles = folios.filter(f => f.estado === config.parametros.estadosFolio.disponible).map(f => Number(f.folio));
+        const usados = folios.filter(f => f.estado === config.parametros.estadosFolio.usado).map(f => Number(f.folio));
+
+        const primerDisponible = disponibles.length ? Math.min(...disponibles) : null;
+        const maxOcupado = usados.length ? Math.max(...usados) : null;
+        const totalDisponibles = disponibles.length;
+        const totalUsados = usados.length;
+
+        // actualiza el doc URF
+        const urfRes = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.siiUsuarioRangoFolio,
+                empId: Number(empId),
+                urfId: Number(urfId),
+            },
+            limit: 1,
+        });
+        const urf = urfRes.docs?.[0];
+        if (!urf) return { ok: true, updated: false };
+
+        Object.assign(urf, {
+            primerDisponible,
+            maxOcupado,
+            totalDisponibles,
+            totalUsados,
+            updatedAt: new Date().toISOString(),
+        });
+        await this.db.put(urf);
+        return { ok: true, updated: true, primerDisponible, maxOcupado, totalDisponibles, totalUsados };
+    }
 }

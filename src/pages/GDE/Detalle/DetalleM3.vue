@@ -105,6 +105,7 @@ export default {
     name: "DetalleM3",
     props: {
         doc: { type: Object, required: true }, // solo lectura
+        soloLectura: { type: Boolean, default: false },
     },
     data() {
         return {

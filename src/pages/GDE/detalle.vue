@@ -15,7 +15,7 @@
             <div class="text-color-red">{{ error }}</div>
         </f7-block>
 
-        <EncabezadoGde v-else :doc="doc" />
+        <EncabezadoGde v-else-if="doc !== null" :doc="doc" />
 
         <f7-list>
             <f7-list-item
@@ -35,6 +35,7 @@
                             ref="detalleM3Ref"
                             :doc="doc"
                             :gde-id="id"
+                            :solo-lectura="soloLectura"
                             @doc-updated="
                                 (patch) => {
                                     if (patch.totales) {
@@ -68,6 +69,7 @@
                             ref="detalleMrRef"
                             :doc="doc"
                             :gde-id="id"
+                            :solo-lectura="soloLectura"
                             @doc-updated="
                                 (patch) => {
                                     if (patch.totales) {
@@ -103,6 +105,7 @@
                             ref="detalleTonRef"
                             :doc="doc"
                             :gde-id="id"
+                            :solo-lectura="soloLectura"
                             @doc-updated="
                                 (patch) => {
                                     if (patch.totales) {
@@ -144,6 +147,7 @@
                     <DetalleComentario
                         v-if="doc"
                         :doc="doc"
+                        :solo-lectura="soloLectura"
                         @doc-updated="(p) => Object.assign(doc, p)"
                     />
                 </f7-accordion-content>
@@ -176,6 +180,8 @@
                         @descartar="onDescartar"
                         @generar-pdf="onGenerarPDF"
                         @emitir="onEmitir"
+                        @enviar="onEnviar"
+                        @imprimir="onImprimir"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -196,6 +202,7 @@ import OpcionesGde from "@/pages/GDE/Detalle/OpcionesGde.vue";
 import config from "@/Common/json/config.json";
 import { buildDefinition } from "@/js/utils/gdePdfTemplate";
 import { createPdfAndOpen } from "@/js/utils/pdfNative";
+import { renderPdf417FromTED } from "@/js/utils/pdf417";
 
 export default {
     name: "GdeDetalle",
@@ -222,6 +229,16 @@ export default {
     },
 
     computed: {
+        soloLectura() {
+            const st = this.doc?.estado?.id;
+            const EG = config.parametros.estadosGuia;
+            if (!st || !EG) return false;
+            // ajusta a tus claves reales si difieren
+            const EMITIDA = EG.EMITIDA?.id ?? EG.EMITIDA;
+            const ENVIADA = EG.ENVIADA?.id ?? EG.ENVIADA;
+            const NULA = EG.NULA?.id ?? EG.NULA;
+            return [EMITIDA, ENVIADA, NULA].includes(st);
+        },
         unidadesMedida() {
             return config.parametros.unidadesMedida;
         },
@@ -361,7 +378,8 @@ export default {
             f7.dialog.preloader("Emitiendo guia...");
             try {
                 if (this.validarIngresoVolumenes()) {
-                    await emitirGde(this.doc);
+                    const updatedDoc = await emitirGde(this.doc);
+                    this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                     f7.dialog.alert(
                         "Guía emitida correctamente.",
                         "Éxito",
@@ -369,7 +387,11 @@ export default {
                     );
                 }
             } catch (e) {
-                f7.dialog.alert("Ha ocurrido un error al emitir la guia");
+                const mensaje = e?.message
+                    ? e.message
+                    : "Ha ocurrido un error inesperado al emitir la guía.";
+
+                f7.dialog.alert(mensaje, "Error");
             } finally {
                 f7.dialog.close();
             }
@@ -377,12 +399,36 @@ export default {
         async onGenerarPDF() {
             f7.dialog.preloader("Generando PDF...");
             try {
-                if (!this.doc) return;
+                if (!this.doc) throw new Error("Documento no cargado");
+                this.doc._timbrePng = undefined;
+                if (this.soloLectura) {
+                    if (!this.doc.ted) {
+                        // Si por algún motivo no hay TED, generamos PDF sin timbre pero avisamos.
+                        console.warn(
+                            "Estado emitido/enviado/nulo sin TED. Se genera PDF sin timbre."
+                        );
+                    } else {
+                        // Genera imagen PDF417 del TED (requerimiento SII)
+                        this.doc._timbrePng = await renderPdf417FromTED(
+                            this.doc.ted,
+                            {
+                                scale: 1,
+                                columns: 25,
+                                securitylevel: 5,
+                                includetext: false,
+                            }
+                        );
+                    }
+                }
+
                 const def = buildDefinition(this.doc);
                 const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
                 await createPdfAndOpen(def, filename);
             } catch (e) {
-                f7.dialog.alert("Ha ocurrido un error al generar el PDF");
+                f7.dialog.alert(
+                    e?.message || "Ha ocurrido un error al generar el PDF.",
+                    "Error"
+                );
             } finally {
                 f7.dialog.close();
             }
@@ -404,6 +450,22 @@ export default {
                 );
             }
         },
+
+        async onEnviar(doc) {
+            // TODO: lógica para enviar/reintentar envío al SII
+            // por ahora, placeholder:
+            f7.toast.show({
+                text: "Enviar guía (pendiente de implementar)",
+            });
+        },
+        async onImprimir(doc) {
+            // TODO: invocar flujo de impresión nativa (si tienes wrapper),
+            // o generar PDF y abrir diálogo de impresión
+            f7.toast.show({
+                text: "Imprimir (pendiente de implementar)",
+            });
+        },
+
         back() {
             // vuelve a la vista anterior
             f7.views.main?.router?.navigate("/home/?tab=gde", {

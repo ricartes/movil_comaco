@@ -255,8 +255,6 @@ export default {
                 // 1) hidrata primero
                 await store.dispatch("hydrate");
 
-
-
                 // 2) init + listeners después de hydrate
                 if (device.capacitor) {
                     capacitorApp.init(f7);
@@ -329,9 +327,6 @@ export default {
                                     handleDoubleBackToExit();
                                     return;
                                 }
-
-                                // Otras pantallas: back normal
-                                app.views.main?.router?.back();
                             }
                         );
                     }

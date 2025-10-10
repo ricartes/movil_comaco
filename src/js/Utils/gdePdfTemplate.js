@@ -1,6 +1,7 @@
 // src/utils/gdePdfTemplate.js
 import pdfMake from "pdfmake/build/pdfmake";
 import "pdfmake/build/vfs_fonts";
+
 import config from "@/Common/json/config.json";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
@@ -293,8 +294,13 @@ function buildBoxOperacion(doc) {
         stack: [
             kvLine("Hora Llegada", doc?.comentarios?.horaLlegada ? `${fDate(doc.comentarios.horaLlegada)} ${fTime(doc.comentarios.horaLlegada)}` : "—"),
             kvLine("Contratista", doc?.empresaContratista?.nombreContratista),
-            kvLine("Cargador", "—"),
-            kvLine("Descargador", "—"),
+            {
+                text: [
+                    { text: "CARGUIO: ", bold: true },
+                    { text: formatCargadores(doc) }
+                ],
+                margin: [0, 0, 0, 2]
+            },
             kvLine("Proveedor", doc?.proveedor?.nomProveedor),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine("Año Plantación", doc?.rodal?.fechaPlantacion ? fDate(doc.rodal.fechaPlantacion) : (doc?.comentarios?.anioCosecha ?? "—")),
@@ -570,6 +576,16 @@ function buildComentarioFull(doc) {
     };
 }
 
+function formatCargadores(doc) {
+    const lista = Array.isArray(doc?.carguios) ? doc.carguios : [];
+    if (lista.length === 0) return "—";
+
+    // Cada línea: "RUT – NOMBRE"
+    return lista
+        .map(c => `${fStr(c?.rutCarguio)} – ${U(c?.nombreCarguio)}`)
+        .join("\n");
+}
+
 function extractTotals(doc) {
     // 1) Si ya vienen todos, usarlos tal cual
     const netoIn = doc?.totales?.neto;
@@ -686,6 +702,42 @@ function buildTransporteYTotales(doc) {
     };
 }
 
+function buildTimbreSII(doc) {
+    const timbrePng = doc?._timbrePng;
+    const tedStr = (doc?.ted || '').trim();
+    if (!timbrePng || !tedStr) return { text: '' };
+
+    const numRes = doc?.empresa?.numeroResolucion ?? '—';
+    const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
+
+    const IMG_W = 260;
+
+    return {
+        unbreakable: true,
+        margin: [PAGE_X, 10, PAGE_X, 0],
+        table: {
+            widths: [IMG_W],              // ← contenedor de ancho fijo
+            body: [[
+                {
+                    stack: [
+                        { image: timbrePng, width: IMG_W, alignment: 'center', margin: [0, 0, 0, 6] },
+                        {
+                            alignment: 'center',
+                            fontSize: 8,
+                            lineHeight: 1.1,
+                            text: [
+                                { text: 'Timbre electrónico SII\n' },
+                                { text: `RES ${numRes} de ${fechaRes} - Verifique documento en www.sii.cl` },
+                            ],
+                        },
+                    ],
+                }
+            ]],
+        },
+        layout: 'noBorders',
+    };
+}
+
 
 // =============== Footer ===============
 function buildFooter(current, totalPages) {
@@ -786,6 +838,8 @@ export function buildDefinition(doc) {
     const detalle = buildDetallePorUM(doc);
     const comentarioFull = buildComentarioFull(doc);
     const transporteYTotales = buildTransporteYTotales(doc);
+    const timbreSII = buildTimbreSII(doc);
+
 
     // 1) Header como contenido absoluto en y=16 (no recortado por el margen)
     const headerHeroAbs = {
@@ -822,9 +876,14 @@ export function buildDefinition(doc) {
         content: [
             headerHeroAbs,
             firstPageSpacer,
-            box1, box2, detalle, comentarioFull, transporteYTotales
+            box1,
+            box2,
+            detalle,
+            comentarioFull,
+            transporteYTotales,
+            timbreSII
         ],
-        defaultStyle: { fontSize: 10 },
+        defaultStyle: { fontSize: TAMANO_LETRA_ELEMENTOS },
     };
 }
 

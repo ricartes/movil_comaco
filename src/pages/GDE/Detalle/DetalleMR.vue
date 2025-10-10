@@ -40,6 +40,7 @@
                             >
                                 <f7-radio
                                     name="ancho-secuencia"
+                                    :disabled="soloLectura"
                                     :checked="anchoSecuencia === op"
                                     @change="() => setAnchoSecuencia(op)"
                                 />
@@ -69,6 +70,7 @@
                                 inputmode="decimal"
                                 step="0.01"
                                 :value="banco.ancho"
+                                :disabled="soloLectura"
                                 @input="(e) => onNum(banco, 'ancho', e, idx)"
                             />
                         </td>
@@ -78,6 +80,7 @@
                                 inputmode="decimal"
                                 step="0.01"
                                 :value="banco.alturaIzquierda"
+                                :disabled="soloLectura"
                                 @input="
                                     (e) =>
                                         onNum(banco, 'alturaIzquierda', e, idx)
@@ -90,6 +93,7 @@
                                 inputmode="decimal"
                                 step="0.01"
                                 :value="banco.alturaDerecha"
+                                :disabled="soloLectura"
                                 @input="
                                     (e) => onNum(banco, 'alturaDerecha', e, idx)
                                 "
@@ -132,6 +136,7 @@ export default {
     props: {
         doc: { type: Object, required: true }, // SOLO lectura
         gdeId: { type: String, required: true }, // ID para persistir
+        soloLectura: { type: Boolean, default: false },
     },
     data() {
         return {
