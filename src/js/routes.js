@@ -19,30 +19,37 @@ var routes = [
     {
         path: '/login/',
         component: Login,
+        name: 'login'
     },
     {
         path: '/bloqueado/',
         component: Bloqueado,
+        name: 'bloqueado'
     },
     {
         path: '/folios/listado/',
         component: ListadoFolios,
+        name: 'folios-listado'
     },
     {
-        path: '/connfiguracion/',
+        path: '/configuracion/',
         component: Configuracion,
+        name: 'configuracion'
     },
     {
         path: '/home/',
         component: home,
+        name: 'home'
     },
     {
         path: '/gde/ingreso/',
         component: GdeIngreso,
+        name: 'gde-ingreso'
     },
     {
         path: '/gde/detalle/:id',
         component: GdeDetalle,
+        name: 'gde-detalle'
     },
 
     {

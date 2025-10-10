@@ -23,6 +23,10 @@ const store = createStore({
             uid: null,
             lastCheck: null,
         },
+        printer: {
+            name: null,
+            address: null,
+        },
     },
     getters: {
         isAuth({ state }) { return !!state.user },
@@ -33,6 +37,9 @@ const store = createStore({
         isBloqueado({ state }) { return !!state.dispositivo.bloqueado },
         estadoDispositivo({ state }) { return state.dispositivo.estado },
         dispositivoUid({ state }) { return state.dispositivo.uid },
+        printerName({ state }) { return state.printer.name },
+        printerAddr({ state }) { return state.printer.address },
+
     },
     actions: {
         async hydrate({ state }) {
@@ -81,6 +88,14 @@ const store = createStore({
                 state.dispositivo.estado = dEstado || null
                 state.dispositivo.bloqueado = (dBloquea === 'true')
                 state.dispositivo.lastCheck = dLast ? Number(dLast) : null
+
+                // ====== Impresora (persistido)
+                const [{ value: pName } = {}, { value: pAddr } = {}] = await Promise.all([
+                    Preferences.get({ key: PRN_NAME_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: PRN_ADDR_KEY }).catch(() => ({ value: null })),
+                ]);
+                state.printer.name = pName || null;
+                state.printer.address = pAddr || null;
             } finally {
                 // ✅ garantizado: evita quedarse en “Cargando…”
                 state.ready = true
@@ -140,6 +155,21 @@ const store = createStore({
             await Preferences.remove({ key: DISPO_ESTADO_KEY })
             await Preferences.remove({ key: DISPO_BLOQUEA_KEY })
             await Preferences.remove({ key: DISPO_LASTCHECK_KEY })
+        },
+
+        async setPrinter({ state }, { name, address = null }) {
+            state.printer.name = name ?? null;
+            state.printer.address = address ?? null;
+            await Preferences.set({ key: PRN_NAME_KEY, value: String(state.printer.name ?? '') });
+            await Preferences.set({ key: PRN_ADDR_KEY, value: String(state.printer.address ?? '') });
+            window.dispatchEvent(new CustomEvent('printer:changed', { detail: { name, address } }));
+        },
+
+        async clearPrinter({ state }) {
+            state.printer = { name: null, address: null };
+            await Preferences.remove({ key: PRN_NAME_KEY });
+            await Preferences.remove({ key: PRN_ADDR_KEY });
+            window.dispatchEvent(new CustomEvent('printer:changed', { detail: { name: null, address: null } }));
         },
     },
 })

@@ -57,6 +57,21 @@ export default {
             }
         }
 
+        function getActiveRouteFromPage(router) {
+            // Página activa real en el DOM (evita confiar en currentRoute/url)
+            const pageEl =
+                router.currentPageEl ||
+                document.querySelector(".view-main .page.page-current");
+
+            const p = pageEl && pageEl.f7Page;
+            return {
+                pageName: p?.name || "",
+                routeName: p?.route?.name || "",
+                routePath: p?.route?.path || "",
+                routeUrl: p?.route?.url || "",
+            };
+        }
+
         // ------- Guards / referencias de listeners -------
         let pushGuard = false;
         let lastValidation = 0;
@@ -205,13 +220,13 @@ export default {
                             ? resultado.confirmed.length
                             : 0;
                         const msg = `
-              <div class="text-start">
-                <p><strong>Folios cargados correctamente.</strong></p>
-                <ul class="mt-2 mb-0">
-                  <li><b>Documentos insertados:</b> ${inserted}</li>
-                  <li><b>Confirmados:</b> ${confirmed}</li>
-                </ul>
-              </div>`;
+                        <div class="text-start">
+                            <p><strong>Folios cargados correctamente.</strong></p>
+                            <ul class="mt-2 mb-0">
+                            <li><b>Documentos insertados:</b> ${inserted}</li>
+                            <li><b>Confirmados:</b> ${confirmed}</li>
+                            </ul>
+                        </div>`;
                         f7.dialog.alert(msg, "Carga completada");
                     } else {
                         f7.dialog.alert(
@@ -286,49 +301,6 @@ export default {
                         );
 
                         // Botón atrás
-                        backHandle = await CapacitorApp.addListener(
-                            "backButton",
-                            () => {
-                                const app = f7;
-                                if (!app) return;
-
-                                // Cierra capas primero
-                                if (app.dialog?.opened)
-                                    return app.dialog.close();
-                                const actionsOpened = document.querySelector(
-                                    ".actions-modal.modal-in"
-                                );
-                                if (actionsOpened)
-                                    return app.actions.close(actionsOpened);
-                                const sheetOpened = document.querySelector(
-                                    ".sheet-modal.modal-in"
-                                );
-                                if (sheetOpened)
-                                    return app.sheet.close(sheetOpened);
-                                const popupOpened =
-                                    document.querySelector(".popup.modal-in");
-                                if (popupOpened)
-                                    return app.popup.close(popupOpened);
-                                const popoverOpened =
-                                    document.querySelector(".popover.modal-in");
-                                if (popoverOpened)
-                                    return app.popover.close(popoverOpened);
-
-                                // Ruta actual
-                                const route =
-                                    app.views.main?.router?.currentRoute
-                                        ?.path || "";
-
-                                // En /login o /home -> doble back para salir
-                                if (
-                                    route.startsWith("/login") ||
-                                    route.startsWith("/home")
-                                ) {
-                                    handleDoubleBackToExit();
-                                    return;
-                                }
-                            }
-                        );
                     }
                 }
 

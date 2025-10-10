@@ -1,5 +1,5 @@
 <template>
-    <f7-page data-name="folios">
+    <f7-page data-name="folios" @page:back.prevent>
         <f7-navbar>
             <f7-nav-left>
                 <f7-link @click="back">
@@ -69,9 +69,7 @@
                 </template>
 
                 <!-- Swipe actions (izquierda o derecha, como prefieras) -->
-                <f7-swipeout-actions right>
-                  
-                </f7-swipeout-actions>
+                <f7-swipeout-actions right> </f7-swipeout-actions>
             </f7-list-item>
         </f7-list>
     </f7-page>
