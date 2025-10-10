@@ -895,27 +895,34 @@ export default {
         },
 
         async cargarPredios() {
-            this.predios = this.form.proveedor
-                ? await listarPrediosPorProveedor(
-                      this.form.zona.codigo,
-                      this.form.proveedor.rutProveedor
-                  )
-                : [];
+            f7.dialog.preloader("Cargando...");
+            try {
+                this.predios = this.form.proveedor
+                    ? await listarPrediosPorProveedor(
+                          this.form.zona.codigo,
+                          this.form.proveedor.rutProveedor
+                      )
+                    : [];
 
-            if (this.predios.length === 1) {
-                this.form.predio = this.predios[0];
-                await this.$nextTick();
-                await this.validarGeocerca();
-                if (this.form.datosGeocerca.validada === true) {
-                    this.cargarClientes();
-                    this.cargarRodales();
+                if (this.predios.length === 1) {
+                    this.form.predio = this.predios[0];
+                    await this.$nextTick();
+                    await this.validarGeocerca();
+                    if (this.form.datosGeocerca.validada === true) {
+                        this.cargarClientes();
+                        this.cargarRodales();
+                    }
+
+                    f7.smartSelect
+                        .get(".select-predio .smart-select")
+                        .setValueText(
+                            `${this.form.predio.rolPredio} ${this.form.predio.predio}`
+                        );
                 }
-
-                f7.smartSelect
-                    .get(".select-predio .smart-select")
-                    .setValueText(
-                        `${this.form.predio.rolPredio} ${this.form.predio.predio}`
-                    );
+            } catch (e) {
+                f7.dialog.alert("Ha ocurrido un error al cargar predios.");
+            } finally {
+                f7.dialog.close();
             }
         },
 
@@ -985,24 +992,38 @@ export default {
 
         async cargarClientes() {
             this.form.cliente = null;
-            this.clientes = this.form.predio
-                ? await listarClientesPorPredio(
-                      this.form.zona.codigo,
-                      this.form.proveedor.rutProveedor,
-                      this.form.predio.rolPredio
-                  )
-                : [];
+            f7.dialog.preloader("Cargando...");
+            try {
+                this.clientes = this.form.predio
+                    ? await listarClientesPorPredio(
+                          this.form.zona.codigo,
+                          this.form.proveedor.rutProveedor,
+                          this.form.predio.rolPredio
+                      )
+                    : [];
 
-            if (this.clientes.length === 1) {
-                this.form.cliente = this.clientes[0];
-                await this.$nextTick();
-                this.mostrarInformacionCliente();
-                this.cargarDestinosCliente();
-                f7.smartSelect
-                    .get(".select-cliente .smart-select")
-                    .setValueText(
-                        `${this.form.cliente.rutCliente} ${this.form.cliente.razonSocialCliente}`
-                    );
+                if (this.clientes.length === 1) {
+                    this.form.cliente = this.clientes[0];
+                    await this.$nextTick();
+                    this.mostrarInformacionCliente();
+                    this.cargarDestinosCliente();
+                    await this.scrollTo({
+                        ref: "destinoCliente",
+                        block: "start",
+                        offset: 72, // ajusta según tu navbar/header
+                        behavior: "smooth",
+                        // openAccordions: ".destino-info", // opcional: abrir acordeón de destino antes de scrollear
+                    });
+                    f7.smartSelect
+                        .get(".select-cliente .smart-select")
+                        .setValueText(
+                            `${this.form.cliente.rutCliente} ${this.form.cliente.razonSocialCliente}`
+                        );
+                }
+            } catch (e) {
+                f7.dialog.alert("Ha ocurrido un error al cargar clientes.");
+            } finally {
+                f7.dialog.close();
             }
         },
 
@@ -1021,6 +1042,7 @@ export default {
             this.resetDesde("cliente"); // limpia desde predio en adelante
             await this.$nextTick();
             this.mostrarInformacionCliente();
+            this.cargarDestinosCliente();
         },
 
         async cargarDestinosCliente() {
@@ -1606,6 +1628,66 @@ export default {
         onValidezConductor(v) {
             // v = { rut: boolean, nombre: boolean, ok: boolean }
             this.conductorValido = v;
+        },
+
+        async scrollTo(opts = {}) {
+            const {
+                target,
+                ref,
+                child,
+                openAccordions,
+                offset = 0,
+                block = "center",
+                behavior = "smooth",
+                useScrollIntoView = true,
+            } = opts;
+
+            // 1) Abrir acordeones si se indican
+            const openList = Array.isArray(openAccordions)
+                ? openAccordions
+                : openAccordions
+                ? [openAccordions]
+                : [];
+            for (const sel of openList) {
+                try {
+                    f7.accordion.open(sel);
+                } catch (_) {}
+            }
+
+            await this.$nextTick();
+
+            // 2) Resolver elemento objetivo
+            let el = null;
+
+            // Por ref (prioritario)
+            if (ref && this.$refs?.[ref]) {
+                const base = this.$refs[ref].$el || this.$refs[ref];
+                el = child ? base?.querySelector?.(child) : base;
+            }
+
+            // Por selector / Element directo
+            if (!el) {
+                if (target instanceof Element) el = target;
+                else if (typeof target === "string")
+                    el = document.querySelector(target);
+            }
+
+            // Fallback si nada se encontró
+            if (!el) return;
+
+            // 3) Hacer scroll
+            if (useScrollIntoView && offset === 0) {
+                el.scrollIntoView({ behavior, block, inline: "nearest" });
+                return;
+            }
+
+            // Con offset (cálculo manual)
+            const rect = el.getBoundingClientRect();
+            const absoluteTop = rect.top + window.scrollY;
+            window.scrollTo({
+                top: absoluteTop - offset,
+                behavior,
+            });
         },
 
         back() {

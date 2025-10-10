@@ -111,14 +111,23 @@ export default {
         },
     },
     async mounted() {
-        await this.cargarUsuarioRangoFolio();
-        // seleccionar el primero si existe
-        if (this.urfs.length > 0) {
-            this.selectedUrfId = String(this.urfs[0].urfId); // importante: string
-            this.onUrfChange();
-            // (Opcional) forzar sync visual si ya existe la instancia:
-            const ss = f7.smartSelect.get(".select-rango-folio .smart-select");
-            ss?.setValue([this.selectedUrfId]); // NO uses setValueText
+        f7.dialog.preloader("Cargando...");
+        try {
+            await this.cargarUsuarioRangoFolio();
+            // seleccionar el primero si existe
+            if (this.urfs.length > 0) {
+                this.selectedUrfId = String(this.urfs[0].urfId); // importante: string
+                this.onUrfChange();
+                // (Opcional) forzar sync visual si ya existe la instancia:
+                const ss = f7.smartSelect.get(
+                    ".select-rango-folio .smart-select"
+                );
+                ss?.setValue([this.selectedUrfId]); // NO uses setValueText
+            }
+        } catch (e) {
+            f7.dialog.alert("Ha ocurrido un error al cargar los folios.");
+        } finally {
+            f7.dialog.close();
         }
     },
     methods: {

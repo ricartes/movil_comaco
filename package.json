@@ -40,7 +40,7 @@
         "@turf/boolean-point-in-polygon": "^7.2.0",
         "@turf/helpers": "^7.2.0",
         "bwip-js": "^4.7.0",
-        "cordova-plugin-btprinter": "github:ppicapietra/Cordova-Plugin-BTPrinter",
+        "cordova-plugin-android-permissions": "^1.1.5",
         "dayjs": "^1.11.18",
         "dom7": "^4.0.6",
         "firebase": "^11.10.0",

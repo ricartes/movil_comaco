@@ -33,6 +33,10 @@
                         </td>
                     </tr>
                     <tr>
+                        <td class="label-cell">Dirección</td>
+                        <td class="label-cell">{{ cliente.direccionCliente }}</td>
+                    </tr>
+                    <tr>
                         <td class="label-cell">Comuna</td>
                         <td class="label-cell">{{ cliente.comunaCliente }}</td>
                     </tr>

@@ -102,7 +102,7 @@ export default {
                     "";
 
                 if (res.bloquea) {
-                    // Llevar a /bloqueado
+                    // 🚫 bloqueado → navegar sí o sí a /bloqueado
                     if (!currentPath.startsWith("/bloqueado")) {
                         router?.navigate("/bloqueado/", {
                             ...(silent
@@ -111,8 +111,9 @@ export default {
                             clearPreviousHistory: !silent,
                         });
                     }
+                    return { ok: false, bloquea: true };
                 } else {
-                    // OK: sólo redirige cuando NO es nonIntrusive
+                    // ✅ OK: si nonIntrusive = true NO navegamos
                     if (!nonIntrusive) {
                         router?.navigate("/login/", {
                             ...(silent
@@ -121,9 +122,9 @@ export default {
                             clearPreviousHistory: !silent,
                         });
                     }
+                    return { ok: true, bloquea: false };
                 }
             } catch (err) {
-                // Manejo de error con contexto
                 const previoBloqueado = store.getters.isBloqueado;
                 const previoTieneUid = !!store.getters.dispositivoUid;
                 const router = f7.views.main?.router;
@@ -137,12 +138,15 @@ export default {
 
                 const isOfflineLike =
                     typeof navigator !== "undefined" &&
-                    navigator &&
-                    navigator.onLine === false;
+                    navigator?.onLine === false;
 
                 if (previoTieneUid && !previoBloqueado) {
-                    // Si ya tenía UID y no estaba bloqueado: evita navegación disruptiva en offline/silent/nonIntrusive
-                    if (!(isOfflineLike || silent || nonIntrusive)) {
+                    // En offline/silencioso/no-intrusivo NO navegamos; deja seguir
+                    if (isOfflineLike || nonIntrusive || silent) {
+                        return { ok: true, bloquea: false, degraded: true };
+                    }
+                    // Flujo intrusivo normal → volver a login si no estás ahí
+                    if (!currentPath.startsWith("/login")) {
                         router?.navigate("/login/", {
                             ...(silent
                                 ? { replaceState: true }
@@ -150,8 +154,9 @@ export default {
                             clearPreviousHistory: !silent,
                         });
                     }
+                    return { ok: true, bloquea: false, degraded: true };
                 } else {
-                    // Sin UID o bloqueado → /bloqueado
+                    // Sin UID o marcado bloqueado → a /bloqueado
                     await store.dispatch("setDispositivoResult", {
                         uid: store.getters.dispositivoUid ?? null,
                         estado: "DESCONOCIDO",
@@ -167,11 +172,14 @@ export default {
                             clearPreviousHistory: !silent,
                         });
                     }
+                    return { ok: false, bloquea: true };
                 }
             } finally {
                 if (!silent) f7.dialog.close();
             }
         };
+
+        window.appValidate = runValidacionAcceso;
 
         // ------- Validación silenciosa (no intrusiva) -------
         const validateIfNeededSilently = () => {

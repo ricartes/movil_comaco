@@ -74,6 +74,28 @@ export default {
     },
     methods: {
         async onCargarParametros() {
+            try {
+                const validate =
+                    window.appValidate?.bind?.(window) || window.appValidate;
+                if (typeof validate === "function") {
+                    const res = await validate({
+                        silent: false,
+                        nonIntrusive: true,
+                    });
+                    if (!res?.ok || res?.bloquea) {
+                        // quedó bloqueado o falló → ya se habrá navegado a /bloqueado, o no corresponde seguir
+                        return;
+                    }
+                }
+            } catch (e) {
+                // En caso de error inesperado, decide si abortar o seguir:
+                // Aquí abortamos para no iniciar cargas costosas sin validación.
+                f7.dialog.alert(
+                    "No fue posible validar el dispositivo antes de cargar parámetros."
+                );
+                return;
+            }
+
             const tasks = [
                 {
                     key: "Órdenes de compra",
@@ -215,6 +237,28 @@ export default {
             }
         },
         async onCargarFolios() {
+            try {
+                const validate =
+                    window.appValidate?.bind?.(window) || window.appValidate;
+                if (typeof validate === "function") {
+                    const res = await validate({
+                        silent: false,
+                        nonIntrusive: true,
+                    });
+                    if (!res?.ok || res?.bloquea) {
+                        // quedó bloqueado o falló → ya se habrá navegado a /bloqueado, o no corresponde seguir
+                        return;
+                    }
+                }
+            } catch (e) {
+                // En caso de error inesperado, decide si abortar o seguir:
+                // Aquí abortamos para no iniciar cargas costosas sin validación.
+                f7.dialog.alert(
+                    "No fue posible validar el dispositivo antes de cargar parámetros."
+                );
+                return;
+            }
+
             try {
                 f7.dialog.preloader("Cargando folios…");
 

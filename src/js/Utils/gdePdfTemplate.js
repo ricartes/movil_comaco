@@ -263,7 +263,7 @@ function buildBoxClienteFechas(doc) {
             kvLine("Nombre", doc?.cliente?.razonSocialCliente),
             kvLine("R.U.T", doc?.cliente?.rutCliente),
             kvLine("Giro", doc?.cliente?.giroCliente),
-            kvLine("Dirección", doc?.destino?.direccionDestinoCliente || doc?.cliente?.direccionCliente),
+            kvLine("Dirección", doc?.cliente?.direccionCliente),
             kvLine("Origen", `${U(doc?.predio?.predio)}${doc?.predio?.rolPredio ? `, ROL: ${U(doc.predio.rolPredio)}` : ""}${doc?.predio?.rolComuna ? `, COMUNA: ${U(doc.predio.rolComuna)}` : ""}`),
             kvLine("Destino", `${U(doc?.destino?.destinoCliente)}`),
         ],

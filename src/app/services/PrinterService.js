@@ -1,27 +1,30 @@
-import { Capacitor, PermissionsAndroid } from '@capacitor/core';
+// PrinterService.js
+import { Capacitor } from '@capacitor/core';
 
 export async function ensureBluetoothPermissions() {
     if (Capacitor.getPlatform() !== 'android') return;
 
-    try {
-        const result = await PermissionsAndroid.requestMultiple([
-            'android.permission.BLUETOOTH_CONNECT',
-            'android.permission.BLUETOOTH_SCAN',
-            'android.permission.ACCESS_FINE_LOCATION',
-        ]);
-
-        console.log('Permisos Bluetooth:', result);
-        return result;
-    } catch (err) {
-        console.error('Error solicitando permisos Bluetooth:', err);
-        throw err;
+    const perms = window.cordova && window.cordova.plugins && window.cordova.plugins.permissions;
+    if (!perms) {
+        console.warn('cordova-plugin-android-permissions no disponible; continuo sin pedir permisos explícitos');
+        return;
     }
+
+    var requested = [
+        'android.permission.BLUETOOTH_SCAN',
+        'android.permission.BLUETOOTH_CONNECT',
+        'android.permission.ACCESS_FINE_LOCATION', // muchos plugins BT clásico aún lo requieren
+    ];
+
+    await new Promise(function (resolve, reject) {
+        perms.requestPermissions(requested, function () { resolve(); }, function (err) { reject(err); });
+    });
 }
 
 export async function listPrinters() {
     await ensureBluetoothPermissions();
 
-    return new Promise((resolve, reject) => {
+    return new Promise(function (resolve, reject) {
         if (!window.BTPrinter) {
             return reject('Plugin BTPrinter no disponible');
         }
@@ -32,48 +35,39 @@ export async function listPrinters() {
 export async function connectPrinter(macAddress) {
     await ensureBluetoothPermissions();
 
-    return new Promise((resolve, reject) => {
+    return new Promise(function (resolve, reject) {
         if (!window.BTPrinter) {
             return reject('Plugin BTPrinter no disponible');
         }
         window.BTPrinter.connect(
             macAddress,
-            (res) => {
-                console.log('Conectado a', macAddress, res);
-                resolve(res);
-            },
-            (err) => {
-                console.error('Error al conectar:', err);
-                reject(err);
-            }
+            function (res) { resolve(res); },
+            function (err) { reject(err); }
         );
     });
 }
 
 export async function printText(text) {
-    return new Promise((resolve, reject) => {
+    return new Promise(function (resolve, reject) {
         if (!window.BTPrinter) {
             return reject('Plugin BTPrinter no disponible');
         }
         window.BTPrinter.printText(
             text,
-            (res) => {
-                console.log('Impresión ok', res);
-                resolve(res);
-            },
-            (err) => {
-                console.error('Error al imprimir texto:', err);
-                reject(err);
-            }
+            function (res) { resolve(res); },
+            function (err) { reject(err); }
         );
     });
 }
 
 export async function disconnectPrinter() {
-    return new Promise((resolve, reject) => {
+    return new Promise(function (resolve, reject) {
         if (!window.BTPrinter) {
             return reject('Plugin BTPrinter no disponible');
         }
-        window.BTPrinter.disconnect(resolve, reject);
+        window.BTPrinter.disconnect(
+            function (res) { resolve(res); },
+            function (err) { reject(err); }
+        );
     });
 }

@@ -4,6 +4,7 @@ export default class ClienteDTO {
         this.codCliente = codCliente;
         this.rutCliente = rutCliente;
         this.razonSocialCliente = razonSocialCliente;
+        this.direccionCliente = direccionCliente;
         this.comunaCliente = comunaCliente;
         this.ciudadCliente = ciudadCliente;
         this.giroCliente = giroCliente;
