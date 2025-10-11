@@ -154,8 +154,7 @@ import { Capacitor } from "@capacitor/core";
 import store from "@/js/store";
 import {
     listPrinters,
-    connectPrinter,
-    printText,
+    printTextSafe,
     disconnectPrinter,
 } from "@/app/services/PrinterService";
 
@@ -314,30 +313,7 @@ export default {
                 .open();
         },
 
-        async tryConnect(address) {
-            if (!address) {
-                f7.dialog.alert(
-                    "No hay dirección MAC disponible para conectar."
-                );
-                return;
-            }
-            const dlg = f7.dialog.preloader("Conectando…");
-            try {
-                await connectPrinter(address);
-                f7.toast
-                    .create({ text: "Conectado", closeTimeout: 1500 })
-                    .open();
-            } catch (e) {
-                console.error("Conexión fallida:", e);
-                f7.dialog.alert(
-                    "No se pudo conectar a la impresora seleccionada."
-                );
-            } finally {
-                try {
-                    dlg.close();
-                } catch {}
-            }
-        },
+
 
         async testPrint() {
             if (!this.selected) {
@@ -346,18 +322,13 @@ export default {
             }
             const dlg = f7.dialog.preloader("Imprimiendo…");
             try {
-                if (this.currentAddr) {
-                    try {
-                        await connectPrinter(this.currentAddr);
-                    } catch (_) {}
-                }
-                await printText("Prueba de impresión\n\n");
+                await printTextSafe("Prueba de impresión\n\n"); // ← se autoconocecta por NOMBRE y luego imprime
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
             } catch (e) {
                 console.error(e);
-                f7.dialog.alert("Error al imprimir la prueba.");
+                f7.dialog.alert(e?.message || "Error al imprimir la prueba.");
             } finally {
                 try {
                     dlg.close();

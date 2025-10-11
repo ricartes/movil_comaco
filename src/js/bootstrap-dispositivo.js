@@ -14,9 +14,5 @@ export async function bootstrapValidacionDispositivo() {
         payload.proyectoClienteId = fcmData.projectId;
         payload.remitenteClienteId = fcmData.senderId;
     }
-
-    console.log(payload);
-
-
     return validarDispositivo(payload); // { uid, estado, bloquea, message }
 }

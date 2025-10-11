@@ -50,6 +50,7 @@
         <!-- Imprimir (siempre) -->
         <f7-list-item
             link
+            v-if="hasPrinter"
             @click="onImprimir"
             title="Imprimir"
             :disabled="loading"
@@ -58,6 +59,30 @@
                 <f7-icon ios="f7:printer_fill" md="material:print"></f7-icon>
             </template>
         </f7-list-item>
+
+        <f7-block strong v-else class="alert-wrapper">
+            <div
+                class="alert alert-danger"
+                style="
+                    border: 1px solid #ebccd1;
+                    background-color: #f2dede;
+                    color: #a94442;
+                    border-radius: 6px;
+                    padding: 10px 15px;
+                    font-size: 14px;
+                "
+            >
+                <i class="f7-icons" style="font-size: 16px; margin-right: 6px">
+                    exclamationmark_circle
+                </i>
+                No hay <strong>impresora configurada</strong>. Ve a
+                <strong>Configuración</strong> y selecciona una impresora
+                Bluetooth para poder imprimir.
+                <f7-link @click="goConfig" class="ml-1"
+                    >Ir a Configuración</f7-link
+                >
+            </div>
+        </f7-block>
 
         <!-- Descartar (solo borrador) -->
         <f7-list-item
@@ -77,6 +102,7 @@
 
 <script>
 import { f7 } from "framework7-vue";
+import store from '@/js/store';
 import config from "@/Common/json/config.json";
 
 export default {
@@ -136,6 +162,9 @@ export default {
         showEnviar() {
             return this.isEmitida || this.isEnviada;
         },
+        hasPrinter() {
+            return !!store?.state?.printer?.name;
+        },
     },
     methods: {
         onEmitir() {
@@ -156,6 +185,10 @@ export default {
                 "Confirmar",
                 () => this.$emit("descartar", this.doc)
             );
+        },
+        goConfig() {
+            // Ruta de tu pantalla de configuración de impresora
+            f7.views.main?.router?.navigate("/configuracion");
         },
     },
 };

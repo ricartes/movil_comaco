@@ -203,6 +203,7 @@ import config from "@/Common/json/config.json";
 import { buildDefinition } from "@/js/utils/gdePdfTemplate";
 import { createPdfAndOpen } from "@/js/utils/pdfNative";
 import { renderPdf417FromTED } from "@/js/utils/pdf417";
+import { printGuiaFromDoc } from "@/js/Utils/gdePrinter";
 
 export default {
     name: "GdeDetalle",
@@ -451,7 +452,7 @@ export default {
             }
         },
 
-        async onEnviar(doc) {
+        async onEnviar() {
             // TODO: lógica para enviar/reintentar envío al SII
             // por ahora, placeholder:
             f7.toast.show({
@@ -459,11 +460,28 @@ export default {
             });
         },
         async onImprimir(doc) {
-            // TODO: invocar flujo de impresión nativa (si tienes wrapper),
-            // o generar PDF y abrir diálogo de impresión
-            f7.toast.show({
-                text: "Imprimir (pendiente de implementar)",
-            });
+            try {
+                f7.dialog.preloader("Imprimiendo…");
+                // Si tienes el timbre como base64: pásalo aquí
+                // const timbre = await generarPDF417Base64(doc.ted)  // si lo consigues
+                await printGuiaFromDoc(doc, {
+                    timbreBase64: null, // o el base64 si lo tienes
+                });
+                f7.toast
+                    .create({ text: "Impresión enviada", closeTimeout: 1500 })
+                    .open();
+            } catch (e) {
+                console.error(e);
+                f7.dialog.alert(
+                    typeof e === "string"
+                        ? e
+                        : e?.message || "Error al imprimir"
+                );
+            } finally {
+                try {
+                    f7.dialog.close();
+                } catch {}
+            }
         },
 
         back() {
