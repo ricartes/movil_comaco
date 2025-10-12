@@ -10,16 +10,16 @@ const COLS = 48; // 58mm ≈ 32; para 80mm podrías usar 42/48
 
 // ==== Helpers de maquetado ====
 const rep = (ch, n) => (ch || ' ').repeat(Math.max(0, n || 0));
-const div = (ch = '-') => rep(ch, COLS) + '\n';
+const div = (ch = '-') => rep(ch, COLS);           // antes: + '\n'
 const cut = (s = '') => String(s).slice(0, COLS);
 
-const left = (s = '') => cut(s).padEnd(COLS, ' ') + '\n';
-const right = (s = '') => cut(s).padStart(COLS, ' ') + '\n';
+const left = (s = '') => cut(s).padEnd(COLS, ' ');  // antes: + '\n'
+const right = (s = '') => cut(s).padStart(COLS, ' '); // antes: + '\n'
 const center = (s = '') => {
     s = String(s);
-    if (s.length >= COLS) return cut(s) + '\n';
+    if (s.length >= COLS) return cut(s);            // antes: + '\n'
     const pad = Math.floor((COLS - s.length) / 2);
-    return rep(' ', pad) + s + rep(' ', COLS - s.length - pad) + '\n';
+    return rep(' ', pad) + s + rep(' ', COLS - s.length - pad);
 };
 
 const DECIMALS_BY_UM = {
@@ -45,15 +45,16 @@ function wrap(s = '') {
     const t = String(s);
     const out = [];
     for (let i = 0; i < t.length; i += COLS) out.push(t.slice(i, i + COLS));
-    return out.map(l => l + '\n').join('');
+    return out.join('\n');                           // antes: unía con '\n' y luego + '\n' en cada línea
 }
+
 function twoCols(l = '', r = '', rw = 12) {
     let R = cut(String(r));
     if (R.length > rw) R = R.slice(-rw);
     const lw = COLS - rw - 1;
     let L = cut(String(l));
     if (L.length > lw) L = L.slice(0, lw);
-    return L.padEnd(lw, ' ') + ' ' + R.padStart(rw, ' ') + '\n';
+    return L.padEnd(lw, ' ') + ' ' + R.padStart(rw, ' ');
 }
 const fmt = (n) => Number(n || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
@@ -125,6 +126,8 @@ function mapDoc(doc) {
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
 // Si hoy NO puedes generar PDF417 en el móvil, pasa `opts.timbreBase64` desde el backend.
 export async function printGuiaFromDoc(doc, opts = {}) {
+    const { disconnectOnEnd = false } = opts;
+    let mustDisconnect = false;
     // 1) asegurar impresora configurada y conectada (si el plugin lo requiere)
     const nameOrAddr = store.state.printer.address || store.state.printer.name;
     if (!nameOrAddr) throw new Error('No hay impresora configurada');
@@ -153,8 +156,6 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         textColor: '#000000',
     });
     await printBase64Safe(headerB64, '1', 48);
-    //await printTextSizeAlignSafe('\n', '0', '0');
-
 
     if (M.emisor.comuna) await printRawText(center(`S.I.I ${M.emisor.comuna.toUpperCase()}`));
     await printRawText(div('='));
@@ -164,20 +165,20 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`RAZÓN SOCIAL: ${M.emisor.rs.toUpperCase()}`));
     if (M.emisor.giro) await printRawText(wrap(`GIRO: ${M.emisor.giro.toUpperCase()}`));
     if (M.emisor.dir) await printRawText(wrap(`DIRECCIÓN: ${M.emisor.dir.toUpperCase()}`));
-    if (M.emisor.comuna) await printRawText(`COMUNA: ${M.emisor.comuna.toUpperCase()}\n`);
+    if (M.emisor.comuna) await printRawText(`COMUNA: ${M.emisor.comuna.toUpperCase()}`);
     await printRawText(div());
 
     // Receptor
     await printRawText(left('DATOS DEL RECEPTOR'));
-    if (M.receptor.rut) await printRawText(`RUT: ${M.receptor.rut}\n`);
+    if (M.receptor.rut) await printRawText(`RUT: ${M.receptor.rut}`);
     if (M.receptor.rs) await printRawText(wrap(`RAZÓN SOCIAL: ${M.receptor.rs.toUpperCase()}`));
     if (M.receptor.giro) await printRawText(wrap(`GIRO: ${M.receptor.giro.toUpperCase()}`));
     if (M.receptor.dir) await printRawText(wrap(`DIRECCIÓN: ${M.receptor.dir.toUpperCase()}`));
     if (M.receptor.comuna || M.receptor.ciudad) {
-        await printRawText(`COMUNA: ${M.receptor.comuna?.toUpperCase() || ''}\n`);
+        await printRawText(`COMUNA: ${M.receptor.comuna?.toUpperCase() || ''}`);
     }
-    if (M.fecha) await printRawText(`FECHA EMISIÓN: ${M.fecha}\n`);
-    if (M.traslado.indicador) await printRawText(`IND. TRASLADO: ${M.traslado.indicador}\n`);
+    if (M.fecha) await printRawText(`FECHA EMISIÓN: ${M.fecha}`);
+    if (M.traslado.indicador) await printRawText(`IND. TRASLADO: ${M.traslado.indicador}`);
     await printRawText(wrap(`ORIGEN: ${M.traslado.origen.toUpperCase()}`));
     if (M.traslado.destino) await printRawText(wrap(`DESTINO: ${M.traslado.destino.toUpperCase()}`));
     await printRawText(div());
@@ -185,9 +186,9 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     // Transporte
     await printRawText(left('DATOS TRANSPORTE'));
     if (M.trans.transportista) await printRawText(wrap(`TRANSPORTISTA: ${M.trans.transportista.toUpperCase()}`));
-    if (M.trans.patenteCamion) await printRawText(`PATENTE CAMIÓN: ${M.trans.patenteCamion}\n`);
-    if (M.trans.patenteCarro) await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}\n`);
-    if (M.trans.rutChofer) await printRawText(`RUT CHOFER: ${M.trans.rutChofer}\n`);
+    if (M.trans.patenteCamion) await printRawText(`PATENTE CAMIÓN: ${M.trans.patenteCamion}`);
+    if (M.trans.patenteCarro) await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}`);
+    if (M.trans.rutChofer) await printRawText(`RUT CHOFER: ${M.trans.rutChofer}`);
     if (M.trans.nomChofer) await printRawText(wrap(`NOMBRE CHOFER: ${M.trans.nomChofer.toUpperCase()}`));
     if (M.trans.contratista) await printRawText(wrap(`CONTRATISTA: ${M.trans.contratista.toUpperCase()}`));
     if (M.trans.proveedorRut || M.trans.proveedorNom) {
@@ -201,7 +202,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`PRODUCTO: ${tituloProd}`));
     await printRawText(wrap(`CERTIFICACIÓN: ${M.prod.fsc}`));
     //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
-    await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}\n`);
+    await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
 
     //tabla mr
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {
@@ -256,23 +257,14 @@ export async function printGuiaFromDoc(doc, opts = {}) {
                 aspectratio: 5,
                 scale: 7,
                 height: 10,
-                quiet: 6,
+                quiet: 2,
 
                 // ← Seguridad óptima para térmica
                 securitylevel: [5, 4, 3],
             });
-
-            const i = new Image();
-            i.src = dataUrl;
-            await new Promise(res => { i.onload = res; });
-            console.log('PDF417 final:', i.naturalWidth, 'x', i.naturalHeight);
-
-
             timbreBase64 = dataUrl; // el plugin suele aceptar dataURL; si no, usa stripDataUrl(dataUrl)
         } catch (e) {
-            console.log(e);
-            // Si falla, mostramos un aviso y seguimos sin timbre (no rompemos la impresión)
-            await printTextSizeAlignSafe('** No se pudo generar timbre **\n', '0', '1');
+            await printTextSizeAlignSafe('** No se pudo generar timbre **', '0', '1');
         }
     }
 
@@ -283,20 +275,19 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
         // 80mm ⇒ paperWidth 48; centrado
         await printBase64Safe(b64, '0', '48');
-
-        // Pie “Timbre electrónico SII”
-        await printTextSizeAlignSafe('Timbre electrónico SII\n', '0', '1');
-
         // “RES {n} de {año} - Verifique documento en www.sii.cl”
         const numRes = M.emisor.nResol || '';
         const anioRes = (M.emisor.fResol || '').slice(0, 4) || '';
-        if (numRes || anioRes) {
-            await printTextSizeAlignSafe(`RES ${numRes} de ${anioRes} - Verifique documento en www.sii.cl\n`, '0', '1');
-        }
-        await printTextSizeAlignSafe('ORIGINAL\n\n', '0', '2'); // o “CEDIBLE” según flujo
+        await printTextSizeAlignSafe(
+            'Timbre electrónico SII\nRES ' +
+            `${numRes} de ${anioRes} - Verifique documento en www.sii.cl`,
+            '0',
+            '1'
+        );
     } else {
-        await printTextSizeAlignSafe('Documento sin timbre impreso\n\n', '0', '1');
+        await printTextSizeAlignSafe('Documento sin timbre impreso', '0', '1');
     }
+    await printTextSizeAlignSafe('ORIGINAL', '0', '2'); // o “CEDIBLE” según flujo
     await printRawText('\n\n');
 }
 

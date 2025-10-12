@@ -458,26 +458,72 @@ export default {
             // por ahora, placeholder:
             f7.toast.show({
                 text: "Enviar guía (pendiente de implementar)",
+                closeTimeout: 2000,
             });
         },
         async onImprimir(doc) {
             try {
                 f7.dialog.preloader("Imprimiendo…");
-                // Si tienes el timbre como base64: pásalo aquí
-                // const timbre = await generarPDF417Base64(doc.ted)  // si lo consigues
-                await printGuiaFromDoc(doc, {
-                    timbreBase64: null, // o el base64 si lo tienes
-                });
+                await printGuiaFromDoc(doc, { timbreBase64: null });
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
             } catch (e) {
                 console.error(e);
-                f7.dialog.alert(
-                    typeof e === "string"
-                        ? e
-                        : e?.message || "Error al imprimir"
-                );
+                const msg = String(e?.message || e || "");
+                const paperLikely =
+                    /paper|cover|sin\s*papel|tapa|timeout|broken pipe|socket|disconnected/i.test(
+                        msg
+                    );
+
+                if (paperLikely) {
+                    // sugerir reintento
+                    f7.dialog
+                        .create({
+                            title: "Impresora",
+                            text: "Papel agotado o tapa abierta. Recarga y cierra la tapa. ¿Reintentar impresión?",
+                            buttons: [
+                                { text: "Cancelar" },
+                                {
+                                    text: "Reintentar",
+                                    bold: true,
+                                    onClick: async () => {
+                                        // reintento
+                                        try {
+                                            f7.dialog.preloader(
+                                                "Reintentando…"
+                                            );
+                                            await printGuiaFromDoc(doc, {
+                                                timbreBase64: null,
+                                            });
+                                            f7.toast
+                                                .create({
+                                                    text: "Impresión enviada",
+                                                    closeTimeout: 1500,
+                                                })
+                                                .open();
+                                        } catch (e2) {
+                                            f7.dialog.alert(
+                                                e2?.message ||
+                                                    "Error al reintentar impresión"
+                                            );
+                                        } finally {
+                                            try {
+                                                f7.dialog.close();
+                                            } catch {}
+                                        }
+                                    },
+                                },
+                            ],
+                        })
+                        .open();
+                } else {
+                    f7.dialog.alert(
+                        typeof e === "string"
+                            ? e
+                            : e?.message || "Error al imprimir"
+                    );
+                }
             } finally {
                 try {
                     f7.dialog.close();

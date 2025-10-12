@@ -14,9 +14,51 @@ function hasPlugin() {
 //                              en muchas térmicas = CP1252/Latin1, corrige tildes/ñ)
 const ESC_POS_LATIN = '\x1C\x2E\x1B\x74\x10';
 
+// Alineación ESC/POS
+const ESC_ALIGN_LEFT = '\x1B\x61\x00'; // ESC a 0
+const ESC_ALIGN_CENTER = '\x1B\x61\x01'; // por si lo necesitas
+const ESC_ALIGN_RIGHT = '\x1B\x61\x02';
+
+// === Errores BT transitorios típicos ===
+const TRANSIENT_BT_ERR = /broken pipe|socket.*closed|device.*disconnected|connection.*(lost|reset)|write.*failed/i;
+
+const OP_TIMEOUT_MS = 4000; // ajusta 3–6s según tu impresora
+function withTimeout(promise, ms = OP_TIMEOUT_MS, tag = 'BT op') {
+    let t;
+    const timeout = new Promise((_, rej) => {
+        t = setTimeout(() => rej(new Error(`${tag} timeout`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+}
+
+
+// Pequeño sleep
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function callWithReconnect(method, args = [], { retries = 1, reconnect = true, waitMs = 250 } = {}) {
+    try {
+        return await callPlugin(method, ...args);
+    } catch (e) {
+        const msg = String(e?.message || e || '');
+        const transient = TRANSIENT_BT_ERR.test(msg);
+        if (!transient || !reconnect || retries <= 0) throw e;
+
+        // limpiar socket y reconectar
+        try { await disconnectPrinter(); } catch (_) { }
+        const name = await getPreferredPrinterName();
+        if (!name) throw new Error('Impresora no configurada');
+        await delay(waitMs);
+        await connectByName(name);
+        await delay(150);
+
+        return callWithReconnect(method, args, { retries: retries - 1, reconnect, waitMs: waitMs * 2 });
+    }
+}
+
+
 // Utilidad interna: invocar método del plugin Cordova
 function callPlugin(fn, ...args) {
-    return new Promise((resolve, reject) => {
+    return withTimeout(new Promise((resolve, reject) => {
         if (!hasPlugin()) return reject('Plugin BTPrinter no disponible');
         try {
             window.BTPrinter[fn](
@@ -27,7 +69,7 @@ function callPlugin(fn, ...args) {
         } catch (e) {
             reject(e?.message || e);
         }
-    });
+    }), OP_TIMEOUT_MS, `BTPrinter.${fn}`);
 }
 
 // API cruda del plugin (ppicapietra)
@@ -58,14 +100,19 @@ export async function disconnectPrinter() {
 
 
 function withEscPosPrefixOnce(text) {
-    // Garantiza string y agrega el prefijo para codepage/acentos
-    const payload = (text == null || text === '') ? '\n' : String(text);
+    // Normaliza texto sin añadir saltos automáticos
+    let payload = String(text ?? '');
+    // Elimina saltos finales redundantes (\n o \r\n)
+    payload = payload.replace(/[\r\n]+$/g, '');
+    // Si de verdad quieres forzar un salto, hazlo fuera de esta función
     return ESC_POS_LATIN + payload;
 }
+
 function addPrefixToFirstChunk(chunks) {
     if (!chunks.length) return chunks;
     const [first, ...rest] = chunks;
-    return [ESC_POS_LATIN + first, ...rest];
+    // Agregar codepage + alineación izquierda siempre que uses printText
+    return [ESC_POS_LATIN + ESC_ALIGN_LEFT + first, ...rest];
 }
 // -----------------------------------------------------------
 
@@ -74,7 +121,7 @@ export async function printRawText(text) {
     if (!ok) throw new Error('No hay conexión con la impresora. Verifica la configuración.');
 
     const src = (text == null || text === '') ? '\n' : String(text);
-    const chunkSize = 2000;
+    const chunkSize = 1024;
 
     const chunks = [];
     for (let i = 0; i < src.length; i += chunkSize) {
@@ -85,7 +132,8 @@ export async function printRawText(text) {
     const chunksWithPrefix = addPrefixToFirstChunk(chunks);
 
     for (const ch of chunksWithPrefix) {
-        await callPlugin('printText', ch);
+        await callWithReconnect('printText', [ch], { retries: 1 });
+        await delay(10); // da respiro al buffer BT
     }
 }
 
@@ -100,18 +148,23 @@ async function getPreferredPrinterName() {
 }
 
 /** Conecta si no está conectado. Devuelve true si hay conexión al final. */
-export async function ensureConnected() {
-    // 1) ¿ya conectado?
-    if (await isConnected()) return true;
+async function pingPrinter() {
+    try {
+        // intento mínimo sin reconexión
+        await callWithReconnect('printText', ['\n'], { retries: 0, reconnect: false });
+        return true;
+    } catch {
+        return false;
+    }
+}
 
-    // 2) buscar nombre guardado
+export async function ensureConnected() {
+    if (await isConnected() && await pingPrinter()) return true;
     const name = await getPreferredPrinterName();
     if (!name) return false;
-
-    // 3) intentar conectar
     try {
         await connectByName(name);
-        return await isConnected();
+        return await pingPrinter();
     } catch {
         return false;
     }
@@ -159,11 +212,11 @@ export async function printTitleSafe(text, size = '1', align = '1') {
  * si ya lo tienes, puedes usar este como "alias" más explícito.
  */
 export async function printBase64Safe(base64String, align = '1', paperWidth = '48') {
-    console.log(paperWidth);
     if (!base64String) throw new Error('Falta cadena base64');
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay conexión con la impresora. Verifica la configuración.');
-    return callPlugin('printBase64', base64String, String(align), paperWidth);
+    return callWithReconnect('printBase64', [base64String, String(align), paperWidth], { retries: 1 });
+
 }
 
 /**
@@ -187,7 +240,8 @@ export async function printLinesSafe(lines = []) {
                 chunk = ESC_POS_LATIN + chunk;    // prefijo en la primera línea/chunk
                 firstChunkPrinted = true;
             }
-            await callPlugin('printText', chunk);
+            await callWithReconnect('printText', [chunk], { retries: 1 });
+
         }
     }
 }
