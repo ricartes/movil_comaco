@@ -1,6 +1,7 @@
 // /app/services/GuiaPrinter.js
 import { printRawText, printBase64Safe, printTextSizeAlignSafe, connectByName, isConnected } from '@/app/services/PrinterService';
 import { generateHeaderBoxBase64 } from '@/js/Utils/ticketHeaderBox';
+import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-thermal';
 import store from '@/js/store';
 
 // ===== Ajustes de ticket =====
@@ -20,6 +21,25 @@ const center = (s = '') => {
     const pad = Math.floor((COLS - s.length) / 2);
     return rep(' ', pad) + s + rep(' ', COLS - s.length - pad) + '\n';
 };
+
+const DECIMALS_BY_UM = {
+    MR: 2,
+    TON: 2,
+    BDMT: 3,
+    M3ST: 3,
+    M3: 3, // fallback para m³ “normal”
+};
+
+// arriba, junto a helpers:
+function numDec(v, places = 2, comma = false) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return (0).toFixed(places);
+    // Para Bluetooth/ESC-POS suele ser más seguro el punto (comma=false).
+    return comma
+        ? n.toLocaleString('es-CL', { minimumFractionDigits: places, maximumFractionDigits: places })
+        : n.toFixed(places);
+}
+
 
 function wrap(s = '') {
     const t = String(s);
@@ -184,17 +204,37 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}\n`);
 
     // Tabla MR (por tus campos detalleMR)
+    // Tabla MR (por tus campos detalleMR)
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {
         await printRawText(div('-'));
         await printRawText(left(`BANCO  ANCHO  H.IZQ  H.DER  LARGO  ${M.prod.unidad}`));
         await printRawText(div('-'));
+
         for (let i = 0; i < M.detalleMR.length; i++) {
             const d = M.detalleMR[i];
-            const linea = ` ${String(d.id).padEnd(5)} ${num(d.ancho).padEnd(5)} ${num(d.alturaIzquierda).padEnd(5)} ${num(d.alturaDerecha).padEnd(5)} ${num(d.largo).padEnd(5)} ${num(d.volumen)}`;
+
+            // Volumen con 3 decimales, resto igual
+            const vol = (d.volumen != null)
+                ? Number(d.volumen).toLocaleString('es-CL', {
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 3
+                })
+                : '0.000';
+
+            const linea =
+                ` ${String(d.id).padEnd(5)} ` +
+                `${num(d.ancho).padEnd(5)} ` +
+                `${num(d.alturaIzquierda).padEnd(5)} ` +
+                `${num(d.alturaDerecha).padEnd(5)} ` +
+                `${num(d.largo).padEnd(5)} ` +
+                `${vol}`;
+
             await printRawText(left(linea));
         }
+
         await printRawText(div());
     }
+
 
     // Totales
     await printRawText(twoCols('NETO', `$${fmt(M.tot.neto)}`, 12));
@@ -202,19 +242,40 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(twoCols('TOTAL', `$${fmt(M.tot.total)}`, 12));
     await printRawText(div('='));
 
-    // Timbre/QR (si tienes base64). Si no, puedes omitirlo por ahora.
-    if (opts?.timbreBase64) {
-        try { await printBase64Safe(opts.timbreBase64, '1', 32); } catch (_) { }
-        await printTextSizeAlignSafe('TIMBRE ELECTRÓNICO S.I.I\n', '0', '1');
-        if (M.emisor.nResol && M.emisor.fResol) {
-            const anio = String(M.emisor.fResol).slice(0, 4);
-            await printTextSizeAlignSafe(`Res. ${M.emisor.nResol} de ${anio} - Verifique en www.sii.cl\n`, '0', '1');
+
+    // ===== TIMBRE PDF417 =====
+    let timbreBase64 = opts?.timbreBase64;
+    if (!timbreBase64 && doc?.ted) {
+        // Generar localmente desde TED
+        try {
+            const dataUrl = await renderThermalPdf417FromTED(doc.ted);
+            timbreBase64 = dataUrl; // el plugin suele aceptar dataURL; si no, usa stripDataUrl(dataUrl)
+        } catch (e) {
+            // Si falla, mostramos un aviso y seguimos sin timbre (no rompemos la impresión)
+            await printTextSizeAlignSafe('** No se pudo generar timbre **\n', '0', '1');
         }
-        await printTextSizeAlignSafe('ORIGINAL\n\n', '0', '2');
+    }
+
+    if (timbreBase64) {
+        // Para máxima compatibilidad, si tu plugin requiere “solo base64”, descomenta la línea con strip:
+        // const b64 = stripDataUrl(timbreBase64);
+        const b64 = timbreBase64;
+
+        // 80mm ⇒ paperWidth 48; centrado
+        await printBase64Safe(b64, '1', 64);
+
+        // Pie “Timbre electrónico SII”
+        await printTextSizeAlignSafe('Timbre electrónico SII\n', '0', '1');
+
+        // “RES {n} de {año} - Verifique documento en www.sii.cl”
+        const numRes = M.emisor.nResol || '';
+        const anioRes = (M.emisor.fResol || '').slice(0, 4) || '';
+        if (numRes || anioRes) {
+            await printTextSizeAlignSafe(`RES ${numRes} de ${anioRes} - Verifique documento en www.sii.cl\n`, '0', '1');
+        }
+        await printTextSizeAlignSafe('ORIGINAL\n\n', '0', '2'); // o “CEDIBLE” según flujo
     } else {
-        // Fallback: mensaje sin timbre
-        await printTextSizeAlignSafe('Documento sin timbre impreso\n', '0', '1');
-        await printRawText('\n');
+        await printTextSizeAlignSafe('Documento sin timbre impreso\n\n', '0', '1');
     }
     await printRawText('\n\n');
 }
