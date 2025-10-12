@@ -158,11 +158,12 @@ export async function printTitleSafe(text, size = '1', align = '1') {
  * Nota: no reemplaza tu printBase64Image existente si ya lo tienes;
  * si ya lo tienes, puedes usar este como "alias" más explícito.
  */
-export async function printBase64Safe(base64String, align = '1', paperWidth = 32) {
+export async function printBase64Safe(base64String, align = '1', paperWidth = '48') {
+    console.log(paperWidth);
     if (!base64String) throw new Error('Falta cadena base64');
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay conexión con la impresora. Verifica la configuración.');
-    return callPlugin('printBase64', base64String, String(align), Number(paperWidth));
+    return callPlugin('printBase64', base64String, String(align), paperWidth);
 }
 
 /**

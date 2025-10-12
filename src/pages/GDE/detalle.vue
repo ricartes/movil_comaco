@@ -453,6 +453,7 @@ export default {
         },
 
         async onEnviar() {
+            console.log(this.doc);
             // TODO: lógica para enviar/reintentar envío al SII
             // por ahora, placeholder:
             f7.toast.show({

@@ -153,7 +153,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         textColor: '#000000',
     });
     await printBase64Safe(headerB64, '1', 48);
-    await printTextSizeAlignSafe('\n', '0', '0');
+    //await printTextSizeAlignSafe('\n', '0', '0');
 
 
     if (M.emisor.comuna) await printRawText(center(`S.I.I ${M.emisor.comuna.toUpperCase()}`));
@@ -200,11 +200,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
     await printRawText(wrap(`PRODUCTO: ${tituloProd}`));
     await printRawText(wrap(`CERTIFICACIÓN: ${M.prod.fsc}`));
-    if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
+    //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
     await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}\n`);
 
-    // Tabla MR (por tus campos detalleMR)
-    // Tabla MR (por tus campos detalleMR)
+    //tabla mr
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {
         await printRawText(div('-'));
         await printRawText(left(`BANCO  ANCHO  H.IZQ  H.DER  LARGO  ${M.prod.unidad}`));
@@ -248,9 +247,30 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (!timbreBase64 && doc?.ted) {
         // Generar localmente desde TED
         try {
-            const dataUrl = await renderThermalPdf417FromTED(doc.ted);
+            const dataUrl = await renderThermalPdf417FromTED(doc.ted, {
+                targetWidth: 576,
+                targetHeight: 300,
+                fit: 'fill',
+
+                columns: [6, 8],
+                aspectratio: 5,
+                scale: 7,
+                height: 10,
+                quiet: 6,
+
+                // ← Seguridad óptima para térmica
+                securitylevel: [5, 4, 3],
+            });
+
+            const i = new Image();
+            i.src = dataUrl;
+            await new Promise(res => { i.onload = res; });
+            console.log('PDF417 final:', i.naturalWidth, 'x', i.naturalHeight);
+
+
             timbreBase64 = dataUrl; // el plugin suele aceptar dataURL; si no, usa stripDataUrl(dataUrl)
         } catch (e) {
+            console.log(e);
             // Si falla, mostramos un aviso y seguimos sin timbre (no rompemos la impresión)
             await printTextSizeAlignSafe('** No se pudo generar timbre **\n', '0', '1');
         }
@@ -262,7 +282,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         const b64 = timbreBase64;
 
         // 80mm ⇒ paperWidth 48; centrado
-        await printBase64Safe(b64, '1', 64);
+        await printBase64Safe(b64, '0', '48');
 
         // Pie “Timbre electrónico SII”
         await printTextSizeAlignSafe('Timbre electrónico SII\n', '0', '1');

@@ -23,6 +23,7 @@ export async function renderPdf417FromTED(
         columns,           // si lo pasas null/undefined, deja que el algoritmo escoja
         securitylevel,     // idem; 5 es buen equilibrio
         includetext = false,
+        aspectratio,
     } = {}
 ) {
     const text = normalizeTed(ted);
@@ -54,6 +55,7 @@ export async function renderPdf417FromTED(
                     columns: col,         // 1..30
                     securitylevel: sl,    // 0..8 (redundancia)
                     includetext,
+                    ...(aspectratio != null ? { aspectratio } : {}),
                     // Sugerencias adicionales que suelen ir bien con TED:
                     // aspectratio: 3,     // opcional (alto/anchura del símbolo)
                     // readerinit: false,  // dejar en false para TED
