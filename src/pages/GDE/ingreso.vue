@@ -91,7 +91,7 @@
 
             <f7-block
                 strong
-                v-if="form.datosGeocerca.validada === false"
+                v-if="this.form.predio && form.datosGeocerca.validada === false"
                 class="alert-wrapper"
             >
                 <div

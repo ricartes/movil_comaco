@@ -13,20 +13,24 @@
                     </tr>
                     <tr>
                         <td class="label-cell"><b>Precio unitario:</b></td>
-                        <td class="label-cell">
-                            {{
-                                formatMoneyCLP(doc.precioProducto?.precio ?? 0)
-                            }}
-                            <f7-badge
-                                v-if="
-                                    doc.precioProducto
-                                        ?.indicadorPrecioPorDefecto
-                                "
-                                color="orange"
-                                style="margin-left: 8px"
-                            >
-                                por defecto
-                            </f7-badge>
+                        <td class="value-cell">
+                            <div class="price-with-badge">
+                                {{
+                                    formatMoneyCLP(
+                                        doc.precioProducto?.precio ?? 0
+                                    )
+                                }}
+                                <f7-badge
+                                    v-if="
+                                        doc.precioProducto
+                                            ?.indicadorPrecioPorDefecto
+                                    "
+                                    color="orange"
+                                    class="badge-default"
+                                >
+                                    por defecto
+                                </f7-badge>
+                            </div>
                         </td>
                     </tr>
 
@@ -307,5 +311,29 @@ export default {
 /* totales */
 .totals {
     margin-top: 8px;
+}
+
+/* Mantén el precio y el badge juntos y que puedan saltar de línea */
+.price-with-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px; /* igual que tu margin-left */
+    flex-wrap: wrap; /* permite bajar el badge a la línea siguiente si no cabe */
+}
+
+/* Ajustes del badge para móviles */
+.badge-default {
+    white-space: nowrap; /* no se parte dentro del badge */
+    line-height: 18px;
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 12px;
+}
+
+@media (max-width: 360px) {
+    .badge-default {
+        font-size: 11px;
+        padding: 1px 6px;
+    }
 }
 </style>

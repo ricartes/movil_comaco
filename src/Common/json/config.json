@@ -70,21 +70,35 @@
             }
         },
         "estadosGuia": {
+            "PROVISORIA": {
+                "id": "P",
+                "texto": "PROVISORIA",
+                "color": "color-orange",
+                "estilo": "chip-outline"
+            },
             "BORRADOR": {
                 "id": "B",
-                "texto": "BORRADOR"
+                "texto": "BORRADOR",
+                "color": "color-gray",
+                "estilo": "chip-outline"
             },
             "EMITIDA": {
                 "id": "I",
-                "texto": "EMITIDA"
+                "texto": "EMITIDA",
+                "color": "color-blue",
+                "estilo": "chip-fill"
             },
             "NULA": {
                 "id": "N",
-                "texto": "NULA"
+                "texto": "NULA",
+                "color": "color-black",
+                "estilo": "chip-outline"
             },
             "ENVIADA": {
                 "id": "E",
-                "texto": "ENVIADA"
+                "texto": "ENVIADA",
+                "color": "color-teal",
+                "estilo": "chip-fill"
             }
         },
         "parametrosGenerales": {
