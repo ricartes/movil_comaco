@@ -191,7 +191,7 @@
 <script>
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
-import logoSrc from "@/assets/img/logo.png";
+import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import UsuarioService from "@/app/services/UsuarioService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 

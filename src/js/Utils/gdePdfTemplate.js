@@ -1,7 +1,7 @@
 // src/utils/gdePdfTemplate.js
 import pdfMake from "pdfmake/build/pdfmake";
 import "pdfmake/build/vfs_fonts";
-
+import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
@@ -164,16 +164,43 @@ function buildHeaderLeft(doc) {
     const sucursales = Array.isArray(emp.sucursales) ? emp.sucursales : [];
     const s0 = sucursales[0] || null;          // primera sucursal (la de “Sucursal:”)
     const canchas = sucursales.slice(1);       // resto
+    const logo = doc?.__logoPng;
 
     const leftStack = [
-        // Título y giro/actividad
-        { text: U(emp.razonSocial || ''), fontSize: 12, bold: true, alignment: 'center', margin: [0, 0, 0, 4] },
+        // === LOGO + RAZÓN SOCIAL CENTRADOS ===
         {
-            text: U(emp.giro || emp.actividadSII || emp.actividadEconomica || ''),
-            fontSize: 9, color: brand.gray, alignment: 'center', lineHeight: 1.0, margin: [0, 0, 0, 6],
+            table: {
+                // si hay logo: [* | logo | texto | *] ; si no hay logo: [* | texto | *]
+                widths: logo ? ["*", "auto", "auto", "*"] : ["*", "auto", "*"],
+                body: [
+                    logo
+                        ? [
+                            "", // margen flexible izquierda
+                            { image: logo, width: 35, margin: [0, 2, 6, 0] }, // logo
+                            { text: U(emp.razonSocial || ""), fontSize: 12, bold: true, margin: [0, 8, 0, 0] }, // razón social
+                            "", // margen flexible derecha
+                        ]
+                        : [
+                            "",
+                            { text: U(emp.razonSocial || ""), fontSize: 12, bold: true, margin: [0, 8, 0, 0] },
+                            "",
+                        ],
+                ],
+            },
+            layout: "noBorders",
+            margin: [0, 0, 0, 8], // un poquito más de aire debajo
         },
-    ];
 
+        // GIRO / ACTIVIDAD (centrado)
+        {
+            text: U(emp.giro || emp.actividadSII || emp.actividadEconomica || ""),
+            fontSize: 9,
+            color: brand.gray,
+            alignment: "center",
+            margin: [0, 0, 0, 8],
+        },
+        // ... sigue tu stack (Casa Matriz / Sucursal / Canchas) ...
+    ];
     // 🔴 IMPORTANTE: ESTE BLOQUE REEMPLAZA a los push antiguos de “Casa Matriz / Sucursal”
     leftStack.push({
         table: {
@@ -305,19 +332,20 @@ function buildBoxOperacion(doc) {
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine("Año Plantación", doc?.rodal?.fechaPlantacion ? fDate(doc.rodal.fechaPlantacion) : (doc?.comentarios?.anioCosecha ?? "—")),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
-            kvLine("Nro Aviso Corta", doc?.rodal?.nroaviso),
-            kvLine("Punto Rescate X", doc?.comentarios?.puntoX),
+           
+
         ],
     };
     const right = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
-            kvLine("OC", "—"),
-            kvLine("Contrato Cliente", "—"),
+            kvLine("OC", doc?.ordenCompra?.numOc ?? "—"),
             kvLine("Vol. Proveedor", doc?.comentarios?.volumenProveedor ?? 0),
             kvLine("Año Cosecha", doc?.comentarios?.anioCosecha ?? "—"),
+            kvLine("Punto Rescate X", doc?.comentarios?.puntoX),
             kvLine("Punto Rescate Y", doc?.comentarios?.puntoY),
+            kvLine("Nro Aviso Corta", doc?.rodal?.nroaviso),
         ],
     };
 
@@ -703,14 +731,14 @@ function buildTransporteYTotales(doc) {
 }
 
 function buildTimbreSII(doc) {
-    const timbrePng = doc?._timbrePng;
+    const timbrePng = doc?.__timbrePng;
     const tedStr = (doc?.ted || '').trim();
     if (!timbrePng || !tedStr) return { text: '' };
 
     const numRes = doc?.empresa?.numeroResolucion ?? '—';
     const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
 
-    const IMG_W = 260;
+    const IMG_W = 230;
 
     return {
         unbreakable: true,
@@ -793,6 +821,16 @@ function estimateHeaderHeight(doc) {
 }
 
 
+async function toDataUrl(src) {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result); // ← data:image/png;base64,...
+        fr.readAsDataURL(blob);
+    });
+}
+
 
 
 
@@ -828,17 +866,19 @@ function canchaBlock(s) {
 
 
 // =============== Doc Definition público ===============
-export function buildDefinition(doc) {
-    const topMargin = Math.max(80, estimateHeaderHeight(doc) - 24);
+export async function buildDefinition(doc, timbrePng) {
+    const logoDataUrl = await toDataUrl(logoSrc);
 
+    const pdfDoc = { ...doc, __logoPng: logoDataUrl, __timbrePng: timbrePng };
+    const topMargin = Math.max(80, estimateHeaderHeight(pdfDoc));
     const pageMarginsAll = [PAGE_X, 16, PAGE_X, PAGE_BOTTOM];
 
-    const box1 = buildBoxClienteFechas(doc);
-    const box2 = buildBoxOperacion(doc);
-    const detalle = buildDetallePorUM(doc);
-    const comentarioFull = buildComentarioFull(doc);
-    const transporteYTotales = buildTransporteYTotales(doc);
-    const timbreSII = buildTimbreSII(doc);
+    const box1 = buildBoxClienteFechas(pdfDoc);
+    const box2 = buildBoxOperacion(pdfDoc);
+    const detalle = buildDetallePorUM(pdfDoc);
+    const comentarioFull = buildComentarioFull(pdfDoc);
+    const transporteYTotales = buildTransporteYTotales(pdfDoc);
+    const timbreSII = buildTimbreSII(pdfDoc);
 
 
     // 1) Header como contenido absoluto en y=16 (no recortado por el margen)
@@ -846,8 +886,8 @@ export function buildDefinition(doc) {
         absolutePosition: { x: PAGE_X, y: 16 },
         // ancho sugerido igual al contenido normal
         width: PAGE_W - (PAGE_X * 2),
-        // usa el mismo contenido que buildHeaderHero(doc) devolvía antes
-        ...buildHeaderHero(doc),
+        // usa el mismo contenido que buildHeaderHero(pdfDoc) devolvía antes
+        ...buildHeaderHero(pdfDoc),
     };
 
     // 2) Spacer sólo en la primera página para despegar el contenido real
@@ -856,7 +896,7 @@ export function buildDefinition(doc) {
     return {
         pageSize: "A4",
         pageMargins: pageMarginsAll,
-        watermark: isDraft(doc) ? {
+        watermark: isDraft(pdfDoc) ? {
             text: "BORRADOR",
             color: "#000000",
             opacity: 0.10,
@@ -890,8 +930,3 @@ export function buildDefinition(doc) {
 
 
 
-// =============== Generador ===============
-export function generateGdePdf(doc, filename = `GDE-${doc?.folio || "borrador"}.pdf`) {
-    const def = buildDefinition(doc);
-    pdfMake.createPdf(def).download(filename);
-}

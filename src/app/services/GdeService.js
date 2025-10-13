@@ -44,10 +44,7 @@ export async function emitirGde(gde) {
     if (!folioDTO) throw new Error("No hay folios disponibles.");
     if (!urfDTO?.caf || !urfDTO?.rsask) throw new Error("URF sin CAF o RSASK.");
 
-
-
     // 2) Asignar folio + fecha
-
     const fechaIso = nowLocalIso(); // "2025-10-09T22:19:18"
     const fechaYYYYMMDD = fechaIso.slice(0, 10); // "2025-10-09"
     const tsYYYYMMDDTHHMMSS = fechaIso;          // "2025-10-09T22:19:18"

@@ -403,7 +403,7 @@ export default {
             f7.dialog.preloader("Generando PDF...");
             try {
                 if (!this.doc) throw new Error("Documento no cargado");
-                this.doc._timbrePng = undefined;
+                let timbrePng = null;
                 if (this.soloLectura) {
                     if (!this.doc.ted) {
                         // Si por algún motivo no hay TED, generamos PDF sin timbre pero avisamos.
@@ -412,19 +412,16 @@ export default {
                         );
                     } else {
                         // Genera imagen PDF417 del TED (requerimiento SII)
-                        this.doc._timbrePng = await renderPdf417FromTED(
-                            this.doc.ted,
-                            {
-                                scale: 1,
-                                columns: 25,
-                                securitylevel: 5,
-                                includetext: false,
-                            }
-                        );
+                        timbrePng = await renderPdf417FromTED(this.doc.ted, {
+                            scale: 1,
+                            columns: 25,
+                            securitylevel: 5,
+                            includetext: false,
+                        });
                     }
                 }
 
-                const def = buildDefinition(this.doc);
+                const def = await buildDefinition(this.doc, timbrePng);
                 const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
                 await createPdfAndOpen(def, filename);
             } catch (e) {
