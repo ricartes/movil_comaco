@@ -83,7 +83,7 @@
                 "texto": "NULA"
             },
             "ENVIADA": {
-                "id": "R",
+                "id": "E",
                 "texto": "ENVIADA"
             }
         },
@@ -125,7 +125,8 @@
         "RescatarZonas": "zona",
         "RescatarGeocercas": "geocerca",
         "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
-        "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar"
+        "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar",
+        "guardarGde": "gde"
     },
     "bd": {
         "tipoEntidad": {

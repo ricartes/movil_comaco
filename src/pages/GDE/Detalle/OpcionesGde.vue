@@ -19,7 +19,7 @@
             v-if="showEnviar"
             link
             @click="onEnviar"
-            title="Enviar guía"
+            :title="tituloEnviar"
             class="text-blue-600"
             :disabled="loading"
         >
@@ -102,7 +102,7 @@
 
 <script>
 import { f7 } from "framework7-vue";
-import store from '@/js/store';
+import store from "@/js/store";
 import config from "@/Common/json/config.json";
 
 export default {
@@ -150,6 +150,14 @@ export default {
         },
         isNula() {
             return this.st === this.ID_NULA;
+        },
+
+        tituloEnviar() {
+            return this.isEmitida
+                ? "Enviar guia"
+                : this.isEnviada
+                ? "Reenviar guia"
+                : "";
         },
 
         // Visibilidad según tu regla

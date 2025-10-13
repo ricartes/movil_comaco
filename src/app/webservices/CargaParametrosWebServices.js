@@ -26,7 +26,7 @@ const CargaParametrosWebServices = {
    * @param {string} ruta - ruta relativa del endpoint (ej: 'api/sii-usuario-rango-folio/confirmar')
    * @param {string} token - token Bearer JWT
    */
-    async postJson(body, ruta, token) {
+    async postJson(body, ruta, token, extraHeaders = {}, timeout = 20000) {
         const uuid = await Utilidades.getUIDevice()
         const url = urlJoin(apiBase(), ruta)
 
@@ -36,11 +36,14 @@ const CargaParametrosWebServices = {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
                 Authorization: `Bearer ${token}`,
+                ...extraHeaders, // ej: X-Idempotency-Key
             },
             data: {
                 ...body,
                 uuid, // opcional: mantener trazabilidad del dispositivo
             },
+            readTimeout: timeout,
+            connectTimeout: timeout,
         })
 
         return data // JSON parseado

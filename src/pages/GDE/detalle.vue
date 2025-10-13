@@ -192,6 +192,8 @@
 <script>
 import { f7 } from "framework7-vue";
 import { obtenerGde, descartarGde, emitirGde } from "@/app/services/GdeService";
+
+import { enviarGde } from "@/app/services/EnvioGdeService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
 import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
 import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";
@@ -453,13 +455,19 @@ export default {
         },
 
         async onEnviar() {
-            console.log(this.doc);
-            // TODO: lógica para enviar/reintentar envío al SII
-            // por ahora, placeholder:
-            f7.toast.show({
-                text: "Enviar guía (pendiente de implementar)",
-                closeTimeout: 2000,
-            });
+            f7.dialog.preloader("Enviado");
+            try {
+                const updatedDoc = await enviarGde(this.doc);
+                this.doc = updatedDoc; // 👈 actualizas el doc en memoria
+                f7.dialog.alert("Guía enviada correctamente.", "Éxito");
+            } catch (err) {
+                f7.dialog.alert(
+                    err.message || "Error al enviar la guía",
+                    "Error"
+                );
+            } finally {
+                f7.dialog.close();
+            }
         },
         async onImprimir(doc) {
             try {

@@ -24,6 +24,9 @@ export async function descartarGde(gde) {
     return await getGdeDao().eliminar(gde); // devuelve doc completo
 }
 
+
+
+
 export async function emitirGde(gde) {
     // --- Validaciones básicas
     if (!gde || typeof gde !== "object") throw new Error("GDE inválida.");
