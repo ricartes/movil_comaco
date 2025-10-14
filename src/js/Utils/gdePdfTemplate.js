@@ -352,6 +352,9 @@ const isDraft = (d) =>
     (d?.estado?.id && String(d.estado.id).toUpperCase() === "B") ||
     (d?.estado?.texto && /BORRADOR/i.test(d.estado.texto));
 
+const isCanceled = (d) =>
+    (d?.estado?.id && String(d.estado.id).toUpperCase() === config.parametros.estadosGuia.nula) ||
+    (d?.estado?.texto && /ANULAD/i.test(d.estado.texto));
 
 function getUM(doc) {
     const um = (doc?.producto?.unidadMedida || "").toString().trim().toUpperCase();
@@ -861,6 +864,31 @@ function canchaBlock(s) {
 }
 
 
+function getWatermark(doc) {
+    if (isCanceled(doc)) {
+        return {
+            text: "ANULADA",
+            color: "#b71c1c",     // rojo
+            opacity: 0.12,
+            bold: true,
+            italics: false,
+            fontSize: 120,
+        };
+    }
+    if (isDraft(doc)) {
+        return {
+            text: "BORRADOR",
+            color: "#000000",
+            opacity: 0.10,
+            bold: true,
+            italics: false,
+            fontSize: 140,
+        };
+    }
+    return undefined;
+}
+
+
 // =============== Doc Definition público ===============
 export async function buildDefinition(doc, timbrePng) {
     const logoDataUrl = await toDataUrl(logoSrc);
@@ -892,23 +920,8 @@ export async function buildDefinition(doc, timbrePng) {
     return {
         pageSize: "A4",
         pageMargins: pageMarginsAll,
-        watermark: isDraft(pdfDoc) ? {
-            text: "BORRADOR",
-            color: "#000000",
-            opacity: 0.10,
-            bold: true,
-            italics: false,
-            fontSize: 140
-        } : undefined,
+        watermark: getWatermark(pdfDoc),
 
-        // 👇 sin header repetido
-        // header: null,
-
-        // Background sólo si quieres dibujar algo repetido detrás; aquí no lo usamos
-        // background: null,
-
-        // Primero pintamos el header absoluto (se dibuja encima),
-        // luego el spacer para la pág. 1, y después el contenido normal.
         content: [
             headerHeroAbs,
             firstPageSpacer,
