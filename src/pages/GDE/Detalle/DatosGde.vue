@@ -1,6 +1,12 @@
 <script setup lang="ts">
 // Con F7-Vue no hace falta importar <f7-*> explícitamente.
+import formatters from '../../../js/mixins/formatters'
 
+
+// Saco solo lo que voy a usar
+const { formatFecha, formatMoneyCLP } = formatters.methods;
+
+// Saco solo lo que voy a usar
 interface GdeDoc {
     // ya existentes
     zona?: { descripcion?: string };
@@ -107,18 +113,6 @@ interface GdeDoc {
 }
 
 const props = defineProps<{ doc: GdeDoc | null | undefined }>();
-
-function formatFecha(iso?: string | null) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    return isNaN(d as any)
-        ? "—"
-        : d.toLocaleDateString("es-CL", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-          });
-}
 
 function formatHora(h?: string | null) {
     if (!h) return "—";
@@ -480,6 +474,7 @@ function formatCoord(n?: number | null) {
         </f7-card-content>
     </f7-card>
 </template>
+
 
 <style scoped>
 .section {
