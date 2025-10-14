@@ -6,17 +6,17 @@ import config from "@/Common/json/config.json";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
-const PAGE_X = 6;            // 👈 márgenes laterales mínimos (~2 mm)
+const PAGE_X = 5;            // 👈 márgenes laterales mínimos (~2 mm)
 const HEADER_H = 128;        // altura reservada para el header
 const PAGE_TOP = HEADER_H;   // contenido inicia bajo el header
 const FIRST_BLOCK_TOP_GAP = 14;
-const PAGE_BOTTOM = 60;
+const PAGE_BOTTOM = 44;
 const PAGE_W = 595;          // ancho A4 en pt
 const BOX_CONTENT_MIN = 71;
 const RIGHT_BOX_W = 220;
 const CANCHAS_INDENT = 24;
-const TAMANO_LETRA_ELEMENTOS = 9;
-const TAMANO_LETRA_SUCURSALES = 8;
+const TAMANO_LETRA_ELEMENTOS = 7;
+const TAMANO_LETRA_SUCURSALES = 6;
 const getIvaPct = (doc) => {
     const n = Number(doc?.ivaPct);
     return Number.isFinite(n) && n > 0 ? n : config.parametros.ivaPorDefecto;
@@ -62,22 +62,14 @@ const boxedLayout = {
     vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 1 : 0.5),
     hLineColor: () => brand.border,
     vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 6, paddingBottom: () => 6,
+    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
 };
 const boxedOuterOnly = {
     hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 1 : 0),
     vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 1 : 0),
     hLineColor: () => brand.border,
     vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 6, paddingBottom: () => 6,
-};
-// 👇 solo borde exterior SIN el superior (para el primer bloque bajo el header)
-const boxedOuterOnlyNoTop = {
-    hLineWidth: (i, node) => (i === node.table.body.length ? 1 : 0), // solo línea inferior
-    vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 1 : 0),
-    hLineColor: () => brand.border,
-    vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 6, paddingBottom: () => 6,
+    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
 };
 
 const boxedLayoutTight = {
@@ -85,7 +77,7 @@ const boxedLayoutTight = {
     vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 1 : 0.5),
     hLineColor: () => brand.border,
     vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
+    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 3, paddingBottom: () => 3,
 };
 // solo horizontales internas; SIN líneas verticales ni marco exterior
 const gridNoOuterLayout = {
@@ -93,7 +85,7 @@ const gridNoOuterLayout = {
     vLineWidth: () => 0,          // sin verticales
     hLineColor: () => brand.border,
     vLineColor: () => brand.border,
-    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 3,
+    paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 3, paddingBottom: () => 2,
 };
 
 const toNum = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -332,7 +324,7 @@ function buildBoxOperacion(doc) {
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine("Año Plantación", doc?.rodal?.fechaPlantacion ? fDate(doc.rodal.fechaPlantacion) : (doc?.comentarios?.anioCosecha ?? "—")),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
-           
+
 
         ],
     };
@@ -489,6 +481,7 @@ function buildDetalleM3(doc) {
 
 // Helper: obtiene volumen según UM
 function getVolumenByUM(doc, um) {
+
     const t = doc?.totales || {};
     switch (um) {
         case config.parametros.unidadesMedida.MR:
@@ -577,6 +570,7 @@ function buildDetalleMR(doc) {
 // Usa MR-table para MR/TON/BDMT/M3ST, de lo contrario M3-table
 function buildDetallePorUM(doc) {
     const um = getUM(doc);
+    console.log(config);
     const umMRLike = [
         config.parametros.unidadesMedida.MR,
         config.parametros.unidadesMedida.TON,
@@ -597,7 +591,7 @@ function buildComentarioFull(doc) {
             widths: ["*"],
             body: [
                 [{ text: "COMENTARIO:", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS, }],
-                [{ text: fStr(doc?.comentarios?.comentarios), margin: [0, 8, 0, 10], fontSize: TAMANO_LETRA_ELEMENTOS, }],
+                [{ text: fStr(doc?.comentarios?.comentarios), margin: [0, 6, 0, 6], fontSize: TAMANO_LETRA_ELEMENTOS, }],
             ],
         },
         layout: boxedLayoutTight,
@@ -656,6 +650,16 @@ function extractTotals(doc) {
 function buildTransporteYTotales(doc) {
     const { neto, ivaPct, ivaMonto, total } = extractTotals(doc);
 
+    const boxedLayoutTightBottom = {
+        hLineWidth: (i, n) => (i === 0 || i === n.table.body.length ? 1 : 0.5),
+        vLineWidth: (i, n) => (i === 0 || i === n.table.widths.length ? 1 : 0.5),
+        hLineColor: () => brand.border,
+        vLineColor: () => brand.border,
+        paddingLeft: () => 6,
+        paddingRight: () => 6,
+        paddingTop: () => 3,
+        paddingBottom: () => 2,   // 👈 menos padding abajo
+    };
     const transporteBox = {
         width: "*",
         table: {
@@ -738,45 +742,37 @@ function buildTimbreSII(doc) {
     const numRes = doc?.empresa?.numeroResolucion ?? '—';
     const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
 
-    const IMG_W = 230;
+    // más ancho y más alto “deseado”
+    const IMG_W = 260;   // antes 260 → puedes subir a 280 si te cabe
+    const IMG_H = 110;   // altura objetivo (100–130 funciona bien)
 
     return {
         unbreakable: true,
-        margin: [PAGE_X, 10, PAGE_X, 0],
+        margin: [PAGE_X, 6, PAGE_X, 0], // ↓ antes 10 → 6 (menos espacio arriba)
         table: {
-            widths: [IMG_W],              // ← contenedor de ancho fijo
-            body: [[
-                {
-                    stack: [
-                        { image: timbrePng, width: IMG_W, alignment: 'center', margin: [0, 0, 0, 6] },
-                        {
-                            alignment: 'center',
-                            fontSize: 8,
-                            lineHeight: 1.1,
-                            text: [
-                                { text: 'Timbre electrónico SII\n' },
-                                { text: `RES ${numRes} de ${fechaRes} - Verifique documento en www.sii.cl` },
-                            ],
-                        },
-                    ],
-                }
-            ]],
+            widths: [IMG_W],
+            body: [[{
+                stack: [
+                    // usa fit para respetar aspecto dentro de [W,H]
+                    { image: timbrePng, fit: [IMG_W, IMG_H], alignment: 'center', margin: [0, 0, 0, 4] },
+                    {
+                        alignment: 'center',
+                        fontSize: TAMANO_LETRA_SUCURSALES, // 7–8
+                        lineHeight: 1.05,
+                        text: [
+                            { text: 'Timbre electrónico SII\n' },
+                            { text: `RES ${numRes} de ${fechaRes} - Verifique documento en www.sii.cl` },
+                        ],
+                    },
+                ],
+            }]],
         },
         layout: 'noBorders',
     };
 }
 
 
-// =============== Footer ===============
-function buildFooter(current, totalPages) {
-    return {
-        margin: [PAGE_X, 6, PAGE_X, 12],
-        columns: [
-            { text: "Documento de previsualización (sin timbre/folio)", fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray },
-            { text: `Página ${current} de ${totalPages}`, fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: "right" },
-        ],
-    };
-}
+
 
 function truncate(s, max = 80) {
     s = fStr(s);
@@ -854,11 +850,11 @@ function canchaBlock(s) {
         width: "*",
         stack: [
             // Nombre cancha en negrita
-            { text: U(s.nombre || ""), bold: true, fontSize: 7, margin: [0, 0, 0, 1] },
+            { text: U(s.nombre || ""), bold: true, fontSize: TAMANO_LETRA_SUCURSALES, margin: [0, 0, 0, 1] },
             // Dirección (línea 1)
-            { text: dirCorta, fontSize: 7, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
+            { text: dirCorta, fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
             // Comuna y región (línea 2)
-            { text: linea2, fontSize: 7, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
+            { text: linea2, fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, margin: [0, 0, 0, 0], noWrap: false },
         ],
         margin: [0, 0, 0, 4],
     };
@@ -870,7 +866,7 @@ export async function buildDefinition(doc, timbrePng) {
     const logoDataUrl = await toDataUrl(logoSrc);
 
     const pdfDoc = { ...doc, __logoPng: logoDataUrl, __timbrePng: timbrePng };
-    const topMargin = Math.max(80, estimateHeaderHeight(pdfDoc));
+    const topMargin = Math.max(80, estimateHeaderHeight(pdfDoc) - 20);
     const pageMarginsAll = [PAGE_X, 16, PAGE_X, PAGE_BOTTOM];
 
     const box1 = buildBoxClienteFechas(pdfDoc);

@@ -413,10 +413,16 @@ export default {
                     } else {
                         // Genera imagen PDF417 del TED (requerimiento SII)
                         timbrePng = await renderPdf417FromTED(this.doc.ted, {
-                            scale: 1,
-                            columns: 25,
-                            securitylevel: 5,
-                            includetext: false,
+                            fit: "fill",
+                            targetWidth: 320,
+                            targetHeight: 300,
+                            columns: [14],
+                            aspectratio: 1,
+                            scale: 2,
+                            height: 4,
+                            quiet: 2,
+                            // ← Seguridad óptima para térmica
+                            securitylevel: [5, 4, 3],
                         });
                     }
                 }
