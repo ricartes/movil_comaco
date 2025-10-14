@@ -10,12 +10,14 @@
 
         <!-- Filtros -->
         <GdeFilters
-            v-model:modelValue="filters"
+            v-model:estados="filters.estados"
+            v-model:desde="filters.desde"
+            v-model:hasta="filters.hasta"
+            v-model:folio="filters.folio"
             :estadosGuia="estadosGuia"
             :loading="loadingFilters"
             @apply="onApplyFilters"
             @clear="onClearFilters"
-            @togglePtr="(val) => (ptrEnabled = val)"
         />
 
         <!-- Empty -->
@@ -96,7 +98,6 @@ export default {
             skip: 0,
             loaded: false,
             _firstLoadInFlight: null,
-            ptrEnabled: true,
             loadingFilters: false,
             filters: { estados: [], desde: null, hasta: null, folio: "" }, // desde/hasta = 'YYYY-MM-DD' | null
         };
@@ -115,12 +116,6 @@ export default {
         estadosGuia() {
             return config?.parametros?.estadosGuia || {};
         },
-    },
-
-    async mounted() {
-        f7ready(async () => {
-            await this.ensureLoaded();
-        });
     },
 
     beforeUnmount() {
@@ -228,7 +223,6 @@ export default {
                         this.rut,
                         params
                     )) || [];
-
                 const filtered = this.applyClientFilters(page);
 
                 this.items = reset ? filtered : this.items.concat(filtered);

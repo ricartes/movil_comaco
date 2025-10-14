@@ -70,13 +70,32 @@ export async function crearIndicesTipo(db) {
         // === error_envio (si lo usas con fechas) ===
         { ddoc: 'idx_err_fecha', fields: ['type', 'fechaHora'] },
 
-
         { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
 
-        { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
 
-        // 👇 Nuevo índice para ordenar por fecha
-        { ddoc: 'idx_gde_empId_rut_createdAt', fields: ['type', 'empId', 'rutEmisor', 'createdAt'] },
+        // GDE (lista base)
+        {
+            ddoc: 'idx_gde_emp_rut_createdAt',
+            fields: ['type', 'empId', 'rutEmisor', 'createdAt']
+        },
+
+        // GDE + estado
+        {
+            ddoc: 'idx_gde_emp_rut_estado_createdAt',
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'createdAt']
+        },
+
+        // GDE + folio
+        {
+            ddoc: 'idx_gde_emp_rut_folio_createdAt',
+            fields: ['type', 'empId', 'rutEmisor', 'folio', 'createdAt']
+        },
+
+        // GDE + estado + folio
+        {
+            ddoc: 'idx_gde_emp_rut_estado_folio_createdAt',
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt']
+        },
 
 
     ];

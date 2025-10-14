@@ -47,22 +47,100 @@ export default class GdeDAO {
         return await this.db.get(id); // doc completo
     }
 
-    async listarPorEmpresaYRutPaginado(empId, rut, { limit = 20, skip = 0 } = {}) {
-        const res = await this.db.find({
-            selector: {
-                type: config.bd.tipoEntidad.gde,
-                empId: Number(empId),
-                rutEmisor: String(rut),
-            },
-            // Asegúrate de tener un índice con estos campos si mantienes este sort
-            sort: [{ type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' }, { createdAt: 'desc' }],
-            limit,
-            skip,
-            fields: LIST_FIELDS,
-            // use_index: 'idx_gde_empId_rut_createdAt'
-        });
-        return res.docs;
+    // Ej: params = {
+    //   limit: 20, skip: 0,
+    //   estados: ['E','M'],        // ids en mayúscula idealmente
+    //   folio: '32539',            // opcional
+    //   desde: '2025-01-01T00:00:00.000Z', // opcional
+    //   hasta: '2025-01-31T23:59:59.999Z'  // opcional
+    // }
+    async listarPorEmpresaYRutPaginado(
+        empId,
+        rut,
+        { limit = 20, skip = 0, estados, folio, desde, hasta } = {}
+    ) {
+        const selector = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rut),
+        };
+
+        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        const filtra1Estado = estadosArr.length === 1;
+        const filtraVariosEstados = estadosArr.length > 1;
+
+        // SOLO 1 estado -> igualdad (aprovecha índice)
+        if (filtra1Estado) {
+            selector['estado.id'] = estadosArr[0];
+        }
+
+        if (folio != null && String(folio).trim() !== '') {
+            const n = Number(folio);
+            selector.folio = Number.isFinite(n) ? n : String(folio).trim();
+        }
+
+        if (desde || hasta) {
+            selector.createdAt = {};
+            if (desde) selector.createdAt.$gte = new Date(desde).toISOString();
+            if (hasta) selector.createdAt.$lte = new Date(hasta).toISOString();
+        }
+
+        // Elegir índice/sort compatibles con el selector armado
+        let use_index, sort;
+        if (filtra1Estado && selector.folio != null) {
+            use_index = 'idx_gde_emp_rut_estado_folio_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { 'estado.id': 'asc' }, { folio: 'asc' }, { createdAt: 'desc' },
+            ];
+        } else if (filtra1Estado) {
+            use_index = 'idx_gde_emp_rut_estado_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { 'estado.id': 'asc' }, { createdAt: 'desc' },
+            ];
+        } else if (selector.folio != null) {
+            use_index = 'idx_gde_emp_rut_folio_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { folio: 'asc' }, { createdAt: 'desc' },
+            ];
+        } else {
+            use_index = 'idx_gde_emp_rut_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' }, { createdAt: 'desc' },
+            ];
+        }
+
+        try {
+            const res = await this.db.find({
+                selector,
+                sort,
+                limit,
+                skip,
+                fields: LIST_FIELDS,
+                use_index,
+            });
+            // OJO: si el usuario seleccionó varios estados, acá NO filtramos por estado;
+            // dejamos que lo haga el cliente con applyClientFilters (OR).
+            return res.docs;
+        } catch (e) {
+            console.warn('find con índice falló, reintento sin sort:', e?.message);
+            const res = await this.db.find({
+                selector,
+                limit,
+                skip,
+                fields: LIST_FIELDS,
+                use_index, // puedes omitir si sigue molestando
+            });
+            return (res.docs || []).sort(
+                (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')
+            );
+        }
     }
+
+
+
 
     async listarPorEmpresaYRut(empId, rut) {
         return this.listarPorEmpresaYRutPaginado(empId, rut, {

@@ -1,4 +1,3 @@
-<!-- GdeFilters.vue -->
 <template>
     <f7-list strong outline-ios dividers-ios inset-md accordion-list>
         <f7-list-item
@@ -17,54 +16,68 @@
                     class="gde-filters no-margin-vertical"
                 >
                     <!-- Estado -->
-                    <f7-list-input
-                        label="Estado"
-                        type="select"
-                        placeholder="Selecciona estado(s)"
-                        multiple
-                        v-model:value="local.estados"
+                    <f7-list-item
+                        ref="ssEstado"
+                        title="Estado"
+                        class="estado-select"
+                        smart-select
+                        :smart-select-params="{
+                            openIn: 'sheet',
+                            multiple: true,
+                            closeOnSelect: false,
+                        }"
                     >
-                        <template #media><f7-icon f7="list_bullet" /></template>
-                        <option :value="estadosGuia.PROVISORIA.id">
-                            {{ estadosGuia.PROVISORIA.texto }}
-                        </option>
-                        <option :value="estadosGuia.BORRADOR.id">
-                            {{ estadosGuia.BORRADOR.texto }}
-                        </option>
-                        <option :value="estadosGuia.EMITIDA.id">
-                            {{ estadosGuia.EMITIDA.texto }}
-                        </option>
-                        <option :value="estadosGuia.ENVIADA.id">
-                            {{ estadosGuia.ENVIADA.texto }}
-                        </option>
-                        <option :value="estadosGuia.NULA.id">
-                            {{ estadosGuia.NULA.texto }}
-                        </option>
-                    </f7-list-input>
+                        <!-- El v-model debe ir en el <select> -->
+                        <select name="estado" multiple v-model="estadosLocal">
+                            <option :value="estadosGuia.PROVISORIA?.id">
+                                {{ estadosGuia.PROVISORIA?.texto }}
+                            </option>
+                            <option :value="estadosGuia.BORRADOR?.id">
+                                {{ estadosGuia.BORRADOR?.texto }}
+                            </option>
+                            <option :value="estadosGuia.EMITIDA?.id">
+                                {{ estadosGuia.EMITIDA?.texto }}
+                            </option>
+                            <option :value="estadosGuia.ENVIADA?.id">
+                                {{ estadosGuia.ENVIADA?.texto }}
+                            </option>
+                            <option :value="estadosGuia.NULA?.id">
+                                {{ estadosGuia.NULA?.texto }}
+                            </option>
+                        </select>
+                    </f7-list-item>
 
                     <!-- Fechas -->
                     <f7-list-input
                         label="Desde"
                         type="date"
                         clear-button
-                        v-model:value="local.desde"
-                        :input-attrs="{ max: local.hasta || undefined }"
+                        :input-attrs="{
+                            max: hastaLocal || undefined,
+                            autocomplete: 'off',
+                        }"
+                        v-model:value="desdeLocal"
                     />
                     <f7-list-input
                         label="Hasta"
                         type="date"
                         clear-button
-                        v-model:value="local.hasta"
-                        :input-attrs="{ min: local.desde || undefined }"
+                        :input-attrs="{
+                            min: desdeLocal || undefined,
+                            autocomplete: 'off',
+                        }"
+                        v-model:value="hastaLocal"
                     />
 
                     <!-- Nº Guía -->
                     <f7-list-input
                         label="Nº Guía"
-                        type="number"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         placeholder="(opcional)"
                         clear-button
-                        v-model:value="local.folio"
+                        v-model:value="folioLocal"
                     />
                 </f7-list>
 
@@ -84,7 +97,7 @@
                             outline
                             class="col-btn"
                             :disabled="loading"
-                            @click="$emit('clear')"
+                            @click="limpiar"
                         >
                             {{ loading ? "Limpiando…" : "Limpiar" }}
                         </f7-button>
@@ -96,33 +109,76 @@
 </template>
 
 <script>
+import { f7 } from "framework7-vue";
 export default {
     name: "GdeFilters",
     props: {
         estadosGuia: { type: Object, required: true },
         loading: { type: Boolean, default: false },
-        modelValue: {
-            type: Object,
-            default: () => ({
-                estados: [],
-                desde: null,
-                hasta: null,
-                folio: "",
-            }),
-        },
+
+        // v-models individuales
+        estados: { type: Array, default: () => [] },
+        desde: { type: [String, null], default: null }, // 'YYYY-MM-DD' | null
+        hasta: { type: [String, null], default: null },
+        folio: { type: String, default: "" },
     },
-    emits: ["update:modelValue", "apply", "clear", "togglePtr"],
+    emits: [
+        "togglePtr",
+        "apply",
+        "clear",
+        "update:estados",
+        "update:desde",
+        "update:hasta",
+        "update:folio",
+    ],
     computed: {
-        // Proxy para v-model del objeto de filtros
-        local: {
+        estadosLocal: {
             get() {
-                return this.modelValue;
+                return this.estados;
             },
             set(v) {
-                this.$emit("update:modelValue", v);
+                // normaliza: siempre array de strings
+                const arr = Array.isArray(v) ? v : v ? [v] : [];
+                this.$emit(
+                    "update:estados",
+                    arr.map((s) => String(s))
+                );
             },
         },
-        // Calendar params SIEMPRE con array ([Date] | [])
+        desdeLocal: {
+            get() {
+                return this.desde;
+            },
+            set(v) {
+                this.$emit("update:desde", v || null);
+            },
+        },
+        hastaLocal: {
+            get() {
+                return this.hasta;
+            },
+            set(v) {
+                this.$emit("update:hasta", v || null);
+            },
+        },
+        folioLocal: {
+            get() {
+                return this.folio;
+            },
+            set(v) {
+                this.$emit(
+                    "update:folio",
+                    String(v || "").replace(/[^\d]/g, "")
+                );
+            },
+        },
+    },
+
+    methods: {
+        limpiar() {
+            f7.smartSelect.get(".estado-select .smart-select").setValueText("");
+            this.$emit("clear");
+        },
     },
 };
 </script>
