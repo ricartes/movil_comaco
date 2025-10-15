@@ -39,39 +39,6 @@ export default {
             },
         };
 
-        // ------- UI helpers (toast doble back) -------
-        let lastBack = 0;
-        let toastInstance = null;
-        function handleDoubleBackToExit() {
-            const now = Date.now();
-            if (now - lastBack < 2000) {
-                CapacitorApp.exitApp();
-            } else {
-                if (toastInstance) toastInstance.close();
-                toastInstance = f7.toast.create({
-                    text: "Presiona nuevamente para salir",
-                    closeTimeout: 1500,
-                });
-                toastInstance.open();
-                lastBack = now;
-            }
-        }
-
-        function getActiveRouteFromPage(router) {
-            // Página activa real en el DOM (evita confiar en currentRoute/url)
-            const pageEl =
-                router.currentPageEl ||
-                document.querySelector(".view-main .page.page-current");
-
-            const p = pageEl && pageEl.f7Page;
-            return {
-                pageName: p?.name || "",
-                routeName: p?.route?.name || "",
-                routePath: p?.route?.path || "",
-                routeUrl: p?.route?.url || "",
-            };
-        }
-
         // ------- Guards / referencias de listeners -------
         let pushGuard = false;
         let lastValidation = 0;
@@ -256,6 +223,13 @@ export default {
             return true;
         };
 
+        const handleGdeStateChangeIntent = async (intent, { title, body }) => {
+            if (intent !== "guia:state_changed") return false;
+            if (pushGuard) return true;
+            //TODO: aca implementar posible cambio estado gde local
+            return true;
+        };
+
         const handlePushIntent = async (payload) => {
             const { data, title, body } = payload || {};
             const intent = (data?.intent || "").toLowerCase();
@@ -263,6 +237,7 @@ export default {
 
             if (await handleDeviceIntent(intent, { title, body })) return;
             if (await handleFolioIntent(intent, payload)) return;
+            if (await handleGdeStateChangeIntent(intent, payload)) return;
 
             f7.toast
                 .create({
