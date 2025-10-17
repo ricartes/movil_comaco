@@ -127,6 +127,7 @@ function mapDoc(doc) {
 // Si hoy NO puedes generar PDF417 en el móvil, pasa `opts.timbreBase64` desde el backend.
 export async function printGuiaFromDoc(doc, opts = {}) {
     const { disconnectOnEnd = false } = opts;
+    const etiquetaCopia = opts?.cedible === true ? 'CEDIBLE' : 'ORIGINAL';
     let mustDisconnect = false;
     // 1) asegurar impresora configurada y conectada (si el plugin lo requiere)
     const nameOrAddr = store.state.printer.address || store.state.printer.name;
@@ -287,7 +288,27 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     } else {
         await printTextSizeAlignSafe('Documento sin timbre impreso', '0', '1');
     }
-    await printTextSizeAlignSafe('ORIGINAL', '0', '2'); // o “CEDIBLE” según flujo
+
+    if (opts?.cedible === true) {
+        await printRawText(div('-'));
+
+        const cedibleLines = [
+            'Nombre: ______________________________________',
+            'RUT: _________________________________________',
+            'Firma: _______________________________________',
+            'Fecha: ____/_____/_____',
+            'Recinto: _____________________________________',
+            '_______________________________________________',
+            'El acuse de recibo que se declara en este acto, de acuerdo a lo dispuesto en la letra b) del Art. 4 y la letra c) del Art 5 de la ley 19.983, acredita que la entrega de mercancías o servicio(s) prestado(s) ha(n) sido recibido(s).',
+            '_______________________________________________',
+        ];
+        for (const line of cedibleLines) {
+            await printRawText(wrap(line));
+        }
+        await printRawText(div('-'));
+    }
+
+    await printTextSizeAlignSafe(etiquetaCopia, '0', '2');
     await printRawText('\n\n');
 }
 

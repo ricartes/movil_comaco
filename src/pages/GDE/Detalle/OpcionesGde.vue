@@ -52,7 +52,19 @@
             link
             v-if="hasPrinter"
             @click="onImprimir"
-            title="Imprimir"
+            title="Imprimir Original"
+            :disabled="loading"
+        >
+            <template #media>
+                <f7-icon ios="f7:printer_fill" md="material:print"></f7-icon>
+            </template>
+        </f7-list-item>
+
+        <f7-list-item
+            link
+            v-if="hasPrinter"
+            @click="onImprimirCedible"
+            title="Imprimir Cedible"
             :disabled="loading"
         >
             <template #media>
@@ -186,6 +198,9 @@ export default {
         },
         onImprimir() {
             this.$emit("imprimir", this.doc);
+        },
+        onImprimirCedible() {
+            this.$emit("imprimir-cedible", this.doc);
         },
         onDescartar() {
             f7.dialog.confirm(

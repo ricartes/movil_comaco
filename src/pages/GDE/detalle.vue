@@ -182,6 +182,7 @@
                         @emitir="onEmitir"
                         @enviar="onEnviar"
                         @imprimir="onImprimir"
+                        @imprimir-cedible="onImprimirCedible"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -283,6 +284,7 @@ export default {
         try {
             if (!this.id) throw new Error("ID no proporcionado");
             this.doc = await obtenerGde(this.id);
+            console.log(this.doc);
             await this.$nextTick();
             f7.accordion.open(".detalle-unidad");
             f7.accordion.open(".comentarios");
@@ -377,6 +379,7 @@ export default {
 
             return true;
         },
+
         async onEmitir() {
             f7.dialog.preloader("Emitiendo guia...");
             try {
@@ -472,10 +475,18 @@ export default {
                 f7.dialog.close();
             }
         },
-        async onImprimir(doc) {
+
+        async onImprimirCedible() {
+            await this.onImprimir(this.doc, true);
+        },
+
+        async onImprimir(doc, cedible = false) {
             try {
                 f7.dialog.preloader("Imprimiendo…");
-                await printGuiaFromDoc(doc, { timbreBase64: null });
+                await printGuiaFromDoc(doc, {
+                    timbreBase64: null,
+                    cedible: cedible,
+                });
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
