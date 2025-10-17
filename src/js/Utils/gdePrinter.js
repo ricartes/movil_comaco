@@ -226,25 +226,32 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         await printRawText(wrap(`PROVEEDOR: ${M.trans.proveedorRut} - ${M.trans.proveedorNom}`));
     }
 
-    // Carguíos (nombres separados por coma) y Patentes (también separados por coma)
+    // === CARGUÍO(s): formato igual que PROVEEDOR ===
     if (Array.isArray(M.carguios) && M.carguios.length) {
-        // nombres de carguíos (filtra vacíos y mayúsculas)
-        const nombres = M.carguios
-            .map(c => (c?.nombre || c?.nombreCarguio || '').toString().trim().toUpperCase())
-            .filter(Boolean);
+        // RUT - NOMBRE
+        const carguiosStr = M.carguios
+            .map(c => {
+                const rut = (c?.rut || c?.rutCarguio || '').toString().trim();
+                const nom = (c?.nombre || c?.nombreCarguio || '').toString().trim().toUpperCase();
+                return [rut, nom].filter(Boolean).join(' - ');
+            })
+            .filter(Boolean)
+            .join(', ');
 
-        // patentes de carguíos (filtra vacíos)
-        const patentes = M.carguios
+        // Patentes
+        const patentesStr = M.carguios
             .map(c => (c?.patente || c?.patenteCarguio || '').toString().trim().toUpperCase())
-            .filter(Boolean);
+            .filter(Boolean)
+            .join(', ');
 
-        if (nombres.length) {
-            await printRawText(wrap(`CARGUÍO: ${nombres.join(', ')}`));
+        if (carguiosStr) {
+            await printRawText(wrap(`CARGUÍO: ${carguiosStr}`));
         }
-        if (patentes.length) {
-            await printRawText(wrap(`PATENTE CARGUÍO: ${patentes.join(', ')}`));
+        if (patentesStr) {
+            await printRawText(wrap(`PATENTE CARGUÍO: ${patentesStr}`));
         }
     }
+
 
 
     await printRawText(div());
