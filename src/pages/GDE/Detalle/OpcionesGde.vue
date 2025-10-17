@@ -14,6 +14,22 @@
             </template>
         </f7-list-item>
 
+        <f7-list-item
+            v-if="showEnviar"
+            link
+            @click="onAnular"
+            title="Anular guía"
+            class="text-blue-600"
+            :disabled="loading"
+        >
+            <template #media>
+                <f7-icon
+                    ios="f7:xmark_circle_fill"
+                    md="material:cancel"
+                ></f7-icon>
+            </template>
+        </f7-list-item>
+
         <!-- Enviar (emitida o enviada) -->
         <f7-list-item
             v-if="showEnviar"
@@ -208,6 +224,21 @@ export default {
                 "Confirmar",
                 () => this.$emit("descartar", this.doc)
             );
+        },
+
+        onAnular() {
+            f7.dialog.prompt("Ingrese el motivo de anulación", (motivo) => {
+                if (motivo.trim() == "") {
+                    f7.dialog.alert("Debe ingresar un motivo de anulación.");
+                } else {
+                    f7.dialog.confirm(
+                        `¿Está seguro que desea anular esta guía. Esto no podrá ser revertido.?`,
+                        () => {
+                            this.$emit("anular", motivo);
+                        }
+                    );
+                }
+            });
         },
         goConfig() {
             // Ruta de tu pantalla de configuración de impresora

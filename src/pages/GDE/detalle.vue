@@ -183,6 +183,7 @@
                         @enviar="onEnviar"
                         @imprimir="onImprimir"
                         @imprimir-cedible="onImprimirCedible"
+                        @anular="onAnular"
                     />
                 </f7-accordion-content>
             </f7-list-item>
@@ -192,7 +193,12 @@
 
 <script>
 import { f7 } from "framework7-vue";
-import { obtenerGde, descartarGde, emitirGde } from "@/app/services/GdeService";
+import {
+    obtenerGde,
+    descartarGde,
+    emitirGde,
+    anularGde,
+} from "@/app/services/GdeService";
 
 import { enviarGde } from "@/app/services/EnvioGdeService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
@@ -402,6 +408,11 @@ export default {
                 f7.dialog.close();
             }
         },
+
+        async onAnular(motivo) {
+            const updatedDoc = await anularGde(this.doc, motivo);
+        },
+
         async onGenerarPDF() {
             f7.dialog.preloader("Generando PDF...");
             try {

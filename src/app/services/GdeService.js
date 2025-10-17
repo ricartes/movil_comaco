@@ -24,7 +24,24 @@ export async function descartarGde(gde) {
     return await getGdeDao().eliminar(gde); // devuelve doc completo
 }
 
+export async function anularGde(gde, motivoAnulacion) {
 
+    if (!gde || typeof gde !== "object") throw new Error("GDE inválida.");
+    const empId = gde?.empresa?.id ?? gde?.empId;
+    const rutEmisor = gde?.emisor?.rut ?? gde?.rutEmisor;
+    const gdeDao = getGdeDao();
+    const estadoAnulada = config.parametros.estadosGuia.NULA
+    const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`
+    const ahoraISO = new Date().toISOString()
+
+    const actualizado = {
+        ...gde,
+        estado: estadoAnulada,
+        sincronizado: false,
+        sincronizadoAt: null,
+        motivoAnulacion: motivoAnulacion
+    }
+}
 
 
 export async function emitirGde(gde) {
