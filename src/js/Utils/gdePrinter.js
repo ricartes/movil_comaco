@@ -76,7 +76,7 @@ function mapDoc(doc) {
         rut: doc?.cliente?.rutCliente || '',
         rs: doc?.cliente?.razonSocialCliente || '',
         giro: doc?.cliente?.giroCliente || '',
-        dir: doc?.destino?.direccionDestinoCliente || '',
+        dir: doc?.cliente?.direccionCliente || '',
         comuna: doc?.destino?.comunaDestinoCliente || '',
         ciudad: doc?.destino?.ciudadDestinoCliente || '',
     };
