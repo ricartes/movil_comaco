@@ -117,10 +117,40 @@ function mapDoc(doc) {
     const folio = doc?.folio || 'SIN FOLIO ASIGNADO';
     const fecha = (doc?.fechaEmisionOffset || doc?.fechaEmision || '').replace('T', ' ').split('.')[0] || '';
 
+    const carguios = [];
+    if (Array.isArray(doc?.carguios) && doc.carguios.length) {
+        for (const c of doc.carguios) {
+            carguios.push({
+                rut: c?.rutCarguio || c?.rut || '',
+                nombre: c?.nombreCarguio || c?.nombre || '',
+                patente: c?.patenteCarguio || c?.patente || '',
+            });
+        }
+    } else {
+        // fallback 1 (primario)
+        if (doc?.rutCarguio || doc?.nombreCarguio || doc?.patenteCarguio) {
+            carguios.push({
+                rut: doc?.rutCarguio || '',
+                nombre: doc?.nombreCarguio || '',
+                patente: doc?.patenteCarguio || '',
+            });
+        }
+        // fallback 2 (secundario)
+        if (doc?.rutCarguio2 || doc?.nombreCarguio2 || doc?.patenteCarguio2) {
+            carguios.push({
+                rut: doc?.rutCarguio2 || '',
+                nombre: doc?.nombreCarguio2 || '',
+                patente: doc?.patenteCarguio2 || '',
+            });
+        }
+    }
+
+
+
     // Detalle MR (por tus campos)
     const detalleMR = Array.isArray(doc?.detalleMR) ? doc.detalleMR : [];
 
-    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, tedXml: doc?.ted || null };
+    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, tedXml: doc?.ted || null, carguios };
 }
 
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
@@ -195,6 +225,28 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (M.trans.proveedorRut || M.trans.proveedorNom) {
         await printRawText(wrap(`PROVEEDOR: ${M.trans.proveedorRut} - ${M.trans.proveedorNom}`));
     }
+
+    // Carguíos (nombres separados por coma) y Patentes (también separados por coma)
+    if (Array.isArray(M.carguios) && M.carguios.length) {
+        // nombres de carguíos (filtra vacíos y mayúsculas)
+        const nombres = M.carguios
+            .map(c => (c?.nombre || c?.nombreCarguio || '').toString().trim().toUpperCase())
+            .filter(Boolean);
+
+        // patentes de carguíos (filtra vacíos)
+        const patentes = M.carguios
+            .map(c => (c?.patente || c?.patenteCarguio || '').toString().trim().toUpperCase())
+            .filter(Boolean);
+
+        if (nombres.length) {
+            await printRawText(wrap(`CARGUÍO: ${nombres.join(', ')}`));
+        }
+        if (patentes.length) {
+            await printRawText(wrap(`PATENTE CARGUÍO: ${patentes.join(', ')}`));
+        }
+    }
+
+
     await printRawText(div());
 
     // Producto / Detalle
@@ -204,6 +256,8 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`CERTIFICACIÓN: ${M.prod.fsc}`));
     //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
     await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
+
+
 
     //tabla mr
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {

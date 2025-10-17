@@ -15,6 +15,10 @@
                             </f7-badge>
                         </td>
                     </tr>
+                    <tr v-if="isNula">
+                        <td class="label-cell"><b>Motivo anulación:</b></td>
+                        <td>{{ doc.motivoAnulacion ?? "-" }}</td>
+                    </tr>
                     <tr>
                         <td class="label-cell"><b>Creada:</b></td>
                         <td>{{ formatFecha(doc.createdAt) }}</td>
@@ -26,8 +30,23 @@
 </template>
 
 <script>
+import config from "@/Common/json/config.json";
 export default {
     name: "EncabezadoGde",
     props: { doc: Object, required: true },
+    computed: {
+        st() {
+            return this.doc?.estado?.id;
+        },
+        EG() {
+            return config?.parametros?.estadosGuia || {};
+        },
+        ID_NULA() {
+            return this.EG.NULA?.id ?? this.EG.NULA;
+        },
+        isNula() {
+            return this.st === this.ID_NULA;
+        },
+    },
 };
 </script>

@@ -15,7 +15,7 @@
         </f7-list-item>
 
         <f7-list-item
-            v-if="showEnviar"
+            v-if="showAnular"
             link
             @click="onAnular"
             title="Anular guía"
@@ -183,7 +183,7 @@ export default {
         tituloEnviar() {
             return this.isEmitida
                 ? "Enviar guia"
-                : this.isEnviada
+                : this.isEnviada || this.isNula
                 ? "Reenviar guia"
                 : "";
         },
@@ -196,6 +196,9 @@ export default {
             return this.isBorrador;
         },
         showEnviar() {
+            return this.isEmitida || this.isEnviada || this.isNula;
+        },
+        showAnular() {
             return this.isEmitida || this.isEnviada;
         },
         hasPrinter() {

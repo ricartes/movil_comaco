@@ -34,12 +34,18 @@ export async function anularGde(gde, motivoAnulacion) {
     const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`
     const ahoraISO = new Date().toISOString()
 
-    const actualizado = {
-        ...gde,
-        estado: estadoAnulada,
-        sincronizado: false,
-        sincronizadoAt: null,
-        motivoAnulacion: motivoAnulacion
+    try {
+        const actualizado = {
+            ...gde,
+            estado: estadoAnulada,
+            sincronizado: false,
+            sincronizadoAt: null,
+            motivoAnulacion: motivoAnulacion
+        }
+        await gdeDao.actualizar(actualizado)
+        return actualizado
+    } catch (e) {
+        throw e;
     }
 }
 

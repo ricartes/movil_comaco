@@ -686,6 +686,9 @@ export default {
             lineasContratista: [],
             conductorValido: true,
             form: {
+                sincronizado: false,
+                sincronizadoAt: false,
+                motivoAnulacion: null,
                 fechaEmision: null,
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,

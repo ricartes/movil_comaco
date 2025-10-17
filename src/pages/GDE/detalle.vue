@@ -395,7 +395,9 @@ export default {
                     f7.dialog.alert(
                         "Guía emitida correctamente.",
                         "Éxito",
-                        () => {}
+                        () => {
+                            this.scrollArriba();
+                        }
                     );
                 }
             } catch (e) {
@@ -410,7 +412,22 @@ export default {
         },
 
         async onAnular(motivo) {
-            const updatedDoc = await anularGde(this.doc, motivo);
+            f7.dialog.preloader("Anulando guia...");
+            try {
+                const updatedDoc = await anularGde(this.doc, motivo);
+                this.doc = updatedDoc; // 👈 actualizas el doc en memoria
+                f7.dialog.alert("Guía anulada correctamente.", "Éxito", () => {
+                    this.scrollArriba();
+                });
+            } catch (e) {
+                const mensaje = e?.message
+                    ? e.message
+                    : "Ha ocurrido un error inesperado al anular la guía.";
+
+                f7.dialog.alert(mensaje, "Error");
+            } finally {
+                f7.dialog.close();
+            }
         },
 
         async onGenerarPDF() {
@@ -440,7 +457,6 @@ export default {
                         });
                     }
                 }
-
                 const def = await buildDefinition(this.doc, timbrePng);
                 const filename = `GDE-${this.doc?.folio || "borrador"}.pdf`;
                 await createPdfAndOpen(def, filename);
@@ -569,6 +585,13 @@ export default {
             f7.views.main?.router?.navigate("/home/?tab=gde", {
                 reloadAll: true,
             });
+        },
+        scrollArriba() {
+            const pageEl = f7.views.main.router.currentPageEl;
+            if (pageEl) {
+                const content = pageEl.querySelector(".page-content");
+                if (content) content.scrollTo({ top: 0, behavior: "smooth" });
+            }
         },
     },
 };

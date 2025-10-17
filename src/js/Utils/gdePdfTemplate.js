@@ -353,7 +353,7 @@ const isDraft = (d) =>
     (d?.estado?.texto && /BORRADOR/i.test(d.estado.texto));
 
 const isCanceled = (d) =>
-    (d?.estado?.id && String(d.estado.id).toUpperCase() === config.parametros.estadosGuia.nula) ||
+    (d?.estado?.id && String(d.estado.id).toUpperCase() === config.parametros.estadosGuia.NULA.id) ||
     (d?.estado?.texto && /ANULAD/i.test(d.estado.texto));
 
 function getUM(doc) {
@@ -573,7 +573,6 @@ function buildDetalleMR(doc) {
 // Usa MR-table para MR/TON/BDMT/M3ST, de lo contrario M3-table
 function buildDetallePorUM(doc) {
     const um = getUM(doc);
-    console.log(config);
     const umMRLike = [
         config.parametros.unidadesMedida.MR,
         config.parametros.unidadesMedida.TON,

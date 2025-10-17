@@ -11,13 +11,15 @@ export async function enviarGde(gde) {
     if (!token) throw new Error('Token no disponible');
     const gdeDao = getGdeDao();
     const estadoEnviada = config.parametros.estadosGuia.ENVIADA
+    const estadoEmitida = config.parametros.estadosGuia.EMITIDA
+    const estadoAnulada = config.parametros.estadosGuia.NULA
     const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`
     const ahoraISO = new Date().toISOString()
     const ruta = config.rutas.guardarGde;
 
     const payload = {
         ...gde,
-        estado: estadoEnviada,
+        estado: gde.estado.id === estadoEmitida.id ? estadoEnviada : gde.estado,
         sentAt: ahoraISO,
         //appVersion: (config.app && config.app.version) || '1.0.0',
         tzOffsetMin: new Date().getTimezoneOffset() * -1,
@@ -38,7 +40,7 @@ export async function enviarGde(gde) {
         // guarda estado local como sincronizado
         const actualizado = {
             ...gde,
-            estado: estadoEnviada,
+            estado: gde.estado.id === estadoEmitida.id ? estadoEnviada : gde.estado,
             sincronizado: true,
             sincronizadoAt: ahoraISO,
             serverResponse: resp, // opcional
@@ -49,7 +51,7 @@ export async function enviarGde(gde) {
         // marca para reintento
         const conError = {
             ...gde,
-            estado: estadoEnviada, // ya salió de la app
+            estado: gde.estado.id === estadoEmitida.id ? estadoEnviada : gde.estado,
             sincronizado: false,
             ultimoErrorSync: String((e && e.message) || e),
             ultimoIntentoSyncAt: ahoraISO,
