@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import { f7, f7ready } from "framework7-vue";
+import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import { listarPorEmpresaYRutPaginado } from "@/app/services/GdeService";
 import config from "@/Common/json/config.json";
@@ -281,7 +281,7 @@ export default {
         },
 
         onCrear() {
-            f7.views.main?.router?.navigate("/gde/ingreso/");
+            f7.views.main?.router?.navigate("/gde/ingreso/?tab=gde");
         },
         openDetalle(g) {
             f7.views.main?.router?.navigate(`/gde/detalle/${g._id}`);

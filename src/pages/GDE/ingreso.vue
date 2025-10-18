@@ -652,6 +652,10 @@ import config from "@/Common/json/config.json";
 
 export default {
     name: "GDEIngreso",
+    props: {
+        f7route: Object,
+        f7router: Object,
+    },
     components: {
         InformacionCliente,
         InformacionDestino,
@@ -1694,11 +1698,15 @@ export default {
         },
 
         back() {
+            const url = f7.views.main?.router?.currentRoute?.url || "";
+            const params = new URLSearchParams(url.split("?")[1] || "");
+            const qtab = params.get("tab") ?? "gde";
+
             f7.dialog.confirm(
                 "¿Desea cancelar el ingreso de GDE?",
                 "Confirmar",
                 () => {
-                    f7.views.main?.router?.navigate("/home/?tab=gde", {
+                    f7.views.main?.router?.navigate(`/home/?tab=${qtab}`, {
                         reloadAll: true,
                     });
                 }

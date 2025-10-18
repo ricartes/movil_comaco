@@ -15,7 +15,7 @@
                 @click.prevent="showGdeTab"
                 icon-ios="f7:doc_text_fill"
                 icon-md="material:description"
-                text="GDE"
+                text="Guía"
             />
             <f7-link
                 :tab-link-active="activeTab === 'menu'"

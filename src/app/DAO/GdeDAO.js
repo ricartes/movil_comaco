@@ -7,6 +7,7 @@ let instance = null;
 
 const LIST_FIELDS = [
     '_id',
+    'empId',
     'folio',
     'createdAt',
     'estado.id',
@@ -24,6 +25,15 @@ const LIST_FIELDS = [
     'totales.m3.volumen',
     'totales.ton.volumen',
     'zona.descripcion',
+];
+
+const RESUMEN_FIELDS = [
+    '_id',
+    'empId',
+    'folio',
+    'createdAt',
+    'estado.id',
+    'producto.unidadMedida',
 ];
 
 /** Helpers pequeños (sin lodash) **/
@@ -139,6 +149,122 @@ export default class GdeDAO {
         }
     }
 
+
+    async *iterarParaResumen(empId, rut, {
+        estados,        // ['E','N'] u otros. 1 estado usa índice; varios se filtran cliente
+        desde,          // ISO
+        hasta,          // ISO
+        pageSize = 200, // tamaño de bloque
+    } = {}) {
+        const selectorBase = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rut),
+        };
+
+        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        const filtra1Estado = estadosArr.length === 1;
+
+        // Fechas (rango)
+        if (desde || hasta) {
+            selectorBase.createdAt = {};
+            if (desde) selectorBase.createdAt.$gte = new Date(desde).toISOString();
+            if (hasta) selectorBase.createdAt.$lte = new Date(hasta).toISOString();
+        }
+
+        // Si hay 1 estado, index por estado+fecha
+        let use_index, sort;
+        if (filtra1Estado) {
+            selectorBase['estado.id'] = estadosArr[0];
+            use_index = 'idx_gde_emp_rut_estado_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { 'estado.id': 'asc' }, { createdAt: 'desc' },
+            ];
+        } else {
+            use_index = 'idx_gde_emp_rut_createdAt';
+            sort = [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { createdAt: 'desc' },
+            ];
+        }
+
+        let lastCreatedAt = null;
+        while (true) {
+            const selector = { ...selectorBase };
+            if (lastCreatedAt) {
+                // Cursor: continuar por debajo del último createdAt devuelto
+                selector.createdAt = selector.createdAt || {};
+                selector.createdAt.$lt = lastCreatedAt;
+            }
+
+            const res = await this.db.find({
+                selector,
+                sort,
+                limit: pageSize,
+                fields: RESUMEN_FIELDS,
+                use_index,
+            });
+
+            const docs = res.docs || [];
+            if (!docs.length) break;
+
+            // Si el usuario pidió varios estados, filtramos en cliente (OR)
+            const filtered = estadosArr.length > 1
+                ? docs.filter(d => estadosArr.includes(String(d?.estado?.id || '').toUpperCase()))
+                : docs;
+
+            yield filtered;
+
+            // Avanza el cursor
+            lastCreatedAt = docs[docs.length - 1]?.createdAt;
+            if (!lastCreatedAt) break;
+        }
+    }
+
+    /**
+     * Últimas N (por createdAt desc), con mínimos campos.
+     */
+    async listarUltimas(empId, rut, { limit = 10, estados } = {}) {
+        const selector = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rut),
+        };
+
+        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        const filtra1Estado = estadosArr.length === 1;
+        if (filtra1Estado) selector['estado.id'] = estadosArr[0];
+
+        const use_index = filtra1Estado
+            ? 'idx_gde_emp_rut_estado_createdAt'
+            : 'idx_gde_emp_rut_createdAt';
+
+        const sort = filtra1Estado
+            ? [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { 'estado.id': 'asc' }, { createdAt: 'desc' },
+            ]
+            : [
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { createdAt: 'desc' },
+            ];
+
+        const res = await this.db.find({
+            selector,
+            sort,
+            limit,
+            fields: RESUMEN_FIELDS,
+            use_index,
+        });
+
+        const docs = res.docs || [];
+        const filtered = estadosArr.length > 1
+            ? docs.filter(d => estadosArr.includes(String(d?.estado?.id || '').toUpperCase()))
+            : docs;
+
+        return filtered;
+    }
 
 
 

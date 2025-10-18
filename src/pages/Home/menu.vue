@@ -49,7 +49,6 @@
 <script>
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
-import config from "@/Common/json/config.json";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 
@@ -133,6 +132,14 @@ export default {
                     key: "Precio Producto",
                     run: () =>
                         CargaParametrosService.cargarPrecios(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Largo Producto",
+                    run: () =>
+                        CargaParametrosService.cargarLargosProductos(
                             this.user.empresa,
                             this.user.rut
                         ),

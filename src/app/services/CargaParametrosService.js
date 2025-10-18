@@ -6,13 +6,14 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
     getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
-    getZonaDao, getGeocercaDao
+    getZonaDao, getGeocercaDao, getLargoProductoDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
 import { mapServerTransportistaToDoc } from '@/app/mappers/transportistaMapper'
 import { mapServerSocioToDoc } from '@/app/mappers/SocioMapper'
 import { mapServerPrecioToDoc } from '@/app/mappers/PrecioProductoMapper'
+import { mapServerLargoProductoToDoc } from '@/app/mappers/LargoProductoMapper'
 import { mapServerEmpresaToDoc } from '@/app/mappers/empresaMapper'
 import { mapServerParametroGeneralToDoc } from '@/app/mappers/parametroGeneralMapper'
 import { mapServerCarguioToDoc } from '@/app/mappers/carguioMapper'
@@ -97,6 +98,16 @@ const CargaParametrosService = {
             mapper: mapServerPrecioToDoc,
             daoGetter: getPrecioProductoDao,
             nombre: 'Precio Producto',
+        })
+    },
+    cargarLargosProductos(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarLargosProductos,
+            mapper: mapServerLargoProductoToDoc,
+            daoGetter: getLargoProductoDao,
+            nombre: 'Largo Producto',
         })
     },
     cargarEmpresas(empId, rut) {

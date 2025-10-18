@@ -138,6 +138,7 @@
         "RescatarRodales": "rodal",
         "RescatarZonas": "zona",
         "RescatarGeocercas": "geocerca",
+        "RescatarLargosProductos": "largo-producto",
         "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
         "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar",
         "guardarGde": "gde"
@@ -162,7 +163,8 @@
             "trazabilidad": "trazabilidad",
             "geocerca": "geocerca",
             "siiUsuarioRangoFolio": "sii-usuario-rango-folio",
-            "folio": "folio"
+            "folio": "folio",
+            "largoProducto": "largo-producto"
         }
     }
 }

@@ -4,36 +4,43 @@
         :title="folioText(item)"
         @click="$emit('open', item)"
     >
-        <template #media><f7-icon f7="doc_text_fill" /></template>
-        <template #after>{{ formatFecha(item.createdAt) }}</template>
-
-        <template #subtitle>
-            <span
-                class="chip chip-small"
-                :class="estadoChipClass(item?.estado?.id, item?.estado?.texto)"
-            >
-                <span class="chip-label">{{
-                    item?.estado?.texto ?? "SIN ESTADO"
-                }}</span>
-            </span>
+        <template #media>
+            <f7-icon f7="doc_text_fill" />
         </template>
+
+        <template #after>{{ formatFecha(item.createdAt) }}</template>
 
         <template #text>
             <div class="line">
-                <span class="chip chip-fill color-blue">{{
-                    chipUnidadConVolumen(item)
-                }}</span>
-                <span class="muted">{{
-                    item.producto?.nombreProducto ?? ""
-                }}</span>
+                <!-- Estado -->
+                <span
+                    class="chip chip-small chip-uniform"
+                    :class="
+                        estadoChipClass(item?.estado?.id, item?.estado?.texto)
+                    "
+                >
+                    <span class="chip-label">{{
+                        item?.estado?.texto ?? "SIN ESTADO"
+                    }}</span>
+                </span>
+
+                <!-- UM + volumen -->
+                <span class="chip chip-fill chip-small chip-uniform color-blue">
+                    {{ chipUnidadConVolumen(item) }}
+                </span>
+            </div>
+
+            <!-- Producto en su propia línea -->
+            <div class="product">
+                {{ item.producto?.nombreProducto ?? "" }}
             </div>
         </template>
 
         <template #footer>
-            <span class="muted">Origen: {{ item.predio?.predio ?? "" }}</span
-            ><br />
+            <span class="muted">Origen: {{ item.predio?.predio ?? "" }}</span>
             <span class="muted">
-                Destino: {{ item.cliente?.razonSocialCliente ?? "" }}
+                Destino:
+                {{ item.cliente?.razonSocialCliente ?? "" }}
                 {{ item.destino?.destinoCliente ?? "" }}
             </span>
         </template>
@@ -51,11 +58,20 @@ export default {
     },
     emits: ["open"],
     methods: {
-
         folioText(g) {
-            return ` ${
-                g?.folio != null ? `Folio ${g.folio}` : "Sin folio asignado."
-            }`;
+            return g?.folio != null
+                ? `Folio ${g.folio}`
+                : "Sin folio asignado.";
+        },
+        formatFecha(s) {
+            const d = new Date(s);
+            return isNaN(d)
+                ? "—"
+                : d.toLocaleDateString("es-CL", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                  });
         },
         estadoChipClass(id, texto) {
             const estados = this.estadosGuia || {};
@@ -103,17 +119,67 @@ export default {
 <style scoped>
 .line {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
+    margin-top: 6px; /* despega de "Folio" */
+    padding-right: 96px; /* reserva espacio para la fecha (#after) */
 }
+
+/* Importante: mostrar todo el texto del slot #text */
+:deep(.item-text) {
+    white-space: normal;
+    overflow: visible;
+    max-height: none; /* quita el clamp */
+    -webkit-line-clamp: unset;
+}
+
+/* Producto debajo de los chips */
+.product {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+}
+
+/* Texto “muted” del footer tal como lo tenías */
 .muted {
     color: #6b7280;
     font-size: 12px;
+    display: block;
+    margin-top: 2px;
 }
+
+/* Chips uniformes (mismo ancho visual) */
 .chip-small {
     --f7-chip-padding-horizontal: 8px;
-    --f7-chip-height: 20px;
+    --f7-chip-height: 22px;
     font-size: 11px;
+    line-height: 1;
+}
+.chip-uniform {
+    min-width: 92px; /* iguala ancho visual entre chips */
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Un poco de aire vertical general */
+:deep(.item-inner) {
+    padding-top: 10px;
+    padding-bottom: 12px;
+}
+
+/* Fecha alineada arriba y con espacio del título */
+:deep(.item-title-row .item-after) {
+    margin-left: 8px;
+    align-self: flex-start;
+}
+
+/* Responsive: reduce el colchón derecho en pantallas estrechas */
+@media (max-width: 420px) {
+    .line {
+        padding-right: 80px;
+    }
 }
 </style>
