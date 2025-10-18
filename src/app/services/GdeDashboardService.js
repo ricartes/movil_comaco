@@ -54,6 +54,20 @@ export async function obtenerResumen(empId, rutEmisor, opts = {}) {
         pageSize,
     })) {
         for (const d of chunk) {
+
+            if (!d?.folio && !d?.idGuia) {
+                console.warn("⚠️ Guía sin folio detectada:", d);
+            } else {
+                console.log("🧾 Guía:", {
+                    folio: d?.folio,
+                    estado: d?.estado?.id,
+                    fecha: d?.createdAt,
+                    producto: d?.producto?.unidadMedida,
+                    usuario: d?.usuarioRut,
+                });
+            }
+
+
             // filtro opcional por usuario (solo si lo piden)
             if (onlyUserRut && d?.usuarioRut && d.usuarioRut !== onlyUserRut) continue;
 

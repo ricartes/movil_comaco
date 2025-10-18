@@ -151,7 +151,7 @@ export default class GdeDAO {
 
 
     async *iterarParaResumen(empId, rut, {
-        estados,        // ['E','N'] u otros. 1 estado usa índice; varios se filtran cliente
+        estados,        // ['E','N'] u otros
         desde,          // ISO
         hasta,          // ISO
         pageSize = 200, // tamaño de bloque
@@ -162,40 +162,50 @@ export default class GdeDAO {
             rutEmisor: String(rut),
         };
 
-        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
-        const filtra1Estado = estadosArr.length === 1;
+        const estadosArr = Array.isArray(estados)
+            ? estados.map(s => String(s).toUpperCase())
+            : [];
 
-        // Fechas (rango)
+        // --- Rango de fechas ---
         if (desde || hasta) {
             selectorBase.createdAt = {};
             if (desde) selectorBase.createdAt.$gte = new Date(desde).toISOString();
             if (hasta) selectorBase.createdAt.$lte = new Date(hasta).toISOString();
         }
 
-        // Si hay 1 estado, index por estado+fecha
-        let use_index, sort;
-        if (filtra1Estado) {
+        // --- Estado ---
+        if (estadosArr.length === 1) {
             selectorBase['estado.id'] = estadosArr[0];
-            use_index = 'idx_gde_emp_rut_estado_createdAt';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { createdAt: 'desc' },
-            ];
-        } else {
-            use_index = 'idx_gde_emp_rut_createdAt';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { createdAt: 'desc' },
-            ];
+        } else if (estadosArr.length > 1) {
+            selectorBase['estado.id'] = { $in: estadosArr };
         }
 
+        // --- Índice compuesto (estado.id + createdAt) ---
+        const use_index = 'idx_gde_emp_rut_estado_createdAt';
+        const sort = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { createdAt: 'desc' },
+        ];
+
+        // --- Cursor para paginación estable ---
         let lastCreatedAt = null;
+        let lastEstado = null;
+
         while (true) {
             const selector = { ...selectorBase };
-            if (lastCreatedAt) {
-                // Cursor: continuar por debajo del último createdAt devuelto
-                selector.createdAt = selector.createdAt || {};
-                selector.createdAt.$lt = lastCreatedAt;
+
+            if (lastCreatedAt && lastEstado) {
+                // Evita duplicados con un cursor doble: estado + fecha
+                selector.$or = [
+                    { 'estado.id': { $lt: lastEstado } },
+                    {
+                        'estado.id': { $eq: lastEstado },
+                        createdAt: { $lt: lastCreatedAt },
+                    },
+                ];
             }
 
             const res = await this.db.find({
@@ -209,15 +219,11 @@ export default class GdeDAO {
             const docs = res.docs || [];
             if (!docs.length) break;
 
-            // Si el usuario pidió varios estados, filtramos en cliente (OR)
-            const filtered = estadosArr.length > 1
-                ? docs.filter(d => estadosArr.includes(String(d?.estado?.id || '').toUpperCase()))
-                : docs;
+            yield docs;
 
-            yield filtered;
-
-            // Avanza el cursor
-            lastCreatedAt = docs[docs.length - 1]?.createdAt;
+            const lastDoc = docs[docs.length - 1];
+            lastEstado = lastDoc?.estado?.id;
+            lastCreatedAt = lastDoc?.createdAt;
             if (!lastCreatedAt) break;
         }
     }

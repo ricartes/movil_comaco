@@ -207,7 +207,12 @@ export default {
     },
     methods: {
         onEmitir() {
-            this.$emit("emitir", this.doc);
+            f7.dialog.confirm(
+                `¿Está seguro que desea emitir esta guía. Esto no podrá ser revertido.?`,
+                () => {
+                    this.$emit("emitir", this.doc);
+                }
+            );
         },
         onEnviar() {
             this.$emit("enviar", this.doc);
