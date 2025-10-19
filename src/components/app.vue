@@ -19,6 +19,10 @@ import {
     extractPushData,
 } from "@/app/services/firebaseMessaging";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
+import {
+    attachNotificationActionHandler,
+    startGdeSyncForegroundService,
+} from "@/app/background/foregroundService";
 
 export default {
     setup() {
@@ -48,6 +52,25 @@ export default {
         let resumeHandle = null;
         let backHandle = null;
         let visibilityHandle = null;
+
+        function startAutoSyncIfPossible() {
+            try {
+                const user = store.state.user || {};
+                const empId = user.empresa ?? user.empId;
+                const rutEmisor = String(user.rut || "");
+
+                // Solo Android + con credenciales mínimas
+                if (getDevice().android && empId && rutEmisor) {
+                    attachNotificationActionHandler(); // solo una vez; es idempotente
+                    startGdeSyncForegroundService(empId, rutEmisor); // idempotente (nuestro módulo evita duplicar intervalos)
+                }
+            } catch (e) {
+                console.warn(
+                    "No se pudo iniciar la sync automática:",
+                    e?.message || e
+                );
+            }
+        }
 
         // ------- Validación central (intrusiva) -------
         const runValidacionAcceso = async ({
@@ -252,12 +275,30 @@ export default {
             f7ready(async () => {
                 // 1) hidrata primero
                 await store.dispatch("hydrate");
+                console.log("Store hydrated");
 
                 // 2) init + listeners después de hydrate
                 if (device.capacitor) {
                     capacitorApp.init(f7);
 
                     if (device.android) {
+                        const { user } = store.state || {};
+                        if (user?.empresa && user?.rut) {
+                            attachNotificationActionHandler();
+                            try {
+                                await startGdeSyncForegroundService(
+                                    user.empresa,
+                                    String(user.rut)
+                                );
+                            } catch (e) {
+                                f7.toast
+                                    .create({
+                                        text: "No se pudo iniciar la sync en segundo plano",
+                                        closeTimeout: 3000,
+                                    })
+                                    .open();
+                            }
+                        }
                         listenForFcmMessages(
                             async (msg) => {
                                 const payload = extractPushData(msg);
@@ -273,7 +314,9 @@ export default {
                         stateChangeHandle = await CapacitorApp.addListener(
                             "appStateChange",
                             ({ isActive }) => {
-                                if (isActive) validateIfNeededSilently();
+                                if (isActive) {
+                                    validateIfNeededSilently();
+                                }
                             }
                         );
                         resumeHandle = await CapacitorApp.addListener(
@@ -289,8 +332,9 @@ export default {
 
                 // Visibilidad (webview vuelve a primer plano)
                 visibilityHandle = () => {
-                    if (document.visibilityState === "visible")
+                    if (document.visibilityState === "visible") {
                         validateIfNeededSilently();
+                    }
                 };
                 document.addEventListener("visibilitychange", visibilityHandle);
 

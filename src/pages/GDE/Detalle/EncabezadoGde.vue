@@ -10,7 +10,7 @@
                     <tr>
                         <td class="label-cell"><b>Estado:</b></td>
                         <td>
-                            <f7-badge :color="doc.estado?.color || 'gray'">
+                            <f7-badge :color="badgeColor">
                                 {{ doc.estado?.texto ?? "—" }}
                             </f7-badge>
                         </td>
@@ -46,6 +46,11 @@ export default {
         },
         isNula() {
             return this.st === this.ID_NULA;
+        },
+        badgeColor() {
+            // si viene "color-red" → "red"; si no viene, usa "gray"
+            const raw = this.doc?.estado?.color || "gray";
+            return String(raw).replace(/^color-/, "");
         },
     },
 };

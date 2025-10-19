@@ -1013,6 +1013,7 @@ export default {
                     this.form.cliente = this.clientes[0];
                     await this.$nextTick();
                     this.mostrarInformacionCliente();
+                    this.obtenerIndicadorTraslado();
                     this.cargarDestinosCliente();
                     await this.scrollTo({
                         ref: "destinoCliente",
@@ -1042,14 +1043,17 @@ export default {
 
         async handleClienteChange(e) {
             const nuevoCliente = e.target.value;
-            this.form.cliente =
-                this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
-                null;
+            if (nuevoCliente) {
+                this.form.cliente =
+                    this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
+                    null;
 
-            this.resetDesde("cliente"); // limpia desde predio en adelante
-            await this.$nextTick();
-            this.mostrarInformacionCliente();
-            this.cargarDestinosCliente();
+                this.resetDesde("cliente"); // limpia desde predio en adelante
+                await this.$nextTick();
+                this.mostrarInformacionCliente();
+                this.cargarDestinosCliente();
+                this.obtenerIndicadorTraslado();
+            }
         },
 
         async cargarDestinosCliente() {
@@ -1071,10 +1075,10 @@ export default {
                 this.cargarInformacionDestino();
                 this.cargarProductos();
             }
-            this.obtenerIndicadorTraslado();
         },
 
         obtenerIndicadorTraslado() {
+            console.log(this.form.cliente);
             if (
                 clienteEsEmisor(
                     this.form.cliente.rutCliente,

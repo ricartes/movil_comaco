@@ -36,6 +36,8 @@ const RESUMEN_FIELDS = [
     'producto.unidadMedida',
 ];
 
+
+
 /** Helpers pequeños (sin lodash) **/
 const MAX_RETRIES = 3;
 
@@ -50,6 +52,7 @@ export default class GdeDAO {
 
     async listar() {
         const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.gde);
+        console.log(docs);
         return docs.map(gdeDocToDTO);
     }
 
@@ -272,6 +275,60 @@ export default class GdeDAO {
         return filtered;
     }
 
+    async *iterarPendientesDeEnvio(empId, rutEmisor, { pageSize = 50 } = {}) {
+        const EG = config.parametros.estadosGuia;
+
+        const selectorBase = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rutEmisor),
+            'estado.id': { $in: [EG.EMITIDA.id, EG.NULA.id] },
+            $and: [
+                { $or: [{ sincronizado: { $exists: false } }, { sincronizado: { $ne: true } }] },
+                { $or: [{ syncing: { $exists: false } }, { syncing: { $ne: true } }] },
+            ],
+        };
+
+        // cursores
+        let lastCreatedAt = null;
+        let lastId = null;
+
+        while (true) {
+            const selector = { ...selectorBase };
+
+            // Paginación estable: (createdAt > last) OR (createdAt == last AND _id > lastId)
+            if (lastCreatedAt) {
+                selector.$or = [
+                    { createdAt: { $gt: lastCreatedAt } },
+                    { createdAt: { $eq: lastCreatedAt }, _id: { $gt: lastId || '' } },
+                ];
+            }
+
+            const res = await this.db.find({
+                selector,
+                sort: [
+                    { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                    { 'estado.id': 'asc' }, { syncing: 'asc' }, { sincronizado: 'asc' },
+                    { createdAt: 'asc' }, { _id: 'asc' },
+                ],
+                limit: pageSize,
+                // Trae DOC COMPLETO (no 'fields')
+                use_index: 'idx_gde_sync_estado_syncing_sinc_createdAt_id',
+            });
+
+            const docs = res.docs || [];
+            if (!docs.length) break;
+
+            yield docs;
+
+            // avanza cursor
+            const last = docs[docs.length - 1];
+            lastCreatedAt = last?.createdAt || null;
+            lastId = last?._id || null;
+            if (!lastCreatedAt || !lastId) break;
+        }
+    }
+
 
 
     async listarPorEmpresaYRut(empId, rut) {
@@ -359,6 +416,31 @@ export default class GdeDAO {
                 if (e?.status === 409) {
                     attempt++;
                     continue;
+                }
+                throw e;
+            }
+        }
+        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+    }
+
+
+    async patch(id, changes) {
+        let attempt = 0;
+        while (attempt < MAX_RETRIES) {
+            try {
+                const curr = await this.db.get(id);
+                const next = { ...curr, ...changes, _id: curr._id, _rev: curr._rev };
+                const res = await this.db.put(next);
+                // Opcional: devolver doc completo ya sincronizado con la nueva _rev
+                const updated = await this.db.get(res.id);
+                return updated;
+            } catch (e) {
+                if (e?.status === 409) { // conflicto de rev
+                    attempt++;
+                    continue;              // reintenta
+                }
+                if (e?.status === 404) { // no existe
+                    throw Object.assign(new Error(`Documento ${id} no encontrado`), { status: 404 });
                 }
                 throw e;
             }

@@ -74,6 +74,27 @@
                             </template>
                         </f7-list-item>
 
+                        <!-- ANCHO / PAPER WIDTH -->
+                        <f7-list-item
+                            title="Ancho de impresión"
+                            class="select-paperwidth"
+                            smart-select
+                            :smart-select-params="ssParams"
+                        >
+                            <select
+                                v-model="selectedWidthModel"
+                                @change="onWidthChange"
+                                :disabled="!isAndroid || loading"
+                            >
+                                <option value="" disabled>
+                                    {{ ssLabelWidth() }}
+                                </option>
+                                <!-- Valores que entiende la librería -->
+                                <option value="32">57–58 mm</option>
+                                <option value="48">80 mm</option>
+                            </select>
+                        </f7-list-item>
+
                         <f7-list-item class="no-padding">
                             <template #inner>
                                 <div class="button-grid">
@@ -173,6 +194,7 @@ export default {
             loading: false,
             errorMsg: "",
             selectedKeyModel: "", // name|address
+            selectedWidthModel: "", // "32" | "48"
         };
     },
     computed: {
@@ -180,13 +202,16 @@ export default {
             return Capacitor.getPlatform() === "android";
         },
         currentName() {
-            return store.state.printer.name;
+            return store.state?.printer?.name || null;
         },
         currentAddr() {
-            return store.state.printer.address;
+            return store.state?.printer?.address || null;
         },
         selected() {
             return !!this.currentName;
+        },
+        currentPaperWidth() {
+            return store.state?.printer?.paperWidth ?? null;
         },
         selectedKeyFromStore() {
             return this.currentName
@@ -207,8 +232,14 @@ export default {
         // Aplica selección persistida al v-model (NO hacemos setValue del SmartSelect)
         this.selectedKeyModel = this.selectedKeyFromStore || "";
 
+        // Paper width persistido
+        this.selectedWidthModel = this.currentPaperWidth
+            ? String(this.currentPaperWidth)
+            : "";
+
         await this.$nextTick();
         this.updateSSLabel(); // Solo actualiza el texto visible
+        this.updateSSWidthLabel(); // etiqueta de ancho
     },
     methods: {
         ssLabel() {
@@ -222,6 +253,14 @@ export default {
             if (this.printers.length === 0)
                 return "No se encontraron impresoras";
             return "Seleccione una impresora…";
+        },
+
+        ssLabelWidth() {
+            if (!this.isAndroid) return "No disponible en este dispositivo";
+            if (this.loading) return "Cargando…";
+            if (this.currentPaperWidth)
+                return `Ancho actual: ${this.currentPaperWidth}`;
+            return "Seleccione ancho…";
         },
 
         normalizeList(raw) {
@@ -247,6 +286,13 @@ export default {
             return item ? item.label : this.ssLabel();
         },
 
+        selectedWidthHuman() {
+            if (!this.selectedWidthModel) return this.ssLabelWidth();
+            return this.selectedWidthModel === "48"
+                ? "80 mm (paperWidth 48)"
+                : "57–58 mm (paperWidth 32)";
+        },
+
         // Intenta actualizar el texto del Smart Select; si aún no existe, reintenta
         updateSSLabel() {
             const doUpdate = () => {
@@ -258,13 +304,23 @@ export default {
                 return true;
             };
 
-            // Primer intento inmediato
             if (doUpdate()) return;
-
-            // Reintento corto por si el Smart Select aún no está inicializado
             setTimeout(() => {
                 doUpdate();
             }, 50);
+        },
+
+        updateSSWidthLabel() {
+            const doUpdate = () => {
+                const ss = f7.smartSelect?.get?.(
+                    ".select-paperwidth .smart-select"
+                );
+                if (!ss) return false;
+                ss.setValueText(this.selectedWidthHuman());
+                return true;
+            };
+            if (doUpdate()) return;
+            setTimeout(doUpdate, 50);
         },
 
         async refreshPrinters() {
@@ -313,7 +369,19 @@ export default {
                 .open();
         },
 
+        async onWidthChange(e) {
+            const val = Number(e?.target?.value || 0); // 32 | 48
+            if (!val) return;
+            // Persiste en store (usa paperWidth como key canónica)
+            await store.dispatch("setPrinterWidth", { paperWidth: val });
 
+            await this.$nextTick();
+            this.updateSSWidthLabel();
+
+            f7.toast
+                .create({ text: "Ancho guardado", closeTimeout: 1200 })
+                .open();
+        },
 
         async testPrint() {
             if (!this.selected) {
@@ -322,7 +390,7 @@ export default {
             }
             const dlg = f7.dialog.preloader("Imprimiendo…");
             try {
-                await printTextSafe("Prueba de impresión\n\n"); // ← se autoconocecta por NOMBRE y luego imprime
+                await printTextSafe("Prueba de impresión\n\n"); // se autoconecta por NOMBRE
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
@@ -354,8 +422,15 @@ export default {
 
         async clearSelection() {
             await store.dispatch("clearPrinter");
+            // Si quieres reset TOTAL (incluye ancho), descomenta:
+            // await store.dispatch("clearPrinterWidth");
+
             this.selectedKeyModel = ""; // limpia el v-model
-            this.updateSSLabel(); // solo texto del SmartSelect
+            // this.selectedWidthModel = ""; // si activas clearPrinterWidth, limpia también el v-model
+
+            this.updateSSLabel(); // solo texto del SmartSelect impresora
+            this.updateSSWidthLabel(); // texto del SmartSelect ancho
+
             f7.toast
                 .create({ text: "Selección eliminada", closeTimeout: 1200 })
                 .open();

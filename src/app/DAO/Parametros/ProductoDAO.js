@@ -50,24 +50,30 @@ export default class PredioDAO {
     }
 
 
+    /**
+     * Lista los largos disponibles para un producto en base a los parámetros de orden-compra
+     * 
+     * @param {*} codEncargado 
+     * @param {*} rutProveedor 
+     * @param {*} rolPredio 
+     * @param {*} rutCliente 
+     * @param {*} destinoCliente 
+     * @param {*} codProducto 
+     * @returns 
+     */
     async listarLargosPorProducto(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto) {
         const { docs } = await this.db.find({
             selector: {
-                type: config.bd.tipoEntidad.ordenCompra,
-                codEncargado,
-                rutProveedor,
-                rolPredio,
-                rutCliente,
-                destinoCliente,
-                codProducto
+                type: config.bd.tipoEntidad.largoProducto
             }
         });
 
         // distinct por largoTrozo (considera null como “sin largo”)
         const set = new Set();
+        console.log(docs);
         for (const d of docs) {
             // normaliza a string para dedupe estable
-            const key = d.largoTrozo == null ? 'NULL' : String(d.largoTrozo);
+            const key = d.largo == null ? 'NULL' : String(d.largo);
             set.add(key);
         }
 

@@ -4,7 +4,11 @@ import { getGdeDao } from "@/app/services/initServices";
 import config from "@/Common/json/config.json";
 
 export async function obtenerResumen(empId, rutEmisor, opts = {}) {
+
+
     const dao = getGdeDao();
+    const lista = dao.listar();
+    console.log(lista);
     const {
         desde = null,
         hasta = null,

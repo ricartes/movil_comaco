@@ -13,6 +13,8 @@ const DISPO_BLOQUEA_KEY = 'dispo_bloquea'    // 'true' | 'false'
 const DISPO_LASTCHECK_KEY = 'dispo_lastcheck'  // epoch (string)
 const PRN_NAME_KEY = 'printer_name';   // opcional: guarda también address si tu fork lo entrega
 const PRN_ADDR_KEY = 'printer_addr';
+const PRN_PAPER_WIDTH_KEY = 'printer_paper_width'; // 32 (57–58mm) | 48 (80mm)
+
 
 const store = createStore({
     state: {
@@ -26,6 +28,7 @@ const store = createStore({
         printer: {
             name: null,
             address: null,
+            paperWidth: null,
         },
     },
     getters: {
@@ -39,6 +42,8 @@ const store = createStore({
         dispositivoUid({ state }) { return state.dispositivo.uid },
         printerName({ state }) { return state.printer.name },
         printerAddr({ state }) { return state.printer.address },
+        printerPaperWidth({ state }) { return state.printer.paperWidth },
+
 
     },
     actions: {
@@ -90,12 +95,19 @@ const store = createStore({
                 state.dispositivo.lastCheck = dLast ? Number(dLast) : null
 
                 // ====== Impresora (persistido)
-                const [{ value: pName } = {}, { value: pAddr } = {}] = await Promise.all([
+                const [
+                    { value: pName } = {},
+                    { value: pAddr } = {},
+                    { value: pWidth } = {},
+                ] = await Promise.all([
                     Preferences.get({ key: PRN_NAME_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: PRN_ADDR_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: PRN_PAPER_WIDTH_KEY }).catch(() => ({ value: null })),
                 ]);
                 state.printer.name = pName || null;
                 state.printer.address = pAddr || null;
+                state.printer.paperWidth = pWidth ? Number(pWidth) : null; // ← NUEVO
+
             } finally {
                 // ✅ garantizado: evita quedarse en “Cargando…”
                 state.ready = true
@@ -165,12 +177,28 @@ const store = createStore({
             window.dispatchEvent(new CustomEvent('printer:changed', { detail: { name, address } }));
         },
 
+        async setPrinterWidth({ state }, { paperWidth }) {
+            const val = Number(paperWidth);
+            if (![32, 48].includes(val)) return; // valida entrada
+            state.printer.paperWidth = val;
+            await Preferences.set({ key: PRN_PAPER_WIDTH_KEY, value: String(val) });
+            window.dispatchEvent(new CustomEvent('printer:widthChanged', { detail: { paperWidth: val } }));
+        },
+
+
         async clearPrinter({ state }) {
             state.printer = { name: null, address: null };
             await Preferences.remove({ key: PRN_NAME_KEY });
             await Preferences.remove({ key: PRN_ADDR_KEY });
             window.dispatchEvent(new CustomEvent('printer:changed', { detail: { name: null, address: null } }));
         },
+
+        async clearPrinterWidth({ state }) {
+            state.printer.paperWidth = null;
+            await Preferences.remove({ key: PRN_PAPER_WIDTH_KEY });
+            window.dispatchEvent(new CustomEvent('printer:widthChanged', { detail: { paperWidth: null } }));
+        },
+
     },
 })
 

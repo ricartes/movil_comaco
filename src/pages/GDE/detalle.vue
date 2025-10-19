@@ -200,7 +200,7 @@ import {
     anularGde,
 } from "@/app/services/GdeService";
 
-import { enviarGde } from "@/app/services/EnvioGdeService";
+import { enviarGde } from "@/app/services/GdeEnvioService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
 import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
 import DetalleMR from "@/pages/GDE/Detalle/DetalleMR.vue";

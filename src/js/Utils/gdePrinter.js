@@ -5,7 +5,12 @@ import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-ther
 import store from '@/js/store';
 
 // ===== Ajustes de ticket =====
-const COLS = 48; // 58mm ≈ 32; para 80mm podrías usar 42/48
+const PAPER_WIDTH = Number(store.state?.printer?.paperWidth) || 32;
+
+const COLS = PAPER_WIDTH === 48 ? 48 : 32;
+
+const PIXELS = PAPER_WIDTH === 48 ? 576 : 384;
+
 
 
 // ==== Helpers de maquetado ====
@@ -181,12 +186,12 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         rut: `R.U.T.: ${M.emisor.rut}`,
         title: 'GUÍA DE DESPACHO\nELECTRÓNICA',
         folio: `N°: ${M.folio}`,
-        width: 576,            // 80mm
+        width: PIXELS,        // ← 384 ó 576 según papel   
         bgColor: '#eeeeee',    // si prefieres blanco puro: '#ffffff'
         strokeColor: '#000000',
         textColor: '#000000',
     });
-    await printBase64Safe(headerB64, '1', 48);
+    await printBase64Safe(headerB64, '1', String(COLS));
 
     if (M.emisor.comuna) await printRawText(center(`S.I.I ${M.emisor.comuna.toUpperCase()}`));
     await printRawText(div('='));
@@ -311,7 +316,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         // Generar localmente desde TED
         try {
             const dataUrl = await renderThermalPdf417FromTED(doc.ted, {
-                targetWidth: 576,
+                targetWidth: PIXELS,
                 targetHeight: 300,
                 fit: 'fill',
 
@@ -336,7 +341,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         const b64 = timbreBase64;
 
         // 80mm ⇒ paperWidth 48; centrado
-        await printBase64Safe(b64, '0', '48');
+        await printBase64Safe(b64, '0', String(COLS));
         // “RES {n} de {año} - Verifique documento en www.sii.cl”
         const numRes = M.emisor.nResol || '';
         const anioRes = (M.emisor.fResol || '').slice(0, 4) || '';

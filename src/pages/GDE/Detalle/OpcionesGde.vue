@@ -66,9 +66,9 @@
         <!-- Imprimir (siempre) -->
         <f7-list-item
             link
-            v-if="hasPrinter"
+            v-if="showEnviar && hasPrinter"
             @click="onImprimir"
-            title="Imprimir Original"
+            :title="tituloImprimirOriginal"
             :disabled="loading"
         >
             <template #media>
@@ -78,9 +78,9 @@
 
         <f7-list-item
             link
-            v-if="hasPrinter"
+            v-if="showEnviar && hasPrinter"
             @click="onImprimirCedible"
-            title="Imprimir Cedible"
+            :title="tituloImprimirCedible"
             :disabled="loading"
         >
             <template #media>
@@ -88,7 +88,7 @@
             </template>
         </f7-list-item>
 
-        <f7-block strong v-else class="alert-wrapper">
+        <f7-block strong v-if="showEnviar && !hasPrinter" class="alert-wrapper">
             <div
                 class="alert alert-danger"
                 style="
@@ -139,7 +139,14 @@ export default {
         doc: { type: Object, required: true },
         loading: { type: Boolean, default: false },
     },
-    emits: ["emitir", "enviar", "imprimir", "generar-pdf", "descartar"],
+    emits: [
+        "emitir",
+        "enviar",
+        "imprimir",
+        "imprimir-cedible",
+        "generar-pdf",
+        "descartar",
+    ],
     computed: {
         st() {
             return this.doc?.estado?.id;
@@ -204,6 +211,25 @@ export default {
         hasPrinter() {
             return !!store?.state?.printer?.name;
         },
+        paperWidth() {
+            // 32 (57–58mm) | 48 (80mm) ; fallback 32
+            const v = Number(store?.state?.printer?.paperWidth);
+            return v === 48 ? 48 : 32;
+        },
+        paperWidthLabel() {
+            return this.paperWidth === 48 ? "80 mm" : "57–58 mm";
+        },
+        paperWidthSuffix() {
+            return ` (${this.paperWidthLabel})`;
+        },
+
+        // Títulos con ancho
+        tituloImprimirOriginal() {
+            return `Imprimir Original${this.paperWidthSuffix}`;
+        },
+        tituloImprimirCedible() {
+            return `Imprimir Cedible${this.paperWidthSuffix}`;
+        },
     },
     methods: {
         onEmitir() {
@@ -228,7 +254,7 @@ export default {
         },
         onDescartar() {
             f7.dialog.confirm(
-                "¿Seguro que deseas descartar este borrador?",
+                "¿Seguro que deseas descartar este borrador? Esto no podrá ser revertido.",
                 "Confirmar",
                 () => this.$emit("descartar", this.doc)
             );
@@ -240,7 +266,7 @@ export default {
                     f7.dialog.alert("Debe ingresar un motivo de anulación.");
                 } else {
                     f7.dialog.confirm(
-                        `¿Está seguro que desea anular esta guía. Esto no podrá ser revertido.?`,
+                        `¿Está seguro que desea anular esta guía? Esto no podrá ser revertido.`,
                         () => {
                             this.$emit("anular", motivo);
                         }
