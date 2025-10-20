@@ -499,7 +499,7 @@ export default {
             } else {
                 f7.dialog.preloader("Enviado");
                 try {
-                    const updatedDoc = await enviarGde(this.doc);
+                    const updatedDoc = await enviarGde(this.doc, true);
                     this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                     f7.dialog.alert("Guía enviada correctamente.", "Éxito");
                 } catch (err) {

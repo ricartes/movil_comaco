@@ -183,7 +183,10 @@ var Utilidades = {
         } catch (error) {
             return null
         }
-    }
+    },
+
+
+
 }
 
 export default Utilidades;

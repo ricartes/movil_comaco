@@ -4,12 +4,18 @@ import store from '@/js/store'
 import Utilidades from "@/app/Utilidades";
 import { getGdeDao } from "@/app/services/initServices";
 import CargaParametrosWebServices from "@/app/webservices/CargaParametrosWebServices";
+import HelperWebServices from "@/app/Webservices/HelperWebServices";
 
 
-export async function enviarGde(gde) {
+export async function enviarGde(gde, ping = false) {
     const token = store.state.token;
     if (!token) throw new Error('Token no disponible');
-
+    if (ping) {
+        const online = await HelperWebServices.pingApi(10000);
+        if (!online) {
+            throw new Error('No hay conexión real con la API');
+        }
+    }
     const gdeDao = getGdeDao();
     const { ENVIADA, EMITIDA } = config.parametros.estadosGuia;
 
@@ -73,6 +79,8 @@ export async function enviarGde(gde) {
         throw e;
     }
 }
+
+
 
 
 /**
