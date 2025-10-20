@@ -83,6 +83,7 @@ export async function enviarGde(gde) {
  */
 export async function syncPendientesStreaming(empId, rutEmisor) {
     const dao = getGdeDao();
+    console.log("pasa");
     for await (const bloque of dao.iterarPendientesDeEnvio(empId, rutEmisor, { pageSize: 50 })) {
         for (const gde of bloque) {
             try { await enviarGde(gde); } catch (e) { console.warn('Fallo enviar', gde._id, e?.message); }

@@ -45,6 +45,8 @@ export async function startGdeSyncForegroundService(empId, rutEmisor) {
         stopSyncLoop();
         intervalId = setInterval(async () => {
             try {
+                console.log(empId);
+                console.log(rutEmisor);
                 await syncPendientesStreaming(empId, rutEmisor);
                 await ForegroundService.updateForegroundService({
                     id: 1,
@@ -53,6 +55,7 @@ export async function startGdeSyncForegroundService(empId, rutEmisor) {
                     smallIcon: 'ic_stat_gde_sync',
                 });
             } catch (e) {
+                console.log(e);
                 await ForegroundService.updateForegroundService({
                     id: 1,
                     title: 'Sincronizando GDE',

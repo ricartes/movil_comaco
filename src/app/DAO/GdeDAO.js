@@ -234,6 +234,9 @@ export default class GdeDAO {
     /**
      * Últimas N (por createdAt desc), con mínimos campos.
      */
+    /**
+     * Últimas N (por createdAt desc), con mínimos campos.
+     */
     async listarUltimas(empId, rut, { limit = 10, estados } = {}) {
         const selector = {
             type: config.bd.tipoEntidad.gde,
@@ -241,10 +244,14 @@ export default class GdeDAO {
             rutEmisor: String(rut),
         };
 
-        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        const estadosArr = Array.isArray(estados)
+            ? estados.map(s => String(s).toUpperCase())
+            : [];
+
         const filtra1Estado = estadosArr.length === 1;
         if (filtra1Estado) selector['estado.id'] = estadosArr[0];
 
+        // Índice + sort consistentes con el orden exacto
         const use_index = filtra1Estado
             ? 'idx_gde_emp_rut_estado_createdAt'
             : 'idx_gde_emp_rut_createdAt';
@@ -252,31 +259,53 @@ export default class GdeDAO {
         const sort = filtra1Estado
             ? [
                 { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { createdAt: 'desc' },
+                { 'estado.id': 'asc' }, { createdAt: 'desc' }, { _id: 'desc' },
             ]
             : [
                 { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { createdAt: 'desc' },
+                { createdAt: 'desc' }, { _id: 'desc' },
             ];
 
-        const res = await this.db.find({
-            selector,
-            sort,
-            limit,
-            fields: RESUMEN_FIELDS,
-            use_index,
-        });
+        try {
+            const res = await this.db.find({
+                selector,
+                sort,
+                limit,
+                fields: RESUMEN_FIELDS,
+                use_index,
+            });
 
-        const docs = res.docs || [];
-        const filtered = estadosArr.length > 1
-            ? docs.filter(d => estadosArr.includes(String(d?.estado?.id || '').toUpperCase()))
-            : docs;
+            let docs = res.docs || [];
 
-        return filtered;
+            // Si hay varios estados, filtra manualmente
+            if (estadosArr.length > 1) {
+                docs = docs.filter(d =>
+                    estadosArr.includes(String(d?.estado?.id || '').toUpperCase())
+                );
+            }
+
+            // Deduplicar por folio
+            const seen = new Set();
+            const unique = [];
+            for (const d of docs) {
+                const key = `${d.empId}-${d.folio}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    unique.push(d);
+                }
+            }
+
+            return unique;
+        } catch (e) {
+            console.error("Error listarUltimas:", e);
+            throw e;
+        }
     }
+
 
     async *iterarPendientesDeEnvio(empId, rutEmisor, { pageSize = 50 } = {}) {
         const EG = config.parametros.estadosGuia;
+        console.log(EG);
 
         const selectorBase = {
             type: config.bd.tipoEntidad.gde,
@@ -288,6 +317,8 @@ export default class GdeDAO {
                 { $or: [{ syncing: { $exists: false } }, { syncing: { $ne: true } }] },
             ],
         };
+
+        console.log("paso 2");
 
         // cursores
         let lastCreatedAt = null;

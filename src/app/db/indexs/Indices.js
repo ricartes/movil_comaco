@@ -55,46 +55,36 @@ export async function crearIndicesTipo(db) {
         // GDE (lista base)
         {
             ddoc: 'idx_gde_emp_rut_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'createdAt']
+            fields: ['type', 'empId', 'rutEmisor', 'createdAt', '_id'] // ← añadí _id para tie-break
         },
         // GDE + estado
         {
             ddoc: 'idx_gde_emp_rut_estado_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'createdAt']
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'createdAt', '_id'] // ← añadí _id
         },
         // GDE + folio
         {
             ddoc: 'idx_gde_emp_rut_folio_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'folio', 'createdAt']
+            fields: ['type', 'empId', 'rutEmisor', 'folio', 'createdAt', '_id'] // ← añadí _id
         },
         // GDE + estado + folio
         {
             ddoc: 'idx_gde_emp_rut_estado_folio_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt']
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt', '_id'] // ← añadí _id
         },
-
-
-        // GDE + (pendientes de envío): estado + sincronizado + fecha
-        {
-            ddoc: 'idx_gde_sync_estado_sinc_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'sincronizado', 'createdAt'],
-        },
-
-        {
-            ddoc: 'idx_gde_sync_estado_syncing_sinc_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'syncing', 'sincronizado', 'createdAt'],
-        },
+        // GDE + pendientes envío
         {
             ddoc: 'idx_gde_sync_estado_syncing_sinc_createdAt_id',
             fields: [
                 'type', 'empId', 'rutEmisor',
                 'estado.id',
-                'syncing',          // para excluir en selector y ordenar
-                'sincronizado',     // para excluir en selector y ordenar
+                'syncing',
+                'sincronizado',
                 'createdAt',
-                '_id',              // tie-breaker de paginación
-            ],
+                '_id'
+            ]
         },
+
 
     ];
 
