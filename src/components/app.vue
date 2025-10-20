@@ -79,6 +79,8 @@ export default {
             silent = false,
             nonIntrusive = false,
         } = {}) => {
+
+            
             if (!silent) f7.dialog.preloader("Validando acceso");
             const router = f7.views.main?.router;
 

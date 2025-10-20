@@ -7,6 +7,7 @@ import { Device } from '@capacitor/device';
 import dayjs from "dayjs";
 
 
+
 var Utilidades = {
 
     async buildDispositivoPayload() {
