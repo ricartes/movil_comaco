@@ -23,6 +23,8 @@ import {
     attachNotificationActionHandler,
     startGdeSyncForegroundService,
 } from "@/app/background/foregroundService";
+import Utilidades from "@/app/Utilidades.js";
+import HelperService from "@/app/services/HelperService.js";
 
 export default {
     setup() {
@@ -78,11 +80,36 @@ export default {
             nonIntrusive = false,
         } = {}) => {
             if (!silent) f7.dialog.preloader("Validando acceso");
+            const router = f7.views.main?.router;
+
             try {
+                // === Paso 0: Conectividad
+                const conexion = await Utilidades.verificarConexion();
+                if (!conexion?.connected) {
+                    // no hay red → usar estado previo
+                    return await fallbackSinRed({
+                        router,
+                        silent,
+                        nonIntrusive,
+                    });
+                }
+
+                // Hay red según sistema… ¿y el backend responde?
+                const online = await HelperService.validarConexion(8000);
+                console.log("Validación conexión al backend:", online);
+                if (!online) {
+                    // sin salida al host / backend caído → usar estado previo
+                    return await fallbackSinRed({
+                        router,
+                        silent,
+                        nonIntrusive,
+                    });
+                }
+
+                // === Paso 1: Validación online real
                 const res = await bootstrapValidacionDispositivo();
                 await store.dispatch("setDispositivoResult", res);
-
-                const router = f7.views.main?.router;
+                // navegación normal
                 const currentPath =
                     router?.currentRoute?.path ||
                     router?.url ||
@@ -92,7 +119,6 @@ export default {
                     "";
 
                 if (res.bloquea) {
-                    // 🚫 bloqueado → navegar sí o sí a /bloqueado
                     if (!currentPath.startsWith("/bloqueado")) {
                         router?.navigate("/bloqueado/", {
                             ...(silent
@@ -103,7 +129,6 @@ export default {
                     }
                     return { ok: false, bloquea: true };
                 } else {
-                    // ✅ OK: si nonIntrusive = true NO navegamos
                     if (!nonIntrusive) {
                         router?.navigate("/login/", {
                             ...(silent
@@ -115,59 +140,65 @@ export default {
                     return { ok: true, bloquea: false };
                 }
             } catch (err) {
-                const previoBloqueado = store.getters.isBloqueado;
-                const previoTieneUid = !!store.getters.dispositivoUid;
-                const router = f7.views.main?.router;
-                const currentPath =
-                    router?.currentRoute?.path ||
-                    router?.url ||
-                    (router?.history?.length
-                        ? router.history[router.history.length - 1]
-                        : "") ||
-                    "";
-
-                const isOfflineLike =
-                    typeof navigator !== "undefined" &&
-                    navigator?.onLine === false;
-
-                if (previoTieneUid && !previoBloqueado) {
-                    // En offline/silencioso/no-intrusivo NO navegamos; deja seguir
-                    if (isOfflineLike || nonIntrusive || silent) {
-                        return { ok: true, bloquea: false, degraded: true };
-                    }
-                    // Flujo intrusivo normal → volver a login si no estás ahí
-                    if (!currentPath.startsWith("/login")) {
-                        router?.navigate("/login/", {
-                            ...(silent
-                                ? { replaceState: true }
-                                : { reloadAll: true }),
-                            clearPreviousHistory: !silent,
-                        });
-                    }
-                    return { ok: true, bloquea: false, degraded: true };
-                } else {
-                    // Sin UID o marcado bloqueado → a /bloqueado
-                    await store.dispatch("setDispositivoResult", {
-                        uid: store.getters.dispositivoUid ?? null,
-                        estado: "DESCONOCIDO",
-                        bloquea: true,
-                        message:
-                            "No fue posible validar el dispositivo. Bloqueado por defecto.",
-                    });
-                    if (!currentPath.startsWith("/bloqueado")) {
-                        router?.navigate("/bloqueado/", {
-                            ...(silent
-                                ? { replaceState: true }
-                                : { reloadAll: true }),
-                            clearPreviousHistory: !silent,
-                        });
-                    }
-                    return { ok: false, bloquea: true };
-                }
+                // Error “real” (DNS/timeout/etc.) → trata como sin red
+                return await fallbackSinRed({ router, silent, nonIntrusive });
             } finally {
                 if (!silent) f7.dialog.close();
             }
         };
+
+        async function fallbackSinRed({ router, silent, nonIntrusive }) {
+            const previoBloqueado = !!store.getters.isBloqueado?.value;
+            const previoUid = !!store.getters.dispositivoUid?.value;
+            const previoEstado = store.getters.estadoDispositivo?.value;
+            const previoOk =
+                previoUid &&
+                !previoBloqueado &&
+                !!previoEstado &&
+                previoEstado !== "DESCONOCIDO";
+
+            const currentPath =
+                router?.currentRoute?.path ||
+                router?.url ||
+                (router?.history?.length
+                    ? router.history[router.history.length - 1]
+                    : "") ||
+                "";
+            console.log("Validación sin red: estado previo:", {
+                previoUid,
+                previoBloqueado,
+                previoEstado,
+                previoOk,
+            });
+            if (previoOk) {
+                // Permite seguir (degradado). Si es intrusivo, llévalo al login solo si estás online; acá no navegamos salvo que quieras mandarlo al home offline:
+                if (!nonIntrusive && !currentPath.startsWith("/login")) {
+                    router?.navigate("/login/", {
+                        ...(silent
+                            ? { replaceState: true }
+                            : { reloadAll: true }),
+                        clearPreviousHistory: !silent,
+                    });
+                }
+                return { ok: true, bloquea: false, degraded: true };
+            }
+
+            // Sin historial confiable → bloquea por seguridad
+            await store.dispatch("setDispositivoResult", {
+                uid: store.getters.dispositivoUid?.value ?? null,
+                estado: "DESCONOCIDO",
+                bloquea: true,
+                message:
+                    "No fue posible validar el dispositivo (sin conectividad). Bloqueado por defecto.",
+            });
+            if (!currentPath.startsWith("/bloqueado")) {
+                router?.navigate("/bloqueado/", {
+                    ...(silent ? { replaceState: true } : { reloadAll: true }),
+                    clearPreviousHistory: !silent,
+                });
+            }
+            return { ok: false, bloquea: true };
+        }
 
         window.appValidate = runValidacionAcceso;
 
@@ -275,7 +306,6 @@ export default {
             f7ready(async () => {
                 // 1) hidrata primero
                 await store.dispatch("hydrate");
-                console.log("Store hydrated");
 
                 // 2) init + listeners después de hydrate
                 if (device.capacitor) {
@@ -286,10 +316,7 @@ export default {
                         if (user?.empresa && user?.rut) {
                             attachNotificationActionHandler();
                             try {
-                                await startGdeSyncForegroundService(
-                                    user.empresa,
-                                    String(user.rut)
-                                );
+                                startAutoSyncIfPossible();
                             } catch (e) {
                                 f7.toast
                                     .create({
@@ -315,14 +342,14 @@ export default {
                             "appStateChange",
                             ({ isActive }) => {
                                 if (isActive) {
-                                    validateIfNeededSilently();
+                                    //validateIfNeededSilently();
                                 }
                             }
                         );
                         resumeHandle = await CapacitorApp.addListener(
                             "resume",
                             () => {
-                                validateIfNeededSilently();
+                                //validateIfNeededSilently();
                             }
                         );
 
@@ -333,7 +360,7 @@ export default {
                 // Visibilidad (webview vuelve a primer plano)
                 visibilityHandle = () => {
                     if (document.visibilityState === "visible") {
-                        validateIfNeededSilently();
+                        //validateIfNeededSilently();
                     }
                 };
                 document.addEventListener("visibilitychange", visibilityHandle);

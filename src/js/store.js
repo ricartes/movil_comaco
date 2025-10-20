@@ -94,6 +94,8 @@ const store = createStore({
                 state.dispositivo.bloqueado = (dBloquea === 'true')
                 state.dispositivo.lastCheck = dLast ? Number(dLast) : null
 
+                console.log(state.dispositivo);
+
                 // ====== Impresora (persistido)
                 const [
                     { value: pName } = {},

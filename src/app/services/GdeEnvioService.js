@@ -91,14 +91,18 @@ export async function enviarGde(gde, ping = false) {
 export async function syncPendientesStreaming(empId, rutEmisor) {
     const dao = getGdeDao();
     const conexion = await Utilidades.verificarConexion(); // <-- tu helper
-    console.log(conexion);
     if (!conexion?.connected) {
         console.warn('[SYNC] Sin conexión: se omite sincronización.');
         return;
     }
+    const online = await HelperWebServices.pingApi(10000);
+    if (!online) {
+        console.warn('[SYNC] Sin conexión al API : se omite sincronización.');
+        return;
+    }
 
     console.debug('[SYNC] Inicio de sincronización GDE pendientes...');
-    for await (const bloque of dao.iterarPendientesDeEnvioSimple(empId, rutEmisor, { pageSize: 50 })) {
+    for await (const bloque of dao.iterarPendientesDeEnvio(empId, rutEmisor, { pageSize: 50 })) {
         console.log(bloque);
         for (const gde of bloque) {
             console.log(gde);

@@ -51,6 +51,8 @@ import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
+import Utilidades from "@/app/Utilidades.js";
+import HelperService from "@/app/services/HelperService.js";
 
 export default {
     name: "MenuPage",
@@ -74,6 +76,23 @@ export default {
     methods: {
         async onCargarParametros() {
             try {
+                const conexion = await Utilidades.verificarConexion();
+                if (!conexion?.connected) {
+                    f7.dialog.alert(
+                        "No hay conexión a internet. No es posible cargar parámetros."
+                    );
+                    return;
+                }
+                f7.dialog.preloader("Estableciendo conexión…");
+                const online = await HelperService.validarConexion(3000);
+                f7.dialog.close();
+                if (!online) {
+                    f7.dialog.alert(
+                        "No hay conexión al servidor. No es posible cargar parámetros."
+                    );
+                    return;
+                }
+
                 const validate =
                     window.appValidate?.bind?.(window) || window.appValidate;
                 if (typeof validate === "function") {
@@ -245,6 +264,24 @@ export default {
         },
         async onCargarFolios() {
             try {
+                const conexion = await Utilidades.verificarConexion();
+                if (!conexion?.connected) {
+                    f7.dialog.alert(
+                        "No hay conexión a internet. No es posible cargar folios."
+                    );
+                    return;
+                }
+                f7.dialog.preloader("Estableciendo conexión…");
+                const online = await HelperService.validarConexion(3000);
+                f7.dialog.close();
+                console.log("Validación conexión al backend:", online);
+                if (!online) {
+                    f7.dialog.alert(
+                        "No hay conexión al servidor. No es posible cargar folios."
+                    );
+                    return;
+                }
+
                 const validate =
                     window.appValidate?.bind?.(window) || window.appValidate;
                 if (typeof validate === "function") {
@@ -276,19 +313,7 @@ export default {
 
                 // ✅ si todo ok, mostramos resumen con info
                 if (resultado?.ok) {
-                    const msg = `
-                <div class="text-start">
-                    <p><strong>Folios cargados correctamente.</strong></p>
-                    <ul class="mt-2 mb-0">
-                        <li><b>Documentos insertados:</b> ${
-                            resultado.inserted
-                        }</li>
-                        <li><b>Confirmados:</b> ${
-                            resultado.confirmed?.length || 0
-                        }</li>
-                    </ul>
-                </div>
-            `;
+                    const msg = "Folios cargados correctamente.";
                     f7.dialog.alert(msg, "Carga completada");
                 } else {
                     f7.dialog.alert(

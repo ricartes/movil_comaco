@@ -180,7 +180,7 @@
                         @descartar="onDescartar"
                         @generar-pdf="onGenerarPDF"
                         @emitir="onEmitir"
-                        @enviar="onEnviar"
+                        @enviar="() => onEnviar(false)"
                         @imprimir="onImprimir"
                         @imprimir-cedible="onImprimirCedible"
                         @anular="onAnular"
@@ -213,6 +213,7 @@ import { buildDefinition } from "@/js/utils/gdePdfTemplate";
 import { createPdfAndOpen } from "@/js/utils/pdfNative";
 import { renderPdf417FromTED } from "@/js/utils/pdf417";
 import { printGuiaFromDoc } from "@/js/Utils/gdePrinter";
+import HelperService from "@/app/services/HelperService.js";
 
 export default {
     name: "GdeDetalle",
@@ -397,7 +398,7 @@ export default {
                         "Éxito",
                         () => {
                             this.scrollArriba();
-                            this.onEnviar();
+                            this.onEnviar(true);
                         }
                     );
                 }
@@ -419,7 +420,7 @@ export default {
                 this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                 f7.dialog.alert("Guía anulada correctamente.", "Éxito", () => {
                     this.scrollArriba();
-                    this.onEnviar();
+                    this.onEnviar(true);
                 });
             } catch (e) {
                 const mensaje = e?.message
@@ -489,27 +490,43 @@ export default {
             }
         },
 
-        async onEnviar() {
-            const conexion = await Utilidades.verificarConexion(); // <-- tu helper
+        async onEnviar(desdeEmitir = false) {
+            // 0) Red del dispositivo
+            const conexion = await Utilidades.verificarConexion();
             if (!conexion?.connected) {
-                f7.dialog.alert(
-                    "No hay conexión a internet. Revise su conexión e intente nuevamente.",
-                    "Error de Conexión"
-                );
-            } else {
-                f7.dialog.preloader("Enviado");
-                try {
-                    const updatedDoc = await enviarGde(this.doc, true);
-                    this.doc = updatedDoc; // 👈 actualizas el doc en memoria
-                    f7.dialog.alert("Guía enviada correctamente.", "Éxito");
-                } catch (err) {
+                if (!desdeEmitir) {
                     f7.dialog.alert(
-                        err.message || "Error al enviar la guía",
-                        "Error"
+                        "No hay conexión a internet. Revise su conexión e intente nuevamente.",
+                        "Conexión requerida"
                     );
-                } finally {
-                    f7.dialog.close();
                 }
+                return; // 👈 CORTA AQUÍ
+            }
+
+            const online = await HelperService.validarConexion(3000);
+            if (!online) {
+                if (!desdeEmitir) {
+                    f7.dialog.alert(
+                        "No hay conexión al servidor. No es posible enviar la guía.",
+                        "Conexión requerida"
+                    );
+                }
+                return; // 👈 CORTA AQUÍ
+            }
+
+            // 2) Envío (solo si pasaron las validaciones)
+            f7.dialog.preloader("Enviando…");
+            try {
+                const updatedDoc = await enviarGde(this.doc, true);
+                this.doc = updatedDoc;
+                f7.dialog.alert("Guía enviada correctamente.", "Éxito");
+            } catch (err) {
+                f7.dialog.alert(
+                    err?.message || "Error al enviar la guía",
+                    "Error"
+                );
+            } finally {
+                f7.dialog.close();
             }
         },
 
