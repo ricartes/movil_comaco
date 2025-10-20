@@ -296,6 +296,7 @@ export default {
                     );
                 }
             } catch (ex) {
+                console.log(ex);
                 console.error("Error al cargar folios:", ex);
                 f7.dialog.alert(
                     `Ha ocurrido un error al cargar los folios:<br><small>${

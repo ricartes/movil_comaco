@@ -3,6 +3,33 @@ import config from "@/Common/json/config.json";
 import { getBaseDao } from "@/app/services/initServices";
 import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper';
 
+
+function getPath(obj, path) {
+    return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+}
+
+// chequea que existan los padres de cada path (lo que suele romper "fields" en pouchdb-find)
+function validateRequiredParents(doc, dottedPaths) {
+    const problems = [];
+    for (const p of dottedPaths) {
+        const parts = p.split('.');
+        if (parts.length === 1) continue; // campos planos no dan problema
+        // verificar cada prefijo padre: a, a.b, ...
+        for (let i = 1; i < parts.length; i++) {
+            const parentPath = parts.slice(0, i).join('.');
+            const v = getPath(doc, parentPath);
+            if (v == null || (typeof v === 'object' && v !== null && Array.isArray(v))) {
+                // v == null → no existe el objeto padre
+                // (no solemos permitir array donde esperamos objeto plano)
+                problems.push({ path: p, missingParent: parentPath, valueAtParent: v });
+                break; // no sigas con hijos, ya falló el padre
+            }
+        }
+    }
+    return problems;
+}
+
+
 let instance = null;
 
 const LIST_FIELDS = [
@@ -27,9 +54,21 @@ const LIST_FIELDS = [
     'zona.descripcion',
 ];
 
+// SOLO top-level (sin “a.b.c”)
+const SAFE_LIST_FIELDS = [
+    '_id', 'empId', 'folio', 'createdAt',
+    'estado', 'producto', 'largoProducto',
+    'cliente', 'predio', 'destino',
+    'transportista', 'patenteCamion', 'patenteCarro',
+    'totales', 'zona',
+];
+
+
 const RESUMEN_FIELDS = [
     '_id',
+    'type',
     'empId',
+    'rutEmisor',
     'folio',
     'createdAt',
     'estado.id',
@@ -80,11 +119,11 @@ export default class GdeDAO {
 
         const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
         const filtra1Estado = estadosArr.length === 1;
-        const filtraVariosEstados = estadosArr.length > 1;
 
-        // SOLO 1 estado -> igualdad (aprovecha índice)
         if (filtra1Estado) {
             selector['estado.id'] = estadosArr[0];
+        } else if (estadosArr.length > 1) {
+            selector['estado.id'] = { $in: estadosArr };
         }
 
         if (folio != null && String(folio).trim() !== '') {
@@ -98,267 +137,426 @@ export default class GdeDAO {
             if (hasta) selector.createdAt.$lte = new Date(hasta).toISOString();
         }
 
-        // Elegir índice/sort compatibles con el selector armado
+        // ⚠️ Regla Mango: si 'createdAt' está en el sort/índice, debe estar en el selector.
+        if (!selector.createdAt) {
+            selector.createdAt = { $gte: '' }; // ancla mínima
+        }
+
+        // Índice/orden compatibles (ASC para calzar con índices creados en asc)
         let use_index, sort;
         if (filtra1Estado && selector.folio != null) {
-            use_index = 'idx_gde_emp_rut_estado_folio_createdAt';
+            use_index = 'idx_gde_emp_rut_estado_folio_createdAt_id';
             sort = [
                 { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { folio: 'asc' }, { createdAt: 'desc' },
+                { 'estado.id': 'asc' }, { folio: 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
             ];
         } else if (filtra1Estado) {
-            use_index = 'idx_gde_emp_rut_estado_createdAt';
+            use_index = 'idx_gde_emp_rut_estado_createdAt_id';
             sort = [
                 { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { createdAt: 'desc' },
+                { 'estado.id': 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
             ];
         } else if (selector.folio != null) {
-            use_index = 'idx_gde_emp_rut_folio_createdAt';
+            use_index = 'idx_gde_emp_rut_folio_createdAt_id';
             sort = [
                 { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { folio: 'asc' }, { createdAt: 'desc' },
+                { folio: 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
             ];
         } else {
-            use_index = 'idx_gde_emp_rut_createdAt';
+            use_index = 'idx_gde_emp_rut_createdAt_id';
             sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' }, { createdAt: 'desc' },
+                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
+                { createdAt: 'asc' }, { _id: 'asc' },
             ];
         }
 
+        console.log('🔎 listarPorEmpresaYRutPaginado: selector:', JSON.stringify(selector, null, 2));
+        console.log('🔎 use_index:', use_index);
+        console.log('🔎 sort:', sort);
+
         try {
+            // INTENTO 1: con índice/sort y SIN fields (evita crash de dot paths)
             const res = await this.db.find({
                 selector,
                 sort,
                 limit,
                 skip,
-                fields: LIST_FIELDS,
                 use_index,
+                // sin fields
             });
-            // OJO: si el usuario seleccionó varios estados, acá NO filtramos por estado;
-            // dejamos que lo haga el cliente con applyClientFilters (OR).
-            return res.docs;
+
+            let docs = res.docs || [];
+
+            // Diagnóstico opcional de paths punteados (si usas LIST_FIELDS)
+            try {
+                const REQUIRED_DOTTED = (typeof LIST_FIELDS !== 'undefined' ? LIST_FIELDS : []).filter(f => f.includes('.'));
+                if (REQUIRED_DOTTED.length) {
+                    const offenders = [];
+                    for (const d of docs) {
+                        const bad = typeof validateRequiredParents === 'function'
+                            ? validateRequiredParents(d, REQUIRED_DOTTED)
+                            : [];
+                        if (bad.length) offenders.push({ _id: d._id, problems: bad });
+                    }
+                    if (offenders.length) {
+                        console.warn('⚠️ Docs con padres faltantes (podrían romper fields):', offenders.slice(0, 5));
+                    }
+                }
+            } catch { /* no-op si no existen helpers */ }
+
+            // Orden visual DESC para la UI (sin romper el uso del índice ASC)
+            docs.sort((a, b) => {
+                const c = (b.createdAt || '').localeCompare(a.createdAt || '');
+                return c !== 0 ? c : (b._id || '').localeCompare(a._id || '');
+            });
+
+            return docs;
         } catch (e) {
-            console.warn('find con índice falló, reintento sin sort:', e?.message);
-            const res = await this.db.find({
+            console.warn('❌ find con índice falló, reintento sin sort:', e?.message, {
+                selector, use_index
+            });
+
+            // INTENTO 2 (fallback): sin sort/use_index/fields
+            const res2 = await this.db.find({
                 selector,
                 limit,
                 skip,
-                fields: LIST_FIELDS,
-                use_index, // puedes omitir si sigue molestando
+                // sin sort, sin use_index, sin fields
             });
-            return (res.docs || []).sort(
-                (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')
-            );
+
+            let docs2 = res2.docs || [];
+
+            // Escaneo de culpables contra LIST_FIELDS (si aplica)
+            try {
+                const REQUIRED_DOTTED = (typeof LIST_FIELDS !== 'undefined' ? LIST_FIELDS : []).filter(f => f.includes('.'));
+                if (REQUIRED_DOTTED.length) {
+                    const offenders = [];
+                    for (const d of docs2) {
+                        const bad = typeof validateRequiredParents === 'function'
+                            ? validateRequiredParents(d, REQUIRED_DOTTED)
+                            : [];
+                        if (bad.length) offenders.push({ _id: d._id, problems: bad });
+                    }
+                    if (offenders.length) {
+                        console.error('🚨 Culpables detectados (paths faltantes):', offenders.slice(0, 10));
+                    } else {
+                        console.log('✅ Sin culpables evidentes respecto a LIST_FIELDS.');
+                    }
+                }
+            } catch { /* no-op */ }
+
+            // Orden visual descendente para mantener UX
+            docs2.sort((a, b) => {
+                const c = (b.createdAt || '').localeCompare(a.createdAt || '');
+                return c !== 0 ? c : (b._id || '').localeCompare(a._id || '');
+            });
+
+            return docs2;
         }
     }
 
 
     async *iterarParaResumen(empId, rut, {
-        estados,        // ['E','N'] u otros
-        desde,          // ISO
-        hasta,          // ISO
-        pageSize = 200, // tamaño de bloque
+        estados,
+        desde,
+        hasta,
+        pageSize = 200,
     } = {}) {
-        const selectorBase = {
+        const base = {
             type: config.bd.tipoEntidad.gde,
             empId: Number(empId),
             rutEmisor: String(rut),
         };
-
-        const estadosArr = Array.isArray(estados)
-            ? estados.map(s => String(s).toUpperCase())
-            : [];
-
-        // --- Rango de fechas ---
         if (desde || hasta) {
-            selectorBase.createdAt = {};
-            if (desde) selectorBase.createdAt.$gte = new Date(desde).toISOString();
-            if (hasta) selectorBase.createdAt.$lte = new Date(hasta).toISOString();
+            base.createdAt = {};
+            if (desde) base.createdAt.$gte = new Date(desde).toISOString();
+            if (hasta) base.createdAt.$lte = new Date(hasta).toISOString();
         }
 
-        // --- Estado ---
-        if (estadosArr.length === 1) {
-            selectorBase['estado.id'] = estadosArr[0];
-        } else if (estadosArr.length > 1) {
-            selectorBase['estado.id'] = { $in: estadosArr };
-        }
+        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        const filtra1 = estadosArr.length === 1;
+        const estadoUnico = filtra1 ? estadosArr[0] : null;
 
-        // --- Índice compuesto (estado.id + createdAt) ---
-        const use_index = 'idx_gde_emp_rut_estado_createdAt';
-        const sort = [
-            { type: 'asc' },
-            { empId: 'asc' },
-            { rutEmisor: 'asc' },
-            { 'estado.id': 'asc' },
-            { createdAt: 'desc' },
-        ];
+        // Config índice/sort
+        const use_index = filtra1
+            ? 'idx_gde_emp_rut_estado_createdAt_id'   // ['type','empId','rutEmisor','estado.id','createdAt','_id']
+            : 'idx_gde_emp_rut_createdAt_id';         // ['type','empId','rutEmisor','createdAt','_id']
 
-        // --- Cursor para paginación estable ---
+        const sort = filtra1
+            ? [{ type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' }, { 'estado.id': 'asc' }, { createdAt: 'desc' }, { _id: 'desc' }]
+            : [{ type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' }, { createdAt: 'desc' }, { _id: 'desc' }];
+
         let lastCreatedAt = null;
-        let lastEstado = null;
+        let lastId = null;
 
         while (true) {
-            const selector = { ...selectorBase };
+            // ---------- Query 1: strictly older by createdAt ----------
+            const sel1 = { ...base };
+            if (filtra1) sel1['estado.id'] = estadoUnico;
+            if (lastCreatedAt) sel1.createdAt = { ...(sel1.createdAt || {}), $lt: lastCreatedAt };
 
-            if (lastCreatedAt && lastEstado) {
-                // Evita duplicados con un cursor doble: estado + fecha
-                selector.$or = [
-                    { 'estado.id': { $lt: lastEstado } },
-                    {
-                        'estado.id': { $eq: lastEstado },
-                        createdAt: { $lt: lastCreatedAt },
-                    },
-                ];
-            }
+            console.debug('🔍 iterarParaResumen Q1 selector:', sel1, 'use_index:', use_index);
 
-            const res = await this.db.find({
-                selector,
+            let res1 = await this.db.find({
+                selector: sel1,
                 sort,
                 limit: pageSize,
                 fields: RESUMEN_FIELDS,
                 use_index,
             });
+            let out = res1.docs || [];
 
-            const docs = res.docs || [];
-            if (!docs.length) break;
+            // ---------- Si faltan para completar la página, Query 2: mismo createdAt, _id < lastId ----------
+            if (out.length < pageSize && lastCreatedAt && lastId) {
+                const remaining = pageSize - out.length;
+                const sel2 = { ...base };
+                if (filtra1) sel2['estado.id'] = estadoUnico;
+                sel2.createdAt = { ...(sel2.createdAt || {}), $eq: lastCreatedAt };
+                sel2._id = { $lt: lastId };
 
-            yield docs;
+                console.debug('🔍 iterarParaResumen Q2 selector:', sel2, 'use_index:', use_index);
 
-            const lastDoc = docs[docs.length - 1];
-            lastEstado = lastDoc?.estado?.id;
-            lastCreatedAt = lastDoc?.createdAt;
-            if (!lastCreatedAt) break;
-        }
-    }
-
-    /**
-     * Últimas N (por createdAt desc), con mínimos campos.
-     */
-    /**
-     * Últimas N (por createdAt desc), con mínimos campos.
-     */
-    async listarUltimas(empId, rut, { limit = 10, estados } = {}) {
-        const selector = {
-            type: config.bd.tipoEntidad.gde,
-            empId: Number(empId),
-            rutEmisor: String(rut),
-        };
-
-        const estadosArr = Array.isArray(estados)
-            ? estados.map(s => String(s).toUpperCase())
-            : [];
-
-        const filtra1Estado = estadosArr.length === 1;
-        if (filtra1Estado) selector['estado.id'] = estadosArr[0];
-
-        // Índice + sort consistentes con el orden exacto
-        const use_index = filtra1Estado
-            ? 'idx_gde_emp_rut_estado_createdAt'
-            : 'idx_gde_emp_rut_createdAt';
-
-        const sort = filtra1Estado
-            ? [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { createdAt: 'desc' }, { _id: 'desc' },
-            ]
-            : [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { createdAt: 'desc' }, { _id: 'desc' },
-            ];
-
-        try {
-            const res = await this.db.find({
-                selector,
-                sort,
-                limit,
-                fields: RESUMEN_FIELDS,
-                use_index,
-            });
-
-            let docs = res.docs || [];
-
-            // Si hay varios estados, filtra manualmente
-            if (estadosArr.length > 1) {
-                docs = docs.filter(d =>
-                    estadosArr.includes(String(d?.estado?.id || '').toUpperCase())
-                );
+                const res2 = await this.db.find({
+                    selector: sel2,
+                    sort,
+                    limit: remaining,
+                    fields: RESUMEN_FIELDS,
+                    use_index,
+                });
+                out = out.concat(res2.docs || []);
             }
 
-            // Deduplicar por folio
-            const seen = new Set();
-            const unique = [];
-            for (const d of docs) {
-                const key = `${d.empId}-${d.folio}`;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    unique.push(d);
-                }
+            // Filtro en cliente si NO es un solo estado
+            if (!filtra1 && estadosArr.length > 0) {
+                const S = new Set(estadosArr);
+                out = out.filter(d => S.has(String(d?.estado?.id || '').toUpperCase()));
             }
 
-            return unique;
-        } catch (e) {
-            console.error("Error listarUltimas:", e);
-            throw e;
+            console.debug('🔍 iterarParaResumen page docs:', out.length);
+            if (!out.length) break;
+
+            yield out;
+
+            const last = out[out.length - 1];
+            lastCreatedAt = last?.createdAt || null;
+            lastId = last?._id || null;
+            if (!lastCreatedAt || !lastId) break;
         }
     }
-
 
     async *iterarPendientesDeEnvio(empId, rutEmisor, { pageSize = 50 } = {}) {
-        const EG = config.parametros.estadosGuia;
-        console.log(EG);
+        const EG = config?.parametros?.estadosGuia;
+        if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
+            throw new Error('Config de estadosGuia inválida o incompleta');
+        }
 
         const selectorBase = {
             type: config.bd.tipoEntidad.gde,
             empId: Number(empId),
             rutEmisor: String(rutEmisor),
             'estado.id': { $in: [EG.EMITIDA.id, EG.NULA.id] },
-            $and: [
-                { $or: [{ sincronizado: { $exists: false } }, { sincronizado: { $ne: true } }] },
-                { $or: [{ syncing: { $exists: false } }, { syncing: { $ne: true } }] },
-            ],
+            syncing: { $ne: true },
+            sincronizado: { $ne: true },
         };
 
-        console.log("paso 2");
-
-        // cursores
+        // Cursores
         let lastCreatedAt = null;
         let lastId = null;
 
-        while (true) {
-            const selector = { ...selectorBase };
+        // Orden que calza con el índice completo
+        const sortStrict = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { syncing: 'asc' },
+            { sincronizado: 'asc' },
+            { createdAt: 'asc' },
+            { _id: 'asc' },
+        ];
 
-            // Paginación estable: (createdAt > last) OR (createdAt == last AND _id > lastId)
+        const indexStrict = 'idx_gde_sync_estado_syncing_sinc_createdAt_id';
+
+        // Índice alternativo (sin syncing/sincronizado)
+        const sortAlt = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { createdAt: 'asc' },
+            { _id: 'asc' },
+        ];
+        const indexAlt = 'idx_gde_emp_rut_estado_createdAt_id';
+
+        console.log('🚀 iterarPendientesDeEnvio INICIO', { empId, rutEmisor, pageSize });
+
+        let yielded = 0;
+
+        const runPage = async (selector, sort, use_index) => {
+            return this.db.find({ selector, sort, limit: pageSize, use_index });
+        };
+
+        while (true) {
+            // Selector por página
+            const selector = { ...selectorBase };
             if (lastCreatedAt) {
                 selector.$or = [
                     { createdAt: { $gt: lastCreatedAt } },
-                    { createdAt: { $eq: lastCreatedAt }, _id: { $gt: lastId || '' } },
+                    { createdAt: { $eq: lastCreatedAt }, _id: { $gt: (lastId || '') } },
                 ];
             }
 
-            const res = await this.db.find({
-                selector,
-                sort: [
-                    { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                    { 'estado.id': 'asc' }, { syncing: 'asc' }, { sincronizado: 'asc' },
-                    { createdAt: 'asc' }, { _id: 'asc' },
-                ],
-                limit: pageSize,
-                // Trae DOC COMPLETO (no 'fields')
-                use_index: 'idx_gde_sync_estado_syncing_sinc_createdAt_id',
-            });
+            console.log('🧭 Ciclo: selector:\n', JSON.stringify(selector, null, 2));
+            console.log('📚 Índice preferido:', indexStrict);
+            console.log('🧩 Orden preferido:', sortStrict);
 
-            const docs = res.docs || [];
+            let res;
+            try {
+                // INTENTO 1: índice completo
+                res = await runPage(selector, sortStrict, indexStrict);
+            } catch (e1) {
+                console.warn('❌ find con índice estricto falló:', e1?.message);
+                try {
+                    // INTENTO 2: índice alternativo
+                    console.log('🔁 Reintentando con índice alternativo:', indexAlt);
+                    res = await runPage(selector, sortAlt, indexAlt);
+                } catch (e2) {
+                    console.warn('❌ find con índice alternativo falló:', e2?.message);
+                    // INTENTO 3: sin índice/sort, filtro en memoria
+                    console.log('🟠 Fallback sin índice: traeremos un batch “grande” y ordenaremos en memoria.');
+                    const resRaw = await this.db.find({
+                        selector: selectorBase,
+                        limit: pageSize * 3,
+                    });
+                    let docs = resRaw.docs || [];
+
+                    if (lastCreatedAt) {
+                        docs = docs.filter(d =>
+                            (d?.createdAt || '') > lastCreatedAt ||
+                            ((d?.createdAt || '') === lastCreatedAt && (d?._id || '') > (lastId || ''))
+                        );
+                    }
+
+                    docs = docs.filter(d => d?.syncing !== true && d?.sincronizado !== true);
+
+                    docs.sort((a, b) => {
+                        const c = (a?.createdAt || '').localeCompare(b?.createdAt || '');
+                        return c !== 0 ? c : (a?._id || '').localeCompare(b?._id || '');
+                    });
+
+                    res = { docs: docs.slice(0, pageSize) };
+                }
+            }
+
+            const docs = res?.docs || [];
+            console.log('🔎 Encontrados:', docs.length);
             if (!docs.length) break;
 
             yield docs;
+            yielded += docs.length;
 
-            // avanza cursor
+            // Avanza cursor
             const last = docs[docs.length - 1];
             lastCreatedAt = last?.createdAt || null;
             lastId = last?._id || null;
+
             if (!lastCreatedAt || !lastId) break;
         }
+
+        console.log('✅ iterarPendientesDeEnvio FIN. Total yield:', yielded);
     }
+
+
+
+    // Itera guías pendientes: estado I|N y (syncing !== true) y (sincronizado !== true)
+    // Trae un batch "suficiente" y filtra en memoria; rinde si esperas <= 20 por envío.
+    async *iterarPendientesDeEnvioSimple(empId, rutEmisor, { pageSize = 20 } = {}) {
+        const EG = config?.parametros?.estadosGuia;
+        if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
+            throw new Error('Config de estadosGuia inválida o incompleta');
+        }
+
+        const indexAlt = 'idx_gde_emp_rut_estado_createdAt_id';
+        const sortAlt = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { createdAt: 'asc' },
+            { _id: 'asc' },
+        ];
+
+        const selectorBase = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rutEmisor),
+            // admite tanto N (Nula) como I (Emitida). Si dijiste "E", la agrego por si acaso:
+            'estado.id': { $in: [EG.EMITIDA.id, EG.NULA.id, 'E'] },
+        };
+
+        // cursores por createdAt + _id
+        let lastCreatedAt = null;
+        let lastId = null;
+
+        const cmpStr = (a = '', b = '') => (a > b) - (a < b);
+
+        while (true) {
+            const selector = { ...selectorBase };
+            if (lastCreatedAt) {
+                selector.$or = [
+                    { createdAt: { $gt: lastCreatedAt } },
+                    { createdAt: { $eq: lastCreatedAt }, _id: { $gt: (lastId || '') } },
+                ];
+            } else {
+                // Para que Mango no se queje al ordenar por createdAt:
+                selector.createdAt = { $gte: '' };
+            }
+
+            // Trae "de más" y filtramos luego
+            const res = await this.db.find({
+                selector,
+                sort: sortAlt,
+                use_index: indexAlt,
+                limit: Math.max(pageSize * 3, 60),
+            });
+
+            let docs = res?.docs || [];
+            if (!docs.length) break;
+
+            // Filtro en memoria: pendientes
+            docs = docs.filter(d => d?.syncing !== true && d?.sincronizado !== true);
+
+            // Orden estable (por si el motor no respetó algo)
+            docs.sort((a, b) => {
+                const c = cmpStr(a?.createdAt, b?.createdAt);
+                return c !== 0 ? c : cmpStr(a?._id, b?._id);
+            });
+
+            if (!docs.length) {
+                // avanza cursor usando el último del batch original para evitar bucle
+                const lastRaw = res.docs[res.docs.length - 1];
+                lastCreatedAt = lastRaw?.createdAt || null;
+                lastId = lastRaw?._id || null;
+                if (!lastCreatedAt || !lastId) break;
+                continue;
+            }
+
+            // pagina “real” de salida
+            const page = docs.slice(0, pageSize);
+            yield page;
+
+            // avanza cursor con el último realmente entregado
+            const last = page[page.length - 1];
+            lastCreatedAt = last?.createdAt || null;
+            lastId = last?._id || null;
+            if (!lastCreatedAt || !lastId) break;
+
+            // Si el batch traído fue más chico que el límite y ya consumimos todo, corta
+            if (res.docs.length < Math.max(pageSize * 3, 60) && docs.length <= pageSize) break;
+        }
+    }
+
+
 
 
 

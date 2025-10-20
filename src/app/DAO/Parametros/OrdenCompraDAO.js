@@ -20,7 +20,7 @@ export default class OrdenCompraDAO {
     }
 
 
-    async obtenerPorDatos(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto, largoTrozo) {
+    async obtenerPorDatos(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto) {
 
         const { docs } = await this.db.find({
             selector: {
@@ -31,7 +31,6 @@ export default class OrdenCompraDAO {
                 rutCliente,
                 destinoCliente,
                 codProducto,
-                largoTrozo
 
             },
             limit: 1

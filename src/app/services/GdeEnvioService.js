@@ -1,9 +1,10 @@
 
 import config from "@/Common/json/config.json";
 import store from '@/js/store'
-
+import Utilidades from "@/app/Utilidades";
 import { getGdeDao } from "@/app/services/initServices";
 import CargaParametrosWebServices from "@/app/webservices/CargaParametrosWebServices";
+
 
 export async function enviarGde(gde) {
     const token = store.state.token;
@@ -43,7 +44,7 @@ export async function enviarGde(gde) {
             { 'X-Idempotency-Key': String(idempotencyKey) }
         );
 
-        
+
 
         if (!resp?.status) {
             throw new Error(resp?.message || `No se pudo enviar la guía N° ${gde.folio}`);
@@ -58,8 +59,6 @@ export async function enviarGde(gde) {
             syncing: false,
             ultimoErrorSync: null,
         });
-
-        console.debug(`[SYNC] ok ${gde._id} in ${Date.now() - t0}ms`);
 
 
         return actualizado;
@@ -83,9 +82,18 @@ export async function enviarGde(gde) {
  */
 export async function syncPendientesStreaming(empId, rutEmisor) {
     const dao = getGdeDao();
-    console.log("pasa");
-    for await (const bloque of dao.iterarPendientesDeEnvio(empId, rutEmisor, { pageSize: 50 })) {
+    const conexion = await Utilidades.verificarConexion(); // <-- tu helper
+    console.log(conexion);
+    if (!conexion?.connected) {
+        console.warn('[SYNC] Sin conexión: se omite sincronización.');
+        return;
+    }
+
+    console.debug('[SYNC] Inicio de sincronización GDE pendientes...');
+    for await (const bloque of dao.iterarPendientesDeEnvioSimple(empId, rutEmisor, { pageSize: 50 })) {
+        console.log(bloque);
         for (const gde of bloque) {
+            console.log(gde);
             try { await enviarGde(gde); } catch (e) { console.warn('Fallo enviar', gde._id, e?.message); }
         }
     }

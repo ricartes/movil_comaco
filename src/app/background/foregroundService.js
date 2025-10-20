@@ -45,8 +45,7 @@ export async function startGdeSyncForegroundService(empId, rutEmisor) {
         stopSyncLoop();
         intervalId = setInterval(async () => {
             try {
-                console.log(empId);
-                console.log(rutEmisor);
+
                 await syncPendientesStreaming(empId, rutEmisor);
                 await ForegroundService.updateForegroundService({
                     id: 1,

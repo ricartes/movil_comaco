@@ -35,14 +35,22 @@ export async function anularGde(gde, motivoAnulacion) {
     const ahoraISO = new Date().toISOString()
 
     try {
-        const actualizado = {
-            ...gde,
+        const actualizado = await gdeDao.patch(gde._id, {
             estado: estadoAnulada,
+            motivoAnulacion: motivoAnulacion,
             sincronizado: false,
             sincronizadoAt: null,
-            motivoAnulacion: motivoAnulacion
-        }
-        await gdeDao.actualizar(actualizado)
+            syncing: false,
+            ultimoErrorSync: null,
+            updatedAt: ahoraISO,
+        });
+
+        console.log('📄 GDE anulada:', {
+            _id: gde._id,
+            estado: actualizado.estado?.id,
+            motivo: actualizado.motivoAnulacion,
+            sincronizado: actualizado.sincronizado,
+        });
         return actualizado
     } catch (e) {
         throw e;
@@ -51,7 +59,6 @@ export async function anularGde(gde, motivoAnulacion) {
 
 
 export async function emitirGde(gde) {
-    // --- Validaciones básicas
     if (!gde || typeof gde !== "object") throw new Error("GDE inválida.");
     const empId = gde?.empresa?.id ?? gde?.empId;
     const rutEmisor = gde?.emisor?.rut ?? gde?.rutEmisor;
@@ -62,50 +69,74 @@ export async function emitirGde(gde) {
     const folioDao = getSiiFolioDao();
     const gdeDao = getGdeDao();
 
-    // 1) Obtener primer folio disponible con su URF
-    const { folioDTO, urfDTO } = await folioDao.obtenerPrimeroDisponibleConURF(empId, rutEmisor);
-    if (!folioDTO) throw new Error("No hay folios disponibles.");
-    if (!urfDTO?.caf || !urfDTO?.rsask) throw new Error("URF sin CAF o RSASK.");
+    // 🔒 evita doble emisión concurrente sobre la misma GDE
+    await gdeDao.patch(gde._id, { emitiendo: true });
 
-    // 2) Asignar folio + fecha
-    const fechaIso = nowLocalIso(); // "2025-10-09T22:19:18"
-    const fechaYYYYMMDD = fechaIso.slice(0, 10); // "2025-10-09"
-    const tsYYYYMMDDTHHMMSS = fechaIso;          // "2025-10-09T22:19:18"
+    try {
+        // 1) Reservar folio + URF (idempotente en el folioDao)
+        const { folioDTO, urfDTO } =
+            await folioDao.obtenerPrimeroDisponibleConURF(empId, rutEmisor);
+        if (!folioDTO) throw new Error("No hay folios disponibles.");
+        if (!urfDTO?.caf || !urfDTO?.rsask) throw new Error("URF sin CAF o RSASK.");
 
-    gde.folio = Number(folioDTO.folio);
-    gde.urfId = Number(folioDTO.urfId);
-    gde.fechaEmision = fechaIso;
-    gde.fechaEmisionOffset = nowLocalIsoWithOffset();
-    gde.estado = config.parametros.estadosGuia.EMITIDA;
+        // 2) Timestamps y estado
+        const fechaIso = nowLocalIso();           // "YYYY-MM-DDTHH:mm:ss"
+        const fechaYYYYMMDD = fechaIso.slice(0, 10);
+        const tsYYYYMMDDTHHMMSS = fechaIso;
+        const estadoEmitida = config.parametros.estadosGuia.EMITIDA;
 
-    // 3) Generar TED (separado para limpiar emitirGde)
-    const ted = buildTED({
-        gde,
-        urfCAF: urfDTO.caf,
-        rsask: urfDTO.rsask,
-        td: config?.parametros?.tiposDocumento?.gde ?? 52,
-        fechaYYYYMMDD,          // usado en <FE>
-        tsYYYYMMDDTHHMMSS,      // usado en <TSTED>
-    });
+        // 3) Construir TED con los datos que dependen del folio
+        const preGde = {
+            ...gde,
+            folio: Number(folioDTO.folio),
+            urfId: Number(folioDTO.urfId),
+            fechaEmision: fechaIso,
+            fechaEmisionOffset: nowLocalIsoWithOffset(),
+            estado: estadoEmitida,
+        };
 
-    // 4) Persistir cambios en la GDE
-    Object.assign(gde, {
-        ted,
-        tedAlg: "SHA1withRSA",
-        tedGeneradoAt: fechaIso,
-        srfId: urfDTO.srfId,
-    });
+        const ted = buildTED({
+            gde: preGde,
+            urfCAF: urfDTO.caf,
+            rsask: urfDTO.rsask,
+            td: config?.parametros?.tiposDocumento?.gde ?? 52,
+            fechaYYYYMMDD,
+            tsYYYYMMDDTHHMMSS,
+        });
 
-    const gdeActualizada = await gdeDao.actualizar(gde);
+        // 4) Patch mínimo sobre la GDE (no sobrescribe el resto del doc)
+        const actualizado = await gdeDao.patch(gde._id, {
+            folio: preGde.folio,
+            urfId: preGde.urfId,
+            fechaEmision: preGde.fechaEmision,
+            fechaEmisionOffset: preGde.fechaEmisionOffset,
+            estado: preGde.estado,
+            ted,
+            tedAlg: "SHA1withRSA",
+            tedGeneradoAt: fechaIso,
+            srfId: urfDTO.srfId,
+            updatedAt: fechaIso,
+            // flags de sync:
+            sincronizado: false,
+            sincronizadoAt: null,
+        });
 
-    // 5) Marcar folio como USADO y recomputar stats URF (local)
-    await folioDao.marcarFolioComoUsado(empId, gde.urfId, gde.folio);
-    await folioDao.recomputarURFStats(empId, gde.urfId);
+        // 5) Marcar folio como usado + recomputar stats
+        await folioDao.marcarFolioComoUsado(empId, actualizado.urfId, actualizado.folio);
+        await folioDao.recomputarURFStats(empId, actualizado.urfId);
 
-    // (Opcional) Aquí podrías emitir evento local o preparar sync con backend.
+        return actualizado;
+    } catch (err) {
+        // (opcional) si tienes soporte para revertir la reserva del folio, hazlo aquí.
+        // await folioDao.revertirReserva(empId, posibleUrfId, posibleFolio);
 
-    return gdeActualizada;
+        throw err;
+    } finally {
+        // limpia el lock siempre
+        try { await gdeDao.patch(gde._id, { emitiendo: false }); } catch { }
+    }
 }
+
 
 /** ============== Helpers ============== **/
 

@@ -16,7 +16,7 @@
                 class="select-rango-folio"
                 smart-select
                 :smart-select-params="{
-                    openIn: 'sheet',
+                    openIn: 'popup',
                     closeOnSelect: true,
                     searchbar: true,
                     searchbarPlaceholder: 'Buscar…',

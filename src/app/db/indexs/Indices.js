@@ -52,37 +52,31 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
         // === largo ===
         { ddoc: 'idx_largo_largo', fields: ['type', 'largo'] },
-        // GDE (lista base)
+        // --- base / lista ---
         {
-            ddoc: 'idx_gde_emp_rut_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'createdAt', '_id'] // ← añadí _id para tie-break
+            ddoc: 'idx_gde_emp_rut_createdAt_id',
+            fields: ['type', 'empId', 'rutEmisor', 'createdAt', '_id']
         },
-        // GDE + estado
+
         {
-            ddoc: 'idx_gde_emp_rut_estado_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'createdAt', '_id'] // ← añadí _id
+            ddoc: 'idx_gde_emp_rut_estado_createdAt_id',
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'createdAt', '_id']
         },
-        // GDE + folio
+
         {
-            ddoc: 'idx_gde_emp_rut_folio_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'folio', 'createdAt', '_id'] // ← añadí _id
+            ddoc: 'idx_gde_emp_rut_folio_createdAt_id',
+            fields: ['type', 'empId', 'rutEmisor', 'folio', 'createdAt', '_id']
         },
-        // GDE + estado + folio
+
         {
-            ddoc: 'idx_gde_emp_rut_estado_folio_createdAt',
-            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt', '_id'] // ← añadí _id
+            ddoc: 'idx_gde_emp_rut_estado_folio_createdAt_id',
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt', '_id']
         },
-        // GDE + pendientes envío
+
+        // --- pendientes de envío (incluye _id para tie-breaker) ---
         {
             ddoc: 'idx_gde_sync_estado_syncing_sinc_createdAt_id',
-            fields: [
-                'type', 'empId', 'rutEmisor',
-                'estado.id',
-                'syncing',
-                'sincronizado',
-                'createdAt',
-                '_id'
-            ]
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'syncing', 'sincronizado', 'createdAt', '_id']
         },
 
 
@@ -97,3 +91,5 @@ export async function crearIndicesTipo(db) {
         }
     }
 }
+
+

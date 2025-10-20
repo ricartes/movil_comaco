@@ -199,7 +199,7 @@ import {
     emitirGde,
     anularGde,
 } from "@/app/services/GdeService";
-
+import Utilidades from "@/app/Utilidades";
 import { enviarGde } from "@/app/services/GdeEnvioService";
 import EncabezadoGde from "@/pages/GDE/Detalle/EncabezadoGde.vue";
 import DetalleM3 from "@/pages/GDE/Detalle/DetalleM3.vue";
@@ -397,6 +397,7 @@ export default {
                         "Éxito",
                         () => {
                             this.scrollArriba();
+                            this.onEnviar();
                         }
                     );
                 }
@@ -418,6 +419,7 @@ export default {
                 this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                 f7.dialog.alert("Guía anulada correctamente.", "Éxito", () => {
                     this.scrollArriba();
+                    this.onEnviar();
                 });
             } catch (e) {
                 const mensaje = e?.message
@@ -488,18 +490,26 @@ export default {
         },
 
         async onEnviar() {
-            f7.dialog.preloader("Enviado");
-            try {
-                const updatedDoc = await enviarGde(this.doc);
-                this.doc = updatedDoc; // 👈 actualizas el doc en memoria
-                f7.dialog.alert("Guía enviada correctamente.", "Éxito");
-            } catch (err) {
+            const conexion = await Utilidades.verificarConexion(); // <-- tu helper
+            if (!conexion?.connected) {
                 f7.dialog.alert(
-                    err.message || "Error al enviar la guía",
-                    "Error"
+                    "No hay conexión a internet. Revise su conexión e intente nuevamente.",
+                    "Error de Conexión"
                 );
-            } finally {
-                f7.dialog.close();
+            } else {
+                f7.dialog.preloader("Enviado");
+                try {
+                    const updatedDoc = await enviarGde(this.doc);
+                    this.doc = updatedDoc; // 👈 actualizas el doc en memoria
+                    f7.dialog.alert("Guía enviada correctamente.", "Éxito");
+                } catch (err) {
+                    f7.dialog.alert(
+                        err.message || "Error al enviar la guía",
+                        "Error"
+                    );
+                } finally {
+                    f7.dialog.close();
+                }
             }
         },
 

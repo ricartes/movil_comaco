@@ -70,7 +70,6 @@ export default class PredioDAO {
 
         // distinct por largoTrozo (considera null como “sin largo”)
         const set = new Set();
-        console.log(docs);
         for (const d of docs) {
             // normaliza a string para dedupe estable
             const key = d.largo == null ? 'NULL' : String(d.largo);

@@ -17,6 +17,14 @@ export function makeGdeDoc(raw) {
         rutEmisor: String(raw.emisor?.rut ?? '').trim(),          // denormalizado
         ...gdePlana,
         createdAt: new Date().toISOString(),
+        folio: null,
+        syncing: false,
+        sincronizado: false,
+        sincronizadoAt: null,
+        ultimoErrorSync: null,
+        updatedAt: new Date().toISOString(),
+        fechaEmision: null,
+        emitiendo: false
     }
 }
 

@@ -276,7 +276,7 @@ export default {
         },
         goConfig() {
             // Ruta de tu pantalla de configuración de impresora
-            f7.views.main?.router?.navigate("/configuracion");
+            f7.views.main?.router?.navigate("/configuracion/");
         },
     },
 };

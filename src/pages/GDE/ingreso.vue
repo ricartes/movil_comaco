@@ -287,7 +287,6 @@
                     :key="'sel-largo-' + (form.producto?.codProducto || '')"
                     :value="form.largoProducto || ''"
                     v-model.number="form.largoProducto"
-                    @change="handleLargoProductoChange"
                 >
                     <option value="" disabled>
                         Seleccione un Largo (Metros)
@@ -693,7 +692,6 @@ export default {
                 sincronizado: false,
                 sincronizadoAt: false,
                 motivoAnulacion: null,
-                fechaEmision: null,
                 emisor: null,
                 estado: config.parametros.estadosGuia.BORRADOR,
                 empresa: null,
@@ -1015,6 +1013,7 @@ export default {
                     this.mostrarInformacionCliente();
                     this.obtenerIndicadorTraslado();
                     this.cargarDestinosCliente();
+
                     await this.scrollTo({
                         ref: "destinoCliente",
                         block: "start",
@@ -1078,7 +1077,6 @@ export default {
         },
 
         obtenerIndicadorTraslado() {
-            console.log(this.form.cliente);
             if (
                 clienteEsEmisor(
                     this.form.cliente.rutCliente,
@@ -1108,8 +1106,9 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("producto"); // limpia desde producto en adelante
-            this.cargarPrecioProducto();
-            this.cargarLargosProducto();
+            await this.cargarPrecioProducto();
+            await this.cargarLargosProducto();
+            await this.obtenerOrdenCompra();
             await this.$nextTick();
             this.cargarInformacionProducto();
         },
@@ -1121,13 +1120,8 @@ export default {
                 this.form.predio.rolPredio,
                 this.form.cliente.rutCliente,
                 this.form.destino.destinoCliente,
-                this.form.producto.codProducto,
-                this.form.largoProducto
+                this.form.producto.codProducto
             );
-        },
-
-        async handleLargoProductoChange(e) {
-            await this.obtenerOrdenCompra();
         },
 
         async cargarPrecioProducto() {
@@ -1156,7 +1150,7 @@ export default {
 
             if (this.largosProducto.length === 1) {
                 this.form.largoProducto = this.largosProducto[0];
-                await this.obtenerOrdenCompra();
+
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".largo-producto .smart-select")
@@ -1396,6 +1390,7 @@ export default {
                     .setValueText(this.form.producto.nombreProducto);
                 await this.cargarPrecioProducto();
                 await this.cargarLargosProducto();
+                await this.obtenerOrdenCompra();
                 await this.$nextTick();
                 this.cargarInformacionProducto();
             }
