@@ -154,8 +154,10 @@ function mapDoc(doc) {
 
     // Detalle MR (por tus campos)
     const detalleMR = Array.isArray(doc?.detalleMR) ? doc.detalleMR : [];
+    const detalleM3 = Array.isArray(doc?.detalleM3) ? doc.detalleM3 : []; // 👈 NUEVO
 
-    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, tedXml: doc?.ted || null, carguios };
+
+    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios };
 }
 
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
@@ -301,6 +303,33 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
         await printRawText(div());
     }
+
+    // ====== TABLA M3 (solo filas con volumen > 0) ======
+    if (Array.isArray(M.detalleM3) && M.detalleM3.length) {
+        const filas = M.detalleM3.filter(d => Number(d?.volumen) > 0);
+        if (filas.length) {
+            await printRawText(div('-'));
+            // cabecera: ajustada a 32/48 col con columnas compactas
+            // DIÁM  TROZOS  LARGO  VOL(M3)   P.U.      TOTAL
+            await printRawText(left('DIÁM  TRZ  LARGO  VOL(M3)    P.U.       TOTAL'));
+            await printRawText(div('-'));
+
+            for (const d of filas) {
+                const diam = String(d.diametro ?? '').padStart(4, ' ');
+                const troz = String(d.trozos ?? '').padStart(3, ' ');
+                const larg = numDec(d.largo, 2).padStart(6, ' ');     // 2 decimales ok para largo
+                const vol = numDec(d.volumen, 3).padStart(8, ' ');   // 3 decimales para m³
+                const pu = fmt(d.precioUnitario ?? 0).padStart(9, ' ');
+                const total = fmt(d.totalPrecio ?? 0).padStart(10, ' ');
+
+                // arma la línea y corta por ancho de papel
+                const linea = `${diam}  ${troz}  ${larg}  ${vol}  ${pu}  ${total}`;
+                await printRawText(cut(linea));
+            }
+            await printRawText(div());
+        }
+    }
+
 
 
     // Totales

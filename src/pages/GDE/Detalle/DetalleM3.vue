@@ -45,7 +45,7 @@
                         <th class="right">Trozos</th>
                         <th class="right">Vol</th>
                         <th class="right">Total</th>
-                        <th class="center">±</th>
+                        <th v-if="!soloLectura" class="center">±</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,6 +60,7 @@
                                 step="1"
                                 min="0"
                                 :value="fila.trozos"
+                                :disabled="soloLectura"
                                 @input="(e) => onTrozoInput(i, e)"
                             />
                         </td>
@@ -69,7 +70,7 @@
                         <td class="right mono">
                             {{ formatMoneyCLP(fila.totalPrecio) }}
                         </td>
-                        <td class="center">
+                        <td class="center" v-if="!soloLectura">
                             <div class="stepper">
                                 <button class="sbtn" @click="inc(i, -1)">
                                     −
