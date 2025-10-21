@@ -27,6 +27,9 @@
                             class="select-impresora"
                             smart-select
                             :smart-select-params="ssParams"
+                            :disabled="
+                                !isAndroid || loading || printers.length === 0
+                            "
                         >
                             <select
                                 v-model="selectedKeyModel"
@@ -35,14 +38,6 @@
                             >
                                 <option value="" disabled>
                                     {{ ssLabel() }}
-                                </option>
-
-                                <option
-                                    v-if="printers.length === 0"
-                                    value=""
-                                    disabled
-                                >
-                                    No se encontraron impresoras
                                 </option>
 
                                 <option
@@ -178,6 +173,7 @@ import {
     printTextSafe,
     disconnectPrinter,
 } from "@/app/services/PrinterService";
+import { ensureBluetoothPermissions } from "@/app/helpers/bluetooth-permissions";
 
 export default {
     name: "ConfiguracionImpresora",
@@ -328,19 +324,53 @@ export default {
                 this.updateSSLabel();
                 return;
             }
+
             this.errorMsg = "";
             this.loading = true;
             this.updateSSLabel(); // “Buscando impresoras…”
             const dlg = f7.dialog.preloader("Buscando impresoras…");
+
             try {
+                // 🟢 1. Verificar y solicitar permisos Bluetooth antes de listar
+                const ok = await ensureBluetoothPermissions({ needScan: true });
+
+                // ❌ 2. Si el usuario negó o no están disponibles
+                if (!ok) {
+                    this.errorMsg = "No se otorgaron permisos de Bluetooth.";
+                    this.printers = [];
+
+                    // Abre configuración del sistema (por si el usuario marcó "No volver a preguntar")
+                    try {
+                        const { App } = await import("@capacitor/app");
+                        await App.openSettings();
+                    } catch (err) {
+                        console.warn("No se pudo abrir Ajustes:", err);
+                    }
+
+                    return; // detiene el flujo
+                }
+
+                // 🔵 3. Si los permisos están concedidos, listar impresoras normalmente
                 const raw = await listPrinters();
                 this.printers = this.normalizeList(raw);
+
+                if (this.printers.length === 0) {
+                    this.errorMsg =
+                        "No se encontraron impresoras Bluetooth emparejadas. " +
+                        "Activa el Bluetooth y verifica que la impresora esté emparejada " +
+                        "en los Ajustes del sistema.";
+                }
             } catch (e) {
-                console.error(e);
-                this.errorMsg =
-                    typeof e === "string"
-                        ? e
-                        : e?.message || "No se pudo listar impresoras.";
+                const msg = String(e?.message || e || "").toUpperCase();
+                if (msg.includes("NO BLUETOOTH DEVICE FOUND")) {
+                    this.errorMsg =
+                        "No hay dispositivos Bluetooth disponibles o el Bluetooth está apagado.";
+                } else {
+                    this.errorMsg =
+                        typeof e === "string"
+                            ? e
+                            : e?.message || "No se pudo listar impresoras.";
+                }
                 this.printers = [];
             } finally {
                 this.loading = false;
@@ -348,7 +378,7 @@ export default {
                     dlg.close();
                 } catch {}
                 await this.$nextTick();
-                this.updateSSLabel(); // ← usará selectedLabel() si hay selección
+                this.updateSSLabel(); // ← actualizar texto visible del SmartSelect
             }
         },
 
