@@ -22,6 +22,7 @@ import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 import {
     attachNotificationActionHandler,
     startGdeSyncForegroundService,
+    stopGdeSyncForegroundService,
 } from "@/app/background/foregroundService";
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
@@ -60,11 +61,11 @@ export default {
                 const user = store.state.user || {};
                 const empId = user.empresa ?? user.empId;
                 const rutEmisor = String(user.rut || "");
-
                 // Solo Android + con credenciales mínimas
                 if (getDevice().android && empId && rutEmisor) {
-                    attachNotificationActionHandler(); // solo una vez; es idempotente
                     startGdeSyncForegroundService(empId, rutEmisor); // idempotente (nuestro módulo evita duplicar intervalos)
+                } else {
+                    stopGdeSyncForegroundService();
                 }
             } catch (e) {
                 console.warn(
@@ -74,13 +75,13 @@ export default {
             }
         }
 
+        let onAuthLogin, onAuthLogout;
+
         // ------- Validación central (intrusiva) -------
         const runValidacionAcceso = async ({
             silent = false,
             nonIntrusive = false,
         } = {}) => {
-
-            
             if (!silent) f7.dialog.preloader("Validando acceso");
             const router = f7.views.main?.router;
 
@@ -305,6 +306,15 @@ export default {
 
         // ------- Ciclo de vida -------
         onMounted(() => {
+            if (!window.__authHandlersRegistered) {
+                onAuthLogin = () => startAutoSyncIfPossible();
+                onAuthLogout = () => stopGdeSyncForegroundService();
+
+                window.addEventListener("auth:login", onAuthLogin);
+                window.addEventListener("auth:logout", onAuthLogout);
+                window.__authHandlersRegistered = true;
+            }
+
             f7ready(async () => {
                 // 1) hidrata primero
                 await store.dispatch("hydrate");
@@ -314,20 +324,16 @@ export default {
                     capacitorApp.init(f7);
 
                     if (device.android) {
-                        const { user } = store.state || {};
-                        if (user?.empresa && user?.rut) {
-                            attachNotificationActionHandler();
-                            try {
-                                startAutoSyncIfPossible();
-                            } catch (e) {
-                                f7.toast
-                                    .create({
-                                        text: "No se pudo iniciar la sync en segundo plano",
-                                        closeTimeout: 3000,
-                                    })
-                                    .open();
-                            }
+                        // dentro de f7ready, después de hydrate:
+                        if (
+                            device.capacitor &&
+                            device.android &&
+                            !window.__fgsHandlerAttached
+                        ) {
+                            attachNotificationActionHandler(); // idempotente
+                            window.__fgsHandlerAttached = true;
                         }
+
                         listenForFcmMessages(
                             async (msg) => {
                                 const payload = extractPushData(msg);
@@ -373,6 +379,10 @@ export default {
         });
 
         onBeforeUnmount(() => {
+            if (onAuthLogin)
+                window.removeEventListener("auth:login", onAuthLogin);
+            if (onAuthLogout)
+                window.removeEventListener("auth:logout", onAuthLogout);
             stateChangeHandle?.remove?.();
             resumeHandle?.remove?.();
             backHandle?.remove?.();

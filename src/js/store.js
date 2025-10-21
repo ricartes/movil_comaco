@@ -43,6 +43,12 @@ const store = createStore({
         printerName({ state }) { return state.printer.name },
         printerAddr({ state }) { return state.printer.address },
         printerPaperWidth({ state }) { return state.printer.paperWidth },
+        userKey({ state }) {
+            const u = state.user
+            return u ? `${u.empresa ?? ''}|${u.rut ?? ''}` : ''
+        },
+        userRut({ state }) { return state.user?.rut ?? null },
+        userEmpId({ state }) { return state.user?.empresa ?? state.user?.empId ?? null },
 
 
     },
@@ -93,8 +99,6 @@ const store = createStore({
                 state.dispositivo.estado = dEstado || null
                 state.dispositivo.bloqueado = (dBloquea === 'true')
                 state.dispositivo.lastCheck = dLast ? Number(dLast) : null
-
-                console.log(state.dispositivo);
 
                 // ====== Impresora (persistido)
                 const [

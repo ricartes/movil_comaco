@@ -242,6 +242,7 @@ export default {
             this.resetLoginStateAfterPinRemoval();
             const autenticado = !!localStorage.getItem("auth_token");
             if (autenticado) {
+                window.dispatchEvent(new Event("auth:login"));
                 //console.log(this.paginaPrincipal);
                 this.f7router.navigate(this.paginaPrincipal, {
                     reloadAll: true,
@@ -435,7 +436,7 @@ export default {
                         // Asume que tienes esto: UsuarioService.eliminarUsuarioLocalPorRut(rut)
                         await UsuarioService.eliminarUsuarioLocalPorRut(rut);
 
-                        this.resetLoginStateAfterPinRemoval();
+                        this.resetLoginStateAfterPinRemoval(true);
 
                         f7.toast
                             .create({
@@ -454,10 +455,10 @@ export default {
             );
         },
 
-        resetLoginStateAfterPinRemoval() {
+        resetLoginStateAfterPinRemoval(ingresaContraseña = false) {
             // Forzar login por contraseña
             this.requierePin = false;
-            this.requierePassword = true;
+            this.requierePassword = ingresaContraseña;
 
             // limpiar campos y estados
             this.form.pin = "";
