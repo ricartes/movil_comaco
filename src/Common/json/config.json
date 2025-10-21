@@ -90,7 +90,7 @@
             },
             "NULA": {
                 "id": "N",
-                "texto": "NULA",
+                "texto": "ANULADA",
                 "color": "color-red",
                 "estilo": "chip-fill"
             },
