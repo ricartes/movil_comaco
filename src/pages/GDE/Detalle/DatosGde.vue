@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // Con F7-Vue no hace falta importar <f7-*> explícitamente.
 import formatters from '../../../js/mixins/formatters'
-
+// @ts-ignore: allow importing local JSON without changing tsconfig
+import config from '../../../Common/json/config.json';
+import { computed } from "vue";
 
 // Saco solo lo que voy a usar
 const { formatFecha, formatMoneyCLP } = formatters.methods;
@@ -113,6 +115,20 @@ interface GdeDoc {
 }
 
 const props = defineProps<{ doc: GdeDoc | null | undefined }>();
+
+const unidadesMedida = config.parametros.unidadesMedida;
+
+const unidadActual = computed(() =>
+    (props.doc?.producto?.unidadMedida || "").trim().toUpperCase()
+);
+
+const showMR = computed(() => unidadActual.value === unidadesMedida.MR);
+const showM3 = computed(() => unidadActual.value === unidadesMedida.M3);
+const showTon = computed(() =>
+    [unidadesMedida.TON, unidadesMedida.BDMT, unidadesMedida.M3ST].includes(
+        unidadActual.value
+    )
+);
 
 function formatHora(h?: string | null) {
     if (!h) return "—";
@@ -378,25 +394,42 @@ function formatCoord(n?: number | null) {
             <div class="section">
                 <div class="section-title">Totales</div>
                 <dl class="kv">
-                    <dt>MR (vol/valor)</dt>
-                    <dd>
-                        {{ formatNum(props.doc?.totales?.mr?.volumen) }} /
-                        {{ formatCLP(props.doc?.totales?.mr?.valor ?? null) }}
-                    </dd>
+                    <!-- MR -->
+                    <template v-if="showMR">
+                        <dt>MR (vol/valor)</dt>
+                        <dd>
+                            {{ formatNum(props.doc?.totales?.mr?.volumen) }} /
+                            {{
+                                formatCLP(props.doc?.totales?.mr?.valor ?? null)
+                            }}
+                        </dd>
+                    </template>
 
-                    <dt>M3 (vol/valor)</dt>
-                    <dd>
-                        {{ formatNum(props.doc?.totales?.m3?.volumen) }} /
-                        {{ formatCLP(props.doc?.totales?.m3?.valor ?? null) }}
-                    </dd>
+                    <!-- M3 -->
+                    <template v-if="showM3">
+                        <dt>M³ (vol/valor)</dt>
+                        <dd>
+                            {{ formatNum(props.doc?.totales?.m3?.volumen) }} /
+                            {{
+                                formatCLP(props.doc?.totales?.m3?.valor ?? null)
+                            }}
+                        </dd>
+                    </template>
 
-                    <dt>TON (vol/valor)</dt>
-                    <dd>
-                        {{ formatNum(props.doc?.totales?.ton?.volumen) }} /
-                        {{ formatCLP(props.doc?.totales?.ton?.valor ?? null) }}
-                    </dd>
+                    <!-- Astillas / Ton -->
+                    <template v-if="showTon">
+                        <dt>Astillas (vol/valor)</dt>
+                        <dd>
+                            {{ formatNum(props.doc?.totales?.ton?.volumen) }} /
+                            {{
+                                formatCLP(
+                                    props.doc?.totales?.ton?.valor ?? null
+                                )
+                            }}
+                        </dd>
+                    </template>
 
-                    <!-- AJUSTADOS: solo totales -->
+                    <!-- Ajustados -->
                     <dt>Neto</dt>
                     <dd>{{ formatCLP(props.doc?.totales?.neto ?? null) }}</dd>
 

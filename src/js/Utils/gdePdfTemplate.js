@@ -32,11 +32,25 @@ function bulletsColumns(bullets) {
 
 function fDate(x) {
     if (!x) return "—";
+
+    // Caso 1: formato simple "YYYY-MM-DD"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(x)) {
+        const [y, m, d] = x.split("-").map(Number);
+        return `${String(d).padStart(2, "0")}-${String(m).padStart(2, "0")}-${y}`;
+    }
+
+    // Caso 2: formato ISO completo (con hora)
     const d = new Date(x);
-    return isNaN(d.getTime())
-        ? "—"
-        : d.toLocaleDateString("es-CL", { year: "numeric", month: "2-digit", day: "2-digit" });
+    if (isNaN(d.getTime())) return "—";
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    return `${day}-${month}-${year}`;
 }
+
+
 function fTime(x) {
     if (!x) return "—";
     const d = new Date(x);
@@ -322,7 +336,7 @@ function buildBoxOperacion(doc) {
             },
             kvLine("Proveedor", doc?.proveedor?.nomProveedor),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
-            kvLine("Año Plantación", doc?.rodal?.fechaPlantacion ? fDate(doc.rodal.fechaPlantacion) : (doc?.comentarios?.anioCosecha ?? "—")),
+            kvLine("Fecha Plantación", doc?.comentarios?.fechaPlantacion ? fDate(doc.comentarios.fechaPlantacion) : "—"),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
 
 
@@ -390,7 +404,7 @@ function buildDetalleM3(doc) {
     const producto = doc?.producto ?? {};
     const categoria = producto.categoria ? `(${producto.categoria})` : "";
     const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
-
+    const largo = doc?.largoProducto ? `Largo: ${doc.largoProducto} m.` : ""; ''
     // Solo filas con trozos > 0
     const filas = (doc?.detalleM3 ?? []).filter(f => Number(f.trozos) > 0);
     const bullets = filas.map(f => `• ${f.diametro}: ${f.trozos}`);
@@ -400,6 +414,7 @@ function buildDetalleM3(doc) {
     const descResumen = {
         text: [
             { text: truncate(producto.nombreProducto ?? "", 80), bold: true },
+            largo ? { text: `\n${largo}` } : {},
             categoria ? { text: `\n${categoria}`, italics: true } : {},
             sagInfo ? { text: `\n${sagInfo}` } : {},
         ],
@@ -517,11 +532,13 @@ function buildDetalleMR(doc) {
     const producto = doc?.producto ?? {};
     const categoria = producto.categoria ? `(${producto.categoria})` : "";
     const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
+    const largo = doc?.largoProducto ? `Largo: ${doc.largoProducto} m.` : ""; ''
 
     const um = getUM(doc);
     const descCell = {
         text: [
             { text: truncate(producto.nombreProducto ?? "", 80), bold: true },
+            largo ? { text: `\n${largo}` } : {},
             categoria ? { text: `\n${categoria}`, italics: true } : {},
             sagInfo ? { text: `\n${sagInfo}` } : {},
         ],

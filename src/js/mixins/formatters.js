@@ -11,10 +11,17 @@ export default {
         },
 
         formatFecha(iso) {
-            if (!iso) return "-";
-            const d = new Date(iso);
-            if (isNaN(d)) return "-";
-            return d.toLocaleDateString("es-CL", {
+            if (!iso) return "—";
+            // Caso 1: formato "YYYY-MM-DD"
+            if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                const [y, m, d] = iso.split("-").map(Number);
+                return `${String(d).padStart(2, "0")}-${String(m).padStart(2, "0")}-${y}`;
+            }
+
+            // Caso 2: formato ISO completo (con hora)
+            const date = new Date(iso);
+            if (isNaN(date)) return "—";
+            return date.toLocaleDateString("es-CL", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",

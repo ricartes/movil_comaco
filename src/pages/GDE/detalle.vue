@@ -95,11 +95,7 @@
 
                     <f7-card
                         class="ton-card detalle-ton-root"
-                        v-else-if="
-                            doc.producto.unidadMedida === unidadesMedida.TON ||
-                            doc.producto.unidadMedida === unidadesMedida.BDMT ||
-                            doc.producto.unidadMedida === unidadesMedida.M3ST
-                        "
+                        v-else-if="requiereValidacionTon"
                     >
                         <DetalleTon
                             ref="detalleTonRef"

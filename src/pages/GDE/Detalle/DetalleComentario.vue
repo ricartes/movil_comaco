@@ -88,11 +88,12 @@
 
                 <!-- DESDE RODAL (semilla) — bloqueados -->
                 <f7-list-input
-                    label="Fecha Plantación "
+                    label="Fecha Plantación"
                     type="text"
-                    :value="form.fechaPlantacion"
+                    :value="fechaPlantacionFormateada"
                     disabled
                 />
+
                 <f7-list-input
                     label="Plan de Manejo"
                     type="text"
@@ -172,6 +173,11 @@ export default {
         this.form = { ...this.form, ...base };
         // avisamos al padre que estos campos ya quedaron en doc.comentarios
         this.$emit("doc-updated", { comentarios: { ...base } });
+    },
+    computed: {
+        fechaPlantacionFormateada() {
+            return this.formatFecha(this.form.fechaPlantacion);
+        },
     },
     methods: {
         _val(eOrVal) {

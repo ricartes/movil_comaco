@@ -63,16 +63,7 @@ export default {
                 ? `Folio ${g.folio}`
                 : "Sin folio asignado.";
         },
-        formatFecha(s) {
-            const d = new Date(s);
-            return isNaN(d)
-                ? "—"
-                : d.toLocaleDateString("es-CL", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                  });
-        },
+
         estadoChipClass(id, texto) {
             const estados = this.estadosGuia || {};
             const upId = (id || "").toUpperCase();
