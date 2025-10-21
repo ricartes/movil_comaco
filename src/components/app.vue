@@ -319,6 +319,16 @@ export default {
                 // 1) hidrata primero
                 await store.dispatch("hydrate");
 
+                if (device.capacitor && device.android) {
+                    const { gateNotificationsOrBlock } = await import(
+                        "@/app/helpers/permissions"
+                    );
+                    const ok = await gateNotificationsOrBlock(
+                        f7.views.main?.router
+                    );
+                    if (!ok) return; // 🔒 se redirige a /permisos-notificaciones/ y detiene el flujo
+                }
+
                 // 2) init + listeners después de hydrate
                 if (device.capacitor) {
                     capacitorApp.init(f7);

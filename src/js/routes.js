@@ -2,6 +2,7 @@
 
 import Login from '@/pages/login.vue'
 import Bloqueado from '@/pages/Bloqueado.vue'
+import BloqueadoPermisos from '@/pages/BloqueadoPermisos.vue';
 import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
@@ -25,6 +26,11 @@ var routes = [
         path: '/bloqueado/',
         component: Bloqueado,
         name: 'bloqueado'
+    },
+    {
+        path: '/permisos-notificaciones/',
+        component: BloqueadoPermisos,
+        name: 'permisos-notificaciones'
     },
     {
         path: '/folios/listado/',
