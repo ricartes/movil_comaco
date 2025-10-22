@@ -1,5 +1,5 @@
 <template>
-    <f7-page data-name="gde">
+    <f7-page data-name="gde" @page:beforein="onPageBeforeIn">
         <f7-navbar>
             <f7-nav-left>
                 <f7-link @click="back">
@@ -604,6 +604,11 @@
 <script>
 import { f7 } from "framework7-vue";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
+import {
+    ensureLocationPermissionOnce,
+    tryGetLocation,
+    openAppSettings,
+} from "@/app/helpers/geo-permissions";
 import { listarPorEmpresa } from "@/app/services/Parametros/ZonaService";
 import { listarProveedoresPorZona } from "@/app/services/Parametros/ProveedorService";
 import {
@@ -790,7 +795,67 @@ export default {
             f7.dialog.close();
         }
     },
+    mounted() {
+        this._waitingLocationPermission = false; // inicialización
+        this._resumeRemove = CapacitorApp.addListener("resume", async () => {
+            if (this._waitingLocationPermission) {
+                await this.ensureLocationGate();
+            }
+        });
+    },
+    beforeUnmount() {
+        this._resumeRemove?.remove?.();
+    },
     methods: {
+        async onPageBeforeIn() {
+            await this.ensureLocationGate();
+        },
+        async ensureLocationGate() {
+            // 1) pedir permiso si hace falta
+            let granted = await ensureLocationPermissionOnce();
+            if (!granted) {
+                this._waitingLocationPermission = true;
+                await new Promise((resolve) => {
+                    f7.dialog
+                        .create({
+                            title: "Ubicación necesaria",
+                            text: "Para validar geocerca y continuar con el ingreso de la GDE, activa el permiso de ubicación.",
+                            buttons: [
+                                {
+                                    text: "Abrir ajustes",
+                                    bold: true,
+                                    onClick: async () => {
+                                        await openAppSettings();
+                                        resolve();
+                                    },
+                                },
+                                { text: "Cancelar", onClick: resolve },
+                            ],
+                            closeByBackdropClick: false,
+                        })
+                        .open();
+                });
+                // Al volver, el listener 'resume' volverá a llamar a ensureLocationGate
+                return;
+            }
+
+            // 2) (opcional) probar que el GPS esté realmente disponible
+            const pos = await tryGetLocation();
+            if (!pos) {
+                f7.dialog
+                    .create({
+                        title: "Ubicación desactivada",
+                        text: "No se pudo obtener tu ubicación. Asegúrate de tener el GPS activado y con buena señal.",
+                        buttons: [{ text: "Entendido", bold: true }],
+                        closeByBackdropClick: false,
+                    })
+                    .open();
+                return;
+            }
+
+            // OK: ya puedes seguir tu flujo normal (cargar combos, validar geocerca, etc.)
+            this._waitingLocationPermission = false;
+        },
         async generarPorcentajeIva() {
             try {
                 const empresaId = this?.usuarioActivo?.empresa ?? 1;
@@ -960,33 +1025,41 @@ export default {
 
         async validarGeocerca() {
             if (this.validaGeocerca) {
-                f7.dialog.preloader("Espere por favor...");
-
-                // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
-                let ubicacion = null;
-                try {
-                    ubicacion = await getLocationOnce();
-                    if (!ubicacion) {
-                        throw new Error("Ubicación no disponible");
-                    }
-                    const resultadoValidacion = await validarGeocercaPredio(
-                        this.form.predio.rolPredio,
-                        ubicacion.lat,
-                        ubicacion.lng
-                    );
-                    this.form.datosGeocerca.validada =
-                        resultadoValidacion.validada;
-                    this.form.datosGeocerca.geocerca =
-                        resultadoValidacion.geocerca;
-                    this.form.datosGeocerca.mensajeValidacion =
-                        resultadoValidacion.mensajeValidacion;
-                } catch (geoErr) {
+                const ok = await ensureLocationPermissionOnce();
+                if (!ok) {
                     this.form.datosGeocerca.validada = false;
                     this.form.datosGeocerca.mensajeValidacion =
-                        "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
-                    console.warn("No se pudo obtener ubicación:", geoErr);
-                } finally {
-                    f7.dialog.close();
+                        "Debes otorgar el permiso de ubicación para validar la geocerca.";
+                    return;
+                } else {
+                    f7.dialog.preloader("Espere por favor...");
+
+                    // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
+                    let ubicacion = null;
+                    try {
+                        ubicacion = await getLocationOnce();
+                        if (!ubicacion) {
+                            throw new Error("Ubicación no disponible");
+                        }
+                        const resultadoValidacion = await validarGeocercaPredio(
+                            this.form.predio.rolPredio,
+                            ubicacion.lat,
+                            ubicacion.lng
+                        );
+                        this.form.datosGeocerca.validada =
+                            resultadoValidacion.validada;
+                        this.form.datosGeocerca.geocerca =
+                            resultadoValidacion.geocerca;
+                        this.form.datosGeocerca.mensajeValidacion =
+                            resultadoValidacion.mensajeValidacion;
+                    } catch (geoErr) {
+                        this.form.datosGeocerca.validada = false;
+                        this.form.datosGeocerca.mensajeValidacion =
+                            "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
+                        console.warn("No se pudo obtener ubicación:", geoErr);
+                    } finally {
+                        f7.dialog.close();
+                    }
                 }
             } else {
                 this.form.datosGeocerca.validada = true;
