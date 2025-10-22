@@ -57,7 +57,8 @@
         "estadosFolio": {
             "disponible": "D",
             "asignado": "A",
-            "usado": "U"
+            "usado": "U",
+            "liberado": "L"
         },
         "indicadoresTraslado": {
             "VENTA": {
@@ -141,6 +142,8 @@
         "RescatarLargosProductos": "largo-producto",
         "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
         "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar",
+        "RescatarUsuarioRangoFolioLiberado": "sii-usuario-rango-folio-liberado",
+        "ConfirmarUsuarioRangoFolioLiberado": "sii-usuario-rango-folio-liberado/confirmar",
         "guardarGde": "gde"
     },
     "bd": {

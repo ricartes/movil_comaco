@@ -50,7 +50,8 @@
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
-import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
+import { cargarFoliosYLiberados } from "@/app/services/CargarFoliosOrquestador";
+
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
 
@@ -264,6 +265,7 @@ export default {
         },
         async onCargarFolios() {
             try {
+                // 0) Validaciones de conexión y dispositivo (igual que antes)
                 const conexion = await Utilidades.verificarConexion();
                 if (!conexion?.connected) {
                     f7.dialog.alert(
@@ -274,7 +276,6 @@ export default {
                 f7.dialog.preloader("Estableciendo conexión…");
                 const online = await HelperService.validarConexion(3000);
                 f7.dialog.close();
-                console.log("Validación conexión al backend:", online);
                 if (!online) {
                     f7.dialog.alert(
                         "No hay conexión al servidor. No es posible cargar folios."
@@ -289,48 +290,52 @@ export default {
                         silent: false,
                         nonIntrusive: true,
                     });
-                    if (!res?.ok || res?.bloquea) {
-                        // quedó bloqueado o falló → ya se habrá navegado a /bloqueado, o no corresponde seguir
-                        return;
-                    }
+                    if (!res?.ok || res?.bloquea) return;
                 }
             } catch (e) {
-                // En caso de error inesperado, decide si abortar o seguir:
-                // Aquí abortamos para no iniciar cargas costosas sin validación.
                 f7.dialog.alert(
-                    "No fue posible validar el dispositivo antes de cargar parámetros."
+                    "No fue posible validar el dispositivo antes de cargar folios."
                 );
                 return;
             }
 
+            const dlg = f7.dialog.progress("Procesando…", 0);
             try {
-                f7.dialog.preloader("Cargando folios…");
+                dlg.setText("Cargando folios (1/2)");
+                const empId = this.user.empresa;
+                const rut = this.user.rut;
 
-                const resultado = await cargarFoliosDesdeWeb(
-                    this.user.empresa,
-                    this.user.rut
+                // Ejecuta el pipeline completo
+                const resumen = await cargarFoliosYLiberados(empId, rut);
+                dlg.setProgress(100);
+
+                // Mostrar resumen
+                const lines = [];
+                lines.push(
+                    `• Folios: ${resumen.carga.ok ? "OK" : "<b>ERROR</b>"}`
+                );
+                lines.push(
+                    `• Liberaciones: ${
+                        resumen.liberado.ok ? "OK" : "<b>ERROR</b>"
+                    }` +
+                        (resumen.liberado.ok
+                            ? ` (actualizados: ${resumen.liberado.updated}, confirmados: ${resumen.liberado.confirmed.length})`
+                            : "")
                 );
 
-                // ✅ si todo ok, mostramos resumen con info
-                if (resultado?.ok) {
-                    const msg = "Folios cargados correctamente.";
-                    f7.dialog.alert(msg, "Carga completada");
-                } else {
-                    f7.dialog.alert(
-                        "No se cargaron folios o la respuesta fue inválida."
-                    );
-                }
-            } catch (ex) {
-                console.log(ex);
-                console.error("Error al cargar folios:", ex);
                 f7.dialog.alert(
-                    `Ha ocurrido un error al cargar los folios:<br><small>${
-                        ex.message || ex
+                    `<div style="text-align:left">${lines.join("<br>")}</div>`,
+                    "Resultado"
+                );
+            } catch (ex) {
+                f7.dialog.alert(
+                    `Ha ocurrido un error:<br><small>${
+                        ex?.message || ex
                     }</small>`,
                     "Error"
                 );
             } finally {
-                f7.dialog.close();
+                dlg.close();
             }
         },
 

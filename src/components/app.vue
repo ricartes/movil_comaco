@@ -19,6 +19,7 @@ import {
     extractPushData,
 } from "@/app/services/firebaseMessaging";
 import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
+import { cargarFoliosYLiberados } from "@/app/services/CargarFoliosOrquestador";
 import {
     attachNotificationActionHandler,
     startGdeSyncForegroundService,
@@ -241,35 +242,35 @@ export default {
                 try {
                     pushGuard = true;
                     f7.dialog.preloader("Cargando folios…");
-                    const resultado = await cargarFoliosDesdeWeb(
+
+                    const resumen = await cargarFoliosYLiberados(
                         user.empresa,
                         user.rut
                     );
-
-                    if (resultado?.ok) {
-                        const inserted = Number(resultado.inserted ?? 0);
-                        const confirmed = Array.isArray(resultado.confirmed)
-                            ? resultado.confirmed.length
-                            : 0;
-                        const msg = `
+                    const html = `
                         <div class="text-start">
-                            <p><strong>Folios cargados correctamente.</strong></p>
-                            <ul class="mt-2 mb-0">
-                            <li><b>Documentos insertados:</b> ${inserted}</li>
-                            <li><b>Confirmados:</b> ${confirmed}</li>
-                            </ul>
+                        <p><strong>Proceso completado.</strong></p>
+                        <ul class="mt-2 mb-0">
+                            <li><b>Folios:</b> ${
+                                resumen.carga.ok ? "OK" : "<b>ERROR</b>"
+                            }</li>
+                            <li><b>Liberaciones:</b> ${
+                                resumen.liberado.ok ? "OK" : "<b>ERROR</b>"
+                            }
+                            ${
+                                resumen.liberado.ok
+                                    ? ` (actualizados: ${resumen.liberado.updated}, confirmados: ${resumen.liberado.confirmed.length})`
+                                    : ""
+                            }
+                            </li>
+                        </ul>
                         </div>`;
-                        f7.dialog.alert(msg, "Carga completada");
-                    } else {
-                        f7.dialog.alert(
-                            "No se cargaron folios o la respuesta fue inválida.",
-                            "Aviso"
-                        );
-                    }
+                    f7.dialog.alert(html, "Carga completada");
                 } catch (ex) {
-                    const detail = ex?.message || String(ex);
                     f7.dialog.alert(
-                        `Ha ocurrido un error al cargar los folios:<br><small>${detail}</small>`,
+                        `Ha ocurrido un error:<br><small>${
+                            ex?.message || ex
+                        }</small>`,
                         "Error"
                     );
                 } finally {

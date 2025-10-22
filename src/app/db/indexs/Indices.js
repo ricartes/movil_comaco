@@ -79,6 +79,18 @@ export async function crearIndicesTipo(db) {
             fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'syncing', 'sincronizado', 'createdAt', '_id']
         },
 
+        //folios
+
+        // Folios por empresa y rango de folio (para $gte/$lte)
+        { ddoc: 'idx_folio_emp_folio', fields: ['type', 'empId', 'folio'] },
+
+        // (Opcional) si a veces tendrás urfId real y harás rango con él:
+        { ddoc: 'idx_folio_emp_urf_folio', fields: ['type', 'empId', 'urfId', 'folio'] },
+
+        // (Opcional) si filtras por estado además del rango:
+        { ddoc: 'idx_folio_emp_estado_folio', fields: ['type', 'empId', 'estado', 'folio'] },
+
+
 
     ];
 

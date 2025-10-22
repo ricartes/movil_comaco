@@ -161,6 +161,8 @@ export default {
                     return "Asignado";
                 case config.parametros.estadosFolio.usado:
                     return "Usado";
+                case config.parametros.estadosFolio.liberado:
+                    return "Liberado";
                 default:
                     return "—";
             }
@@ -173,6 +175,8 @@ export default {
                     return "chip-outline color-blue";
                 case config.parametros.estadosFolio.usado:
                     return "chip-outline color-red";
+                case config.parametros.estadosFolio.liberado:
+                    return "chip-outline color-yellow";
                 default:
                     return "chip-outline color-gray";
             }
@@ -180,11 +184,16 @@ export default {
 
         async cargarUsuarioRangoFolio() {
             // Trae todos los URF locales y filtra por empId/rut del usuario activo
-
-            this.urfs = await listarUsuarioRangoFolio(
-                this.user.empresa,
-                this.user.rut
-            );
+            try {
+                this.urfs = await listarUsuarioRangoFolio(
+                    this.user.empresa,
+                    this.user.rut
+                );
+            } catch (e) {
+                f7.dialog.alert(
+                    "Ha ocurrido un error al cargar el listado de folios."
+                );
+            }
         },
 
         async onUrfChange() {

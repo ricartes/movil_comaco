@@ -225,6 +225,42 @@ export default class SiiFolioDAO {
     }
 
 
+    // En SiiFolioDAO
+
+    async marcarRangoComoLiberadoPorEmpresa(empId, folioInicial, folioFinal) {
+        const fini = Number(folioInicial);
+        const ffin = Number(folioFinal);
+        if (!Number.isFinite(fini) || !Number.isFinite(ffin) || fini > ffin) {
+            return { ok: true, updated: 0, skipped: true };
+        }
+
+        // Traer todos los docs del rango en UN query
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.folio,
+                empId: Number(empId),
+                folio: { $gte: fini, $lte: ffin },
+            },
+        });
+
+        const docs = res.docs || [];
+        if (docs.length === 0) return { ok: true, updated: 0 };
+
+        const now = new Date().toISOString();
+        const updates = [];
+
+        for (const d of docs) {
+            if (d.estado === config.parametros.estadosFolio.usado) continue;     // respetar 'U'
+            if (d.estado === config.parametros.estadosFolio.liberado) continue;  // ya 'L'
+            updates.push({ ...d, estado: config.parametros.estadosFolio.liberado, updatedAt: now });
+        }
+
+        if (updates.length === 0) return { ok: true, updated: 0 };
+
+        const resp = await this.db.bulkDocs(updates);
+        const updated = resp.filter(r => r.ok).length;
+        return { ok: true, updated };
+    }
 
 
     async marcarFolioComoUsado(empId, urfId, folio) {
@@ -289,4 +325,9 @@ export default class SiiFolioDAO {
         await this.db.put(urf);
         return { ok: true, updated: true, primerDisponible, maxOcupado, totalDisponibles, totalUsados };
     }
+
+
+
+
+
 }
