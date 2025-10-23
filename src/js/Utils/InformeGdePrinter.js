@@ -7,10 +7,12 @@ import {
     isConnected,
 } from '@/app/services/PrinterService';
 import store from '@/js/store';
+import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 
 // ===== Ajustes de ticket =====
-const PAPER_WIDTH = Number(store.state?.printer?.paperWidth) || 32; // 32 ó 48
-const COLS = PAPER_WIDTH === 48 ? 48 : 32;
+let PAPER_WIDTH = 32;
+let COLS = 32;
+let PIXELS = 384;
 
 // ==== Helpers de maquetado (mismos criterios que GuiaPrinter) ====
 const rep = (ch, n) => (ch || ' ').repeat(Math.max(0, n || 0));
@@ -135,6 +137,12 @@ export async function printInformeDespacho(informe, opts = {}) {
     // Conectar impresora si hace falta
     const nameOrAddr = store.state?.printer?.address || store.state?.printer?.name;
     if (!nameOrAddr) throw new Error('No hay impresora configurada');
+
+    const { paperWidth, cols, pixels } = refreshPrinterLayout();
+    PAPER_WIDTH = paperWidth;
+    COLS = cols;
+    PIXELS = pixels;
+
     try {
         const connected = await isConnected();
         if (!connected) await connectByName(nameOrAddr);
@@ -180,3 +188,4 @@ export async function printInformeDespacho(informe, opts = {}) {
     await printRawText(twoCols('TOTAL DESPACHO DÍA', numDec(total ?? 0, dec), 12));
     await printRawText('\n\n');
 }
+

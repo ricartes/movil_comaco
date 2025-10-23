@@ -8,10 +8,7 @@
                         <dd>
                             {{ encabezado.origen || "-" }}
                         </dd>
-                        <dt>CÓDIGO</dt>
-                        <dd>
-                            {{ encabezado.codigo || "-" }}
-                        </dd>
+
                         <dt>PRODUCTO</dt>
                         <dd>
                             {{ encabezado.producto || "-" }}
@@ -29,15 +26,14 @@
                         </dd>
                         <dt>ROL</dt>
                         <dd>{{ encabezado.rol || "-" }}</dd>
-                        <dt>CÓDIGO</dt>
-                        <dd>
-                            {{ encabezado.codigo || "-" }}
-                        </dd>
-                        <dt>COSECHA, CARGUIO Y TRANSPORTE</dt>
+
+                        <dt>GIRO</dt>
                         <dd>-</dd>
-                        <dt>RUT</dt>
+                        <!-- TODO: COLOCAR GIRO CLIENTE -->
+                        <dt>CLIENTE</dt>
                         <dd>
                             {{ encabezado.cctRut || "-" }}
+                            <!-- TODO: COLOCAR NOMBRE CLIENTE CLIENTE -->
                         </dd>
                         <dt>PRODUCTO</dt>
                         <dd>

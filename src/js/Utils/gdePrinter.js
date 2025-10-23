@@ -3,13 +3,11 @@ import { printRawText, printBase64Safe, printTextSizeAlignSafe, connectByName, i
 import { generateHeaderBoxBase64 } from '@/js/Utils/ticketHeaderBox';
 import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-thermal';
 import store from '@/js/store';
-
+import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 // ===== Ajustes de ticket =====
-const PAPER_WIDTH = Number(store.state?.printer?.paperWidth) || 32;
-
-const COLS = PAPER_WIDTH === 48 ? 48 : 32;
-
-const PIXELS = PAPER_WIDTH === 48 ? 576 : 384;
+let PAPER_WIDTH = 32;
+let COLS = 32;
+let PIXELS = 384;
 
 
 
@@ -170,6 +168,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     const nameOrAddr = store.state.printer.address || store.state.printer.name;
     if (!nameOrAddr) throw new Error('No hay impresora configurada');
 
+    const { paperWidth, cols, pixels } = refreshPrinterLayout();
+    PAPER_WIDTH = paperWidth;
+    COLS = cols;
+    PIXELS = pixels;
     try {
         // Algunos forks NO requieren connect previo, pero si lo hace, mejor conectamos:
         try {
