@@ -8,7 +8,8 @@
             <f7-icon f7="doc_text_fill" />
         </template>
 
-        <template #after>{{ formatFecha(item.createdAt) }}</template>
+        <template #after>{{ formatFecha(item.fechaEmision || item.createdAt) }}</template>
+
 
         <template #text>
             <div class="line">

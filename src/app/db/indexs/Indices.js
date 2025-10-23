@@ -79,6 +79,11 @@ export async function crearIndicesTipo(db) {
             fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'syncing', 'sincronizado', 'createdAt', '_id']
         },
 
+        {
+            ddoc: 'idx_gde_emp_rut_estado_fechaEmision_id',
+            fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'fechaEmision', '_id']
+        },
+
         //folios
 
         // Folios por empresa y rango de folio (para $gte/$lte)

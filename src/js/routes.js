@@ -9,7 +9,9 @@ import GdeIngreso from '@/pages/gde/ingreso.vue';
 import GdeDetalle from '@/pages/gde/detalle.vue';
 import ListadoFolios from '@/pages/folios/listado.vue';
 import Configuracion from '@/pages/configuracion/configuracion.vue';
+import informe from '@/pages/Informe/informe.vue';
 import store from './store';
+
 
 
 function isAuthed() {
@@ -41,6 +43,11 @@ var routes = [
         path: '/configuracion/',
         component: Configuracion,
         name: 'configuracion'
+    },
+    {
+        path: '/informe/',
+        component: informe,
+        name: 'informe'
     },
     {
         path: '/home/',

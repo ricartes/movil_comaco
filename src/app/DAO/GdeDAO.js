@@ -2,6 +2,7 @@
 import config from "@/Common/json/config.json";
 import { getBaseDao } from "@/app/services/initServices";
 import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper';
+import { dayRangeLocalString } from "@/app/helpers/FechasHelpers";
 
 
 function getPath(obj, path) {
@@ -97,6 +98,63 @@ export default class GdeDAO {
 
     async obtener(id) {
         return await this.db.get(id); // doc completo
+    }
+
+
+    /**
+  * Lista por RANGO usando fechaEmision (strings 'YYYY-MM-DDTHH:mm:SS')
+  * opts: { desde?: string|Date, hasta?: string|Date, limit?, skip? }
+  */
+    async listarPorRangoFechaEmision(empId, rut, { desde, hasta, limit = 1000, skip = 0 } = {}) {
+        const EG = config?.parametros?.estadosGuia;
+        if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
+            throw new Error('Config de estadosGuia inválida o incompleta');
+        }
+
+        // normaliza a 'YYYY-MM-DDTHH:mm:SS' si te pasan Date
+        const norm = (v) => {
+            if (!v) return null;
+            if (typeof v === 'string') return v.length === 19 ? v : new Date(v).toISOString().slice(0, 19);
+            return new Date(v).toISOString().slice(0, 19);
+        };
+
+        const sel = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rut),
+            'estado.id': { $in: [EG.EMITIDA.id, EG.NULA.id, 'E'] },
+        };
+
+        const gte = norm(desde);
+        const lte = norm(hasta);
+
+
+        if (gte || lte) {
+            sel.fechaEmision = {};
+            if (gte) sel.fechaEmision.$gte = gte;
+            if (lte) sel.fechaEmision.$lte = lte;
+        }
+
+        // Regla Mango: si ordenas por fechaEmision, inclúyelo en selector:
+        if (!sel.fechaEmision) sel.fechaEmision = { $gte: '' };
+
+        const use_index = 'idx_gde_emp_rut_estado_fechaEmision_id';
+        const sort = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { fechaEmision: 'asc' },
+            { _id: 'asc' },
+        ];
+
+        const res = await this.db.find({ selector: sel, sort, use_index, limit, skip });
+        const docs = (res.docs || []).sort((a, b) => {
+            const c = (b.fechaEmision || '').localeCompare(a.fechaEmision || '');
+            return c !== 0 ? c : (b._id || '').localeCompare(a._id || '');
+        });
+
+        return docs;
     }
 
     // Ej: params = {

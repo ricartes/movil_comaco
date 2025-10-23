@@ -10,6 +10,14 @@ export default {
             })
         },
 
+        formateaVolumen(v) {
+            const n = Number(v) || 0;
+            return new Intl.NumberFormat("es-CL", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(n);
+        },
+
         formatFecha(iso) {
             if (!iso) return "—";
             // Caso 1: formato "YYYY-MM-DD"

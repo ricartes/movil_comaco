@@ -34,13 +34,22 @@
     <!-- Acciones rápidas -->
     <f7-block-title>Acciones rápidas</f7-block-title>
     <f7-block strong inset class="quick-actions">
-        <f7-button fill large @click="nuevaGuia">
+        <f7-button fill large @click="nuevaGuia" class="margin-bottom">
             <f7-icon
                 ios="f7:plus_circle_fill"
                 md="material:add_circle"
                 class="me-1"
             />
             Nueva guía
+        </f7-button>
+        <f7-button fill large @click="abrirInforme">
+            <f7-icon
+                ios="f7:doc_text_fill"
+                md="material:description"
+                class="me-1"
+            />
+
+            Generar informe
         </f7-button>
     </f7-block>
 
@@ -71,6 +80,9 @@ export default {
     methods: {
         nuevaGuia() {
             f7.views.main?.router?.navigate("/gde/ingreso/?tab=home");
+        },
+        abrirInforme() {
+            f7.views.main?.router?.navigate("/informe/");
         },
     },
 };
