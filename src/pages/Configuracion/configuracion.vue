@@ -9,158 +9,136 @@
             <f7-nav-title>Configuración</f7-nav-title>
         </f7-navbar>
 
-        <f7-block strong inset>
-            <div class="text-muted" v-if="!isAndroid">
-                <p>
-                    <f7-icon f7="info_circle"></f7-icon>
-                    La detección de impresoras Bluetooth está disponible solo en
-                    Android.
-                </p>
-            </div>
+        <f7-block-title>Configuración de la impresora</f7-block-title>
 
-            <div class="row">
-                <div class="col-100 tablet-80">
-                    <f7-list no-hairlines-md form>
-                        <!-- IMPRESORAS -->
-                        <f7-list-item
-                            title="Impresora Bluetooth"
-                            class="select-impresora"
-                            smart-select
-                            :smart-select-params="ssParams"
-                            :disabled="
-                                !isAndroid || loading || printers.length === 0
-                            "
-                        >
-                            <select
-                                v-model="selectedKeyModel"
-                                @change="onPrinterChange"
-                                :disabled="!isAndroid || loading"
-                            >
-                                <option value="" disabled>
-                                    {{ ssLabel() }}
-                                </option>
+        <div class="text-muted" v-if="!isAndroid">
+            <p>
+                <f7-icon f7="info_circle"></f7-icon>
+                La detección de impresoras Bluetooth está disponible solo en
+                Android.
+            </p>
+        </div>
 
-                                <option
-                                    v-for="p in printers"
-                                    :key="p.key"
-                                    :value="p.key"
-                                >
-                                    {{ p.label }}
-                                </option>
-                            </select>
-                        </f7-list-item>
+        <f7-list form inset strong>
+            <!-- IMPRESORAS -->
+            <f7-list-item
+                title="Impresora Bluetooth"
+                class="select-impresora"
+                smart-select
+                :smart-select-params="ssParams"
+                :disabled="!isAndroid || loading || printers.length === 0"
+            >
+                <select
+                    v-model="selectedKeyModel"
+                    @change="onPrinterChange"
+                    :disabled="!isAndroid || loading"
+                >
+                    <option value="" disabled>
+                        {{ ssLabel() }}
+                    </option>
 
-                        <f7-list-item
-                            v-if="currentName"
-                            title="Impresora seleccionada"
-                        >
-                            <template #after>
-                                <span class="chip chip-outline">
-                                    <span class="chip-media">
-                                        <f7-icon f7="printer"></f7-icon>
-                                    </span>
-                                    <span class="chip-label">
-                                        {{ currentName }}
-                                        <span v-if="currentAddr"
-                                            >({{ currentAddr }})</span
-                                        >
-                                    </span>
-                                </span>
-                            </template>
-                        </f7-list-item>
+                    <option v-for="p in printers" :key="p.key" :value="p.key">
+                        {{ p.label }}
+                    </option>
+                </select>
+            </f7-list-item>
 
-                        <!-- ANCHO / PAPER WIDTH -->
-                        <f7-list-item
-                            title="Ancho de impresión"
-                            class="select-paperwidth"
-                            smart-select
-                            :smart-select-params="ssParams"
-                        >
-                            <select
-                                v-model="selectedWidthModel"
-                                @change="onWidthChange"
-                                :disabled="!isAndroid || loading"
-                            >
-                                <option value="" disabled>
-                                    {{ ssLabelWidth() }}
-                                </option>
-                                <!-- Valores que entiende la librería -->
-                                <option value="32">57–58 mm</option>
-                                <option value="48">80 mm</option>
-                            </select>
-                        </f7-list-item>
+            <f7-list-item v-if="currentName" title="Impresora seleccionada">
+                <template #after>
+                    <span class="chip chip-outline">
+                        <span class="chip-media">
+                            <f7-icon f7="printer"></f7-icon>
+                        </span>
+                        <span class="chip-label">
+                            {{ currentName }}
+                            <span v-if="currentAddr">({{ currentAddr }})</span>
+                        </span>
+                    </span>
+                </template>
+            </f7-list-item>
 
-                        <f7-list-item class="no-padding">
-                            <template #inner>
-                                <div class="button-grid">
-                                    <div class="button-row">
-                                        <f7-button
-                                            small
-                                            outline
-                                            :disabled="loading || !isAndroid"
-                                            @click="refreshPrinters"
-                                        >
-                                            <f7-icon
-                                                f7="arrow_clockwise"
-                                            ></f7-icon
-                                            >&nbsp;Actualizar
-                                        </f7-button>
+            <!-- ANCHO / PAPER WIDTH -->
+            <f7-list-item
+                title="Ancho de impresión"
+                class="select-paperwidth"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    v-model="selectedWidthModel"
+                    @change="onWidthChange"
+                    :disabled="!isAndroid || loading"
+                >
+                    <option value="" disabled>
+                        {{ ssLabelWidth() }}
+                    </option>
+                    <!-- Valores que entiende la librería -->
+                    <option value="32">57–58 mm</option>
+                    <option value="48">80 mm</option>
+                </select>
+            </f7-list-item>
 
-                                        <f7-button
-                                            small
-                                            outline
-                                            :disabled="loading || !selected"
-                                            @click="testPrint"
-                                        >
-                                            <f7-icon f7="doc_text"></f7-icon
-                                            >&nbsp;Probar impresión
-                                        </f7-button>
-                                    </div>
+            <f7-list-item v-if="errorMsg" class="li-alert no-padding">
+                <template #inner>
+                    <div class="alert alert-danger">
+                        <i class="f7-icons">exclamationmark_circle</i>
+                        {{ errorMsg }}
+                    </div>
+                </template>
+            </f7-list-item>
+        </f7-list>
+        <f7-block-title>Opciones de la impresora</f7-block-title>
+        <f7-list inset strong>
+            <!-- Actualizar -->
+            <f7-list-item
+                link
+                @click="refreshPrinters"
+                title="Actualizar"
+                :disabled="loading || !isAndroid"
+            >
+                <template #media>
+                    <f7-icon f7="arrow_clockwise"></f7-icon>
+                </template>
+            </f7-list-item>
 
-                                    <div class="button-row">
-                                        <f7-button
-                                            small
-                                            outline
-                                            color="red"
-                                            :disabled="loading"
-                                            @click="clearSelection"
-                                        >
-                                            <f7-icon f7="xmark_circle"></f7-icon
-                                            >&nbsp;Quitar selección
-                                        </f7-button>
+            <!-- Probar impresión -->
+            <f7-list-item
+                link
+                @click="testPrint"
+                title="Probar impresión"
+                :disabled="loading || !hasSelection"
+            >
+                <template #media>
+                    <f7-icon f7="doc_text"></f7-icon>
+                </template>
+            </f7-list-item>
 
-                                        <f7-button
-                                            small
-                                            outline
-                                            color="orange"
-                                            :disabled="loading"
-                                            @click="disconnect"
-                                        >
-                                            <f7-icon f7="bolt"></f7-icon
-                                            >&nbsp;Desconectar
-                                        </f7-button>
-                                    </div>
-                                </div>
-                            </template>
-                        </f7-list-item>
+            <!-- Quitar selección -->
+            <f7-list-item
+                link
+                @click="clearSelection"
+                title="Quitar selección"
+                class="text-red-600"
+                :disabled="loading"
+            >
+                <template #media>
+                    <f7-icon f7="xmark_circle"></f7-icon>
+                </template>
+            </f7-list-item>
 
-                        <f7-list-item
-                            v-if="errorMsg"
-                            class="li-alert no-padding"
-                        >
-                            <template #inner>
-                                <div class="alert alert-danger">
-                                    <i class="f7-icons"
-                                        >exclamationmark_circle</i
-                                    >
-                                    {{ errorMsg }}
-                                </div>
-                            </template>
-                        </f7-list-item>
-                    </f7-list>
-                </div>
-            </div>
-        </f7-block>
+            <!-- Desconectar -->
+            <f7-list-item
+                link
+                @click="disconnect"
+                title="Desconectar"
+                class="text-orange-600"
+                :disabled="loading"
+            >
+                <template #media>
+                    <f7-icon f7="bolt"></f7-icon>
+                </template>
+            </f7-list-item>
+        </f7-list>
     </f7-page>
 </template>
 
@@ -205,6 +183,10 @@ export default {
         },
         selected() {
             return !!this.currentName;
+        },
+        hasSelection() {
+            // usa v-model (reactivo) y, por si viene desde la persistencia, cae al store
+            return !!this.selectedKeyModel || !!this.currentName;
         },
         currentPaperWidth() {
             return store.state?.printer?.paperWidth ?? null;

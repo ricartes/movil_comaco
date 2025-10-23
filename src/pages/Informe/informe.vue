@@ -109,6 +109,49 @@
 
             <!-- Grupos -->
             <div v-else>
+                <f7-block-title>Opciones disponibles</f7-block-title>
+                <f7-list inset strong>
+                    <f7-list-item
+                        link
+                        v-if="hasPrinter"
+                        @click="onImprimir"
+                        title="Imprimir"
+                    >
+                        <template #media>
+                            <f7-icon
+                                ios="f7:printer_fill"
+                                md="material:print"
+                            ></f7-icon>
+                        </template>
+                    </f7-list-item>
+                    <f7-block strong v-if="!hasPrinter" class="alert-wrapper">
+                        <div
+                            class="alert alert-danger"
+                            style="
+                                border: 1px solid #ebccd1;
+                                background-color: #f2dede;
+                                color: #a94442;
+                                border-radius: 6px;
+                                padding: 10px 15px;
+                                font-size: 14px;
+                            "
+                        >
+                            <i
+                                class="f7-icons"
+                                style="font-size: 16px; margin-right: 6px"
+                            >
+                                exclamationmark_circle
+                            </i>
+                            No hay <strong>impresora configurada</strong>. Ve a
+                            <strong>Configuración</strong> y selecciona una
+                            impresora Bluetooth para poder imprimir.
+                            <f7-link @click="goConfig" class="ml-1"
+                                >Ir a Configuración</f7-link
+                            >
+                        </div>
+                    </f7-block>
+                </f7-list>
+
                 <f7-block-title>
                     {{
                         tipoInforme === "detalle"
@@ -144,6 +187,12 @@
                         :tipoInforme="tipoInforme"
                     />
 
+                    <TablaGDVolumen
+                        :filas="g.filas"
+                        :unidad="g.encabezado.unidad"
+                        :subtotal="g.subtotal"
+                    />
+
                     <!-- (Luego acá insertas la tabla GD / Volumen con f7-data-table) -->
                 </div>
 
@@ -166,13 +215,13 @@
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import { generarInforme } from "@/app/services/GdeInformeService";
-
-import config from "@/Common/json/config.json";
 import Encabezado from "@/pages/informe/Components/Encabezado.vue";
+import TablaGDVolumen from "@/pages/informe/Components/TablaGDVolumen.vue";
+import { printInformeDespacho } from "@/js/Utils/InformeGdePrinter";
 
 export default {
     name: "Informe",
-    components: { Encabezado },
+    components: { Encabezado, TablaGDVolumen },
     data() {
         return {
             fecha: new Date().toISOString().slice(0, 10),
@@ -209,6 +258,20 @@ export default {
             // si mezclas unidades entre grupos, puedes dejarlo vacío o mostrar g.encabezado.unidad por-subtotal
             const g = this.informe?.detalleDiario?.grupos?.[0];
             return g?.encabezado?.unidad || "";
+        },
+        hasPrinter() {
+            return !!store?.state?.printer?.name;
+        },
+        paperWidth() {
+            // 32 (57–58mm) | 48 (80mm) ; fallback 32
+            const v = Number(store?.state?.printer?.paperWidth);
+            return v === 48 ? 48 : 32;
+        },
+        paperWidthLabel() {
+            return this.paperWidth === 48 ? "80 mm" : "57–58 mm";
+        },
+        paperWidthSuffix() {
+            return ` (${this.paperWidthLabel})`;
         },
     },
     mounted() {
@@ -276,6 +339,83 @@ export default {
                 Boolean
             );
             return parts.join(" · ");
+        },
+
+        async onImprimir() {
+            f7.dialog.preloader("Imprimiendo…");
+            try {
+                await printInformeDespacho(this.informe, {
+                    modo: this.tipoInforme, // 'detalle' | 'resumen'
+                    tituloCabecera: "DESPACHO DIARIO",
+                });
+
+                f7.toast
+                    .create({ text: "Impresión enviada", closeTimeout: 1500 })
+                    .open();
+            } catch (e) {
+                console.error(e);
+                const msg = String(e?.message || e || "");
+                const paperLikely =
+                    /paper|cover|sin\s*papel|tapa|timeout|broken pipe|socket|disconnected/i.test(
+                        msg
+                    );
+
+                if (paperLikely) {
+                    // sugerir reintento
+                    f7.dialog
+                        .create({
+                            title: "Impresora",
+                            text: "Papel agotado o tapa abierta. Recarga y cierra la tapa. ¿Reintentar impresión?",
+                            buttons: [
+                                { text: "Cancelar" },
+                                {
+                                    text: "Reintentar",
+                                    bold: true,
+                                    onClick: async () => {
+                                        // reintento
+                                        try {
+                                            f7.dialog.preloader(
+                                                "Reintentando…"
+                                            );
+                                            await printGuiaFromDoc(doc, {
+                                                timbreBase64: null,
+                                            });
+                                            f7.toast
+                                                .create({
+                                                    text: "Impresión enviada",
+                                                    closeTimeout: 1500,
+                                                })
+                                                .open();
+                                        } catch (e2) {
+                                            f7.dialog.alert(
+                                                e2?.message ||
+                                                    "Error al reintentar impresión"
+                                            );
+                                        } finally {
+                                            try {
+                                                f7.dialog.close();
+                                            } catch {}
+                                        }
+                                    },
+                                },
+                            ],
+                        })
+                        .open();
+                } else {
+                    f7.dialog.alert(
+                        typeof e === "string"
+                            ? e
+                            : e?.message || "Error al imprimir"
+                    );
+                }
+            } finally {
+                f7.dialog.close();
+            }
+        },
+
+        goConfig() {
+            // Ruta de tu pantalla de configuración de impresora
+            f7.views.main?.router?.navigate("/configuracion/");
         },
 
         back() {

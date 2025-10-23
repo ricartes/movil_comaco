@@ -44,6 +44,7 @@ function generarDetalleDiario(docs) {
         const origen = safe(d?.predio?.predio);
         const codigo = safe(d?.ordenCompra?.codProyecto) || safe(d?.proveedor?.codEncargado) || safe(d?.zona?.codigo) || safe(d?.zona?.descripcion);
         const producto = safe(d?.producto?.nombreProducto);
+        const codigoProducto = safe(d?.producto?.codProducto);
         const destino = safe(d?.destino?.destinoCliente) || safe(d?.cliente?.razonSocialCliente);
         const um = unidadDe(d);
         const volumen = pickVolumen(d);
@@ -52,7 +53,7 @@ function generarDetalleDiario(docs) {
         const k = [origen, codigo, producto, destino, um].join("|");
         if (!gruposMap.has(k)) {
             gruposMap.set(k, {
-                encabezado: { origen, codigo, producto, destino, unidad: um },
+                encabezado: { origen, codigoProducto, codigo, producto, destino, unidad: um },
                 filas: [],
                 subtotal: 0,
             });

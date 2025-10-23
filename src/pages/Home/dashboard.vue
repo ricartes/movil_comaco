@@ -33,25 +33,25 @@
 
     <!-- Acciones rápidas -->
     <f7-block-title>Acciones rápidas</f7-block-title>
-    <f7-block strong inset class="quick-actions">
-        <f7-button fill large @click="nuevaGuia" class="margin-bottom">
-            <f7-icon
-                ios="f7:plus_circle_fill"
-                md="material:add_circle"
-                class="me-1"
-            />
-            Nueva guía
-        </f7-button>
-        <f7-button fill large @click="abrirInforme">
-            <f7-icon
-                ios="f7:doc_text_fill"
-                md="material:description"
-                class="me-1"
-            />
+    <f7-list inset strong>
+        <!-- Nueva guía -->
+        <f7-list-item link title="Nueva guía" @click="nuevaGuia" color="green">
+            <template #media>
+                <f7-icon f7="plus_circle_fill" color="green"></f7-icon>
+            </template>
+        </f7-list-item>
 
-            Generar informe
-        </f7-button>
-    </f7-block>
+        <f7-list-item
+            link
+            title="Generar informe"
+            @click="abrirInforme"
+            color="blue"
+        >
+            <template #media>
+                <f7-icon f7="doc_text_fill" color="blue"></f7-icon>
+            </template>
+        </f7-list-item>
+    </f7-list>
 
     <DashboardPrincipal />
 </template>

@@ -33,6 +33,12 @@
                         <dd>
                             {{ encabezado.codigo || "-" }}
                         </dd>
+                        <dt>COSECHA, CARGUIO Y TRANSPORTE</dt>
+                        <dd>-</dd>
+                        <dt>RUT</dt>
+                        <dd>
+                            {{ encabezado.cctRut || "-" }}
+                        </dd>
                         <dt>PRODUCTO</dt>
                         <dd>
                             {{ encabezado.producto || "-" }}
@@ -40,11 +46,6 @@
                         <dt>DESTINO</dt>
                         <dd>
                             {{ encabezado.destino || "-" }}
-                        </dd>
-                        <dt>Contratista/Transp.</dt>
-                        <dd>
-                            {{ encabezado.cctNombre || "-" }}
-                            ({{ encabezado.cctRut || "-" }})
                         </dd>
                     </template>
                 </dl>
