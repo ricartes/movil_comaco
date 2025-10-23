@@ -44,6 +44,17 @@
     <f7-block strong>
         <f7-button fill color="red" @click="logout">Cerrar sesión</f7-button>
     </f7-block>
+
+    <f7-block
+        strong
+        class="text-align-center text-color-gray padding-vertical app-version-block"
+    >
+        <div class="text-small">
+            {{ info.nombreApp }} v{{ info.versionApp }}
+            <span v-if="info.build"> ({{ info.build }})</span> —
+            {{ info.plataforma }}
+        </div>
+    </f7-block>
 </template>
 
 <script>
@@ -73,6 +84,25 @@ export default {
             const ini = (a + b).toUpperCase();
             return ini || n[0]?.toUpperCase() || "U";
         },
+    },
+    data() {
+        return {
+            info: {
+                nombreApp: "",
+                versionApp: "",
+                build: "",
+                plataforma: "",
+            },
+        };
+    },
+    async mounted() {
+        const info = await Utilidades.obtenerInfoCompletaDelDispositivo();
+        this.info = {
+            nombreApp: info?.nombreApp ?? "",
+            versionApp: info?.versionApp ?? "",
+            build: info?.build ?? "",
+            plataforma: info?.plataforma ?? "",
+        };
     },
     methods: {
         async onCargarParametros() {
@@ -423,5 +453,15 @@ export default {
 
 .menu-list :deep(.item-media) {
     align-self: center;
+}
+.app-version-block {
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af; /* gris suave */
+    margin-top: 8px;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1.4;
 }
 </style>

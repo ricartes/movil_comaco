@@ -10,6 +10,59 @@ import dayjs from "dayjs";
 
 var Utilidades = {
 
+    async obtenerInfoCompletaDelDispositivo() {
+        try {
+            const esNativo = Capacitor.isNativePlatform();
+
+            const [deviceId, deviceInfo, appInfo, networkStatus] = await Promise.all([
+                esNativo ? Device.getId() : Promise.resolve({ identifier: 'web-' + Math.random().toString(36).substring(2, 10) }),
+                esNativo ? Device.getInfo() : Promise.resolve({
+                    model: 'N/A',
+                    manufacturer: 'N/A',
+                    platform: 'web',
+                    osVersion: navigator.userAgent,
+                }),
+                esNativo ? App.getInfo() : Promise.resolve({
+                    name: document.title || 'WebApp',
+                    version: null,
+                    build: null,
+                }),
+                Network.getStatus()
+            ]);
+
+            return {
+                uid: deviceId.identifier ?? null,
+                modelo: deviceInfo.model ?? null,
+                fabricante: deviceInfo.manufacturer ?? null,
+                plataforma: deviceInfo.platform ?? 'web',
+                versionSo: deviceInfo.osVersion ?? null,
+                versionApp: appInfo.version ?? null,
+                build: appInfo.build ?? null,
+                nombreApp: appInfo.name ?? 'Aplicación',
+                red: {
+                    conectado: networkStatus.connected,
+                    tipo: networkStatus.connectionType ?? null
+                },
+                fechaHora: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+            };
+        } catch (err) {
+            console.warn('Error al obtener información completa del dispositivo:', err);
+            return {
+                uid: null,
+                modelo: null,
+                fabricante: null,
+                plataforma: null,
+                versionSo: null,
+                versionApp: null,
+                build: null,
+                nombreApp: null,
+                red: { conectado: false, tipo: null },
+                fechaHora: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                error: err?.message || String(err)
+            };
+        }
+    },
+
     async buildDispositivoPayload() {
         if (!Capacitor.isNativePlatform()) {
             // Entorno web o PWA
