@@ -23,8 +23,8 @@
 
                     <tfoot>
                         <tr>
-                            <td class="fw-600">Volumen</td>
-                            <td class="mono text-align-right fw-600">
+                            <td class="label-cell fw-600">Volumen</td>
+                            <td class="numeric-cell">
                                 {{ formateaVolumen(subtotal) }}
                             </td>
                         </tr>
