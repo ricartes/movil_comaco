@@ -49,7 +49,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(fila, i) in filas" :key="fila.diametro">
+                    <tr v-for="(fila, i) in filasVisibles" :key="fila.diametro">
                         <td class="center">
                             <b>{{ fila.diametro }}</b>
                         </td>
@@ -138,6 +138,10 @@ export default {
             return this.filas.some(
                 (f) => Number(f.trozos) > 0 && Number(f.volumen) > 0
             );
+        },
+        filasVisibles() {
+            if (!this.soloLectura) return this.filas;
+            return this.filas.filter((f) => f.volumen > 0);
         },
     },
     async mounted() {

@@ -313,7 +313,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             await printRawText(div('-'));
             // cabecera: ajustada a 32/48 col con columnas compactas
             // DIÁM  TROZOS  LARGO  VOL(M3)   P.U.      TOTAL
-            await printRawText(left('DIÁM  TRZ  LARGO  VOL(M3)    P.U.       TOTAL'));
+            await printRawText(left(`DIÁM  TRZ  LARGO  ${M.prod.unidad}`));
             await printRawText(div('-'));
 
             for (const d of filas) {
@@ -325,7 +325,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
                 const total = fmt(d.totalPrecio ?? 0).padStart(10, ' ');
 
                 // arma la línea y corta por ancho de papel
-                const linea = `${diam}  ${troz}  ${larg}  ${vol}  ${pu}  ${total}`;
+                const linea = `${diam}  ${troz}  ${larg}  ${vol}`;
                 await printRawText(cut(linea));
             }
             await printRawText(div());
