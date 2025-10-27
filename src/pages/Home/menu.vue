@@ -107,13 +107,14 @@ export default {
     },
     methods: {
         async onCargarParametros() {
+            const incluirGuias = await this.confirmarRecuperacionGuias();
             try {
                 const conexion = await Utilidades.verificarConexion();
                 if (!conexion?.connected) {
                     f7.dialog.alert(
                         "No hay conexión a internet. No es posible cargar parámetros."
                     );
-                    return;
+                    return false;
                 }
                 f7.dialog.preloader("Estableciendo conexión…");
                 const online = await HelperService.validarConexion(3000);
@@ -122,7 +123,7 @@ export default {
                     f7.dialog.alert(
                         "No hay conexión al servidor. No es posible cargar parámetros."
                     );
-                    return;
+                    return false;
                 }
 
                 const validate =
@@ -134,7 +135,7 @@ export default {
                     });
                     if (!res?.ok || res?.bloquea) {
                         // quedó bloqueado o falló → ya se habrá navegado a /bloqueado, o no corresponde seguir
-                        return;
+                        return false;
                     }
                 }
             } catch (e) {
@@ -143,10 +144,10 @@ export default {
                 f7.dialog.alert(
                     "No fue posible validar el dispositivo antes de cargar parámetros."
                 );
-                return;
+                return false;
             }
 
-            const tasks = [
+            const tasksBase = [
                 {
                     key: "Órdenes de compra",
                     run: () =>
@@ -243,7 +244,6 @@ export default {
                             this.user.rut
                         ),
                 },
-
                 {
                     key: "Geocercas",
                     run: () =>
@@ -252,11 +252,15 @@ export default {
                             this.user.rut
                         ),
                 },
-                {
+            ];
+
+            const tasks = [...tasksBase];
+            if (incluirGuias) {
+                tasks.push({
                     key: "Guías",
                     run: () => rescatarGuias(this.user.empresa, this.user.rut),
-                },
-            ];
+                });
+            }
 
             const total = tasks.length;
             const dlg = f7.dialog.progress("Cargando…", 0);
@@ -394,6 +398,34 @@ export default {
                     });
                 }
             );
+        },
+        async confirmarRecuperacionGuias() {
+            return await new Promise((resolve) => {
+                const dialog = f7.dialog.create({
+                    title: "Confirmar",
+                    text: "¿Desea recuperar el histórico de guías? La recuperación podría tardar varios minutos. Úselo solo si es una instalación nueva o desea restaurar guías ya enviadas.",
+                    buttons: [
+                        {
+                            text: "No",
+                            color: "red",
+                            onClick: () => {
+                                dialog.close();
+                                resolve(false);
+                            },
+                        },
+                        {
+                            text: "Sí",
+                            bold: true,
+                            color: "green",
+                            onClick: () => {
+                                dialog.close();
+                                resolve(true);
+                            },
+                        },
+                    ],
+                });
+                dialog.open();
+            });
         },
     },
 };
