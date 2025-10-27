@@ -229,9 +229,9 @@ export default {
             loading: false,
             error: null,
             doc: null,
-            detalleValidoMR: true,
-            detalleValidoTon: true,
-            detalleValidoM3: true,
+            detalleValidoMR: false,
+            detalleValidoTon: false,
+            detalleValidoM3: false,
         };
     },
 
@@ -384,9 +384,9 @@ export default {
         },
 
         async onEmitir() {
-            f7.dialog.preloader("Emitiendo guia...");
             try {
                 if (this.validarIngresoVolumenes()) {
+                    f7.dialog.preloader("Emitiendo guia...");
                     const updatedDoc = await emitirGde(this.doc);
                     this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                     f7.dialog.alert(
