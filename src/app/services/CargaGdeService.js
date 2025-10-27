@@ -13,9 +13,8 @@ export async function rescatarGuias(empId, rut) {
     if (!token) throw new Error('Token no disponible');
 
     const folios = await gdeDao.listarFoliosPorEmpresaYRut(empId, rut);
-    console.log(folios);
     const respGde = await CargaParametrosWebServices.postJson(
-        { empId: empId, rutEmisor: String(rut), folios: folios },
+        { empId: empId, rutEmisor: rut, folios: folios },
         config.rutas.rescatarGde,
         token
     );
