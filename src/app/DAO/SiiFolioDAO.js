@@ -166,27 +166,27 @@ export default class SiiFolioDAO {
      * Retorna un DTO de folio.
      */
     async obtenerPrimerFolioDisponible(empId, rut) {
-        // 1) Obtener los URF del usuario
+        // 1) URF del usuario
         const urfs = await this.listarUsuarioRangoFolioPorRut(empId, rut);
         if (!urfs.length) return null;
 
-        const urfIds = urfs.map((u) => Number(u.urfId));
+        const urfIds = urfs.map(u => Number(u.urfId));
 
-        // 2) Buscar el primer folio 'D' dentro de esos URF, ordenado por folio asc
-        // (Se apoya en el índice ["type","empId","urfId","estado","folio"])
+        // 2) Buscar el menor folio 'D' dentro de esos URF
         const res = await this.db.find({
+            use_index: 'idx_folio_emp_estado_folio_urf',
             selector: {
                 type: config.bd.tipoEntidad.folio,
                 empId: Number(empId),
                 estado: config.parametros.estadosFolio.disponible,
                 urfId: { $in: urfIds },
+                folio: { $gte: null }, // rango neutro para habilitar el sort
             },
             sort: [
                 { type: "asc" },
                 { empId: "asc" },
-                { urfId: "asc" },
                 { estado: "asc" },
-                { folio: "asc" },
+                { folio: "asc" },      // clave: ordenar globalmente por folio
             ],
             limit: 1,
         });

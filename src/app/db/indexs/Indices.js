@@ -105,6 +105,9 @@ export async function crearIndicesTipo(db) {
         // (Opcional) si filtras por estado además del rango:
         { ddoc: 'idx_folio_emp_estado_folio', fields: ['type', 'empId', 'estado', 'folio'] },
 
+        { ddoc: 'idx_folio_emp_estado_folio_urf', fields: ['type', 'empId', 'estado', 'folio', 'urfId'] },
+
+
 
 
     ];
