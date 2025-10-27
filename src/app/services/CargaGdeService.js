@@ -26,7 +26,7 @@ export async function rescatarGuias(empId, rut) {
     const guias = respGde?.data ?? [];
     const resultado = await rescatarMultiplesGde(guias);
     // resultado = { total, ok, fail, errores }
-    return { status: true, total: resultado.total, ok: resultado.ok, fail: resultado.fail, errores: resultado.errores };
+    return { status: true, count: resultado.total, ok: resultado.ok, fail: resultado.fail, errores: resultado.errores };
 }
 
 

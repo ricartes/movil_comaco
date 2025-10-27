@@ -213,7 +213,7 @@ export default {
             );
         },
         showAnular() {
-            return this.isEmitida || this.isEnviada;
+            return (this.isEmitida || this.isEnviada) && !this.isRescatada;
         },
         hasPrinter() {
             return !!store?.state?.printer?.name;
