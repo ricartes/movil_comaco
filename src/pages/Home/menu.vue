@@ -62,6 +62,7 @@ import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
 import { cargarFoliosYLiberados } from "@/app/services/CargarFoliosOrquestador";
+import { rescatarGuias } from "@/app/services/CargaGdeService";
 
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
@@ -250,6 +251,10 @@ export default {
                             this.user.empresa,
                             this.user.rut
                         ),
+                },
+                {
+                    key: "Guías",
+                    run: () => rescatarGuias(this.user.empresa, this.user.rut),
                 },
             ];
 

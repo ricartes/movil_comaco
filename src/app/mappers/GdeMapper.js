@@ -9,6 +9,10 @@ function toYMD(fecha) {
     throw new Error('fechaEmision debe ser Date o "YYYY-MM-DD"')
 }
 
+
+
+
+
 export function makeGdeDoc(raw) {
     const gdePlana = sanitizeForPouch(raw);
     return {
@@ -18,6 +22,7 @@ export function makeGdeDoc(raw) {
         ...gdePlana,
         createdAt: new Date().toISOString(),
         folio: null,
+        rescatado: false,
         syncing: false,
         sincronizado: false,
         sincronizadoAt: null,
@@ -25,6 +30,14 @@ export function makeGdeDoc(raw) {
         updatedAt: new Date().toISOString(),
         fechaEmision: null,
         emitiendo: false
+    }
+}
+
+
+export function makeGdeRescatadaDoc(raw) {
+    return {
+        ...raw,
+        rescatado: true,
     }
 }
 

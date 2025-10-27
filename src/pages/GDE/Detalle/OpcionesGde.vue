@@ -186,6 +186,9 @@ export default {
         isNula() {
             return this.st === this.ID_NULA;
         },
+        isRescatada() {
+            return this.doc?.rescatado === true;
+        },
 
         tituloEnviar() {
             return this.isEmitida
@@ -203,7 +206,11 @@ export default {
             return this.isBorrador;
         },
         showEnviar() {
-            return this.isEmitida || this.isEnviada || this.isNula;
+            // Antes: return this.isEmitida || this.isEnviada || this.isNula;
+            return (
+                (this.isEmitida || this.isEnviada || this.isNula) &&
+                !this.isRescatada
+            );
         },
         showAnular() {
             return this.isEmitida || this.isEnviada;

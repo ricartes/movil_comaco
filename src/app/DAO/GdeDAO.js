@@ -1,7 +1,7 @@
 // src/app/dao/GdeDAO.js
 import config from "@/Common/json/config.json";
 import { getBaseDao } from "@/app/services/initServices";
-import { gdeDocToDTO, makeGdeDoc } from '@/app/mappers/gdeMapper';
+import { gdeDocToDTO } from '@/app/mappers/gdeMapper';
 import { dayRangeLocalString } from "@/app/helpers/FechasHelpers";
 
 
@@ -614,6 +614,84 @@ export default class GdeDAO {
         }
     }
 
+    /**
+ * Retorna los folios existentes en PouchDB para (empId, rutEmisor).
+ * Por defecto devuelve: [32601, 32602, ...]
+ *
+ * Opciones:
+ *  - asPairs: true  => [{ empId: 1, folio: 32601 }, ...]
+ *  - asKeys:  true  => ["guia:1:32601", ...]   (ignora asPairs)
+ *  - pageSize: tamaño de página para find()
+ */
+    async listarFoliosPorEmpresaYRut(empId, rutEmisor, { asPairs = false, asKeys = false, pageSize = 1000 } = {}) {
+        const emp = Number(empId);
+        const rut = String(rutEmisor);
+
+        // Índice recomendado para esta consulta
+        // Si ya lo creaste en otro lado, esto no molesta; si no, lo crea.
+        try {
+            await this.db.createIndex({
+                index: { fields: ['type', 'empId', 'rutEmisor', 'folio', '_id'] },
+                name: 'idx_gde_emp_rut_folio_id'
+            });
+        } catch (_) { /* no-op */ }
+
+        const selectorBase = {
+            type: config.bd.tipoEntidad.gde,
+            empId: emp,
+            rutEmisor: rut,
+            // ancla Mango: si vas a ordenar por 'folio', inclúyelo en selector
+            folio: { $gte: null }, // asegura que exista folio (y permite usar el índice)
+        };
+
+        const sort = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { folio: 'asc' },
+            { _id: 'asc' },
+        ];
+
+        const folios = [];
+        let skip = 0;
+
+        // Página a página
+        while (true) {
+            const res = await this.db.find({
+                selector: selectorBase,
+                sort,
+                use_index: 'idx_gde_emp_rut_folio_id',
+                fields: ['folio', 'empId', '_id'], // mínimo necesario
+                limit: pageSize,
+                skip,
+            });
+
+            const docs = res.docs || [];
+            if (!docs.length) break;
+
+            for (const d of docs) {
+                const f = d?.folio;
+                if (f != null) {
+                    folios.push(Number(f));
+                }
+            }
+
+            if (docs.length < pageSize) break;
+            skip += pageSize;
+        }
+
+        // Unicos y ordenados (por si acaso)
+        const uniq = Array.from(new Set(folios)).sort((a, b) => a - b);
+
+        if (asKeys) {
+            // ejemplo de key determinística (útil si el backend la espera)
+            return uniq.map(f => `guia:${emp}:${f}`);
+        }
+        if (asPairs) {
+            return uniq.map(f => ({ empId: emp, folio: f }));
+        }
+        return uniq; // array de números
+    }
 
 
 
@@ -627,8 +705,7 @@ export default class GdeDAO {
 
     async insertar(gde) {
         try {
-            const gdeInsert = makeGdeDoc(gde);
-            const res = await getBaseDao().insertar(gdeInsert);
+            const res = await getBaseDao().insertar(gde);
             const doc = await this.db.get(res.id);
             return doc;
         } catch (error) {
@@ -734,7 +811,155 @@ export default class GdeDAO {
         }
         throw Object.assign(new Error('Document update conflict'), { status: 409 });
     }
+
+    async ensureIndiceFoliosFlexible() {
+        const prefijo = ['type', 'empId', 'folio'];
+        const nombreDeseado = 'idx_gde_emp_folio_id';
+
+        // 1) Revisa índices existentes
+        const idx = await this.db.getIndexes();
+        const hallado = idx.indexes.find(ix => {
+            const fields = ix.def?.fields ? ix.def.fields.map(o => Object.keys(o)[0]) : [];
+            return fields.length >= prefijo.length && prefijo.every((k, i) => fields[i] === k);
+        });
+
+        if (hallado) return hallado.name || nombreDeseado;
+
+        // 2) Crea índice si no existe alguno con ese prefijo
+        await this.db.createIndex({
+            index: { fields: ['type', 'empId', 'folio', '_id'] },
+            name: nombreDeseado,
+        });
+
+        return nombreDeseado;
+    }
+
+    /**
+     * Upsert de UNA guía rescatada (doc del backend).
+     * - Dedup por (empId, folio)
+     * - Respeta 100% el payload del servidor
+     * - Solo añade/actualiza: rescatado, rescatadoAt, updatedAt
+     * - Preserva flags locales si ya existía: syncing, sincronizado, ultimoErrorSync
+     */
+    async upsertRescatada(docServidor) {
+        const empId = Number(docServidor?.empId);
+        const folio = Number(docServidor?.folio);
+        if (!Number.isFinite(empId) || !Number.isFinite(folio)) {
+            throw new Error('empId/folio inválidos en la guía rescatada');
+        }
+
+        // Tipo para selector (si no viene, usa 'gde')
+        const tipo = docServidor?.type ?? 'gde';
+
+        // Índice (flex) y fallback
+        let nombreIndice = null;
+        try { nombreIndice = await this.ensureIndiceFoliosFlexible(); } catch { }
+
+        const selector = { type: tipo, empId, folio, _id: { $gte: null } };
+
+        let encontrados;
+        try {
+            encontrados = await this.db.find({
+                selector,
+                use_index: nombreIndice || undefined,
+                fields: ['_id', '_rev', 'syncing', 'sincronizado', 'ultimoErrorSync', 'rescatado', 'rescatadoAt'],
+                limit: 1,
+            });
+        } catch {
+            // Fallback sin use_index
+            encontrados = await this.db.find({
+                selector,
+                fields: ['_id', '_rev', 'syncing', 'sincronizado', 'ultimoErrorSync', 'rescatado', 'rescatadoAt'],
+                limit: 1,
+            });
+        }
+
+        // Documento base = tal cual viene del backend
+        const nowIso = new Date().toISOString();
+        const base = { ...docServidor };
+        base.rescatado = true;
+        base.rescatadoAt = base.rescatadoAt ?? nowIso; // no pisar si ya viene
+        base.updatedAt = nowIso;
+
+        // Si YA existe doc con ese (empId, folio): upsert sobre el mismo _id
+        if (encontrados.docs?.length) {
+            const curr = await this.db.get(encontrados.docs[0]._id);
+
+            // Solo flags locales a preservar
+            const preservarLocales = {
+                syncing: curr?.syncing ?? false,
+                sincronizado: curr?.sincronizado ?? base?.sincronizado ?? true,
+                ultimoErrorSync: curr?.ultimoErrorSync ?? null,
+            };
+
+            const next = {
+                ...base,              // payload del servidor manda
+                ...preservarLocales,  // flags locales
+                _id: curr._id,
+                _rev: curr._rev,
+            };
+
+            let intentos = 0;
+            while (intentos < MAX_RETRIES) {
+                try {
+                    const res = await this.db.put(next);
+                    return await this.db.get(res.id);
+                } catch (e) {
+                    if (e?.status === 409) {
+                        const fresh = await this.db.get(curr._id);
+                        next._rev = fresh._rev;
+                        intentos++;
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+            throw Object.assign(new Error('Conflicto al actualizar guía rescatada'), { status: 409 });
+        }
+
+        // No existía: crear nuevo (no arrastrar _id/_rev del server si vinieran)
+        const { _id, _rev, ...limpio } = base;
+        const res = await this.db.post(limpio);
+        return await this.db.get(res.id);
+    }
+
+    /**
+     * Upsert de MUCHAS guías rescatadas (batch) con concurrencia.
+     * @param {Array<object>} docsServidor
+     * @param {object} opts { concurrency?: number }
+     * @returns {object} { total, ok, fail, errores }
+     */
+    async upsertRescatadas(docsServidor, { concurrency = 4 } = {}) {
+        await this.ensureIndiceFoliosFlexible();
+
+        const items = Array.isArray(docsServidor) ? docsServidor : [];
+        let ok = 0, fail = 0;
+        const errores = [];
+
+        const cola = [...items];
+        const trabajadores = Array.from({ length: Math.max(1, concurrency) }).map(async () => {
+            while (cola.length) {
+                const item = cola.shift();
+                try {
+                    await this.upsertRescatada(item);
+                    ok++;
+                } catch (e) {
+                    fail++;
+                    errores.push({ empId: item?.empId, folio: item?.folio, error: e?.message || String(e) });
+                }
+            }
+        });
+
+        await Promise.all(trabajadores);
+        return { total: items.length, ok, fail, errores };
+    }
+
+
+
 }
+
+
+
 
 
 
@@ -748,3 +973,7 @@ function setByPath(obj, path, val) {
     }
     cur[keys[keys.length - 1]] = val;
 }
+
+
+
+

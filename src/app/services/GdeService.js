@@ -3,6 +3,7 @@ import forge from "node-forge";              // npm i node-forge
 import { getGdeDao, getSiiFolioDao } from "@/app/services/initServices";
 import config from "@/Common/json/config.json";
 import { nowLocalIso, nowLocalIsoWithOffset } from "@/app/helpers/FechasHelpers";
+import { makeGdeDoc } from '@/app/mappers/gdeMapper';
 
 export async function listarPorEmpresaYRutPaginado(empId, rut, opts) {
     return await getGdeDao().listarPorEmpresaYRutPaginado(empId, rut, opts);
@@ -17,7 +18,9 @@ export async function obtenerGde(id) {
 }
 
 export async function ingresarGde(gde) {
-    return await getGdeDao().insertar(gde); // devuelve doc completo
+
+    const gdeInsert = makeGdeDoc(gde);
+    return await getGdeDao().insertar(gdeInsert); // devuelve doc completo
 }
 
 export async function descartarGde(gde) {

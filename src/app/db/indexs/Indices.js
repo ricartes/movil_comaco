@@ -73,6 +73,15 @@ export async function crearIndicesTipo(db) {
             fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'folio', 'createdAt', '_id']
         },
 
+        {
+            ddoc: 'idx_gde_emp_rut_folio_id',
+            fields: ['type', 'empId', 'rutEmisor', 'folio', '_id']
+        },
+
+        { ddoc: 'idx_gde_emp_folio_id', fields: ['type', 'empId', 'folio', '_id'] },
+
+
+
         // --- pendientes de envío (incluye _id para tie-breaker) ---
         {
             ddoc: 'idx_gde_sync_estado_syncing_sinc_createdAt_id',
@@ -83,6 +92,7 @@ export async function crearIndicesTipo(db) {
             ddoc: 'idx_gde_emp_rut_estado_fechaEmision_id',
             fields: ['type', 'empId', 'rutEmisor', 'estado.id', 'fechaEmision', '_id']
         },
+
 
         //folios
 

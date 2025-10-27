@@ -313,7 +313,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             await printRawText(div('-'));
             // cabecera: ajustada a 32/48 col con columnas compactas
             // DIÁM  TROZOS  LARGO  VOL(M3)   P.U.      TOTAL
-            await printRawText(left(`DIÁM  TRZ  LARGO  ${M.prod.unidad}`));
+            await printRawText(left(`DIÁM  TRZ   LARGO      ${M.prod.unidad}`));
             await printRawText(div('-'));
 
             for (const d of filas) {
