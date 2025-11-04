@@ -66,7 +66,7 @@
         <!-- Imprimir (siempre) -->
         <f7-list-item
             link
-            v-if="showEnviar && hasPrinter"
+            v-if="this.isEmitida || this.isEnviada || this.isNula && hasPrinter"
             @click="onImprimir"
             :title="tituloImprimirOriginal"
             :disabled="loading"
@@ -78,7 +78,7 @@
 
         <f7-list-item
             link
-            v-if="showEnviar && hasPrinter"
+            v-if="this.isEmitida || this.isEnviada || this.isNula && hasPrinter"
             @click="onImprimirCedible"
             :title="tituloImprimirCedible"
             :disabled="loading"
@@ -88,7 +88,7 @@
             </template>
         </f7-list-item>
 
-        <f7-block strong v-if="showEnviar && !hasPrinter" class="alert-wrapper">
+        <f7-block strong v-if="(this.isEmitida || this.isEnviada || this.isNula) && !hasPrinter" class="alert-wrapper">
             <div
                 class="alert alert-danger"
                 style="
