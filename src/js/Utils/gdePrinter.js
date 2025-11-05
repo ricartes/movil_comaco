@@ -4,6 +4,10 @@ import { generateHeaderBoxBase64 } from '@/js/Utils/ticketHeaderBox';
 import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-thermal';
 import store from '@/js/store';
 import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
+import { formatearRut } from '@/js/Utils/rut';
+import { getUM, getVolumenByUM } from '@/js/volumen';
+
+
 // ===== Ajustes de ticket =====
 let PAPER_WIDTH = 32;
 let COLS = 32;
@@ -73,6 +77,7 @@ function mapDoc(doc) {
         ciudad: empresa.ciudad || '',
         fResol: empresa.fechaResolucion || '',
         nResol: empresa.numeroResolucion || '',
+        nombreEmisor: doc.emisor.nombre || '',
     };
 
     const receptor = {
@@ -86,7 +91,9 @@ function mapDoc(doc) {
 
     const traslado = {
         indicador: doc?.indicadorTraslado?.texto || '', // "CONSTITUYE VENTA" / "SOLO TRASLADO"
-        origen: `${doc?.predio?.predio || ''}, ROL: ${doc?.predio?.rolPredio || ''}, COMUNA: ${doc?.predio?.rolComuna || ''}`,
+        origen: doc?.predio?.predio || '',
+        rol: doc?.predio?.rolPredio || '',
+        comunaOrigen: doc?.predio?.rolComuna || '',
         destino: doc?.destino?.destinoCliente || '',
     };
 
@@ -98,12 +105,12 @@ function mapDoc(doc) {
         nomChofer: doc?.conductor?.nomChofer || '',
         proveedorRut: doc?.proveedor?.rutProveedor || '',
         proveedorNom: doc?.proveedor?.nomProveedor || '',
-        contratista: doc?.empresaContratista?.nombreContratista || '',
+        contratista: `${doc?.empresaContratista?.rutContratista || ''} ${doc?.empresaContratista?.nombreContratista || ''}`,
     };
 
     const prod = {
         nombre: doc?.producto?.nombreProducto || '',
-        unidad: doc?.producto?.unidadMedida || 'MR',
+        unidad: getUM(doc),
         largo: doc?.largoProducto || doc?.ordenCompra?.largoTrozo || '',
         fsc: doc?.producto?.fsc ? doc?.producto?.categoria || 'CON CERTIFICACIÓN' : 'SIN CERTIFICACIÓN',
         sag: doc?.producto?.sag || '',
@@ -111,11 +118,13 @@ function mapDoc(doc) {
     };
 
     const tot = {
+        volumenTotal: getVolumenByUM(doc, prod.unidad),
         neto: doc?.totales?.neto ?? 0,
         iva: doc?.totales?.ivaMonto ?? 0,
         total: doc?.totales?.total ?? 0,
         ivaPct: doc?.totales?.ivaPct ?? doc?.ivaPct ?? 19,
     };
+
 
     const folio = doc?.folio || 'SIN FOLIO ASIGNADO';
     const fecha = (doc?.fechaEmisionOffset || doc?.fechaEmision || '').replace('T', ' ').split('.')[0] || '';
@@ -155,7 +164,7 @@ function mapDoc(doc) {
     const detalleM3 = Array.isArray(doc?.detalleM3) ? doc.detalleM3 : []; // 👈 NUEVO
 
 
-    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios };
+    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios, empresaContratista };
 }
 
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
@@ -187,9 +196,8 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     const M = mapDoc(doc);
     // ===== Encabezado =====
     const headerB64 = generateHeaderBoxBase64({
-        rut: `R.U.T.: ${M.emisor.rut}`,
-        title: 'GUÍA DE DESPACHO\nELECTRÓNICA',
-        folio: `N°: ${M.folio}`,
+        rut: `R.U.T.: ${formatearRut(M.emisor.rut)}`,
+        title: 'GUÍA DE DESPACHO',
         width: PIXELS,        // ← 384 ó 576 según papel   
         bgColor: '#eeeeee',    // si prefieres blanco puro: '#ffffff'
         strokeColor: '#000000',
@@ -200,16 +208,15 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (M.emisor.comuna) await printRawText(center(`S.I.I ${M.emisor.comuna.toUpperCase()}`));
     await printRawText(div('='));
 
-    // Datos emisor
-    await printRawText(left('DATOS DEL EMISOR'));
-    await printRawText(wrap(`RAZÓN SOCIAL: ${M.emisor.rs.toUpperCase()}`));
+
+    //datos de la guia
+    await printRawText(wrap(`NÚMERO GUÍA: ${M.folio}`));
+    await printRawText(wrap(`EMPRESA: ${M.emisor.rs.toUpperCase()}`));
     if (M.emisor.giro) await printRawText(wrap(`GIRO: ${M.emisor.giro.toUpperCase()}`));
     if (M.emisor.dir) await printRawText(wrap(`DIRECCIÓN: ${M.emisor.dir.toUpperCase()}`));
-    if (M.emisor.comuna) await printRawText(`COMUNA: ${M.emisor.comuna.toUpperCase()}`);
     await printRawText(div());
-
-    // Receptor
-    await printRawText(left('DATOS DEL RECEPTOR'));
+    //datos del Receptor
+    if (M.fecha) await printRawText(`FECHA: ${M.fecha}`);
     if (M.receptor.rut) await printRawText(`RUT: ${M.receptor.rut}`);
     if (M.receptor.rs) await printRawText(wrap(`RAZÓN SOCIAL: ${M.receptor.rs.toUpperCase()}`));
     if (M.receptor.giro) await printRawText(wrap(`GIRO: ${M.receptor.giro.toUpperCase()}`));
@@ -217,24 +224,19 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (M.receptor.comuna || M.receptor.ciudad) {
         await printRawText(`COMUNA: ${M.receptor.comuna?.toUpperCase() || ''}`);
     }
-    if (M.fecha) await printRawText(`FECHA EMISIÓN: ${M.fecha}`);
     if (M.traslado.indicador) await printRawText(`IND. TRASLADO: ${M.traslado.indicador}`);
-    await printRawText(wrap(`ORIGEN: ${M.traslado.origen.toUpperCase()}`));
-    if (M.traslado.destino) await printRawText(wrap(`DESTINO: ${M.traslado.destino.toUpperCase()}`));
+
     await printRawText(div());
+    //datos del origen
+    await printRawText(wrap(`ORIGEN: ${M.traslado.origen.toUpperCase()}`));
+    await printRawText(wrap(`ROL: ${M.traslado.rol.toUpperCase()}`));
+    await printRawText(wrap(`COMUNA: ${M.traslado.comunaOrigen.toUpperCase()}`));
+    await printRawText(div());
+    //TODO: FALTA CERTIFICACION
 
-    // Transporte
-    await printRawText(left('DATOS TRANSPORTE'));
-    if (M.trans.transportista) await printRawText(wrap(`TRANSPORTISTA: ${M.trans.transportista.toUpperCase()}`));
-    if (M.trans.patenteCamion) await printRawText(`PATENTE CAMIÓN: ${M.trans.patenteCamion}`);
-    if (M.trans.patenteCarro) await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}`);
-    if (M.trans.rutChofer) await printRawText(`RUT CHOFER: ${M.trans.rutChofer}`);
-    if (M.trans.nomChofer) await printRawText(wrap(`NOMBRE CHOFER: ${M.trans.nomChofer.toUpperCase()}`));
-    if (M.trans.contratista) await printRawText(wrap(`CONTRATISTA: ${M.trans.contratista.toUpperCase()}`));
-    if (M.trans.proveedorRut || M.trans.proveedorNom) {
-        await printRawText(wrap(`PROVEEDOR: ${M.trans.proveedorRut} - ${M.trans.proveedorNom}`));
-    }
-
+    // printRawText(div()); TODO:DESCOMENTAR CUANDO ESTE LA CERTIFICACION
+    await printRawText(wrap(`DESPACHADOR: ${M.emisor.nombreEmisor.toUpperCase()}`));
+    await printRawText(wrap(`EMP. COSECHA: ${M.trans.contratista.toUpperCase()}`));
     // === CARGUÍO(s): formato igual que PROVEEDOR ===
     if (Array.isArray(M.carguios) && M.carguios.length) {
         // RUT - NOMBRE
@@ -254,26 +256,32 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             .join(', ');
 
         if (carguiosStr) {
-            await printRawText(wrap(`CARGUÍO: ${carguiosStr}`));
-        }
-        if (patentesStr) {
-            await printRawText(wrap(`PATENTE CARGUÍO: ${patentesStr}`));
+            await printRawText(wrap(`EMP. CARGUÍO: ${carguiosStr}`));
         }
     }
-
+    if (M.trans.transportista) await printRawText(wrap(`EMP. TRANSP.: ${M.trans.transportista.toUpperCase()}`));
 
 
     await printRawText(div());
 
+    // Transporte
+    if (M.trans.patenteCamion) await printRawText(`PATENTE CAMIÓN: ${M.trans.patenteCamion}`);
+    if (M.trans.patenteCarro) await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}`);
+    if (M.trans.nomChofer) await printRawText(wrap(`CONDUCTOR: ${M.trans.nomChofer.toUpperCase()}`));
+    if (M.trans.rutChofer) await printRawText(`RUT CONDUCTOR: ${M.trans.rutChofer}`);
+
+    await printRawText(div());
     // Producto / Detalle
-    await printRawText(left('DETALLE PRODUCTO'));
     const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
-    await printRawText(wrap(`PRODUCTO: ${tituloProd}`));
+    await printRawText(wrap(`DESC: ${tituloProd}`));
     await printRawText(wrap(`CERTIFICACIÓN: ${M.prod.fsc}`));
     //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
-    await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
+    //await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
 
+    await printRawText(left(`CANT  UNIDAD   PRECIO TOTAL  `));
+    const linea = `${M.prod.volumenTotal}  ${M.prod.unidad}  ${fmt(M.tot.neto)}`;
 
+    await printRawText(left(linea));
 
     //tabla mr
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {
@@ -302,8 +310,6 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
             await printRawText(left(linea));
         }
-
-        await printRawText(div());
     }
 
     // ====== TABLA M3 (solo filas con volumen > 0) ======
@@ -328,11 +334,11 @@ export async function printGuiaFromDoc(doc, opts = {}) {
                 const linea = `${diam}  ${troz}  ${larg}  ${vol}`;
                 await printRawText(cut(linea));
             }
-            await printRawText(div());
         }
     }
 
-
+    await printRawText(div());
+    //PARA TON
 
     // Totales
     await printRawText(twoCols('NETO', `$${fmt(M.tot.neto)}`, 12));

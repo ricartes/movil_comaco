@@ -3,6 +3,7 @@ import pdfMake from "pdfmake/build/pdfmake";
 import "pdfmake/build/vfs_fonts";
 import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
+import { getUM, getVolumenByUM } from '@/js/volumen';
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
@@ -370,10 +371,7 @@ const isCanceled = (d) =>
     (d?.estado?.id && String(d.estado.id).toUpperCase() === config.parametros.estadosGuia.NULA.id) ||
     (d?.estado?.texto && /ANULAD/i.test(d.estado.texto));
 
-function getUM(doc) {
-    const um = (doc?.producto?.unidadMedida || "").toString().trim().toUpperCase();
-    return um;
-}
+
 
 const boxedLayoutDetail = {
     hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 1 : 0.5),
@@ -494,25 +492,6 @@ function buildDetalleM3(doc) {
         },
         layout: boxedLayoutDetail, // borde exterior del bloque
     };
-}
-
-
-// Helper: obtiene volumen según UM
-function getVolumenByUM(doc, um) {
-
-    const t = doc?.totales || {};
-    switch (um) {
-        case config.parametros.unidadesMedida.MR:
-            return t?.mr?.volumen ?? t?.totalMr ?? t?.volMr ?? null;
-        case config.parametros.unidadesMedida.TON:
-        case config.parametros.unidadesMedida.BDMT:
-        case config.parametros.unidadesMedida.M3ST:
-            // ✅ Todas usan la misma fuente (totales.ton)
-            return t?.ton?.volumen ?? t?.totalTon ?? t?.volTon ?? null;
-        default:
-            // fallback clásico (M3 normal)
-            return t?.m3?.volumen ?? t?.totalM3 ?? t?.volM3 ?? null;
-    }
 }
 
 
