@@ -2,7 +2,7 @@
 export function generateHeaderBoxBase64({
     rut = 'R.U.T.: 79825060-4',
     title = 'GUÍA DE DESPACHO\nELECTRÓNICA',
-    folio = 'N°: 32536',
+    folio = '',
     width = 576,
     bgColor = '#eeeeee',
     strokeColor = '#000000',

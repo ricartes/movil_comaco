@@ -6,7 +6,7 @@ import store from '@/js/store';
 import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 import { formatearRut } from '@/js/Utils/rut';
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
-
+import { formatFechaCorta } from '@/js/Utils/formatters';
 
 // ===== Ajustes de ticket =====
 let PAPER_WIDTH = 32;
@@ -205,6 +205,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     const headerB64 = generateHeaderBoxBase64({
         rut: `R.U.T.: ${formatearRut(M.emisor.rut)}`,
         title: 'GUÍA DE DESPACHO',
+        folio: `N°: ${M.folio}`,
         width: PIXELS,        // ← 384 ó 576 según papel   
         bgColor: '#eeeeee',    // si prefieres blanco puro: '#ffffff'
         strokeColor: '#000000',
@@ -223,7 +224,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (M.emisor.dir) await printRawText(wrap(`DIRECCIÓN: ${M.emisor.dir.toUpperCase()}`));
     await printRawText(div());
     //datos del Receptor
-    if (M.fecha) await printRawText(`FECHA: ${M.fecha}`);
+    if (M.fecha) await printRawText(`FECHA: ${formatFechaCorta(M.fecha)}`);
     if (M.receptor.rut) await printRawText(`RUT: ${M.receptor.rut}`);
     if (M.receptor.rs) await printRawText(wrap(`RAZÓN SOCIAL: ${M.receptor.rs.toUpperCase()}`));
     if (M.receptor.giro) await printRawText(wrap(`GIRO: ${M.receptor.giro.toUpperCase()}`));
@@ -285,11 +286,17 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
     //await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
 
-    await printRawText(left(`CANT  UNIDAD   PRECIO TOTAL  `));
-    const linea = `${M.prod.volumenTotal}  ${M.prod.unidad}  ${fmt(M.tot.neto)}`;
+    await printRawText(left(`CANT    UNIDAD    PRECIO TOTAL`));
+
+    const linea =
+        String(Number(M.tot.volumenTotal).toLocaleString('es-CL', {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3
+        })).padEnd(8) +
+        String(M.prod.unidad).padEnd(8) +
+        String(fmt(M.tot.neto)).padStart(12);
 
     await printRawText(left(linea));
-
     //tabla mr
     if (Array.isArray(M.detalleMR) && M.detalleMR.length) {
         await printRawText(div('-'));
