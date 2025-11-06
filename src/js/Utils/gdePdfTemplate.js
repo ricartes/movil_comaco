@@ -16,7 +16,7 @@ const PAGE_W = 595;          // ancho A4 en pt
 const BOX_CONTENT_MIN = 71;
 const RIGHT_BOX_W = 220;
 const CANCHAS_INDENT = 24;
-const TAMANO_LETRA_ELEMENTOS = 7;
+const TAMANO_LETRA_ELEMENTOS = 8;
 const TAMANO_LETRA_SUCURSALES = 6;
 const getIvaPct = (doc) => {
     const n = Number(doc?.ivaPct);
