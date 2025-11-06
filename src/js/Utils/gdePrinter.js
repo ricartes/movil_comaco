@@ -97,6 +97,13 @@ function mapDoc(doc) {
         destino: doc?.destino?.destinoCliente || '',
     };
 
+    const comentarios = {
+        comentarios: doc?.comentarios?.comentarios || '',
+        fechaPlantacion: doc?.comentarios?.fechaPlantacion || '',
+        fechaCorta: doc?.comentarios?.anioCosecha || '',
+        planManejo: doc?.comentarios?.planManejo || ''
+    }
+
     const trans = {
         transportista: doc?.transportista?.nomTransportista || (doc?.ventaPiso ? 'Venta en piso' : ''),
         patenteCamion: doc?.patenteCamion?.patCamion || '',
@@ -105,7 +112,7 @@ function mapDoc(doc) {
         nomChofer: doc?.conductor?.nomChofer || '',
         proveedorRut: doc?.proveedor?.rutProveedor || '',
         proveedorNom: doc?.proveedor?.nomProveedor || '',
-        contratista: `${doc?.empresaContratista?.rutContratista || ''} ${doc?.empresaContratista?.nombreContratista || ''}`,
+        contratista: `${doc?.empresaContratista?.nombreContratista || ''} ${doc?.empresaContratista?.rutContratista || ''}`,
     };
 
     const prod = {
@@ -164,7 +171,7 @@ function mapDoc(doc) {
     const detalleM3 = Array.isArray(doc?.detalleM3) ? doc.detalleM3 : []; // 👈 NUEVO
 
 
-    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios, empresaContratista };
+    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios, comentarios };
 }
 
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
@@ -338,7 +345,14 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     }
 
     await printRawText(div());
-    //PARA TON
+    //comentarios
+    const anioPlantacion = (M.comentarios.fechaPlantacion || '').substring(0, 4);
+
+    await printRawText(wrap(`OBS: ${M.comentarios.comentarios}`));
+    await printRawText(wrap(`AÑO PLANTACIÓN: ${anioPlantacion}`));
+    await printRawText(wrap(`FECHA CORTA: ${M.comentarios.fechaCorta}`));
+    await printRawText(div());
+
 
     // Totales
     await printRawText(twoCols('NETO', `$${fmt(M.tot.neto)}`, 12));

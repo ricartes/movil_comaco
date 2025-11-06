@@ -326,8 +326,7 @@ function buildBoxOperacion(doc) {
     const left = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Hora Llegada", doc?.comentarios?.horaLlegada ? `${fDate(doc.comentarios.horaLlegada)} ${fTime(doc.comentarios.horaLlegada)}` : "—"),
-            kvLine("Contratista", doc?.empresaContratista?.nombreContratista),
+            kvLine("Contratista", `${doc?.empresaContratista?.nombreContratista} ${doc?.empresaContratista?.rutContratista}`),
             {
                 text: [
                     { text: "CARGUIO: ", bold: true },
@@ -337,7 +336,12 @@ function buildBoxOperacion(doc) {
             },
             kvLine("Proveedor", doc?.proveedor?.nomProveedor),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
-            kvLine("Fecha Plantación", doc?.comentarios?.fechaPlantacion ? fDate(doc.comentarios.fechaPlantacion) : "—"),
+            kvLine(
+                "Año Plantación",
+                doc?.comentarios?.fechaPlantacion
+                    ? doc.comentarios.fechaPlantacion.substring(0, 4)
+                    : "—"
+            ),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
 
 
@@ -347,12 +351,10 @@ function buildBoxOperacion(doc) {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
-            kvLine("OC", doc?.ordenCompra?.numOc ?? "—"),
-            kvLine("Vol. Proveedor", doc?.comentarios?.volumenProveedor ?? 0),
-            kvLine("Año Cosecha", doc?.comentarios?.anioCosecha ?? "—"),
-            kvLine("Punto Rescate X", doc?.comentarios?.puntoX),
-            kvLine("Punto Rescate Y", doc?.comentarios?.puntoY),
-            kvLine("Nro Aviso Corta", doc?.rodal?.nroaviso),
+            kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
+            kvLine("Fecha Corta", doc?.comentarios?.anioCosecha ?? "—"),
+            kvLine("Coordenada X", doc?.comentarios?.puntoX),
+            kvLine("Coordenada Y", doc?.comentarios?.puntoY),
         ],
     };
 
@@ -671,7 +673,7 @@ function buildTransporteYTotales(doc) {
                     // 👇 fontSize por defecto para este bloque
                     fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
-                        { text: [{ text: "Transportista: ", bold: true }, fStr(doc?.transportista?.nomTransportista)] },
+                        { text: [{ text: "Transportista: ", bold: true }, fStr(`${doc?.transportista?.nomTransportista} ${doc?.transportista?.rutTransportista}`)] },
                         {
                             text: [
                                 { text: "Patente: ", bold: true }, fStr(doc?.patenteCamion?.patCamion),
