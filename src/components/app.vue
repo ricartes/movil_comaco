@@ -27,6 +27,7 @@ import {
 } from "@/app/background/foregroundService";
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
+import { usuarioLogeadoNoCorresponde } from "@/js/Utils/Seguridad.js";
 
 export default {
     setup() {
@@ -133,15 +134,46 @@ export default {
                     }
                     return { ok: false, bloquea: true };
                 } else {
-                    if (!nonIntrusive) {
-                        router?.navigate("/login/", {
-                            ...(silent
-                                ? { replaceState: true }
-                                : { reloadAll: true }),
-                            clearPreviousHistory: !silent,
-                        });
+                    const user = store.state.user || {};
+                    const autenticado = !!localStorage.getItem("auth_token");
+                    const rutSesion = String(user.rut || "");
+                    const rutAsignado = res.rut;
+                    const usuarioNoCorrespondido =
+                        autenticado &&
+                        usuarioLogeadoNoCorresponde(rutSesion, rutAsignado);
+
+                    if (autenticado && usuarioNoCorrespondido) {
+                        //cerrar sesion si no corresponde
+                        f7.dialog.alert(
+                            "El usuario en sesión no corresponde al asignado al dispositivo. Favor iniciar sesión con el usuario asignado o contactar al administrador.",
+                            "Inicio sesión",
+                            async () => {
+                                usuarioNoCorrespondido = true;
+                                await store.dispatch("clearSession");
+                                localStorage.removeItem("auth_token");
+                                router?.navigate("/login/", {
+                                    ...(silent
+                                        ? { replaceState: true }
+                                        : { reloadAll: true }),
+                                    clearPreviousHistory: !silent,
+                                });
+                            }
+                        );
+                    } else {
+                        if (!nonIntrusive) {
+                            router?.navigate("/login/", {
+                                ...(silent
+                                    ? { replaceState: true }
+                                    : { reloadAll: true }),
+                                clearPreviousHistory: !silent,
+                            });
+                        }
                     }
-                    return { ok: true, bloquea: false };
+
+                    return {
+                        ok: usuarioNoCorrespondido ? false : true,
+                        bloquea: false,
+                    };
                 }
             } catch (err) {
                 // Error “real” (DNS/timeout/etc.) → trata como sin red

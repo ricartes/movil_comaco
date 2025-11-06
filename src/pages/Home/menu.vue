@@ -63,7 +63,7 @@ import store from "@/js/store";
 import CargaParametrosService from "@/app/services/CargaParametrosService";
 import { cargarFoliosYLiberados } from "@/app/services/CargarFoliosOrquestador";
 import { rescatarGuias } from "@/app/services/CargaGdeService";
-
+import { validarSesionDispositivo } from "@/js/Utils/Seguridad";
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
 
@@ -109,34 +109,14 @@ export default {
         async onCargarParametros() {
             const incluirGuias = await this.confirmarRecuperacionGuias();
             try {
-                const conexion = await Utilidades.verificarConexion();
-                if (!conexion?.connected) {
-                    f7.dialog.alert(
-                        "No hay conexión a internet. No es posible cargar parámetros."
-                    );
-                    return false;
-                }
-                f7.dialog.preloader("Estableciendo conexión…");
-                const online = await HelperService.validarConexion(3000);
-                f7.dialog.close();
-                if (!online) {
-                    f7.dialog.alert(
-                        "No hay conexión al servidor. No es posible cargar parámetros."
-                    );
-                    return false;
-                }
-
-                const validate =
-                    window.appValidate?.bind?.(window) || window.appValidate;
-                if (typeof validate === "function") {
-                    const res = await validate({
+                const { ok: okValidacion, bloquea } =
+                    await validarSesionDispositivo({
                         silent: false,
                         nonIntrusive: true,
                     });
-                    if (!res?.ok || res?.bloquea) {
-                        // quedó bloqueado o falló → ya se habrá navegado a /bloqueado, o no corresponde seguir
-                        return false;
-                    }
+
+                if (!okValidacion || bloquea) {
+                    return false;
                 }
             } catch (e) {
                 // En caso de error inesperado, decide si abortar o seguir:
@@ -305,31 +285,14 @@ export default {
         async onCargarFolios() {
             try {
                 // 0) Validaciones de conexión y dispositivo (igual que antes)
-                const conexion = await Utilidades.verificarConexion();
-                if (!conexion?.connected) {
-                    f7.dialog.alert(
-                        "No hay conexión a internet. No es posible cargar folios."
-                    );
-                    return;
-                }
-                f7.dialog.preloader("Estableciendo conexión…");
-                const online = await HelperService.validarConexion(3000);
-                f7.dialog.close();
-                if (!online) {
-                    f7.dialog.alert(
-                        "No hay conexión al servidor. No es posible cargar folios."
-                    );
-                    return;
-                }
-
-                const validate =
-                    window.appValidate?.bind?.(window) || window.appValidate;
-                if (typeof validate === "function") {
-                    const res = await validate({
+                const { ok: okValidacion, bloquea } =
+                    await validarSesionDispositivo({
                         silent: false,
                         nonIntrusive: true,
                     });
-                    if (!res?.ok || res?.bloquea) return;
+
+                if (!okValidacion || bloquea) {
+                    return false;
                 }
             } catch (e) {
                 f7.dialog.alert(

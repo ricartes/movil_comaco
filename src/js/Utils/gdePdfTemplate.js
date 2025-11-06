@@ -3,7 +3,7 @@ import pdfMake from "pdfmake/build/pdfmake";
 import "pdfmake/build/vfs_fonts";
 import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
-import { getUM, getVolumenByUM } from '@/js/volumen';
+import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 

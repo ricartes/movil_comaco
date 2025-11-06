@@ -194,7 +194,7 @@ import store from "@/js/store";
 import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import UsuarioService from "@/app/services/UsuarioService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
-
+import { validarSesionDispositivo } from "@/js/Utils/Seguridad";
 export default {
     name: "LoginPage",
     props: { f7router: Object },
@@ -335,9 +335,21 @@ export default {
                     const user = await UsuarioService.obtenerPorRut(
                         this.form.rut
                     );
+
                     await store.dispatch("setSessionOffline", { user });
                     localStorage.setItem("auth_token", "1");
                     window.dispatchEvent(new Event("auth:login"));
+
+                    const { ok: okValidacion, bloquea } =
+                        await validarSesionDispositivo({
+                            silent: false,
+                            nonIntrusive: true,
+                        });
+
+                    if (!okValidacion || bloquea) {
+                        return false;
+                    }
+
                     this.f7router.navigate(this.paginaPrincipal, {
                         reloadAll: true,
                         clearPreviousHistory: true, // 👈 borra /login del stack

@@ -5,7 +5,7 @@ import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-ther
 import store from '@/js/store';
 import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 import { formatearRut } from '@/js/Utils/rut';
-import { getUM, getVolumenByUM } from '@/js/volumen';
+import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
 
 
 // ===== Ajustes de ticket =====
