@@ -285,7 +285,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     // Producto / Detalle
     const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
     await printRawText(wrap(`DESC: ${tituloProd}`));
-    await printRawText(left(`CANT    UNIDAD    PRECIO TOTAL ($)`));
+    await printRawText(left(`CANT    UNIDAD    PRECIO TOTAL`));
 
     const linea =
         String(Number(M.tot.volumenTotal).toLocaleString('es-CL', {
@@ -293,7 +293,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             maximumFractionDigits: 3
         })).padEnd(8) +
         String(M.prod.unidad).padEnd(8) +
-        String(fmt(M.tot.neto)).padStart(12);
+        String(`$${fmt(M.tot.neto)}`).padStart(12);
 
     await printRawText(left(linea));
     //tabla mr
