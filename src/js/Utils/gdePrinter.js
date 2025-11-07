@@ -245,7 +245,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(div());
     await printRawText(wrap(`TIPO CERTIFIC.: ${M.prod.tipoCertificacion}`));
     await printRawText(wrap(`COD. CERTIFIC.: ${M.prod.codigoCertificacion}`));
-    printRawText(div());
+    await printRawText(div());
     await printRawText(wrap(`DESPACHADOR: ${M.emisor.nombreDespachador.toUpperCase()}`));
     await printRawText(wrap(`EMP. COSECHA: ${M.trans.contratista.toUpperCase()}`));
     // === CARGUÍO(s): formato igual que PROVEEDOR ===
@@ -288,10 +288,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(left(`CANT    UNIDAD    PRECIO TOTAL`));
 
     const linea =
-        String(`$${Number(M.tot.volumenTotal).toLocaleString('es-CL', {
+        '$' + String(Number(M.tot.volumenTotal).toLocaleString('es-CL', {
             minimumFractionDigits: 3,
             maximumFractionDigits: 3
-        })}`).padEnd(8) +
+        })).padEnd(8) +
         String(M.prod.unidad).padEnd(8) +
         String(fmt(M.tot.neto)).padStart(12);
 
