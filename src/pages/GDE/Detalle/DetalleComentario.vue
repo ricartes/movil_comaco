@@ -192,7 +192,7 @@ export default {
         this.form = { ...this.form, ...base };
         // avisamos al padre que estos campos ya quedaron en doc.comentarios
 
-        if (this.form.horaAgendamiento === null) {
+        if (!soloLectura && this.form.horaAgendamiento === null) {
             this.form.horaAgendamiento = horaActual();
         }
 
