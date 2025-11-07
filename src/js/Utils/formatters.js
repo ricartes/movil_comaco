@@ -77,3 +77,17 @@ export function dateInputToISOEnd(yyyyMmDd) {
     const dt = new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
     return Number.isNaN(+dt) ? undefined : dt.toISOString();
 }
+
+
+/**
+ * Indica hora actual
+ * @returns 
+ */
+export function horaActual() {
+
+    const ahora = new Date();
+    const hh = String(ahora.getHours()).padStart(2, "0");
+    const mm = String(ahora.getMinutes()).padStart(2, "0");
+
+    return `${hh}:${mm}`;
+}

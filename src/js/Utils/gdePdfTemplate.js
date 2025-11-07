@@ -592,7 +592,7 @@ function buildComentarioFull(doc) {
             widths: ["*"],
             body: [
                 [{ text: "COMENTARIO:", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS, }],
-                [{ text: fStr(doc?.comentarios?.comentarios), margin: [0, 6, 0, 6], fontSize: TAMANO_LETRA_ELEMENTOS, }],
+                [{ text: `${fStr(doc?.comentarios?.comentarios)}. Hora Agendamiento: ${fStr(doc?.comentarios?.horaAgendamiento)}. Número Agendamiento: ${fStr(doc?.comentarios?.numeroAgendamiento)}`, margin: [0, 6, 0, 6], fontSize: TAMANO_LETRA_ELEMENTOS, }],
             ],
         },
         layout: boxedLayoutTight,
@@ -674,7 +674,7 @@ function buildTransporteYTotales(doc) {
                     // 👇 fontSize por defecto para este bloque
                     fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
-                        { text: [{ text: "Transportista: ", bold: true }, fStr(`${doc?.transportista?.nomTransportista} ${doc?.transportista?.rutTransportista}`)] },
+                        { text: [{ text: "Transportista: ", bold: true }, fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)] },
                         {
                             text: [
                                 { text: "Patente: ", bold: true }, fStr(doc?.patenteCamion?.patCamion),

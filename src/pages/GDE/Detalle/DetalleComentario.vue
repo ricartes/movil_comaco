@@ -128,6 +128,22 @@
                     :disabled="soloLectura"
                     @input="onInput('comentarios', $event)"
                 />
+
+                <f7-list-input
+                    label="Hora Agendamiento"
+                    type="time"
+                    :value="form.horaAgendamiento"
+                    :disabled="soloLectura"
+                    @input="onInput('horaAgendamiento', $event)"
+                />
+
+                <f7-list-input
+                    label="Número Agendamiento"
+                    type="text"
+                    :value="form.numeroAgendamiento"
+                    :disabled="soloLectura"
+                    @input="onInput('numeroAgendamiento', $event)"
+                />
             </f7-list>
         </f7-card-content>
     </f7-card>
@@ -139,6 +155,7 @@ import {
     updateComentarios,
     COMENTARIOS_READONLY_KEYS,
 } from "@/app/services/GdeComentarioService";
+import { horaActual } from "../../../js/Utils/formatters";
 
 export default {
     name: "DetalleComentario",
@@ -164,6 +181,8 @@ export default {
                 puntoX: null,
                 puntoY: null,
                 comentarios: "",
+                horaAgendamiento: null,
+                numeroAgendamiento: null,
             },
             saving: false,
         };
@@ -172,6 +191,11 @@ export default {
         const base = await ensureComentariosInit(this.doc._id);
         this.form = { ...this.form, ...base };
         // avisamos al padre que estos campos ya quedaron en doc.comentarios
+
+        if (this.form.horaAgendamiento === null) {
+            this.form.horaAgendamiento = horaActual();
+        }
+
         this.$emit("doc-updated", { comentarios: { ...base } });
     },
     computed: {
