@@ -242,7 +242,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(div());
     //datos del origen
     await printRawText(wrap(`ORIGEN: ${M.traslado.origen.toUpperCase()}`));
-    await printRawText(wrap(`ROL: ${M.traslado.rol.toUpperCase()}`));
+    await printRawText(wrap(`ROL: ${M.traslado.rol.toUpperCase()} RES ${M.comentarios.planManejo}`));
     await printRawText(wrap(`COMUNA: ${M.traslado.comunaOrigen.toUpperCase()}`));
     await printRawText(div());
     await printRawText(wrap(`TIPO CERTIFIC.: ${M.prod.tipoCertificacion}`));
