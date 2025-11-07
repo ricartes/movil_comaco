@@ -102,7 +102,9 @@ function mapDoc(doc) {
         comentarios: doc?.comentarios?.comentarios || '',
         fechaPlantacion: doc?.comentarios?.fechaPlantacion || '',
         fechaCorta: doc?.comentarios?.anioCosecha || '',
-        planManejo: doc?.comentarios?.planManejo || ''
+        planManejo: doc?.comentarios?.planManejo || '',
+        horaAgendamiento: doc?.comentarios?.horaAgendamiento || '',
+        numeroAgendamiento: doc?.comentarios?.numeroAgendamiento || '',
     }
 
     const trans = {
