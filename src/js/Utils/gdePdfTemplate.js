@@ -648,129 +648,104 @@ function extractTotals(doc) {
 }
 
 // =============== Transporte + Totales ===============
-function buildTransporteYTotales(doc) {
-    const { neto, ivaPct, ivaMonto, total } = extractTotals(doc);
-
-    const boxedLayoutTightBottom = {
-        hLineWidth: (i, n) => (i === 0 || i === n.table.body.length ? 1 : 0.5),
-        vLineWidth: (i, n) => (i === 0 || i === n.table.widths.length ? 1 : 0.5),
-        hLineColor: () => brand.border,
-        vLineColor: () => brand.border,
-        paddingLeft: () => 6,
-        paddingRight: () => 6,
-        paddingTop: () => 3,
-        paddingBottom: () => 2,   // 👈 menos padding abajo
-    };
-    const transporteBox = {
-        width: "*",
+// === Transporte arriba (ancho completo) ===
+function buildTransporteBox(doc) {
+    return {
+        margin: [PAGE_X, 6, PAGE_X, 6],
+        width: '*',
         table: {
             dontBreakRows: true,
-            widths: ["*"],
+            widths: ['*'],
             body: [
-                [{ text: "DATOS TRANSPORTE", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS }],
                 [{
                     margin: [0, 0, 0, 0],
                     minHeight: BOX_CONTENT_MIN,
-                    // 👇 fontSize por defecto para este bloque
                     fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
-                        { text: [{ text: "Transportista: ", bold: true }, fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)] },
-                        {
-                            text: [
-                                { text: "Patente: ", bold: true }, fStr(doc?.patenteCamion?.patCamion),
-                                { text: ".  Carro: ", bold: true }, fStr(doc?.patenteCarro)
-                            ]
-                        },
-                        {
-                            text: [
-                                { text: "Nombre Chofer: ", bold: true }, fStr(doc?.conductor?.nomChofer),
-                                { text: ".  RUT Chofer: ", bold: true }, fStr(doc?.conductor?.rutChofer)
-                            ]
-                        },
+                        { text: [{ text: 'Transportista: ', bold: true }, fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)] },
+                        { text: [{ text: 'Patente: ', bold: true }, fStr(doc?.patenteCamion?.patCamion), { text: '.  Carro: ', bold: true }, fStr(doc?.patenteCarro)] },
+                        { text: [{ text: 'Nombre Chofer: ', bold: true }, fStr(doc?.conductor?.nomChofer), { text: '.  RUT Chofer: ', bold: true }, fStr(doc?.conductor?.rutChofer)] },
                     ]
                 }]
             ]
         },
-        layout: boxedLayout,
+        layout: boxedLayout,             // mismo look del bloque original
     };
+}
 
-    const totalesBox = {
+// === Totales abajo (alineado a la derecha) ===
+// === Timbre SII (izquierda) + Totales (derecha) ===
+function buildTimbreYTotalesRow(doc) {
+    const { neto, ivaPct, ivaMonto, total } = extractTotals(doc);
+
+    // --- timbre (reusa tu lógica de buildTimbreSII) ---
+    const timbrePng = doc?.__timbrePng;
+    const tedStr = (doc?.ted || '').trim();
+    const numRes = doc?.empresa?.numeroResolucion ?? '—';
+    const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
+
+    const IMG_W = 260;
+    const IMG_H = 110;
+
+    const timbreBlock = (!timbrePng || !tedStr)
+        ? { width: IMG_W, text: '' }
+        : {
+            width: IMG_W,
+            table: {
+                widths: [IMG_W],
+                body: [[{
+                    stack: [
+                        { image: timbrePng, fit: [IMG_W, IMG_H], alignment: 'center', margin: [0, 0, 0, 4] },
+                        {
+                            alignment: 'center',
+                            fontSize: TAMANO_LETRA_SUCURSALES,
+                            lineHeight: 1.05,
+                            text: [
+                                { text: 'Timbre electrónico SII\n' },
+                                { text: `RES ${numRes} de ${fechaRes} - Verifique documento en www.sii.cl` },
+                            ],
+                        },
+                    ],
+                }]],
+            },
+            layout: 'noBorders',
+        };
+
+    // --- totales (derecha) ---
+    const totalesTable = {
         width: 220,
         table: {
             dontBreakRows: true,
-            widths: ["*"],
+            widths: ['*'],
             body: [[{
                 fontSize: TAMANO_LETRA_ELEMENTOS,
                 margin: [0, 0, 0, 0],
                 minHeight: BOX_CONTENT_MIN,
                 table: {
                     dontBreakRows: true,
-                    widths: ["*", 110],
+                    widths: ['*', 110],
                     body: [
+                        [{ text: 'NETO:', alignment: 'right', bold: true }, { text: fCLP(neto), alignment: 'right' }],
+                        [{ text: `I.V.A (${ivaPct}%):`, alignment: 'right', bold: true }, { text: fCLP(ivaMonto), alignment: 'right' }],
                         [
-                            { text: "NETO:", alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS },
-                            { text: fCLP(neto), alignment: "right", fontSize: TAMANO_LETRA_ELEMENTOS }
+                            { text: 'TOTAL:', alignment: 'right', bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 },
+                            { text: fCLP(total), alignment: 'right', bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 },
                         ],
-                        [
-                            { text: `I.V.A (${ivaPct}%):`, alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS },
-                            { text: fCLP(ivaMonto), alignment: "right", fontSize: TAMANO_LETRA_ELEMENTOS }
-                        ],
-                        [
-                            { text: "TOTAL:", alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 },
-                            { text: fCLP(total), alignment: "right", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS + 1 }
-                        ],
-                    ]
+                    ],
                 },
                 layout: gridNoOuterLayout,
-            }]]
+            }]],
         },
         layout: boxedOuterOnly,
     };
 
     return {
-        unbreakable: true,
         margin: [PAGE_X, 6, PAGE_X, 14],
-        columns: [transporteBox, { width: 12, text: "" }, totalesBox],
+        columns: [timbreBlock, { width: '*', text: '' }, totalesTable],
         columnGap: 0,
     };
 }
 
-function buildTimbreSII(doc) {
-    const timbrePng = doc?.__timbrePng;
-    const tedStr = (doc?.ted || '').trim();
-    if (!timbrePng || !tedStr) return { text: '' };
-
-    const numRes = doc?.empresa?.numeroResolucion ?? '—';
-    const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
-
-    // más ancho y más alto “deseado”
-    const IMG_W = 260;   // antes 260 → puedes subir a 280 si te cabe
-    const IMG_H = 110;   // altura objetivo (100–130 funciona bien)
-
-    return {
-        unbreakable: true,
-        margin: [PAGE_X, 6, PAGE_X, 0], // ↓ antes 10 → 6 (menos espacio arriba)
-        table: {
-            widths: [IMG_W],
-            body: [[{
-                stack: [
-                    // usa fit para respetar aspecto dentro de [W,H]
-                    { image: timbrePng, fit: [IMG_W, IMG_H], alignment: 'center', margin: [0, 0, 0, 4] },
-                    {
-                        alignment: 'center',
-                        fontSize: TAMANO_LETRA_SUCURSALES, // 7–8
-                        lineHeight: 1.05,
-                        text: [
-                            { text: 'Timbre electrónico SII\n' },
-                            { text: `RES ${numRes} de ${fechaRes} - Verifique documento en www.sii.cl` },
-                        ],
-                    },
-                ],
-            }]],
-        },
-        layout: 'noBorders',
-    };
-}
 
 
 
@@ -894,13 +869,12 @@ export async function buildDefinition(doc, timbrePng) {
     const pdfDoc = { ...doc, __logoPng: logoDataUrl, __timbrePng: timbrePng };
     const topMargin = Math.max(80, estimateHeaderHeight(pdfDoc) - 20);
     const pageMarginsAll = [PAGE_X, 16, PAGE_X, PAGE_BOTTOM];
-
     const box1 = buildBoxClienteFechas(pdfDoc);
     const box2 = buildBoxOperacion(pdfDoc);
+    const transporteBox = buildTransporteBox(pdfDoc);
     const detalle = buildDetallePorUM(pdfDoc);
     const comentarioFull = buildComentarioFull(pdfDoc);
-    const transporteYTotales = buildTransporteYTotales(pdfDoc);
-    const timbreSII = buildTimbreSII(pdfDoc);
+
 
 
     // 1) Header como contenido absoluto en y=16 (no recortado por el margen)
@@ -925,10 +899,10 @@ export async function buildDefinition(doc, timbrePng) {
             firstPageSpacer,
             box1,
             box2,
+            transporteBox,
             detalle,
             comentarioFull,
-            transporteYTotales,
-            timbreSII
+            buildTimbreYTotalesRow(pdfDoc)
         ],
         defaultStyle: { fontSize: TAMANO_LETRA_ELEMENTOS },
     };

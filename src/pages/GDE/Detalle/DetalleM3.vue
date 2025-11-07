@@ -43,9 +43,7 @@
                     <tr>
                         <th>Ø</th>
                         <th class="right">Trozos</th>
-                        <th class="right">Vol</th>
-                        <th class="right">Total</th>
-                        <th v-if="!soloLectura" class="center">±</th>
+                        <th class="right">Totales</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,45 +51,41 @@
                         <td class="center">
                             <b>{{ fila.diametro }}</b>
                         </td>
-                        <td class="right">
-                            <f7-input
-                                type="number"
-                                inputmode="numeric"
-                                step="1"
-                                min="0"
-                                :value="fila.trozos"
-                                :disabled="soloLectura"
-                                @input="(e) => onTrozoInput(i, e)"
-                            />
+                        <td class="center">
+                            <template v-if="!soloLectura">
+                                <div class="trozos-wrap">
+                                    <f7-stepper
+                                        small
+                                        raised
+                                        :min="0"
+                                        :step="1"
+                                        :max="100"
+                                        input
+                                        :value="fila.trozos"
+                                        @change="
+                                            (val) => onStepperChange(i, val)
+                                        "
+                                    />
+                                </div>
+                            </template>
+                            <template v-else>
+                                {{ fila.trozos }}
+                            </template>
                         </td>
-                        <td class="right mono">
-                            {{ fila.volumen.toFixed(3) }}
-                        </td>
-                        <td class="right mono">
-                            {{ formatMoneyCLP(fila.totalPrecio) }}
-                        </td>
-                        <td class="center" v-if="!soloLectura">
-                            <div class="stepper">
-                                <button class="sbtn" @click="inc(i, -1)">
-                                    −
-                                </button>
-                                <button class="sbtn" @click="inc(i, 1)">
-                                    +
-                                </button>
-                            </div>
+
+                        <td class="right mono totales-cell">
+                            <div>{{ fila.volumen.toFixed(3) }} m³</div>
+                            <div>{{ formatMoneyCLP(fila.totalPrecio) }}</div>
                         </td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th class="right" colspan="2">Totales</th>
-                        <th class="right mono">
-                            {{ totalVolumen.toFixed(3) }}
+                        <th class="right">Totales</th>
+                        <th class="right mono" colspan="2">
+                            <div>{{ totalVolumen.toFixed(3) }} m³</div>
+                            <div>{{ formatMoneyCLP(totalValor) }}</div>
                         </th>
-                        <th class="right mono">
-                            {{ formatMoneyCLP(totalValor) }}
-                        </th>
-                        <th></th>
                     </tr>
                 </tfoot>
             </table>
@@ -168,6 +162,19 @@ export default {
         this.$emit("valid-change", this.esValido);
     },
     methods: {
+        onStepperChange(idx, val) {
+            // Acepta number, string o objeto (event/detail/target)
+            const raw =
+                typeof val === "object"
+                    ? val?.detail?.value ?? val?.target?.value ?? val?.value
+                    : val;
+
+            let n = Number(raw);
+            if (!Number.isFinite(n) || n < 0) n = 0;
+            n = Math.trunc(n); // enteros
+
+            this.setTrozos(idx, n);
+        },
         onTrozoInput(idx, payload) {
             const raw =
                 typeof payload === "object" ? payload?.target?.value : payload;
