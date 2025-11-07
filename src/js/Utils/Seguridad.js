@@ -6,23 +6,23 @@ import HelperService from "@/app/services/HelperService.js";
 export async function validarSesionDispositivo({ silent = false, nonIntrusive = true } = {}) {
 
     const conexion = await Utilidades.verificarConexion();
-    if (!conexion?.connected) return { ok: false };
+    if (!conexion?.connected) return { ok: false, conexion: false };
 
     f7.dialog.preloader("Estableciendo conexión…");
     const online = await HelperService.validarConexion(3000);
     f7.dialog.close();
 
-    if (!online) return { ok: false };
+    if (!online) return { ok: false, conexion: false };
 
     const validate = window.appValidate?.bind?.(window) || window.appValidate;
     if (typeof validate === "function") {
         const res = await validate({ silent, nonIntrusive });
         if (!res?.ok || res?.bloquea) {
-            return { ok: false, bloquea: true };
+            return { ok: false, bloquea: true, conexion: true };
         }
     }
 
-    return { ok: true };
+    return { ok: true, conexion: true };
 }
 
 

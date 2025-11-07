@@ -109,11 +109,21 @@ export default {
         async onCargarParametros() {
             const incluirGuias = await this.confirmarRecuperacionGuias();
             try {
-                const { ok: okValidacion, bloquea } =
-                    await validarSesionDispositivo({
-                        silent: false,
-                        nonIntrusive: true,
-                    });
+                const {
+                    ok: okValidacion,
+                    bloquea,
+                    conexion,
+                } = await validarSesionDispositivo({
+                    silent: false,
+                    nonIntrusive: true,
+                });
+
+                if (!conexion) {
+                    f7.dialog.alert(
+                        "No se detecto conexión a Internet activa para cargar parámetros."
+                    );
+                    return false;
+                }
 
                 if (!okValidacion || bloquea) {
                     return false;
@@ -285,11 +295,21 @@ export default {
         async onCargarFolios() {
             try {
                 // 0) Validaciones de conexión y dispositivo (igual que antes)
-                const { ok: okValidacion, bloquea } =
-                    await validarSesionDispositivo({
-                        silent: false,
-                        nonIntrusive: true,
-                    });
+                const {
+                    ok: okValidacion,
+                    bloquea,
+                    conexion,
+                } = await validarSesionDispositivo({
+                    silent: false,
+                    nonIntrusive: true,
+                });
+
+                if (!conexion) {
+                    f7.dialog.alert(
+                        "No se detecto conexión a Internet activa para cargar folios."
+                    );
+                    return false;
+                }
 
                 if (!okValidacion || bloquea) {
                     return false;

@@ -4,6 +4,7 @@ import "pdfmake/build/vfs_fonts";
 import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
+import { formatearRut } from '@/js/Utils/rut';
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
@@ -119,7 +120,7 @@ function headerBoxRight(doc) {
                     widths: ["*"],
                     body: [[{
                         stack: [
-                            { text: `R.U.T.: ${rut}`, alignment: "center", fontSize: 12, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
+                            { text: `R.U.T.: ${formatearRut(rut)}`, alignment: "center", fontSize: 12, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
                             { text: "GUÍA DE DESPACHO\nELECTRÓNICA", alignment: "center", fontSize: 13, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
                             { text: `N°: ${folio}`, alignment: "center", fontSize: 12, bold: true, color: "#b71c1c", margin: [0, 3, 0, 3] },
                         ]
@@ -326,7 +327,7 @@ function buildBoxOperacion(doc) {
     const left = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Contratista", `${doc?.empresaContratista?.nombreContratista} ${doc?.empresaContratista?.rutContratista}`),
+            kvLine("Contratista", `${doc?.empresaContratista?.nombreContratista} – ${doc?.empresaContratista?.rutContratista}`),
             {
                 text: [
                     { text: "CARGUIO: ", bold: true },
@@ -334,7 +335,7 @@ function buildBoxOperacion(doc) {
                 ],
                 margin: [0, 0, 0, 2]
             },
-            kvLine("Proveedor", doc?.proveedor?.nomProveedor),
+            kvLine("Proveedor", `${doc?.proveedor?.nomProveedor} – ${doc?.proveedor?.rutProveedor}`),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine(
                 "Año Plantación",
@@ -604,7 +605,7 @@ function formatCargadores(doc) {
 
     // Cada línea: "RUT – NOMBRE"
     return lista
-        .map(c => `${fStr(c?.rutCarguio)} – ${U(c?.nombreCarguio)}`)
+        .map(c => `${U(c?.nombreCarguio)} – ${fStr(c?.rutCarguio)}`)
         .join("\n");
 }
 

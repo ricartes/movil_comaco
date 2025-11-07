@@ -4,6 +4,8 @@ import store from '@/js/store'
 import Utilidades from "@/app/Utilidades";
 import { getGdeDao } from "@/app/services/initServices";
 import CargaParametrosWebServices from "@/app/webservices/CargaParametrosWebServices";
+import { bootstrapValidacionDispositivo } from "@/js/bootstrap-dispositivo";
+import { usuarioLogeadoNoCorresponde } from "@/js/Utils/Seguridad.js";
 import HelperWebServices from "@/app/Webservices/HelperWebServices";
 
 
@@ -98,6 +100,24 @@ export async function syncPendientesStreaming(empId, rutEmisor) {
     const online = await HelperWebServices.pingApi(10000);
     if (!online) {
         console.warn('[SYNC] Sin conexión al API : se omite sincronización.');
+        return;
+    }
+
+    const res = await bootstrapValidacionDispositivo();
+    if (res.bloquea) {
+        console.warn('[SYNC] Dispositivo bloqueado : se omite sincronización.');
+        return;
+    }
+
+    const rutAsignado = res.rut;
+    const autenticado = !!localStorage.getItem("auth_token");
+
+    const usuarioNoCorrespondido =
+        autenticado &&
+        usuarioLogeadoNoCorresponde(rutEmisor, rutAsignado);
+
+    if (autenticado && usuarioNoCorrespondido) {
+        console.warn('[SYNC] Usuario en sesión no corresponde al dispositivo : se omite sincronización.');
         return;
     }
 

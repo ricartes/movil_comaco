@@ -340,13 +340,16 @@ export default {
                     localStorage.setItem("auth_token", "1");
                     window.dispatchEvent(new Event("auth:login"));
 
-                    const { ok: okValidacion, bloquea } =
-                        await validarSesionDispositivo({
-                            silent: false,
-                            nonIntrusive: true,
-                        });
+                    const {
+                        ok: okValidacion,
+                        bloquea,
+                        conexion,
+                    } = await validarSesionDispositivo({
+                        silent: false,
+                        nonIntrusive: true,
+                    });
 
-                    if (!okValidacion || bloquea) {
+                    if (conexion && (!okValidacion || bloquea)) {
                         return false;
                     }
 

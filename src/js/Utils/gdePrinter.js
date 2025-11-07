@@ -77,7 +77,8 @@ function mapDoc(doc) {
         ciudad: empresa.ciudad || '',
         fResol: empresa.fechaResolucion || '',
         nResol: empresa.numeroResolucion || '',
-        nombreEmisor: doc.emisor.nombre || '',
+        nombreDespachador: doc.emisor.nombre || '',
+        rutDespachador: doc.emisor.emisor || '',
     };
 
     const receptor = {
@@ -105,14 +106,14 @@ function mapDoc(doc) {
     }
 
     const trans = {
-        transportista: doc?.transportista?.nomTransportista || (doc?.ventaPiso ? 'Venta en piso' : ''),
+        transportista: `${doc?.transportista?.nomTransportista} - ${doc?.transportista?.rutTransportista || ''} `,
         patenteCamion: doc?.patenteCamion?.patCamion || '',
         patenteCarro: doc?.patenteCarro || '',
         rutChofer: doc?.conductor?.rutChofer || '',
         nomChofer: doc?.conductor?.nomChofer || '',
         proveedorRut: doc?.proveedor?.rutProveedor || '',
         proveedorNom: doc?.proveedor?.nomProveedor || '',
-        contratista: `${doc?.empresaContratista?.nombreContratista || ''} ${doc?.empresaContratista?.rutContratista || ''}`,
+        contratista: `${doc?.empresaContratista?.nombreContratista || ''} - ${doc?.empresaContratista?.rutContratista || ''}`,
     };
 
     const prod = {
@@ -121,6 +122,8 @@ function mapDoc(doc) {
         largo: doc?.largoProducto || doc?.ordenCompra?.largoTrozo || '',
         fsc: doc?.producto?.fsc ? doc?.producto?.categoria || 'CON CERTIFICACIÓN' : 'SIN CERTIFICACIÓN',
         sag: doc?.producto?.sag || '',
+        tipoCertificacion: doc?.producto?.tipoCertificacion || '',
+        codigoCertificacion: doc?.producto?.codigoCertificacion || '',
         precioUnit: doc?.precioProducto?.precio || 0,
     };
 
@@ -240,10 +243,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`ROL: ${M.traslado.rol.toUpperCase()}`));
     await printRawText(wrap(`COMUNA: ${M.traslado.comunaOrigen.toUpperCase()}`));
     await printRawText(div());
-    //TODO: FALTA CERTIFICACION
-
-    // printRawText(div()); TODO:DESCOMENTAR CUANDO ESTE LA CERTIFICACION
-    await printRawText(wrap(`DESPACHADOR: ${M.emisor.nombreEmisor.toUpperCase()}`));
+    await printRawText(wrap(`TIPO CERTIFIC.: ${M.prod.tipoCertificacion}`));
+    await printRawText(wrap(`COD. CERTIFIC.: ${M.prod.codigoCertificacion}`));
+    printRawText(div());
+    await printRawText(wrap(`DESPACHADOR: ${M.emisor.nombreDespachador.toUpperCase()}`));
     await printRawText(wrap(`EMP. COSECHA: ${M.trans.contratista.toUpperCase()}`));
     // === CARGUÍO(s): formato igual que PROVEEDOR ===
     if (Array.isArray(M.carguios) && M.carguios.length) {
@@ -252,7 +255,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             .map(c => {
                 const rut = (c?.rut || c?.rutCarguio || '').toString().trim();
                 const nom = (c?.nombre || c?.nombreCarguio || '').toString().trim().toUpperCase();
-                return [rut, nom].filter(Boolean).join(' - ');
+                return [nom, rut].filter(Boolean).join(' - ');
             })
             .filter(Boolean)
             .join(', ');
@@ -282,17 +285,13 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     // Producto / Detalle
     const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
     await printRawText(wrap(`DESC: ${tituloProd}`));
-    await printRawText(wrap(`CERTIFICACIÓN: ${M.prod.fsc}`));
-    //if (M.prod.sag) await printRawText(wrap(`RESOLUCIÓN SAG: ${M.prod.sag}`));
-    //await printRawText(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`);
-
     await printRawText(left(`CANT    UNIDAD    PRECIO TOTAL`));
 
     const linea =
-        String(Number(M.tot.volumenTotal).toLocaleString('es-CL', {
+        String(`$${Number(M.tot.volumenTotal).toLocaleString('es-CL', {
             minimumFractionDigits: 3,
             maximumFractionDigits: 3
-        })).padEnd(8) +
+        })}`).padEnd(8) +
         String(M.prod.unidad).padEnd(8) +
         String(fmt(M.tot.neto)).padStart(12);
 

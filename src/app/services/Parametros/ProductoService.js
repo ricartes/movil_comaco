@@ -2,11 +2,31 @@ import { getProductoDao, getPrecioProductoDao, getParametroGeneralDao } from "@/
 import PrecioPorductoGdeDTO from "@/app/DTO/Parametros/PrecioPorductoGdeDTO";
 import config from "@/Common/json/config.json";
 
+
+/**
+ * Lista productos asociados a un cliente destino
+ * @param {*} codEncargado 
+ * @param {*} rutProveedor 
+ * @param {*} rolPredio 
+ * @param {*} rutCliente 
+ * @param {*} destinoCliente 
+ * @returns 
+ */
 export async function listarProductosPorClienteDestino(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente) {
 
     return await getProductoDao().listarProductosPorClienteDestino(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente);
 }
 
+/**
+ * Lista largo productos
+ * @param {*} codEncargado 
+ * @param {*} rutProveedor 
+ * @param {*} rolPredio 
+ * @param {*} rutCliente 
+ * @param {*} destinoCliente 
+ * @param {*} codProducto 
+ * @returns 
+ */
 export async function listarLargosPorProducto(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto) {
 
     return await getProductoDao().listarLargosPorProducto(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto);

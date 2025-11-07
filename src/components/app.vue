@@ -18,7 +18,6 @@ import {
     listenForFcmMessages,
     extractPushData,
 } from "@/app/services/firebaseMessaging";
-import { cargarFoliosDesdeWeb } from "@/app/services/CargaFoliosService";
 import { cargarFoliosYLiberados } from "@/app/services/CargarFoliosOrquestador";
 import {
     attachNotificationActionHandler,
@@ -28,6 +27,7 @@ import {
 import Utilidades from "@/app/Utilidades.js";
 import HelperService from "@/app/services/HelperService.js";
 import { usuarioLogeadoNoCorresponde } from "@/js/Utils/Seguridad.js";
+import UsuarioService from "@/app/services/UsuarioService";
 
 export default {
     setup() {
@@ -101,7 +101,6 @@ export default {
 
                 // Hay red según sistema… ¿y el backend responde?
                 const online = await HelperService.validarConexion(8000);
-                console.log("Validación conexión al backend:", online);
                 if (!online) {
                     // sin salida al host / backend caído → usar estado previo
                     return await fallbackSinRed({
@@ -148,9 +147,11 @@ export default {
                             "El usuario en sesión no corresponde al asignado al dispositivo. Favor iniciar sesión con el usuario asignado o contactar al administrador.",
                             "Inicio sesión",
                             async () => {
-                                usuarioNoCorrespondido = true;
                                 await store.dispatch("clearSession");
                                 localStorage.removeItem("auth_token");
+                                await UsuarioService.eliminarUsuarioLocalPorRut(
+                                    rutSesion
+                                );
                                 router?.navigate("/login/", {
                                     ...(silent
                                         ? { replaceState: true }

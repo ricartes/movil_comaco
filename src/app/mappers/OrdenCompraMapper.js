@@ -66,6 +66,8 @@ import { makeId } from './_id'
  * @property {string|null} categoria
  * @property {string|null} sag
  * @property {string|null} ocCliente
+ * @property {string|null} tipoCertificacion
+ * @property {string|null} codigoCertificacion
  */
 
 /**
@@ -88,7 +90,11 @@ export function mapServerOrdenCompraToDoc(row) {
     }
 }
 
-
+/**
+ * Transforma ocdoc a DTO de producto
+ * @param {*} doc 
+ * @returns 
+ */
 export function ocDocToDTO(doc) {
     return new OrdenCompraDTO(doc) // tu DTO copia 1:1 los campos
 }

@@ -36,9 +36,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Observación</td>
+                        <td class="label-cell">Tipo Certificación</td>
                         <td class="label-cell">
-                            {{ producto.categoria ?? "" }}
+                            {{ producto.tipoCertificacion ?? "" }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Código Certificación</td>
+                        <td class="label-cell">
+                            {{ producto.codigoCertificacion ?? "" }}
                         </td>
                     </tr>
                 </tbody>
