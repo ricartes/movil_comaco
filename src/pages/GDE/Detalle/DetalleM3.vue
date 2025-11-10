@@ -1,7 +1,7 @@
 <template>
+    <!-- Cabecera producto -->
     <f7-card>
         <f7-card-content>
-            <!-- Cabecera -->
             <table class="data-table" style="width: 100%">
                 <tbody>
                     <tr>
@@ -36,62 +36,68 @@
                     </tr>
                 </tbody>
             </table>
+        </f7-card-content>
+    </f7-card>
 
-            <!-- Tabla de diámetros -->
-            <table class="tabla m3">
-                <thead>
-                    <tr>
-                        <th>Ø</th>
-                        <th class="right">Trozos</th>
-                        <th class="right">Totales</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(fila, i) in filasVisibles" :key="fila.diametro">
-                        <td class="center">
-                            <b>{{ fila.diametro }}</b>
-                        </td>
-                        <td class="center">
-                            <template v-if="!soloLectura">
-                                <div class="trozos-wrap">
-                                    <f7-stepper
-                                        small
-                                        raised
-                                        :min="0"
-                                        :step="1"
-                                        :max="100"
-                                        input
-                                        :value="fila.trozos"
-                                        @change="
-                                            (val) => onStepperChange(i, val)
-                                        "
-                                    />
-                                </div>
-                            </template>
-                            <template v-else>
+    <!-- GRID responsive de diámetros (2 por fila) -->
+    <div class="m3-grid">
+        <div class="grid grid-cols-2 grid-gap">
+            <f7-card
+                v-for="(fila, i) in filasVisibles"
+                :key="fila.diametro"
+                class="m3-item-card"
+            >
+                <f7-card-content class="m3-item">
+                    <!-- Arriba: Ø -->
+                    <div class="m3-item-top">Ø {{ fila.diametro }}</div>
+
+                    <!-- Medio: trozos / stepper -->
+                    <div class="m3-item-middle">
+                        <template v-if="!soloLectura">
+                            <f7-stepper
+                                small
+                                round
+                                fill
+                                :min="0"
+                                :max="100"
+                                :step="1"
+                                input
+                                :value="fila.trozos"
+                                @change="(val) => onStepperChange(i, val)"
+                            />
+                        </template>
+                        <template v-else>
+                            <div class="trozos-readonly">
                                 {{ fila.trozos }}
-                            </template>
-                        </td>
+                            </div>
+                        </template>
+                    </div>
 
-                        <td class="right mono totales-cell">
-                            <div>{{ fila.volumen.toFixed(3) }} m³</div>
-                            <div>{{ formatMoneyCLP(fila.totalPrecio) }}</div>
-                        </td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th class="right">Totales</th>
-                        <th class="right mono" colspan="2">
-                            <div>{{ totalVolumen.toFixed(3) }} m³</div>
-                            <div>{{ formatMoneyCLP(totalValor) }}</div>
-                        </th>
-                    </tr>
-                </tfoot>
-            </table>
+                    <!-- Abajo: vol + total -->
+                    <div class="m3-item-bottom">
+                        <div class="mono">{{ fila.volumen.toFixed(3) }} m³</div>
+                        <div class="mono">
+                            {{ formatMoneyCLP(fila.totalPrecio) }}
+                        </div>
+                    </div>
+                </f7-card-content>
+            </f7-card>
+        </div>
+    </div>
+
+    <!-- Totales globales -->
+    <f7-card>
+        <f7-card-content class="m3-totales-global">
+            <div class="totales-label">Totales</div>
+            <div class="totales-valores">
+                <span class="mono">{{ totalVolumen.toFixed(3) }} m³</span>
+                <span class="mono">{{ formatMoneyCLP(totalValor) }}</span>
+            </div>
         </f7-card-content>
     </f7-card>
 </template>
+
+
 
 <script>
 import {
@@ -103,12 +109,12 @@ import {
 export default {
     name: "DetalleM3",
     props: {
-        doc: { type: Object, required: true }, // solo lectura
+        doc: { type: Object, required: true },
         soloLectura: { type: Boolean, default: false },
     },
     data() {
         return {
-            filas: [], // [{diametro, trozos, largo, precioUnitario, volumen, totalPrecio}]
+            filas: [],
             _saveTimer: null,
         };
     },
@@ -140,7 +146,6 @@ export default {
     },
     async mounted() {
         const { detalleM3 } = await ensureDetalleM3(this.doc._id);
-        // Sincroniza con largo/precio actuales por si cambiaron:
         const largo = this.largo;
         const precio = this.precioUnitario;
 
@@ -157,13 +162,12 @@ export default {
                 totalPrecio: total,
             };
         });
-        // guardamos una normalización inicial (opcional)
+
         this.queueSave();
         this.$emit("valid-change", this.esValido);
     },
     methods: {
         onStepperChange(idx, val) {
-            // Acepta number, string o objeto (event/detail/target)
             const raw =
                 typeof val === "object"
                     ? val?.detail?.value ?? val?.target?.value ?? val?.value
@@ -171,22 +175,8 @@ export default {
 
             let n = Number(raw);
             if (!Number.isFinite(n) || n < 0) n = 0;
-            n = Math.trunc(n); // enteros
-
+            n = Math.trunc(n);
             this.setTrozos(idx, n);
-        },
-        onTrozoInput(idx, payload) {
-            const raw =
-                typeof payload === "object" ? payload?.target?.value : payload;
-            let v = parseInt(raw, 10);
-            if (isNaN(v) || v < 0) v = 0;
-            this.setTrozos(idx, v);
-        },
-        inc(idx, delta) {
-            const cur = Number(this.filas[idx].trozos || 0);
-            let v = cur + delta;
-            if (v < 0) v = 0;
-            this.setTrozos(idx, v);
         },
 
         setTrozos(idx, trozos) {
@@ -204,15 +194,7 @@ export default {
                 totalPrecio: Math.round(vol * precio),
             };
 
-            // Opción A: splice (la más simple)
             this.filas.splice(idx, 1, updated);
-
-            // Opción B: reemplazo inmutable (alternativa):
-            // this.filas = [
-            //   ...this.filas.slice(0, idx),
-            //   updated,
-            //   ...this.filas.slice(idx + 1),
-            // ];
 
             this.queueSave();
             this.$emit("valid-change", this.esValido);
@@ -257,7 +239,6 @@ export default {
         },
     },
     watch: {
-        // Si cambia el largo o el precio de la guía, recalculamos todo y notificamos validez.
         "doc.largoProducto"(nv, ov) {
             if (nv === ov) return;
             this._recalcAllAndEmit();
@@ -267,7 +248,6 @@ export default {
             this._recalcAllAndEmit();
         },
     },
-
     beforeUnmount() {
         clearTimeout(this._saveTimer);
     },
@@ -275,95 +255,110 @@ export default {
 </script>
 
 <style scoped>
-.tabla {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 8px;
+.m3-grid {
+    margin-top: 12px;
+    padding: 0 16px; /* alineado al padding estándar de los cards */
+    margin-bottom: 12px;
 }
-.tabla th,
-.tabla td {
-    border: 1px solid #e5e7eb;
-    padding: 6px 8px;
+.data-table td {
+    padding: 4px 6px;
     font-size: 13px;
 }
-.tabla th {
-    background: #f9fafb;
+.label-cell {
+    width: 90px;
     font-weight: 600;
 }
-.center {
+.value-cell {
+    text-align: left;
+}
+
+/* --- GRID contenedor general --- */
+.m3-grid {
+    margin-top: 8px;
+    padding: 0 16px; /* alineado con el resto de los cards */
+    margin-bottom: 8px;
+}
+
+/* --- Grid compacto de 2 columnas --- */
+.m3-grid .grid {
+    --f7-grid-gap: 8px; /* 👈 reduce el espacio entre columnas y filas */
+}
+
+/* --- Card de cada diámetro --- */
+.m3-item-card {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    margin: 0; /* eliminamos margen adicional (ya tenemos grid-gap) */
+}
+
+/* --- Contenido interno del card --- */
+.m3-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px 10px; /* suficiente aire interno */
+    gap: 4px;
+}
+
+/* --- Diámetro --- */
+.m3-item-top {
+    font-weight: 600;
     text-align: center;
+    font-size: 13px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 3px;
 }
-.right {
+
+/* --- Stepper centrado --- */
+.m3-item-middle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 4px 0;
+}
+.m3-item-middle .stepper {
+    transform: scale(0.95);
+}
+
+/* --- Totales --- */
+.m3-item-bottom {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 4px;
     text-align: right;
-}
-.mono {
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
-/* Ajustes de ancho para columnas específicas */
-.tabla.m3 th:nth-child(2),
-.tabla.m3 td:nth-child(2) {
-    width: 80px; /* 👈 más estrecha la columna Trozos */
-}
-
-.tabla.m3 th:nth-child(5),
-.tabla.m3 td:nth-child(5) {
-    width: 100px; /* 👈 más espacio para los botones ± */
-}
-
-/* Estilo del stepper */
-.stepper {
+/* --- Totales globales --- */
+.m3-totales-global {
     display: flex;
-    gap: 6px;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-top: 6px;
+    padding: 0 16px;
 }
-.sbtn {
-    border: 1px solid #d1d5db;
-    background: #fff;
-    border-radius: 6px;
-    width: 28px;
-    height: 28px;
-    line-height: 26px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+.totales-label {
+    font-weight: 600;
 }
-.sbtn:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-}
-
-/* 👇 Hace que el input de trozos no se expanda demasiado */
-.tabla.m3 td:nth-child(2) .input,
-.tabla.m3 td:nth-child(2) input {
-    max-width: 60px;
+.totales-valores {
+    display: flex;
+    flex-direction: column;
     text-align: right;
 }
 
-/* Mantén el precio y el badge juntos y que puedan saltar de línea */
+/* --- Precio + badge cabecera --- */
 .price-with-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px; /* igual que tu margin-left */
-    flex-wrap: wrap; /* permite bajar el badge a la línea siguiente si no cabe */
+    gap: 8px;
+    flex-wrap: wrap;
 }
-
-/* Ajustes del badge para móviles */
 .badge-default {
-    white-space: nowrap; /* no se parte dentro del badge */
+    white-space: nowrap;
     line-height: 18px;
     padding: 2px 8px;
     font-size: 12px;
     border-radius: 12px;
 }
-
-@media (max-width: 360px) {
-    .badge-default {
-        font-size: 11px;
-        padding: 1px 6px;
-    }
-}
 </style>
-

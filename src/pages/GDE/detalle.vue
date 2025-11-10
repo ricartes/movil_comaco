@@ -27,37 +27,33 @@
                 :properties="{ opened: true }"
             >
                 <f7-accordion-content>
-                    <f7-card
-                        class="m3-card detalle-m3-root"
+                    <!-- DESPUÉS: sin card externo -->
+                    <DetalleM3
                         v-if="doc.producto.unidadMedida === unidadesMedida.M3"
-                    >
-                        <DetalleM3
-                            ref="detalleM3Ref"
-                            :doc="doc"
-                            :gde-id="id"
-                            :solo-lectura="soloLectura"
-                            @doc-updated="
-                                (patch) => {
-                                    if (patch.totales) {
-                                        doc.totales = {
-                                            ...doc.totales,
-                                            ...patch.totales,
-                                        };
-                                    }
-                                    // Actualizar otras propiedades planas igualmente si vienen
-                                    Object.keys(patch).forEach((key) => {
-                                        if (key !== 'totales')
-                                            doc[key] = patch[key];
-                                    });
+                        ref="detalleM3Ref"
+                        :doc="doc"
+                        :gde-id="id"
+                        :solo-lectura="soloLectura"
+                        @doc-updated="
+                            (patch) => {
+                                if (patch.totales) {
+                                    doc.totales = {
+                                        ...doc.totales,
+                                        ...patch.totales,
+                                    };
                                 }
-                            "
-                            @valid-change="
-                                (v) => {
-                                    detalleValidoM3 = !!v;
-                                }
-                            "
-                        />
-                    </f7-card>
+                                Object.keys(patch).forEach((key) => {
+                                    if (key !== 'totales')
+                                        doc[key] = patch[key];
+                                });
+                            }
+                        "
+                        @valid-change="
+                            (v) => {
+                                detalleValidoM3 = !!v;
+                            }
+                        "
+                    />
 
                     <f7-card
                         class="mr-card detalle-mr-root"
