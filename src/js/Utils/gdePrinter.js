@@ -86,8 +86,8 @@ function mapDoc(doc) {
         rs: doc?.cliente?.razonSocialCliente || '',
         giro: doc?.cliente?.giroCliente || '',
         dir: doc?.cliente?.direccionCliente || '',
-        comuna: doc?.destino?.comunaDestinoCliente || '',
-        ciudad: doc?.destino?.ciudadDestinoCliente || '',
+        comuna: doc?.cliente?.comunaCliente || '',
+        ciudad: doc?.cliente?.ciudadCliente || '',
     };
 
     const traslado = {
@@ -95,7 +95,7 @@ function mapDoc(doc) {
         origen: doc?.predio?.predio || '',
         rol: doc?.predio?.rolPredio || '',
         comunaOrigen: doc?.predio?.rolComuna || '',
-        destino: doc?.destino?.destinoCliente || '',
+        direccionDestinoCliente: doc?.destino?.direccionDestinoCliente || '',
     };
 
     const comentarios = {
@@ -113,8 +113,7 @@ function mapDoc(doc) {
         patenteCarro: doc?.patenteCarro || '',
         rutChofer: doc?.conductor?.rutChofer || '',
         nomChofer: doc?.conductor?.nomChofer || '',
-        proveedorRut: doc?.proveedor?.rutProveedor || '',
-        proveedorNom: doc?.proveedor?.nomProveedor || '',
+        proveedor: `${doc?.proveedor?.nomProveedor || ''} - ${doc?.proveedor?.rutProveedor || ''}`,
         contratista: `${doc?.empresaContratista?.nombreContratista || ''} - ${doc?.empresaContratista?.rutContratista || ''}`,
     };
 
@@ -122,12 +121,19 @@ function mapDoc(doc) {
         nombre: doc?.producto?.nombreProducto || '',
         unidad: getUM(doc),
         largo: doc?.largoProducto || doc?.ordenCompra?.largoTrozo || '',
+
         fsc: doc?.producto?.fsc ? doc?.producto?.categoria || 'CON CERTIFICACIÓN' : 'SIN CERTIFICACIÓN',
         sag: doc?.producto?.sag || '',
         tipoCertificacion: doc?.producto?.tipoCertificacion || '',
         codigoCertificacion: doc?.producto?.codigoCertificacion || '',
         precioUnit: doc?.precioProducto?.precio || 0,
     };
+
+    const ordenCompra = {
+        numOc: doc?.ordenCompra?.numOc || '',
+        coordenadaX: doc?.ordenCompra?.coordenadaX || '',
+        coordenadaY: doc?.ordenCompra?.coordenadaY || '',
+    }
 
     const tot = {
         volumenTotal: getVolumenByUM(doc, prod.unidad),
@@ -176,7 +182,7 @@ function mapDoc(doc) {
     const detalleM3 = Array.isArray(doc?.detalleM3) ? doc.detalleM3 : []; // 👈 NUEVO
 
 
-    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios, comentarios };
+    return { emisor, receptor, traslado, trans, prod, tot, folio, fecha, detalleMR, detalleM3, tedXml: doc?.ted || null, carguios, comentarios, ordenCompra };
 }
 
 // ===== Opcional: recibir base64 de timbre/QR ya generado =====
@@ -244,12 +250,16 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`ORIGEN: ${M.traslado.origen.toUpperCase()}`));
     await printRawText(wrap(`ROL: ${M.traslado.rol.toUpperCase()} RES ${M.comentarios.planManejo}`));
     await printRawText(wrap(`COMUNA: ${M.traslado.comunaOrigen.toUpperCase()}`));
+    await printRawText(wrap(`DESTINO: ${M.traslado.direccionDestinoCliente.toUpperCase()}`));
     await printRawText(div());
     await printRawText(wrap(`TIPO CERTIFIC.: ${M.prod.tipoCertificacion}`));
     await printRawText(wrap(`COD. CERTIFIC.: ${M.prod.codigoCertificacion}`));
     await printRawText(div());
     await printRawText(wrap(`DESPACHADOR: ${M.emisor.nombreDespachador.toUpperCase()}`));
     await printRawText(wrap(`EMP. COSECHA: ${M.trans.contratista.toUpperCase()}`));
+    await printRawText(wrap(`PROVEEDOR: ${M.trans.proveedor.toUpperCase()}`));
+
+
     // === CARGUÍO(s): formato igual que PROVEEDOR ===
     if (Array.isArray(M.carguios) && M.carguios.length) {
         // RUT - NOMBRE
@@ -273,6 +283,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         }
     }
     if (M.trans.transportista) await printRawText(wrap(`EMP. TRANSP.: ${M.trans.transportista.toUpperCase()}`));
+    await printRawText(div());
+    await printRawText(wrap(`ID: ${M.ordenCompra.numOc}`));
+    await printRawText(wrap(`COORDENADA X: ${M.ordenCompra.coordenadaX}`));
+    await printRawText(wrap(`COORDENADA Y: ${M.ordenCompra.coordenadaY}`));
 
 
     await printRawText(div());

@@ -300,7 +300,7 @@ function buildBoxClienteFechas(doc) {
             kvLine("Giro", doc?.cliente?.giroCliente),
             kvLine("Dirección", doc?.cliente?.direccionCliente),
             kvLine("Origen", `${U(doc?.predio?.predio)}${doc?.predio?.rolPredio ? `, ROL: ${U(doc.predio.rolPredio)}` : ""}${doc?.predio?.rolComuna ? `, COMUNA: ${U(doc.predio.rolComuna)}` : ""}`),
-            kvLine("Destino", `${U(doc?.destino?.destinoCliente)}`),
+            kvLine("Destino", `${U(doc?.destino?.direccionDestinoCliente)}`),
         ],
     };
     const right = {
@@ -310,8 +310,8 @@ function buildBoxClienteFechas(doc) {
             kvLine("Fecha Vencimiento", "—"),
             kvLine("Forma Pago", "—"),
             kvLine("Ind. Traslado", doc?.indicadorTraslado?.texto),
-            kvLine("Comuna", doc?.cliente?.comunaCliente || doc?.empresa?.comuna),
-            kvLine("Ciudad", doc?.cliente?.ciudadCliente || doc?.empresa?.ciudad),
+            kvLine("Comuna", doc?.cliente?.comunaCliente),
+            kvLine("Ciudad", doc?.cliente?.ciudadCliente),
         ],
     };
 
