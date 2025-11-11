@@ -1,6 +1,16 @@
 <template>
     <div>
-        <f7-block-title>Resumen</f7-block-title>
+        <!-- Error -->
+        <f7-block v-if="error" class="text-color-red">
+            {{ error }}
+        </f7-block>
+
+        <!-- Título + filtros (siempre visibles, pero con texto skeleton si carga) -->
+        <f7-block-title>
+            <span v-if="cargando" class="text-color-gray">Cargando...</span>
+            <span v-else>Resumen</span>
+        </f7-block-title>
+
         <Filters
             :range="range"
             :from="from"
@@ -13,31 +23,84 @@
             @refresh="reload"
         />
 
-        <KpiCards :kpi="kpi" />
+        <!-- KPI Cards -->
+        <!-- KPIs -->
+        <template v-if="cargando">
+            <KpiCardsSkeleton />
+        </template>
+        <template v-else>
+            <KpiCards :kpi="kpi" />
+        </template>
 
-        <f7-block-title>Distribución por unidad de medida</f7-block-title>
+        <!-- Distribución por unidad de medida -->
+        <f7-block-title>
+            <span v-if="cargando" class="text-color-gray">Cargando...</span>
+            <span v-else> Distribución por unidad de medida</span>
+        </f7-block-title>
+
         <f7-block strong inset>
-            <UmPieChart :um-counts="umCounts" />
+            <template v-if="cargando">
+                <f7-skeleton-block class="chart-skeleton"></f7-skeleton-block>
+            </template>
+            <template v-else>
+                <UmPieChart :um-counts="umCounts" />
+            </template>
         </f7-block>
 
-        <f7-block-title>Guías emitidas por fecha</f7-block-title>
+        <!-- Guías emitidas por fecha -->
+
+        <f7-block-title>
+            <span v-if="cargando" class="text-color-gray">Cargando...</span>
+            <span v-else> Guías emitidas por fecha</span>
+        </f7-block-title>
+
+    
         <f7-block strong inset>
-            <ByDateBar :serie="serie" />
+            <template v-if="cargando">
+                <f7-skeleton-block class="chart-skeleton"></f7-skeleton-block>
+            </template>
+            <template v-else>
+                <ByDateBar :serie="serie" />
+            </template>
         </f7-block>
 
-        <LatestGuides
-            v-if="latest && latest.length"
-            :items="latest"
-            :estados-guia="estadosGuia"
-        />
+        <!-- Últimas guías -->
+        <template v-if="cargando">
+            <f7-block strong inset>
+                <div class="latest-skeleton-list">
+                    <f7-skeleton-block
+                        v-for="i in cantidadUltimasGuias"
+                        :key="i"
+                        class="latest-item-skeleton"
+                    ></f7-skeleton-block>
+                </div>
+            </f7-block>
+        </template>
+        <template v-else>
+            <LatestGuides
+                v-if="latest && latest.length"
+                :items="latest"
+                :estados-guia="estadosGuia"
+            />
+            <f7-block
+                v-else
+                strong
+                inset
+                class="text-align-center text-color-gray"
+            >
+                No hay guías en el rango seleccionado.
+            </f7-block>
+        </template>
     </div>
 </template>
+
 
 <script>
 import store from "@/js/store";
 import config from "@/Common/json/config.json";
 import { obtenerResumen } from "@/app/services/GdeDashboardService";
 import Filters from "@/pages/Home/Dashboard/Filters.vue";
+import KpiCardsSkeleton from "@/pages/Home/Dashboard/Skeleton/KpiCardsSkeleton.vue";
 import KpiCards from "@/pages/Home/Dashboard/KpiCards.vue";
 import UmPieChart from "@/pages/Home/Dashboard/UmPieChart.vue";
 import ByDateBar from "@/pages/Home/Dashboard/ByDateBar.vue";
@@ -45,7 +108,14 @@ import LatestGuides from "@/pages/Home/Dashboard/LatestGuides.vue";
 
 export default {
     name: "DashboardGde",
-    components: { Filters, KpiCards, UmPieChart, ByDateBar, LatestGuides },
+    components: {
+        Filters,
+        KpiCards,
+        UmPieChart,
+        ByDateBar,
+        LatestGuides,
+        KpiCardsSkeleton,
+    },
     data() {
         return {
             // filtros
@@ -57,6 +127,8 @@ export default {
             userRut: null, // setea si quieres “solo mis guías”
             resumen: null,
             // data mock (sin API)
+            cargando: true,
+            error: null,
             guias: [],
             estados: {
                 enviado: config?.parametros?.estadosGuia.ENVIADA.id,
@@ -77,6 +149,9 @@ export default {
         },
         estadosGuia() {
             return config?.parametros?.estadosGuia || {};
+        },
+        cantidadUltimasGuias() {
+            return config?.parametros?.cantidadUltimasGuias || 5;
         },
         filtradas() {
             const fromDt = this.from ? new Date(this.from + "T00:00:00") : null;
@@ -141,7 +216,7 @@ export default {
                         this.estadosGuia.NULA.id,
                     ],
                     pageSize: 200,
-                    limitLatest: 10,
+                    limitLatest: this.cantidadUltimasGuias,
                     maxDaysForSerie: 60,
                 });
             } catch (e) {
@@ -202,5 +277,34 @@ export default {
 }
 .gap-6 {
     gap: 1.5rem;
+}
+
+/* Skeletons para KPIs */
+.kpi-skeleton-card {
+    height: 90px;
+    border-radius: 12px;
+}
+
+/* Skeleton para gráficos (pie + bar) */
+.chart-skeleton {
+    height: 220px;
+    border-radius: 12px;
+}
+
+/* Skeleton lista últimas guías */
+.latest-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.latest-item-skeleton {
+    height: 64px;
+    border-radius: 10px;
+}
+
+/* Opcional: suavizar texto skeleton de títulos */
+.skeleton-text {
+    display: inline-block;
+    min-width: 150px;
 }
 </style>

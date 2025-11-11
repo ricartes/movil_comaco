@@ -26,6 +26,7 @@
             "BLOQUEADO": "3",
             "DESBLOQUEADO": "2"
         },
+        "cantidadUltimasGuias": 5,
         "cantidadParametrosDescarga": 4,
         "cantidadMaximaRumas": 20,
         "cantidadFotosPermitida": 1,

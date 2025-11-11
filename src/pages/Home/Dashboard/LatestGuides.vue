@@ -1,6 +1,8 @@
 <template>
     <div>
-        <f7-block-title class="!mb-2">Últimas 10 guías</f7-block-title>
+        <f7-block-title class="!mb-2"
+            >Últimas {{ cantidadUltimasGuias }} guías</f7-block-title
+        >
         <f7-list strong inset media-list class="latest-list">
             <GdeLatestItem
                 v-for="g in items"
@@ -15,6 +17,7 @@
 
 <script>
 import GdeLatestItem from "./GdeLatestItem.vue";
+import config from "@/Common/json/config.json";
 
 export default {
     name: "LatestGuides",
@@ -24,6 +27,11 @@ export default {
         items: { type: Array, required: true },
         // 👇 pásame el objeto completo de estados desde config.parametros.estadosGuia
         estadosGuia: { type: Object, required: true },
+    },
+    computed: {
+        cantidadUltimasGuias() {
+            return config?.parametros?.cantidadUltimasGuias || 5;
+        },
     },
 };
 </script>
