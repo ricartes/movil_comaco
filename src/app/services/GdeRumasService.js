@@ -38,23 +38,33 @@ export function generarDetalleMR(doc) {
 }
 
 export async function saveDetalleMR(gdeId, detalleMR) {
+    const cantidadDecimales = config.parametros.cantidadDecimalesMr || 3;
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
     doc.detalleMR = detalleMR;
 
-    const volumen = detalleMR.reduce((a, b) => a + Number(b.volumen || 0), 0);
-    const valor = detalleMR.reduce((a, b) => a + Number(b.totalPrecio || 0), 0);
+    const volumenReal = detalleMR.reduce(
+        (a, b) => a + Number(b.volumen || 0),
+        0
+    );
+    const volumen = Number(volumenReal.toFixed(cantidadDecimales));
+
+
+
+    const precioUnitario = Number(doc?.precioProducto?.precio || 0);
+
+    const valor = Math.round(volumen * precioUnitario);
 
     doc = initTotalesMRIfMissing(doc);
     doc.totales.mr.volumen = volumen;
-    doc.totales.mr.valor = Math.round(valor); // CLP entero
+    doc.totales.mr.valor = valor;
+    doc.totales.volMr = doc.totales.mr.volumen;
+    doc.totales.totalMr = doc.totales.mr.valor;
 
     const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.MR ?? "MR", { sumAllUMs: false });
 
-    console.log(totals);
     applyTotals(doc, totals);
-
     doc = await dao.actualizar(doc);
     return doc;
 }

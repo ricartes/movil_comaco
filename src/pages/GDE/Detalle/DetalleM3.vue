@@ -75,7 +75,7 @@
 
                     <!-- Abajo: vol + total -->
                     <div class="m3-item-bottom">
-                        <div class="mono">{{ fila.volumen.toFixed(3) }} m³</div>
+                        <div class="mono">{{ fila.volumen.toFixed(cantidadDecimalesM3) }} m³</div>
                         <div class="mono">
                             {{ formatMoneyCLP(fila.totalPrecio) }}
                         </div>
@@ -90,7 +90,7 @@
         <f7-card-content class="m3-totales-global">
             <div class="totales-label">Totales</div>
             <div class="totales-valores">
-                <span class="mono">{{ totalVolumen.toFixed(3) }} m³</span>
+                <span class="mono">{{ totalVolumen.toFixed(cantidadDecimalesM3) }} m³</span>
                 <span class="mono">{{ formatMoneyCLP(totalValor) }}</span>
             </div>
         </f7-card-content>
@@ -105,7 +105,7 @@ import {
     saveDetalleM3,
     calcVolumenM3,
 } from "@/app/services/GdeAserrableService";
-
+import config from "@/Common/json/config.json";
 export default {
     name: "DetalleM3",
     props: {
@@ -119,14 +119,23 @@ export default {
         };
     },
     computed: {
-        totalVolumen() {
-            return this.filas.reduce((a, f) => a + (Number(f.volumen) || 0), 0);
+        cantidadDecimalesM3() {
+            return config?.parametros?.cantidadDecimalesM3 || 3;
         },
-        totalValor() {
-            return this.filas.reduce(
-                (a, f) => a + (Number(f.totalPrecio) || 0),
+        // Volumen comercial M3 (igual que en saveDetalleM3)
+        totalVolumen() {
+            const volReal = this.filas.reduce(
+                (a, f) => a + (Number(f.volumen) || 0),
                 0
             );
+            // misma regla comercial: 3 decimales
+            return Number(volReal.toFixed(this.cantidadDecimalesM3));
+        },
+
+        // Total Guía / Valor comercial M3
+        totalValor() {
+            const precio = this.precioUnitario; // ya lo tienes como computed
+            return Math.round(this.totalVolumen * precio);
         },
         largo() {
             return Number(this.doc?.largoProducto || 0);

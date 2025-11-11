@@ -169,7 +169,6 @@ export default class GdeDAO {
         rut,
         { limit = 20, skip = 0, estados, folio, desde, hasta } = {}
     ) {
-        console.log(folio);
         const selector = {
             type: config.bd.tipoEntidad.gde,
             empId: Number(empId),

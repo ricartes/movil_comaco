@@ -49,16 +49,31 @@ export async function actualizarTotalesTon(id, volumen, precioUnitario) {
     const precio = Number(
         precioUnitario ?? doc?.precioProducto?.precio ?? 0
     );
-    const vol = Number(volumen || 0);
+
+    // 1) volumen real que llega
+    const volReal = Number(volumen || 0);
+
+    const cantidadDecimales = config.parametros.cantidadDecimalesTon || 3;
+
+    // 2) volumen "comercial" (misma lógica que MR/M3, ej: 3 decimales)
+    const vol = Number(volReal.toFixed(cantidadDecimales));
+
+    // 3) neto comercial en base a ese volumen redondeado
     const valor = toIntCLP(vol * precio);
 
-    doc.totales.ton.volumen = volumen;
-    doc.totales.ton.valor = Math.round(valor); // CLP entero
+    // Guardar en doc.totales.ton
+    doc.totales.ton.volumen = vol;
+    doc.totales.ton.valor = valor; // ya viene entero
 
     // Neto/IVA/Total sólo por TON (sin sumar otras UMs)
-    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.TON ?? "TON", { sumAllUMs: false });
-    applyTotals(doc, totals); // deja neto, ivaPct, ivaMonto, total en doc.totales
+    const totals = computeDocTotals(
+        doc,
+        config?.parametros?.unidadesMedida?.TON ?? "TON",
+        { sumAllUMs: false }
+    );
+    applyTotals(doc, totals);
 
     doc = await dao.actualizar(doc);
     return doc;
 }
+

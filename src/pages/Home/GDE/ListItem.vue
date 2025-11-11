@@ -8,8 +8,9 @@
             <f7-icon f7="doc_text_fill" />
         </template>
 
-        <template #after>{{ formatFecha(item.fechaEmision || item.createdAt) }}</template>
-
+        <template #after>{{
+            formatFecha(item.fechaEmision || item.createdAt)
+        }}</template>
 
         <template #text>
             <div class="line">
@@ -58,6 +59,14 @@ export default {
         estadosGuia: { type: Object, required: true },
     },
     emits: ["open"],
+    computed: {
+        cantidadDecimalesM3() {
+            return config?.parametros?.cantidadDecimalesM3 || 3;
+        },
+        cantidadDecimalesMr() {
+            return config?.parametros?.cantidadDecimalesMr || 3;
+        },
+    },
     methods: {
         folioText(g) {
             return g?.folio != null
@@ -82,7 +91,7 @@ export default {
             const um = (g.producto?.unidadMedida || "").toUpperCase();
             const v = this.volumenSegunUM(g);
             if (v == null || isNaN(Number(v))) return um;
-            const decs = um === U.MR ? 3 : 2;
+            const decs = um === U.MR ? this.cantidadDecimalesMr : this.cantidadDecimalesM3;
             return `${Number(v).toFixed(decs)} ${um}`;
         },
         volumenSegunUM(g) {

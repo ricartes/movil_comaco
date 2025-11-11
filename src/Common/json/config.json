@@ -32,9 +32,9 @@
         "cantidadFotosPreguntaPermitida": 1,
         "alturaMinima": 0,
         "alturaMaxima": 999.99,
-        "cantidadDecimales": 2,
-        "cantidadDecimalesAltura": 2,
-        "cantidadDecimalesDiametros": 3,
+        "cantidadDecimalesMr": 3,
+        "cantidadDecimalesM3": 3,
+        "cantidadDecimalesTon": 3,
         "valorDivisionVolumen": 2.44,
         "maximoCaracteresObservacion": 110,
         "m3": {

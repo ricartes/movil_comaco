@@ -88,14 +88,13 @@ export async function ensureDetalleM3(gdeId) {
  * Persiste el arreglo completo y recalcula totales.m3 (valor entero CLP).
  */
 export async function saveDetalleM3(gdeId, detalleM3, precioUnitarioFallback) {
+    const cantidadDecimales = config.parametros.cantidadDecimalesM3 || 3;
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
-    // Asegurar precio/largo por si cambian en el doc
     const largo = Number(doc?.largoProducto || 0);
     const precioBase = Number(doc?.precioProducto?.precio ?? precioUnitarioFallback ?? 0);
 
-    // Normalizamos, recalculamos fila a fila
     const filas = detalleM3.map((f) => {
         const trozos = Number(f.trozos || 0);
         const diametro = Number(f.diametro || 0);
@@ -106,40 +105,54 @@ export async function saveDetalleM3(gdeId, detalleM3, precioUnitarioFallback) {
         return {
             diametro,
             trozos,
-            largo, // sincronizamos largo actual
+            largo,
             precioUnitario,
             volumen: vol,
             totalPrecio,
         };
     });
 
-    // Totales
-    const volTotal = filas.reduce((a, b) => a + (Number(b.volumen) || 0), 0);
-    const valorTotal = filas.reduce((a, b) => a + (Number(b.totalPrecio) || 0), 0);
+    // 1) Volumen real sumado
+    const volReal = filas.reduce((a, b) => a + (Number(b.volumen) || 0), 0);
+
+    // 2) Volumen "comercial" para DTE (misma lógica que MR)
+    const volTotal = Number(volReal.toFixed(cantidadDecimales));
+
+    // 3) Neto comercial en base a ESTA cantidad
+    const valorTotal = toIntCLP(volTotal * precioBase);
 
     // Guardar en doc
     doc.detalleM3 = filas;
     doc = ensureTotalesM3Object(doc);
-    doc.totales.m3.volumen = volTotal;
-    doc.totales.m3.valor = toIntCLP(valorTotal);
-    // compat opcional
+    doc.totales.m3.volumen = volTotal;     // 👈 esta es la Qty que irá al XML
+    doc.totales.m3.valor = valorTotal;
     doc.totales.volM3 = volTotal;
-    doc.totales.totalM3 = toIntCLP(valorTotal);
+    doc.totales.totalM3 = valorTotal;
 
-        // === NUEVO: calcular neto/IVA/total con helpers (solo M3) ===
-    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.M3 ?? "M3", { sumAllUMs: false });
-    applyTotals(doc, totals); // deja neto/ivaPct/ivaMonto/total en doc.totales
+    const totals = computeDocTotals(
+        doc,
+        config?.parametros?.unidadesMedida?.M3 ?? "M3",
+        { sumAllUMs: false }
+    );
+    applyTotals(doc, totals);
+
 
     await dao.actualizar(doc);
 
-    return { doc, detalleM3: filas, totales: { volumen: volTotal, valor: toIntCLP(valorTotal) } };
+    return {
+        doc,
+        detalleM3: filas,
+        totales: { volumen: volTotal, valor: valorTotal }
+    };
 }
+
 
 /**
  * Actualiza SOLO una fila (un diámetro) y guarda.
  * Útil cuando cambias un trozo desde la UI.
  */
 export async function updateM3Item(gdeId, diametro, trozos) {
+    const cantidadDecimales = config.parametros.cantidadDecimalesM3 || 3;
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
@@ -151,7 +164,11 @@ export async function updateM3Item(gdeId, diametro, trozos) {
 
     const idx = doc.detalleM3.findIndex((f) => Number(f.diametro) === Number(diametro));
     const largo = Number(doc?.largoProducto || 0);
-    const precioUnit = Number(doc?.precioProducto?.precio || doc.detalleM3[idx]?.precioUnitario || 0);
+    const precioBase = Number(doc?.precioProducto?.precio || 0);
+    const precioUnit = Number(
+        doc?.precioProducto?.precio ||
+        (idx >= 0 ? doc.detalleM3[idx]?.precioUnitario : 0)
+    );
 
     if (idx >= 0) {
         const vol = calcVolumenM3(diametro, largo, Number(trozos || 0));
@@ -164,7 +181,6 @@ export async function updateM3Item(gdeId, diametro, trozos) {
             totalPrecio: toIntCLP(vol * precioUnit),
         };
     } else {
-        // si no estaba, la creamos
         const vol = calcVolumenM3(diametro, largo, Number(trozos || 0));
         doc.detalleM3.push({
             diametro: Number(diametro),
@@ -176,19 +192,32 @@ export async function updateM3Item(gdeId, diametro, trozos) {
         });
     }
 
-    // Recalcular totales
-    const volTotal = doc.detalleM3.reduce((a, b) => a + (Number(b.volumen) || 0), 0);
-    const valorTotal = doc.detalleM3.reduce((a, b) => a + (Number(b.totalPrecio) || 0), 0);
+    // === Recalcular totales igual que en saveDetalleM3 ===
+
+    // 1) volumen real
+    const volReal = doc.detalleM3.reduce(
+        (a, b) => a + (Number(b.volumen) || 0),
+        0
+    );
+
+    // 2) volumen "comercial" (3 decimales, el que irá al DTE)
+    const volTotal = Number(volReal.toFixed(cantidadDecimales));
+
+    // 3) neto comercial en base a ese volumen
+    const valorTotal = toIntCLP(volTotal * precioBase);
 
     doc = ensureTotalesM3Object(doc);
     doc.totales.m3.volumen = volTotal;
-    doc.totales.m3.valor = toIntCLP(valorTotal);
+    doc.totales.m3.valor = valorTotal;
     doc.totales.volM3 = volTotal;
-    doc.totales.totalM3 = toIntCLP(valorTotal);
+    doc.totales.totalM3 = valorTotal;
 
-    // === NUEVO: calcular neto/IVA/total con helpers (solo M3) ===
-    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.M3 ?? "M3", { sumAllUMs: false });
-    applyTotals(doc, totals); // deja neto/ivaPct/ivaMonto/total en doc.totales
+    const totals = computeDocTotals(
+        doc,
+        config?.parametros?.unidadesMedida?.M3 ?? "M3",
+        { sumAllUMs: false }
+    );
+    applyTotals(doc, totals);
 
     if (typeof dao.actualizar === "function") {
         await dao.actualizar(doc);
@@ -196,5 +225,9 @@ export async function updateM3Item(gdeId, diametro, trozos) {
         await dao.db.put(doc);
     }
 
-    return { doc, detalleM3: doc.detalleM3, totales: { volumen: volTotal, valor: toIntCLP(valorTotal) } };
+    return {
+        doc,
+        detalleM3: doc.detalleM3,
+        totales: { volumen: volTotal, valor: valorTotal }
+    };
 }

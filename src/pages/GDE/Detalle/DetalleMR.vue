@@ -48,7 +48,7 @@
                                     :checked="anchoSecuencia === op"
                                     @change="() => setAnchoSecuencia(op)"
                                 />
-                                <span>{{ op.toFixed(2) }}</span>
+                                <span>{{ op.toFixed(cantidadDecimalesMr) }}</span>
                             </label>
                         </td>
                     </tr>
@@ -104,7 +104,7 @@
                             />
                         </td>
                         <td class="right mono">
-                            {{ banco.volumen.toFixed(2) }}
+                            {{ banco.volumen.toFixed(cantidadDecimalesMr) }}
                         </td>
                     </tr>
                 </tbody>
@@ -114,7 +114,7 @@
             <div class="stack-line totals">
                 <span
                     ><b>Total Volumen MR:</b>
-                    {{ totalVolumen.toFixed(2) }}</span
+                    {{ totalVolumen.toFixed(cantidadDecimalesMr) }}</span
                 >
                 <span class="sep">•</span>
                 <span><b>Total Guía:</b> {{ formatMoneyCLP(totalGuia) }}</span>
@@ -125,7 +125,7 @@
 
 <script>
 import { ensureDetalleMR, saveDetalleMR } from "@/app/services/GdeRumasService";
-
+import config from "@/Common/json/config.json";
 // debounce simple para no spamear PouchDB
 function debounce(fn, ms = 300) {
     let t = null;
@@ -151,16 +151,21 @@ export default {
     },
     computed: {
         totalVolumen() {
-            return this.detalleMR.reduce(
+            const volReal = this.detalleMR.reduce(
                 (acc, b) => acc + (Number(b.volumen) || 0),
                 0
             );
+            // misma lógica de negocio: 3 decimales comerciales
+            return Number(volReal.toFixed(this.cantidadDecimalesMr)); // → 8.248
         },
+
+        // Total Guía calculado desde ese volumen comercial
         totalGuia() {
-            return this.detalleMR.reduce(
-                (acc, b) => acc + (Number(b.totalPrecio) || 0),
-                0
-            );
+            const precio = Number(this.doc?.precioProducto?.precio) || 0;
+            return Math.round(this.totalVolumen * precio); // → 247.440
+        },
+        cantidadDecimalesMr() {
+            return config?.parametros?.cantidadDecimalesMr || 3;
         },
 
         esValido() {
