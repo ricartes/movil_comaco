@@ -281,6 +281,9 @@ export async function printGuiaFromDoc(doc, opts = {}) {
         if (carguiosStr) {
             await printRawText(wrap(`EMP. CARGUÍO: ${carguiosStr}`));
         }
+        if (patentesStr) {
+            await printRawText(wrap(`PATENTE. CARGUÍO: ${patentesStr}`));
+        }
     }
     if (M.trans.transportista) await printRawText(wrap(`EMP. TRANSP.: ${M.trans.transportista.toUpperCase()}`));
     await printRawText(div());

@@ -19,7 +19,7 @@ export async function obtenerGde(id) {
 
 export async function ingresarGde(gde) {
 
-    const gdeInsert = makeGdeDoc(gde);
+    const gdeInsert = await makeGdeDoc(gde);
     return await getGdeDao().insertar(gdeInsert); // devuelve doc completo
 }
 

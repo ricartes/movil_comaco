@@ -169,149 +169,164 @@ export default class GdeDAO {
         rut,
         { limit = 20, skip = 0, estados, folio, desde, hasta } = {}
     ) {
+        console.log(folio);
         const selector = {
             type: config.bd.tipoEntidad.gde,
             empId: Number(empId),
             rutEmisor: String(rut),
         };
 
-        const estadosArr = Array.isArray(estados) ? estados.map(s => String(s).toUpperCase()) : [];
+        // ----- filtros de estado -----
+        const estadosArr = Array.isArray(estados)
+            ? estados.map((s) => String(s).toUpperCase())
+            : [];
         const filtra1Estado = estadosArr.length === 1;
 
         if (filtra1Estado) {
-            selector['estado.id'] = estadosArr[0];
+            selector["estado.id"] = estadosArr[0];
         } else if (estadosArr.length > 1) {
-            selector['estado.id'] = { $in: estadosArr };
+            selector["estado.id"] = { $in: estadosArr };
         }
 
-        if (folio != null && String(folio).trim() !== '') {
+        // ----- filtro de folio -----
+        const hasFolio = folio != null && String(folio).trim() !== "";
+        if (hasFolio) {
             const n = Number(folio);
             selector.folio = Number.isFinite(n) ? n : String(folio).trim();
         }
 
+        // ----- filtro de fechas (createdAt) -----
         if (desde || hasta) {
             selector.createdAt = {};
             if (desde) selector.createdAt.$gte = new Date(desde).toISOString();
             if (hasta) selector.createdAt.$lte = new Date(hasta).toISOString();
         }
 
-        // ⚠️ Regla Mango: si 'createdAt' está en el sort/índice, debe estar en el selector.
+        // Si no hay filtro de fechas, ancla mínima
         if (!selector.createdAt) {
-            selector.createdAt = { $gte: '' }; // ancla mínima
+            selector.createdAt = { $gte: "" };
         }
 
-        // Índice/orden compatibles (ASC para calzar con índices creados en asc)
-        let use_index, sort;
-        if (filtra1Estado && selector.folio != null) {
-            use_index = 'idx_gde_emp_rut_estado_folio_createdAt_id';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { folio: 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
-            ];
-        } else if (filtra1Estado) {
-            use_index = 'idx_gde_emp_rut_estado_createdAt_id';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { 'estado.id': 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
-            ];
-        } else if (selector.folio != null) {
-            use_index = 'idx_gde_emp_rut_folio_createdAt_id';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { folio: 'asc' }, { createdAt: 'asc' }, { _id: 'asc' },
-            ];
-        } else {
-            use_index = 'idx_gde_emp_rut_createdAt_id';
-            sort = [
-                { type: 'asc' }, { empId: 'asc' }, { rutEmisor: 'asc' },
-                { createdAt: 'asc' }, { _id: 'asc' },
-            ];
-        }
+        if (hasFolio) {
+            // quitamos createdAt para no interferir con el índice
+            const { createdAt, ...selectorFolio } = selector;
+            console.log("🔍 Búsqueda directa por folio:", selectorFolio);
 
-        console.log('🔎 listarPorEmpresaYRutPaginado: selector:', JSON.stringify(selector, null, 2));
-        console.log('🔎 use_index:', use_index);
-        console.log('🔎 sort:', sort);
-
-        try {
-            // INTENTO 1: con índice/sort y SIN fields (evita crash de dot paths)
             const res = await this.db.find({
-                selector,
-                sort,
-                limit,
-                skip,
-                use_index,
-                // sin fields
+                selector: selectorFolio,
+                limit: 1, // siempre 1 registro esperado
             });
 
-            let docs = res.docs || [];
+            const docs = res.docs || [];
 
-            // Diagnóstico opcional de paths punteados (si usas LIST_FIELDS)
-            try {
-                const REQUIRED_DOTTED = (typeof LIST_FIELDS !== 'undefined' ? LIST_FIELDS : []).filter(f => f.includes('.'));
-                if (REQUIRED_DOTTED.length) {
-                    const offenders = [];
-                    for (const d of docs) {
-                        const bad = typeof validateRequiredParents === 'function'
-                            ? validateRequiredParents(d, REQUIRED_DOTTED)
-                            : [];
-                        if (bad.length) offenders.push({ _id: d._id, problems: bad });
-                    }
-                    if (offenders.length) {
-                        console.warn('⚠️ Docs con padres faltantes (podrían romper fields):', offenders.slice(0, 5));
-                    }
-                }
-            } catch { /* no-op si no existen helpers */ }
-
-            // Orden visual DESC para la UI (sin romper el uso del índice ASC)
-            docs.sort((a, b) => {
-                const c = (b.createdAt || '').localeCompare(a.createdAt || '');
-                return c !== 0 ? c : (b._id || '').localeCompare(a._id || '');
-            });
+            console.log(
+                "🧾 Resultado por folio:",
+                docs.map((d) => ({
+                    _id: d._id,
+                    folio: d.folio,
+                    fechaEmision: d.fechaEmision,
+                    createdAt: d.createdAt,
+                }))
+            );
 
             return docs;
-        } catch (e) {
-            console.warn('❌ find con índice falló, reintento sin sort:', e?.message, {
-                selector, use_index
-            });
-
-            // INTENTO 2 (fallback): sin sort/use_index/fields
-            const res2 = await this.db.find({
-                selector,
-                limit,
-                skip,
-                // sin sort, sin use_index, sin fields
-            });
-
-            let docs2 = res2.docs || [];
-
-            // Escaneo de culpables contra LIST_FIELDS (si aplica)
-            try {
-                const REQUIRED_DOTTED = (typeof LIST_FIELDS !== 'undefined' ? LIST_FIELDS : []).filter(f => f.includes('.'));
-                if (REQUIRED_DOTTED.length) {
-                    const offenders = [];
-                    for (const d of docs2) {
-                        const bad = typeof validateRequiredParents === 'function'
-                            ? validateRequiredParents(d, REQUIRED_DOTTED)
-                            : [];
-                        if (bad.length) offenders.push({ _id: d._id, problems: bad });
-                    }
-                    if (offenders.length) {
-                        console.error('🚨 Culpables detectados (paths faltantes):', offenders.slice(0, 10));
-                    } else {
-                        console.log('✅ Sin culpables evidentes respecto a LIST_FIELDS.');
-                    }
-                }
-            } catch { /* no-op */ }
-
-            // Orden visual descendente para mantener UX
-            docs2.sort((a, b) => {
-                const c = (b.createdAt || '').localeCompare(a.createdAt || '');
-                return c !== 0 ? c : (b._id || '').localeCompare(a._id || '');
-            });
-
-            return docs2;
         }
+
+        // Orden ASC compatible con el índice (type, empId, rutEmisor, createdAt, _id)
+        const sortAscBase = [
+            { type: "asc" },
+            { empId: "asc" },
+            { rutEmisor: "asc" },
+            { createdAt: "asc" },
+            { _id: "asc" },
+        ];
+
+        console.log(
+            "🔎 selector:",
+            JSON.stringify(selector, null, 2),
+            "skip:", skip,
+            "limit:", limit
+        );
+
+        // 1) CONTAR documentos que matchean el selector
+        const countRes = await this.db.find({
+            selector,
+            fields: ["_id"], // liviano
+        });
+
+        const total = (countRes.docs || []).length;
+        console.log("🔢 total docs match selector:", total);
+
+        if (total === 0) {
+            return [];
+        }
+
+        // Si el front se pasa de largo, no devolvemos nada
+        if (skip >= total) {
+            console.log("⛔ skip >= total, no hay más páginas");
+            return [];
+        }
+
+        // 2) Calcular "ventana" desde el final
+        //    pageNum: 0 = última página (más nuevos), 1 = la anterior, etc.
+        const pageNum = Math.floor(skip / limit);
+
+        // endExclusive: límite superior (no incluido) de esta ventana en orden ASC
+        let endExclusive = total - pageNum * limit;
+        if (endExclusive < 0) endExclusive = 0;
+
+        // startInclusive: inicio de la ventana
+        const startInclusive = Math.max(endExclusive - limit, 0);
+
+        const effectiveLimit = endExclusive - startInclusive; // puede ser < limit en la última
+
+        console.log(
+            "📐 paging calc → pageNum:", pageNum,
+            "startInclusive:", startInclusive,
+            "endExclusive:", endExclusive,
+            "effectiveLimit:", effectiveLimit
+        );
+
+        if (effectiveLimit <= 0) {
+            console.log("⛔ effectiveLimit <= 0, no hay más docs");
+            return [];
+        }
+
+        // 3) Traer esa ventana ASC usando el índice
+        const res = await this.db.find({
+            selector,
+            sort: sortAscBase,
+            use_index: "idx_gde_emp_rut_createdAt_id",
+            skip: startInclusive,
+            limit: effectiveLimit,
+        });
+
+        let docs = res.docs || [];
+
+        console.log(
+            "🧾 Page docs ASC (raw):",
+            docs.map((d) => ({
+                folio: d.folio,
+                fechaEmision: d.fechaEmision,
+                createdAt: d.createdAt,
+            }))
+        );
+
+        // 4) Invertir para que dentro de la página queden en DESC
+        docs.reverse();
+
+        console.log(
+            "🧾 Page docs DESC (final):",
+            docs.map((d) => ({
+                folio: d.folio,
+                fechaEmision: d.fechaEmision,
+                createdAt: d.createdAt,
+            }))
+        );
+
+        return docs;
     }
+
 
 
     async *iterarParaResumen(empId, rut, {

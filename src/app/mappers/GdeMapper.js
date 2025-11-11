@@ -3,6 +3,7 @@ import config from '@/Common/json/config.json'
 import { makeId } from './_id'
 import GdeDTO from '@/app/DTO/GdeDTO'
 import { sanitizeForPouch } from "@/app/helpers/JsonHelpers";
+import Utilidades from '@/app/Utilidades';
 function toYMD(fecha) {
     if (fecha instanceof Date) return fecha.toISOString().slice(0, 10)
     if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fecha
@@ -13,8 +14,9 @@ function toYMD(fecha) {
 
 
 
-export function makeGdeDoc(raw) {
+export async function makeGdeDoc(raw) {
     const gdePlana = sanitizeForPouch(raw);
+    const informacionDispositivo = await Utilidades.obtenerInfoCompletaDelDispositivo()
     return {
         type: config.bd.tipoEntidad.gde,
         empId: Number(raw.empresa?.id ?? raw.zona?.empId ?? 0),   // denormalizado
@@ -29,7 +31,8 @@ export function makeGdeDoc(raw) {
         ultimoErrorSync: null,
         updatedAt: new Date().toISOString(),
         fechaEmision: null,
-        emitiendo: false
+        emitiendo: false,
+        informacionDispositivo: informacionDispositivo,
     }
 }
 

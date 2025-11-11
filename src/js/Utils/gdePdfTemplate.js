@@ -306,7 +306,7 @@ function buildBoxClienteFechas(doc) {
     const right = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Fecha Emisión", fDate(doc?.createdAt)),
+            kvLine("Fecha Emisión", fDate(doc?.fechaEmision) || "—"),
             kvLine("Forma Pago", "—"),
             kvLine("Ind. Traslado", doc?.indicadorTraslado?.texto),
             kvLine("Comuna", doc?.cliente?.comunaCliente),

@@ -1,8 +1,8 @@
 // src/js/services/bootstrap-dispositivo.js
 
-import { getFcmTokenWithInfo } from '../app/services/push';
-import { validarDispositivo } from '../app/services/DispositivoService';
-import Utilidades from '../app/Utilidades';
+import { getFcmTokenWithInfo } from '@/app/services/push';
+import { validarDispositivo } from '@/app/services/DispositivoService';
+import Utilidades from '@/app/Utilidades';
 
 export async function bootstrapValidacionDispositivo() {
     const payload = await Utilidades.buildDispositivoPayload();

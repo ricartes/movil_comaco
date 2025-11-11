@@ -1,7 +1,7 @@
 <template>
     <f7-page
         name="gde"
-        :infinite="hasMore && loaded && !loading && !loadingMore"
+        infinite
         :infinite-preloader="loadingMore"
         :infinite-distance="100"
         @infinite="onInfinite"
@@ -122,6 +122,9 @@ export default {
         hidePreloader();
     },
     on: {
+        pageInit() {
+            this.ensureLoaded(); // primera carga
+        },
         pageBeforeOut() {
             hidePreloader();
         },
@@ -193,7 +196,7 @@ export default {
             if (!this.empId || !this.rut) return;
 
             // evita solapes
-            if (this.loading || this.loadingMore) return;
+            if (this.loading) return;
 
             // preloader sólo en primera carga
             if (initial) showPreloader("Cargando guías…");
@@ -228,6 +231,8 @@ export default {
                 this.items = reset ? filtered : this.items.concat(filtered);
                 this.hasMore = page.length === PAGE_SIZE;
                 this.skip += page.length;
+            } catch (e) {
+                console.log(e);
             } finally {
                 this.loading = false;
                 if (initial) hidePreloader();
@@ -272,6 +277,7 @@ export default {
                 !this.loaded
             )
                 return;
+
             this.loadingMore = true;
             try {
                 await this.fetchPage();
