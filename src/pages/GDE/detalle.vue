@@ -55,39 +55,35 @@
                         "
                     />
 
-                    <f7-card
-                        class="mr-card detalle-mr-root"
+                    <DetalleMR
                         v-else-if="
                             doc.producto.unidadMedida === unidadesMedida.MR
                         "
-                    >
-                        <DetalleMR
-                            ref="detalleMrRef"
-                            :doc="doc"
-                            :gde-id="id"
-                            :solo-lectura="soloLectura"
-                            @doc-updated="
-                                (patch) => {
-                                    if (patch.totales) {
-                                        doc.totales = {
-                                            ...doc.totales,
-                                            ...patch.totales,
-                                        };
-                                    }
-                                    // Actualizar otras propiedades planas igualmente si vienen
-                                    Object.keys(patch).forEach((key) => {
-                                        if (key !== 'totales')
-                                            doc[key] = patch[key];
-                                    });
+                        ref="detalleMrRef"
+                        :doc="doc"
+                        :gde-id="id"
+                        :solo-lectura="soloLectura"
+                        @doc-updated="
+                            (patch) => {
+                                if (patch.totales) {
+                                    doc.totales = {
+                                        ...doc.totales,
+                                        ...patch.totales,
+                                    };
                                 }
-                            "
-                            @valid-change="
-                                (v) => {
-                                    detalleValidoMR = !!v;
-                                }
-                            "
-                        />
-                    </f7-card>
+                                // Actualizar otras propiedades planas igualmente si vienen
+                                Object.keys(patch).forEach((key) => {
+                                    if (key !== 'totales')
+                                        doc[key] = patch[key];
+                                });
+                            }
+                        "
+                        @valid-change="
+                            (v) => {
+                                detalleValidoMR = !!v;
+                            }
+                        "
+                    />
 
                     <f7-card
                         class="ton-card detalle-ton-root"

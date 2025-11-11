@@ -37,24 +37,38 @@
                     <tr>
                         <td class="label-cell"><b>Ancho secuencia:</b></td>
                         <td style="padding-bottom: 10px">
-                            <label
-                                v-for="op in [2.3, 2.35, 2.4]"
-                                :key="op"
-                                class="option-row padding-top"
-                            >
-                                <f7-radio
-                                    name="ancho-secuencia"
-                                    :disabled="soloLectura"
-                                    :checked="anchoSecuencia === op"
-                                    @change="() => setAnchoSecuencia(op)"
-                                />
-                                <span>{{ op.toFixed(cantidadDecimalesMr) }}</span>
-                            </label>
+                            <template v-if="!soloLectura">
+                                <label
+                                    v-for="op in [2.3, 2.35, 2.4]"
+                                    :key="op"
+                                    class="option-row padding-top"
+                                >
+                                    <f7-radio
+                                        name="ancho-secuencia"
+                                        :checked="anchoSecuencia === op"
+                                        @change="() => setAnchoSecuencia(op)"
+                                    />
+                                    <span>{{
+                                        op.toFixed(cantidadDecimalesMr)
+                                    }}</span>
+                                </label>
+                            </template>
+                            <template v-else>
+                                <span class="mono">{{
+                                    anchoSecuencia?.toFixed(
+                                        cantidadDecimalesMr
+                                    ) ?? "—"
+                                }}</span>
+                            </template>
                         </td>
                     </tr>
                 </tbody>
             </table>
+        </f7-card-content>
+    </f7-card>
 
+    <f7-card>
+        <f7-card-content>
             <table class="tabla">
                 <thead>
                     <tr>
@@ -109,8 +123,11 @@
                     </tr>
                 </tbody>
             </table>
+        </f7-card-content>
+    </f7-card>
 
-            <!-- Totales (sobrios) -->
+    <f7-card>
+        <f7-card-content>
             <div class="stack-line totals">
                 <span
                     ><b>Total Volumen MR:</b>
@@ -121,6 +138,8 @@
             </div>
         </f7-card-content>
     </f7-card>
+
+    <!-- Totales (sobrios) -->
 </template>
 
 <script>

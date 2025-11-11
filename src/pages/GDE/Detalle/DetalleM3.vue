@@ -40,7 +40,7 @@
     </f7-card>
 
     <!-- GRID responsive de diámetros (2 por fila) -->
-    <div class="m3-grid">
+    <div class="m3-grid" v-if="!soloLectura">
         <div class="grid grid-cols-2 grid-gap">
             <f7-card
                 v-for="(fila, i) in filasVisibles"
@@ -75,7 +75,9 @@
 
                     <!-- Abajo: vol + total -->
                     <div class="m3-item-bottom">
-                        <div class="mono">{{ fila.volumen.toFixed(cantidadDecimalesM3) }} m³</div>
+                        <div class="mono">
+                            {{ fila.volumen.toFixed(cantidadDecimalesM3) }} m³
+                        </div>
                         <div class="mono">
                             {{ formatMoneyCLP(fila.totalPrecio) }}
                         </div>
@@ -85,16 +87,62 @@
         </div>
     </div>
 
+    <div class="data-table data-table-init card" v-else>
+        <div class="card-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ø</th>
+                        <th class="numeric-cell">Trozos</th>
+                        <th class="numeric-cell">Totales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="fila in filasVisibles" :key="fila.diametro">
+                        <td class="numeric-cell">
+                            {{ fila.diametro }}
+                        </td>
+                        <td class="numeric-cell">
+                            {{ fila.trozos }}
+                        </td>
+
+                        <td class="numeric-cell">
+                            {{ fila.volumen.toFixed(cantidadDecimalesM3) }}
+                            m³<br />
+                            {{ formatMoneyCLP(fila.totalPrecio) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Totales globales -->
+
     <f7-card>
-        <f7-card-content class="m3-totales-global">
-            <div class="totales-label">Totales</div>
-            <div class="totales-valores">
-                <span class="mono">{{ totalVolumen.toFixed(cantidadDecimalesM3) }} m³</span>
-                <span class="mono">{{ formatMoneyCLP(totalValor) }}</span>
+        <f7-card-content>
+            <div class="stack-line totals">
+                <span
+                    ><b>Total Volumen m³:</b>
+                    {{ totalVolumen.toFixed(cantidadDecimalesM3) }}</span
+                >
+                <span class="sep">•</span>
+                <span><b>Total Guía:</b> {{ formatMoneyCLP(totalValor) }}</span>
             </div>
         </f7-card-content>
     </f7-card>
+
+    <!-- <f7-card>
+        <f7-card-content class="m3-totales-global">
+            <div class="totales-label">Totales</div>
+            <div class="totales-valores">
+                <span class="mono"
+                    >{{ totalVolumen.toFixed(cantidadDecimalesM3) }} m³</span
+                >
+                <span class="mono">{{ formatMoneyCLP(totalValor) }}</span>
+            </div>
+        </f7-card-content>
+    </f7-card> -->
 </template>
 
 
@@ -369,5 +417,22 @@ export default {
     padding: 2px 8px;
     font-size: 12px;
     border-radius: 12px;
+}
+
+.stack-line {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    font-size: 14px;
+    padding: 4px 0;
+}
+
+.sep {
+    opacity: 0.6;
+}
+
+.totals {
+    margin-top: 8px;
 }
 </style>
