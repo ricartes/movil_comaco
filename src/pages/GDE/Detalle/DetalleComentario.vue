@@ -37,13 +37,7 @@
                     :disabled="soloLectura"
                     @input="onInput('horaLlegada', $event)"
                 />
-                <f7-list-input
-                    label="Hora salida"
-                    type="datetime-local"
-                    :value="form.horaSalida"
-                    :disabled="soloLectura"
-                    @input="onInput('horaSalida', $event)"
-                />
+    
                 <f7-list-input
                     label="Sector origen"
                     type="text"

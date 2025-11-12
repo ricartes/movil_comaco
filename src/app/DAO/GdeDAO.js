@@ -826,6 +826,24 @@ export default class GdeDAO {
         throw Object.assign(new Error('Document update conflict'), { status: 409 });
     }
 
+    async patchDeep(id, changes) {
+        let attempt = 0;
+        while (attempt < MAX_RETRIES) {
+            try {
+                const doc = await this.db.get(id);
+                for (const [path, val] of Object.entries(changes)) setByPath(doc, path, val);
+                const res = await this.db.put(doc);
+                return await this.db.get(res.id); // devuelve doc completo
+            } catch (e) {
+                if (e?.status === 409) { attempt++; continue; }
+                if (e?.status === 404) throw Object.assign(new Error(`Documento ${id} no encontrado`), { status: 404 });
+                throw e;
+            }
+        }
+        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+    }
+
+
     async ensureIndiceFoliosFlexible() {
         const prefijo = ['type', 'empId', 'folio'];
         const nombreDeseado = 'idx_gde_emp_folio_id';

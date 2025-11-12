@@ -71,11 +71,19 @@ export async function emitirGde(gde) {
 
     const folioDao = getSiiFolioDao();
     const gdeDao = getGdeDao();
+    const EG = config.parametros.estadosGuia;
 
     // 🔒 evita doble emisión concurrente sobre la misma GDE
     await gdeDao.patch(gde._id, { emitiendo: true });
 
     try {
+
+        if (gde?.estado?.id === EG.EMITIDA.id 
+            || gde?.estado?.id === EG.ENVIADA.id
+            || gde?.estado?.id === EG.NULA.id 
+            || Number.isFinite(gde?.folio)) {
+            return gde; // ya estaba emitida; idempotente
+        }
         // 1) Reservar folio + URF (idempotente en el folioDao)
         const { folioDTO, urfDTO } =
             await folioDao.obtenerPrimeroDisponibleConURF(empId, rutEmisor);
@@ -86,7 +94,7 @@ export async function emitirGde(gde) {
         const fechaIso = nowLocalIso();           // "YYYY-MM-DDTHH:mm:ss"
         const fechaYYYYMMDD = fechaIso.slice(0, 10);
         const tsYYYYMMDDTHHMMSS = fechaIso;
-        const estadoEmitida = config.parametros.estadosGuia.EMITIDA;
+        const estadoEmitida = EG.EMITIDA;
 
         // 3) Construir TED con los datos que dependen del folio
         const preGde = {
@@ -108,10 +116,11 @@ export async function emitirGde(gde) {
         });
 
         // 4) Patch mínimo sobre la GDE (no sobrescribe el resto del doc)
-        const actualizado = await gdeDao.patch(gde._id, {
+        const actualizado = await gdeDao.patchDeep(gde._id, {
             folio: preGde.folio,
             urfId: preGde.urfId,
             fechaEmision: preGde.fechaEmision,
+            'comentarios.horaSalida': preGde.fechaEmision,
             fechaEmisionOffset: preGde.fechaEmisionOffset,
             estado: preGde.estado,
             ted,
