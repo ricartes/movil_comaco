@@ -282,7 +282,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             await printRawText(wrap(`EMP. CARGUÍO: ${carguiosStr}`));
         }
         if (patentesStr) {
-            await printRawText(wrap(`PATENTE. CARGUÍO: ${patentesStr}`));
+            await printRawText(wrap(`PATENTE CARGUÍO: ${patentesStr}`));
         }
     }
     if (M.trans.transportista) await printRawText(wrap(`EMP. TRANSP.: ${M.trans.transportista.toUpperCase()}`));
@@ -304,7 +304,9 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     // Producto / Detalle
     const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
     await printRawText(wrap(`DESC: ${tituloProd}`));
-    await printRawText(left(`CANT    UNIDAD  PRECIO UNIT.   PRECIO TOTAL`));
+    await printRawText(wrap(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`));
+    await printRawText(div());
+    await printRawText(left(`CANT    UNIDAD   PRECIO TOTAL`));
 
     const linea =
         String(Number(M.tot.volumenTotal).toLocaleString('es-CL', {
@@ -312,7 +314,6 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             maximumFractionDigits: 3
         })).padEnd(8) +
         String(M.prod.unidad).padEnd(8) +
-        String(M.prod.precioUnit).padEnd(8) +
         String(`$${fmt(M.tot.neto)}`).padStart(12);
 
     await printRawText(left(linea));
