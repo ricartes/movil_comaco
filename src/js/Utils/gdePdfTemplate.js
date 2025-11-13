@@ -334,6 +334,13 @@ function buildBoxOperacion(doc) {
                 ],
                 margin: [0, 0, 0, 2]
             },
+            {
+                text: [
+                    { text: "PATENTE CARGUIO: ", bold: true },
+                    { text: formatPatenteCargadores(doc) }
+                ],
+                margin: [0, 0, 0, 2]
+            },
             kvLine("Proveedor", `${doc?.proveedor?.nomProveedor} – ${doc?.proveedor?.rutProveedor}`),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine(
@@ -606,6 +613,16 @@ function formatCargadores(doc) {
     return lista
         .map(c => `${U(c?.nombreCarguio)} – ${fStr(c?.rutCarguio)}`)
         .join("\n");
+}
+
+function formatPatenteCargadores(doc) {
+    const lista = Array.isArray(doc?.patentesCarguio) ? doc.patentesCarguio : [];
+    if (lista.length === 0) return "—";
+
+    // Cada línea: "RUT – NOMBRE"
+    return lista
+        .map(c => `${U(c)}`)
+        .join(",");
 }
 
 function extractTotals(doc) {
