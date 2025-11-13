@@ -92,12 +92,11 @@ export default class GdeDAO {
 
     async listar() {
         const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.gde);
-        console.log(docs);
         return docs.map(gdeDocToDTO);
     }
 
     async obtener(id) {
-        return await this.db.get(id); // doc completo
+        return await getBaseDao().obtener(id);
     }
 
 
@@ -719,9 +718,7 @@ export default class GdeDAO {
 
     async insertar(gde) {
         try {
-            const res = await getBaseDao().insertar(gde);
-            const doc = await this.db.get(res.id);
-            return doc;
+            return await getBaseDao().insertar(gde);
         } catch (error) {
             console.error("Error al insertar gde:", error);
             throw error;
@@ -730,25 +727,7 @@ export default class GdeDAO {
 
     // === NUEVO: actualizar doc completo ===
     async actualizar(doc) {
-        let attempt = 0;
-        while (attempt < MAX_RETRIES) {
-            try {
-                const putResult = await this.db.put(doc);
-                // Obtener doc actualizado después del put
-                const updatedDoc = await this.db.get(putResult.id);
-                return updatedDoc;
-            } catch (e) {
-                if (e?.status === 409) {
-                    // Recarga y mergea; reintenta
-                    const fresh = await this.db.get(doc._id);
-                    doc = { ...fresh, ...doc, _rev: fresh._rev };
-                    attempt++;
-                    continue;
-                }
-                throw e;
-            }
-        }
-        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+        return await getBaseDao().actualizar(doc);
     }
 
 
@@ -766,81 +745,20 @@ export default class GdeDAO {
     // === NUEVO: actualizar campos superficiales (merge shallow) ===
 
     async updateCampos(id, patchObj) {
-        let attempt = 0;
-        while (attempt < MAX_RETRIES) {
-            const doc = await this.db.get(id);
-            Object.assign(doc, patchObj);
-            try {
-                return await this.db.put(doc);
-            } catch (e) {
-                if (e?.status === 409) {
-                    attempt++;
-                    continue;
-                }
-                throw e;
-            }
-        }
-        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+        return await getBaseDao().patch(id, patchObj);
     }
     // === NUEVO: actualizar por path "a.b.c" ===
     async updateByPath(id, path, value) {
-        let attempt = 0;
-        while (attempt < MAX_RETRIES) {
-            const doc = await this.db.get(id);
-            setByPath(doc, path, value);
-            try {
-                return await this.db.put(doc);
-            } catch (e) {
-                if (e?.status === 409) {
-                    attempt++;
-                    continue;
-                }
-                throw e;
-            }
-        }
-        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+        return await getBaseDao().updateByPath(id, path, value);
     }
 
 
     async patch(id, changes) {
-        let attempt = 0;
-        while (attempt < MAX_RETRIES) {
-            try {
-                const curr = await this.db.get(id);
-                const next = { ...curr, ...changes, _id: curr._id, _rev: curr._rev };
-                const res = await this.db.put(next);
-                // Opcional: devolver doc completo ya sincronizado con la nueva _rev
-                const updated = await this.db.get(res.id);
-                return updated;
-            } catch (e) {
-                if (e?.status === 409) { // conflicto de rev
-                    attempt++;
-                    continue;              // reintenta
-                }
-                if (e?.status === 404) { // no existe
-                    throw Object.assign(new Error(`Documento ${id} no encontrado`), { status: 404 });
-                }
-                throw e;
-            }
-        }
-        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+        return await getBaseDao().patch(id, changes);
     }
 
     async patchDeep(id, changes) {
-        let attempt = 0;
-        while (attempt < MAX_RETRIES) {
-            try {
-                const doc = await this.db.get(id);
-                for (const [path, val] of Object.entries(changes)) setByPath(doc, path, val);
-                const res = await this.db.put(doc);
-                return await this.db.get(res.id); // devuelve doc completo
-            } catch (e) {
-                if (e?.status === 409) { attempt++; continue; }
-                if (e?.status === 404) throw Object.assign(new Error(`Documento ${id} no encontrado`), { status: 404 });
-                throw e;
-            }
-        }
-        throw Object.assign(new Error('Document update conflict'), { status: 409 });
+        return await getBaseDao().patchDeep(id, changes);
     }
 
 
@@ -986,25 +904,9 @@ export default class GdeDAO {
         return { total: items.length, ok, fail, errores };
     }
 
-
-
 }
 
 
-
-
-
-
-function setByPath(obj, path, val) {
-    const keys = path.split('.');
-    let cur = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        const k = keys[i];
-        if (typeof cur[k] !== 'object' || cur[k] === null) cur[k] = {};
-        cur = cur[k];
-    }
-    cur[keys[keys.length - 1]] = val;
-}
 
 
 
