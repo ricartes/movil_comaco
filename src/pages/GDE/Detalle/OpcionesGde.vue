@@ -1,4 +1,27 @@
 <template>
+    <f7-block
+        class="alert-wrapper margin-bottom"
+        v-if="(isEmitida || isEnviada) && !isRescatada && !puedeAnularPorTiempo"
+    >
+        <div
+            class="alert alert-warning"
+            style="
+                border: 1px solid #faebcc;
+                background-color: #fcf8e3;
+                color: #8a6d3b;
+                border-radius: 6px;
+                padding: 10px 15px;
+                font-size: 14px;
+            "
+        >
+            <i class="f7-icons" style="font-size: 16px; margin-right: 6px">
+                exclamationmark_triangle
+            </i>
+            Esta guía ya no puede ser anulada porque han pasado más de
+            <strong>{{ horasMaxAnular }}</strong> horas desde su emisión.
+        </div>
+    </f7-block>
+
     <f7-list inset strong>
         <!-- Emitir (solo borrador) -->
         <f7-list-item
