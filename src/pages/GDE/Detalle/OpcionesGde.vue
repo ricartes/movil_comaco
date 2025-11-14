@@ -66,7 +66,9 @@
         <!-- Imprimir (siempre) -->
         <f7-list-item
             link
-            v-if="this.isEmitida || this.isEnviada || this.isNula && hasPrinter"
+            v-if="
+                this.isEmitida || this.isEnviada || (this.isNula && hasPrinter)
+            "
             @click="onImprimir"
             :title="tituloImprimirOriginal"
             :disabled="loading"
@@ -78,7 +80,9 @@
 
         <f7-list-item
             link
-            v-if="this.isEmitida || this.isEnviada || this.isNula && hasPrinter"
+            v-if="
+                this.isEmitida || this.isEnviada || (this.isNula && hasPrinter)
+            "
             @click="onImprimirCedible"
             :title="tituloImprimirCedible"
             :disabled="loading"
@@ -88,7 +92,13 @@
             </template>
         </f7-list-item>
 
-        <f7-block strong v-if="(this.isEmitida || this.isEnviada || this.isNula) && !hasPrinter" class="alert-wrapper">
+        <f7-block
+            strong
+            v-if="
+                (this.isEmitida || this.isEnviada || this.isNula) && !hasPrinter
+            "
+            class="alert-wrapper"
+        >
             <div
                 class="alert alert-danger"
                 style="
@@ -213,7 +223,11 @@ export default {
             );
         },
         showAnular() {
-            return (this.isEmitida || this.isEnviada) && !this.isRescatada;
+            return (
+                (this.isEmitida || this.isEnviada) &&
+                !this.isRescatada &&
+                this.puedeAnularPorTiempo
+            );
         },
         hasPrinter() {
             return !!store?.state?.printer?.name;
@@ -236,6 +250,44 @@ export default {
         },
         tituloImprimirCedible() {
             return `Imprimir Cedible${this.paperWidthSuffix}`;
+        },
+
+        parametrosGenerales() {
+            return config.parametros.parametrosGenerales;
+        },
+        horasMaxAnular() {
+            try {
+                const lista = this.doc?.parametrosGenerales;
+                if (!Array.isArray(lista)) return 24; // fallback global
+
+                const param = lista.find(
+                    (p) =>
+                        Number(p.id) ===
+                        this.parametrosGenerales.cantidadMaximasDiasAnular
+                );
+
+                // Si existe y tiene valor numérico correcto:
+                const valor = Number(param?.valor);
+                return isNaN(valor) ? 24 : valor;
+            } catch (e) {
+                return 24; // fallback por seguridad
+            }
+        },
+        puedeAnularPorTiempo() {
+            try {
+                const fecha = this.doc?.fechaEmision;
+                if (!fecha) return false; // sin fecha, no permitir por seguridad
+
+                const fechaEmision = new Date(fecha);
+                const ahora = new Date();
+
+                const diffMs = ahora - fechaEmision;
+                const diffHoras = diffMs / (1000 * 60 * 60);
+
+                return diffHoras <= this.horasMaxAnular;
+            } catch (e) {
+                return false;
+            }
         },
     },
     methods: {

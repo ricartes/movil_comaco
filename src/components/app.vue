@@ -57,6 +57,7 @@ export default {
         let resumeHandle = null;
         let backHandle = null;
         let visibilityHandle = null;
+        let accessPreloader = null;
 
         function startAutoSyncIfPossible() {
             try {
@@ -84,7 +85,16 @@ export default {
             silent = false,
             nonIntrusive = false,
         } = {}) => {
-            if (!silent) f7.dialog.preloader("Validando acceso");
+            if (!silent) {
+                // si había uno abierto, ciérralo por si acaso
+                if (accessPreloader) {
+                    try {
+                        accessPreloader.close();
+                    } catch (e) {}
+                    accessPreloader = null;
+                }
+                accessPreloader = f7.dialog.preloader("Validando acceso");
+            }
             const router = f7.views.main?.router;
 
             try {
@@ -180,7 +190,20 @@ export default {
                 // Error “real” (DNS/timeout/etc.) → trata como sin red
                 return await fallbackSinRed({ router, silent, nonIntrusive });
             } finally {
-                if (!silent) f7.dialog.close();
+                if (!silent && accessPreloader) {
+                    try {
+                        accessPreloader.close();
+                    } catch (e) {}
+                    accessPreloader = null;
+
+                    // saneo extra por si quedó algo en el DOM
+                    const ghost = document.querySelector(
+                        ".dialog.dialog-preloader"
+                    );
+                    if (ghost && ghost.parentNode) {
+                        ghost.parentNode.removeChild(ghost);
+                    }
+                }
             }
         };
 
