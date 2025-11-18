@@ -44,6 +44,9 @@ var mainView = app.views.create(".view-main", {
 
 var ls = app.loginScreen.create({ el: ".login-screen" });
 
+let trackingIntervalId = null;
+
+
 //acelerometro
 function onSuccess(acceleration) {
     alert(
@@ -153,19 +156,30 @@ function EnvioAutomatico(segundo_plano, automatico) {
 }
 
 function controlarTrackingDinamico() {
-    setInterval(async () => {
-        const usuarioActivo = Obtener_dato_local("rut_activo");
-        const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
-        const procesoActual = Obtener_dato_local("id_proceso_activo");
-        if (usuarioActivo && usuarioActivo != "" && ((procesoActual && procesoActual !== "") || gdeNoConfirmadas !== "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0)) {
+    // Evita crear múltiples intervalos si ya existe
+    if (trackingIntervalId !== null) return;
 
-            startTracking();
-        } else {
-            stopTracking();
+    trackingIntervalId = setInterval(async () => {
+        try {
+            const usuarioActivo = Obtener_dato_local("rut_activo");
+            const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+            const procesoActual = Obtener_dato_local("id_proceso_activo");
+
+            const hayGuiasPendientes = (
+                (procesoActual && procesoActual !== "") ||
+                (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0)
+            );
+
+            if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
+                startTracking();
+            } else {
+                stopTracking();
+            }
+        } catch (e) {
+            console.error("Error en controlarTrackingDinamico:", e);
         }
-    }, 10000); // Cada 10 segundos
+    }, 10000);
 }
-
 
 function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
 
@@ -374,7 +388,7 @@ document.addEventListener("deviceready", async function () {
         datos_usuario(usuario_activo, function (result) {
             //alert(result);
             if (result != -1) {
-                startTracking();
+                //startTracking();
                 Guardar_dato_local("bloqueado", 0);
                 envio_automatico_activado = 1;
                 Guardar_dato_local(
@@ -413,20 +427,21 @@ document.addEventListener("deviceready", async function () {
     if (typeof initializeResumeHandler === "function") {
         initializeResumeHandler();
     } else {
-        app.dialog.alert("La función initializeResumeHandler no está disponible.");
+        console.warn("initializeResumeHandler no está disponible.");
     }
 
     if (typeof inicializarGpsDiagnosticHandler === "function") {
         inicializarGpsDiagnosticHandler();
     } else {
-        app.dialog.alert("La función inicializarGpsDiagnosticHandler no está disponible.");
+        console.warn("inicializarGpsDiagnosticHandler no está disponible.");
     }
 
     if (typeof configureBackgroundGeolocation === "function") {
         configureBackgroundGeolocation();
     } else {
-        app.dialog.alert("La función configureBackgroundGeolocation no está disponible.");
+        console.error("configureBackgroundGeolocation no está disponible.");
     }
+
 
 
     let intentos = 0;
@@ -764,6 +779,14 @@ function logout() {
         "GFE",
         function () {
             stopTracking();
+            if (trackingIntervalId !== null) {
+                clearInterval(trackingIntervalId);
+                trackingIntervalId = null;
+            }
+            if (timmer) {
+                clearInterval(timmer);
+                timmer = null;
+            }
             const usuarioActivo = Obtener_dato_local('user_activo');
             Borrar_dato_local("user_activo");
             Borrar_dato_local("rut_activo");
@@ -831,7 +854,9 @@ function envio_guias_automatico() {
 
 async function clickIngresoPlanta() {
 
-    app.dialog.confirm(
+    mainView.router.navigate("/IngresoPlanta/");
+
+    /*app.dialog.confirm(
         "¿Está seguro que desea confirmar el ingreso planta?. Se requiere una conexión a Internet activa",
         "GFE",
         async function () {
@@ -872,7 +897,7 @@ async function clickIngresoPlanta() {
 
 
         }
-    );
+    );*/
 
 
 
