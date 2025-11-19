@@ -121,9 +121,9 @@ async function cicloEnvioAutomaticoDatos() {
         try {
             const esValida = await validarVersionApp();
             versionAppValida = !!esValida;
+
+            // 👇 Solo aquí actualizamos el flag global
             Guardar_dato_local("version_app_invalida", versionAppValida ? 0 : 1);
-
-
 
             if (!versionAppValida && !versionAppAlertMostrado) {
                 versionAppAlertMostrado = true;
@@ -131,13 +131,15 @@ async function cicloEnvioAutomaticoDatos() {
 
                 let datos = await generarDataTrazabilidad(
                     TipoAccionTypes.VERSION_INCORRECTA_APP,
-                    Obtener_dato_local('user_activo')
+                    Obtener_dato_local("user_activo")
                 );
 
                 await obtenerUbicacionEInsertarLog(
-                    Obtener_dato_local('user_activo'),
+                    Obtener_dato_local("user_activo"),
                     datos
                 );
+
+                // Detenemos el timer automático porque sabemos que la versión es vieja
                 if (timmerEnvio) {
                     clearInterval(timmerEnvio);
                     timmerEnvio = null;
@@ -150,30 +152,22 @@ async function cicloEnvioAutomaticoDatos() {
                 );
             }
         } catch (e) {
-            console.error("Error validando versión:", e);
-            versionAppValida = false;
-            Guardar_dato_local("version_app_invalida", 1);
+            console.error("Error validando versión (ciclo automático):", e);
 
-            envio_automatico_activado = 0;
+            // ❗IMPORTANTE:
+            // - NO tocamos versionAppValida ni version_app_invalida
+            //   (dejamos el valor que ya tenía).
+            // - NO apagamos el envío manual.
+            // - Solo saltamos este ciclo y que el próximo intervalo vuelva a intentar.
+            //
+            // Opcional: si quieres reintentar validación en el próximo ciclo:
+            versionAppCheckHecho = false;
 
-            if (!versionAppAlertMostrado) {
-                versionAppAlertMostrado = true;
-
-                if (timmerEnvio) {
-                    clearInterval(timmerEnvio);
-                    timmerEnvio = null;
-                }
-
-                app.dialog.alert(
-                    "No se pudo validar la versión de la app. " +
-                    "El envío automático de datos ha sido desactivado.",
-                    "Advertencia"
-                );
-            }
+            return; // salimos sin enviar nada en este tick
         }
     }
 
-    // Si la versión NO es válida → no se envían datos
+    // Si la versión es explícitamente NO válida → no se envían datos
     if (!versionAppValida) {
         return;
     }
