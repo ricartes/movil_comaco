@@ -31,19 +31,19 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 659
+              "count": 661
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 658
+              "count": 660
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 659
+              "count": 661
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 659
+              "count": 661
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
@@ -141,7 +141,7 @@
             },
             {
               "xml": "<service android:exported=\"false\" android:foregroundServiceType=\"location\" android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
-              "count": 90
+              "count": 92
             }
           ],
           "/*": [

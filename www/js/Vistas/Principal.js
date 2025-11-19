@@ -144,7 +144,7 @@ async function cicloEnvioAutomaticoDatos() {
                 }
 
                 app.dialog.alert(
-                    "La versión instalada no es compatible con el servidor. " +
+                    "La versión de la aplicación instalada en este dispositivo no es la última vigente. " +
                     "Actualice la app para reactivar el envío automático de datos.",
                     "Actualización requerida"
                 );
@@ -328,7 +328,6 @@ document.addEventListener("deviceready", async function () {
     cordova.getAppVersion.getVersionCode(function (versionCode) {
         // Ej: 4000
         Guardar_dato_local("version_app_code", versionCode);
-        console.log("versionCode:", versionCode);
     });
 
 

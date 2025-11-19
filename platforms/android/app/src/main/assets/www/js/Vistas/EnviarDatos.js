@@ -17,9 +17,6 @@ function enviar_datos() {
     var error_aserrable = 0;
     var error_pulpable = 0;
 
-
-
-
     if (checkConnection() != "No network connection") {
         envio_automatico_activado = 0;
         Guardar_dato_local("bloqueado", 1);
@@ -28,7 +25,6 @@ function enviar_datos() {
             if (result_conexion == 1) {
 
                 try {
-
                     try {
                         const versionValida = await validarVersionApp();
                         Guardar_dato_local("version_app_invalida", versionValida ? 0 : 1);
@@ -44,7 +40,7 @@ function enviar_datos() {
                             );
 
                             Guardar_dato_local("bloqueado", 0);
-
+                            app.dialog.close();
                             app.dialog.alert(
                                 "La versión de la aplicación instalada en este dispositivo no es la última vigente. " +
                                 "Por favor, actualice la app antes de continuar.",
