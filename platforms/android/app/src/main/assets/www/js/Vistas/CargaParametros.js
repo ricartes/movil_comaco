@@ -77,7 +77,6 @@ function carga_parametros() {
                             return false;
                         }
                     } catch (ex) {
-                        Guardar_dato_local("version_app_invalida", 1);
                         throw ex;
                     }
 
