@@ -133,3 +133,75 @@ function seleccionarOrdenCompra(DocEntry, ItemCode) {
         }
     });
 }
+
+
+// Devuelve true/false según exista evidencia de ingreso planta para la guía
+function existeEvidenciaIngresoPlantaParaGuia(idGde) {
+    return new Promise((resolve, reject) => {
+        DATOS_seleccionar_evidencia_guia(
+            idGde,
+            constantes.tipoEvidencia.ingresoPlanta,
+            function (datos_evidencia) {
+                try {
+
+                    // Ajusta según tu implementación real de DATOS_seleccionar_evidencia_guia
+                    if (
+                        datos_evidencia === -1 ||
+                        datos_evidencia === "-1" ||
+                        !datos_evidencia ||
+                        (Array.isArray(datos_evidencia) && datos_evidencia.length === 0)
+                    ) {
+                        resolve(false); // NO tiene foto
+                    } else {
+                        resolve(true);  // Sí tiene al menos una foto
+                    }
+                } catch (e) {
+                    console.error("Error evaluando evidencia ingreso planta:", e);
+                    // En caso de error, mejor ser conservador y decir que NO tiene
+                    resolve(false);
+                }
+            }
+        );
+    });
+}
+
+
+
+async function validarEvidenciasIngresoPlantaLocales() {
+    const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+
+
+    if (
+        gdeNoConfirmadas === "-1" ||
+        !Array.isArray(gdeNoConfirmadas) ||
+        gdeNoConfirmadas.length === 0
+    ) {
+        return {
+            valido: false,
+            mensaje: "No se encontraron guías pendientes de confirmar ingreso planta.",
+        };
+    }
+
+    const faltantes = [];
+
+    // Recorremos todas las guías pendientes
+    for (const gde of gdeNoConfirmadas) {
+        // Ajusta el ID según tu select (ROWID o ID_GDE)
+        const tieneFoto = await existeEvidenciaIngresoPlantaParaGuia(gde.ROWID);
+        if (!tieneFoto) {
+            faltantes.push(gde.ROWID);
+        }
+    }
+
+    if (faltantes.length > 0) {
+        return {
+            valido: false,
+            mensaje:
+                "No es posible confirmar el ingreso a planta.\n\n" +
+                "Hay guías NO tienen evidencia de ingreso planta."
+        };
+    }
+
+    // Todo OK
+    return { valido: true };
+}

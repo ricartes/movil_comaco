@@ -39,12 +39,12 @@ function configureBackgroundGeolocation() {
             const ahoraMs = Date.now();
 
             if (ultimoTimestamp && time === ultimoTimestamp) {
-                return BackgroundGeolocation.finish();
+                return;
             }
 
             // Filtro por tiempo: mínimo 10s entre registros guardados
             if (ultimoGuardadoMs && (ahoraMs - ultimoGuardadoMs) < 10000) {
-                return BackgroundGeolocation.finish();
+                return;
             }
 
             if (lastKnownLocation) {
@@ -58,7 +58,7 @@ function configureBackgroundGeolocation() {
 
                 if (speed <= 0 && distancia < 1) {
 
-                    return BackgroundGeolocation.finish();
+                    return;
                 }
             }
             lastKnownLocation = location;
@@ -69,12 +69,12 @@ function configureBackgroundGeolocation() {
             await saveLocation(location);
 
             // Indica que la ubicación ha sido procesada
-            BackgroundGeolocation.finish();
+            return;
         } catch (error) {
             console.error("Error al procesar la ubicación:", error);
 
             // Asegúrate de llamar a `finish` incluso si ocurre un error
-            BackgroundGeolocation.finish();
+            return;
         }
     });
 

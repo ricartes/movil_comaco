@@ -190,7 +190,8 @@ function guarda_evidencia_foto(latitud, longitud) {
         || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.camionCargado1
         || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.camionVacio2
         || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.camionCargado2
-        || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.padronVehiculo) {
+        || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.padronVehiculo
+        || evidencia_actual.TIPO_EVIDENCIA == constantes.tipoEvidencia.ingresoPlanta) {
         DATOS_borra_evidencia_guia(evidencia_actual, function (result_guardado) {
             DATOS_guardar_evidencia_guia(evidencia_actual, function (result_guardado) {
                 //vacio 1, vacio 2

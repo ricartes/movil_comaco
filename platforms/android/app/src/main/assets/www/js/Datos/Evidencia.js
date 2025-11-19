@@ -209,12 +209,12 @@ function DATOS_guardar_evidencia_guia(evidencia, callback) {
     this.db.transaction(function (tr) {
         tr.executeSql("INSERT INTO GDE_EVIDENCIA (ID_UNICO_MOVIL, ID_GDE, ID_UNICO_MOVIL_GDE, FECHA_EVIDENCIA, OBSERVACION, ARCHIVO, ENVIADO, GDE_COD_DESPACHADOR, GDE_ESTADO_MOVIL, EVIDENCIA_COORDENADA_X, EVIDENCIA_COORDENADA_Y, TIPO_EVIDENCIA) VALUES(?,?,?, datetime('now','localtime'),?,?,?,?,?,?,?,?)", [evidencia.ID_UNICO_MOVIL, evidencia.ID_GDE, evidencia.ID_UNICO_MOVIL_GDE, evidencia.OBSERVACION, evidencia.ARCHIVO, evidencia.ENVIADO, Obtener_dato_local("rut_activo"), evidencia.GDE_ESTADO_MOVIL, evidencia.EVIDENCIA_COORDENADA_X, evidencia.EVIDENCIA_COORDENADA_Y, evidencia.TIPO_EVIDENCIA], function (tr, rs) {
             //vacio 1
-            if (evidencia_actual.TIPO_EVIDENCIA == 1) {
+            if (evidencia.TIPO_EVIDENCIA == constantes.tipoEvidencia.camionVacio1) {
                 tr.executeSql("UPDATE GDE SET GDE_HORA_CARGUIO_INICIO = datetime('now','localtime') WHERE ROWID=?", [evidencia.ID_GDE], function (tr, rs) {
                     typeof callback == "function" && callback(rs);
                 });
 
-            } else if (evidencia_actual.TIPO_EVIDENCIA == 2) {
+            } else if (evidencia.TIPO_EVIDENCIA == constantes.tipoEvidencia.camionCargado1) {
                 tr.executeSql("UPDATE GDE SET GDE_HORA_CARGUIO_TERMINO = datetime('now','localtime') WHERE ROWID=?", [evidencia.ID_GDE], function (tr, rs) {
                     typeof callback == "function" && callback(rs);
                 });
@@ -238,6 +238,103 @@ function DATOS_borra_evidencia_guia(evidencia, callback) {
     });
 }
 
+
+
+function borrarEvidenciasIngresoPlantaPendientes(guiasPendientes) {
+    return new Promise((resolve) => {
+        if (!Array.isArray(guiasPendientes) || guiasPendientes.length === 0) {
+            return resolve(false);
+        }
+
+        const db = window.sqlitePlugin.openDatabase({
+            name: "bd.db",
+            location: 'default',
+            androidDatabaseImplementation: 2
+        });
+
+        const tipo = constantes.tipoEvidencia.ingresoPlanta; // 7
+        const ids = guiasPendientes.map(g => g.ROWID || g.ID_GDE).filter(Boolean);
+
+        if (ids.length === 0) {
+            return resolve(false);
+        }
+
+        const placeholders = ids.map(() => '?').join(',');
+
+        // 1) Seleccionar rutas
+        db.transaction(function (tr) {
+            tr.executeSql(
+                `
+                SELECT ARCHIVO 
+                  FROM GDE_EVIDENCIA
+                 WHERE TIPO_EVIDENCIA = ?
+                   AND GDE_ESTADO_MOVIL = 'B'
+                   AND ID_GDE IN (${placeholders})
+                `,
+                [tipo, ...ids],
+                function (tr, rs) {
+                    const rutas = [];
+                    for (let i = 0; i < rs.rows.length; i++) {
+                        rutas.push(rs.rows.item(i).ARCHIVO);
+                    }
+
+                    // 2) Borrar registros
+                    tr.executeSql(
+                        `
+                        DELETE FROM GDE_EVIDENCIA 
+                        WHERE TIPO_EVIDENCIA = ?
+                          AND GDE_ESTADO_MOVIL = 'B'
+                          AND ID_GDE IN (${placeholders})
+                        `,
+                        [tipo, ...ids],
+                        async function (tr, rs2) {
+                            // 3) Borrar archivos físicos (best effort)
+                            for (const ruta of rutas) {
+                                await borrarArchivoFoto(ruta);
+                            }
+                            resolve(true);
+                        },
+                        function (tr, err) {
+                            console.error("Error al borrar evidencias:", err);
+                            resolve(false);
+                        }
+                    );
+                },
+                function (tr, err) {
+                    console.error("Error al seleccionar evidencias:", err);
+                    resolve(false);
+                }
+            );
+        });
+    });
+}
+
+
+function borrarArchivoFoto(ruta) {
+    return new Promise((resolve) => {
+        if (!ruta) return resolve(false);
+
+        window.resolveLocalFileSystemURL(
+            ruta,
+            function (fileEntry) {
+                fileEntry.remove(
+                    function () {
+                        console.log("Archivo borrado:", ruta);
+                        resolve(true);
+                    },
+                    function (err) {
+                        console.warn("No se pudo borrar archivo:", ruta, err);
+                        resolve(false);
+                    }
+                );
+            },
+            function (err) {
+                console.warn("No se pudo resolver ruta:", ruta, err);
+                resolve(false);
+            }
+        );
+    });
+}
 
 
 function DATOS_guardar_evidencia_guia_vuelta(evidencia, callback) {
@@ -267,6 +364,8 @@ function DATOS_actualizar_observacion_evidencia_guia(evidencia, callback) {
 
 
 
+
+
 function DATOS_cambiar_estado_gde_evidencia(id_gde, estado, callback) {
 
 
@@ -278,6 +377,30 @@ function DATOS_cambiar_estado_gde_evidencia(id_gde, estado, callback) {
     });
 }
 
+
+/**
+ * Cambia el estado de *todas* las evidencias asociadas a una GDE.
+ * @param {Number} idGde - ID de la GDE (ROWID o ID_GDE)
+ * @param {String} nuevoEstado - Estado a asignar (por ejemplo "I")
+ */
+function cambiarEstadoEvidenciasIngreso(idGde, nuevoEstado) {
+    return new Promise((resolve, reject) => {
+
+        if (!idGde) {
+            console.error("No se pudo determinar el ID_GDE o ROWID");
+            return resolve(false);
+        }
+
+        DATOS_cambiar_estado_gde_evidencia(
+            idGde,
+            nuevoEstado,
+            function (rs) {
+                resolve(true);
+            }
+        );
+
+    });
+}
 
 
 
@@ -328,15 +451,10 @@ async function DATOS_ActualizarIntentosEvidencia(id_unico_evidencia, intentos) {
 
 
 function DATOS_borrar_evidencia_guia(id_evidencia, callback) {
-
-
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     this.db.transaction(function (tr) {
         tr.executeSql("DELETE FROM GDE_EVIDENCIA WHERE rowid=?", [id_evidencia], function (tr, rs) {
             typeof callback == "function" && callback(rs);
         });
     });
-
-
-
 }

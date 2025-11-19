@@ -5,7 +5,7 @@ var db = null;
 var ip_interna = null;
 var ip_externa = null;
 var usuario_activo;
-var hay_parametro;
+
 
 
 
@@ -626,13 +626,16 @@ function boton_atras() {
 }
 
 async function clickEmisionFaena() {
-    if (hay_parametro == 0) {
-        app.dialog.alert("No se han cargado los parámetros", "Emisión desde faena");
+    const versionInvalida = parseInt(Obtener_dato_local("version_app_invalida") || "0");
+    if (versionInvalida === 1) {
+        app.dialog.alert(
+            "La versión de la aplicación instalada no es la última vigente. " +
+            "Actualice la app antes de confirmar el ingreso a planta.",
+            "Actualización requerida"
+        );
         return false;
     } else {
-
         try {
-
             const estadoGPS = await verificarEstadoGPS();
             if (!estadoGPS) {
                 app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo.`, "GFE");
@@ -655,6 +658,9 @@ async function clickEmisionFaena() {
             app.dialog.alert("No se pudo verificar estado del GPS. Vuelva a iniciar la aplicación", "GFE");
         }
     }
+
+
+
 }
 
 function login() {
@@ -873,7 +879,19 @@ function envio_guias_automatico() {
 
 async function clickIngresoPlanta() {
 
-    mainView.router.navigate("/IngresoPlanta/");
+    const versionInvalida = parseInt(Obtener_dato_local("version_app_invalida") || "0");
+    if (versionInvalida === 1) {
+        app.dialog.alert(
+            "La versión de la aplicación instalada no es la última vigente. " +
+            "Actualice la app antes de confirmar el ingreso a planta.",
+            "Actualización requerida"
+        );
+        return false;
+    } else {
+        mainView.router.navigate("/IngresoPlanta/");
+
+    }
+
 
 }
 

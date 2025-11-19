@@ -45,14 +45,24 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
 
     document.addEventListener("visibilitychange", function () {
         if (!document.hidden) {
-            // La aplicación está de nuevo en primer plano
-            const ahora = new Date();
-            const tiempoRestante = result_param.PAG_VALOR * 60 - Math.floor((ahora - horaPuntoInicio) / 1000);
 
-            // Actualiza el texto del botón inmediatamente
-            if (tiempoRestante <= 0) {
-                $("#btn_punto_final").text("OBTENER PUNTO FINAL").removeClass("disabled").removeAttr("disabled");
-            }
+            DATOS_seleccionar_puntosGDE(id_gde_actual, function (gde_result) {
+                DATOS_seleccionar_Parametro_general(1, 10, async function (result_param) {
+                    // La aplicación está de nuevo en primer plano
+                    const ahora = new Date();
+                    const tiempo = result_param.PAG_VALOR ?? 2;
+                    const horaPuntoInicio = new Date(gde_result.GDE_HORA_PUNTO_INICIO);
+                    const tiempoRestante = tiempo * 60 - Math.floor((ahora - horaPuntoInicio) / 1000);
+
+                    // Actualiza el texto del botón inmediatamente
+                    if (tiempoRestante <= 0) {
+                        $("#btn_punto_final").text("OBTENER PUNTO FINAL").removeClass("disabled").removeAttr("disabled");
+                    }
+
+                });
+            });
+
+
         }
     });
 
@@ -279,8 +289,6 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
 function obtenerDiferenciaCamionCargadoPuntoInicial() {
 
 
-
-
     DATOS_seleccionar_puntosGDE(id_gde_actual, function (gde_result) {
         if (gde_result.GDE_HORA_PUNTO_INICIO == null || gde_result.GDE_HORA_PUNTO_INICIO == undefined || gde_result.GDE_HORA_PUNTO_INICIO == "") {
             app.dialog.alert("Primero debe obtener el punto inicial", "GFE");
@@ -295,9 +303,9 @@ function obtenerDiferenciaCamionCargadoPuntoInicial() {
                 let intervalo = setInterval(() => {
                     // Obtén la hora actual
                     const ahora = new Date();
-
                     // Calcula el tiempo restante dinámicamente
-                    const tiempoRestante = result_param.PAG_VALOR * 60 - Math.floor((ahora - horaPuntoInicio) / 1000);
+                    const minutosEspera = result_param.PAG_VALOR ?? 2;
+                    const tiempoRestante = minutosEspera * 60 - Math.floor((ahora - horaPuntoInicio) / 1000);
 
                     const btnPuntoFinal = $("#btn_punto_final"); // Usando jQuery para manejar el botón
 
@@ -399,7 +407,7 @@ async function obtener_punto_final() {
 
                     const diff = Math.abs(new Date() - new Date(gde_result.GDE_HORA_PUNTO_INICIO));
                     const minutes = Math.floor((diff / 1000) / 60);
-                    const tiempo = result_param.PAG_VALOR;
+                    const tiempo = result_param.PAG_VALOR ?? 2;
 
                     if (minutes >= tiempo) {
                         getLocation(2, 1, gde_actual_puntos_gde.GDE_COD_PROYECTO);

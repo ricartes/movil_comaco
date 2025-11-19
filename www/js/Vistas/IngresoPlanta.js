@@ -7,11 +7,40 @@ var evidenciaIngresoContext = {
 var capturandoIngresoPlanta = false;
 
 
-$$(document).on('page:init', '.page[data-name="ingreso-planta"]', function (e, page) {
+$$(document).on('page:init', '.page[data-name="ingreso-planta"]', async function (e, page) {
+
+
+    const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+
+    if (gdeNoConfirmadas === "-1" || !Array.isArray(gdeNoConfirmadas) || gdeNoConfirmadas.length === 0) {
+        app.dialog.alert(
+            'No se encontraron guías pendientes de confirmar ingreso planta.',
+            "GFE",
+            function () {
+                ir_atras_boton();
+            }
+        );
+    }
+    try {
+        await borrarEvidenciasIngresoPlantaPendientes(gdeNoConfirmadas);
+
+    } catch (ex) {
+        app.dialog.alert(
+            'Ha ocurrido un error al eliminar evidencias provisorias.',
+            "GFE"
+        );
+    }
     // Delegación de evento para la imagen de captura
-    $$('.page[data-name="ingreso-planta"]').on('click', '#imagen_padron', function () {
+    $$('.page[data-name="ingreso-planta"]').on('click', '#imagen_confirma_planta', function () {
         capturarEvidenciaIngresoPlanta();
     });
+
+    $$('.page[data-name="ingreso-planta"]').on('click', '#btn_confirma_ingreso_planta', function () {
+        confirmarIngresoPlanta();
+    });
+
+
+
 })
 
 
@@ -30,8 +59,6 @@ async function capturarEvidenciaIngresoPlanta() {
             return;
         }
 
-        // Evidencia 7 = CONFIRMA INGRESO PLANTA
-        tipoevidencia = 7;
 
         navigator.camera.getPicture(
             onPhotoFileSuccessIngresoPlanta,
@@ -97,17 +124,22 @@ async function procesarEvidenciasIngresoPlanta(fotoUrl) {
                 "GFE"
             );
             capturandoIngresoPlanta = false;
-            return;
+            return false;
+        } else {
+
+            // Guardamos contexto para este flujo
+            evidenciaIngresoContext = {
+                fotoUrl: fotoUrl,
+                guias: gdeNoConfirmadas
+            };
+
+            console.log(evidenciaIngresoContext);
+
+            // Obtenemos ubicación solo una vez para todas
+            getLocationIngresoPlanta();
         }
 
-        // Guardamos contexto para este flujo
-        evidenciaIngresoContext = {
-            fotoUrl: fotoUrl,
-            guias: gdeNoConfirmadas
-        };
 
-        // Obtenemos ubicación solo una vez para todas
-        getLocationIngresoPlanta();
 
     } catch (err) {
         console.error(err);
@@ -172,61 +204,146 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
     let pendientes = guias.length;
 
     guias.forEach(function (gde) {
-        // Ajusta estos campos según cómo venga tu SELECT de GDE
         const evidencia = new CL_GDE_Evidencia();
         evidencia.ID_UNICO_MOVIL = "evid_gde" + obtener_IDUNICO();
 
-        // Si tu identificador real es ROWID, cambia esta línea:
-        evidencia.ID_GDE = gde.ID_GDE;           // o gde.ROWID
 
+        evidencia.ID_GDE = gde.ROWID;
         evidencia.ID_UNICO_MOVIL_GDE = gde.ID_UNICO_MOVIL;
-        evidencia.GDE_ESTADO_MOVIL = "B";        // borrador local
-        evidencia.OBSERVACION = "EVIDENCIA CONFIRMA INGRESO PLANTA";              // se setea en guarda_evidencia_foto según TIPO_EVIDENCIA
+        evidencia.GDE_ESTADO_MOVIL = "B";     // borrador local
+        evidencia.FECHA_EVIDENCIA = "";
+        evidencia.OBSERVACION = "EVIDENCIA CONFIRMA INGRESO PLANTA";
         evidencia.ARCHIVO = fotoUrl;
-        evidencia.ENVIADO = 0;                   // pendiente de envío
-        evidencia.TIPO_EVIDENCIA = constantes.tipoEvidencia.ingresoPlanta;            // CONFIRMA INGRESO PLANTA
+        evidencia.ENVIADO = 0;                // pendiente de envío
+        evidencia.TIPO_EVIDENCIA = constantes.tipoEvidencia.ingresoPlanta;
         evidencia.EVIDENCIA_COORDENADA_X = latitud;
         evidencia.EVIDENCIA_COORDENADA_Y = longitud;
 
-        // Asignamos al global para que fotos.js lo use
-        evidencia_actual = evidencia;
+        console.log(evidencia);
 
-        // Reutiliza tu helper genérico; ya maneja TIPO_EVIDENCIA == 7
-        guarda_evidencia_foto(latitud, longitud);
+        // 1) Borrar evidencia anterior (si existe) para esa guía/tipo
+        DATOS_borra_evidencia_guia(evidencia, function () {
+            // 2) Insertar la nueva evidencia
+            DATOS_guardar_evidencia_guia(evidencia, function () {
+                console.log("guarda");
+                pendientes--;
 
-        pendientes--;
-        if (pendientes === 0) {
-            // Cambiamos la imagen en pantalla por la foto capturada
-            $$("#imagen_confirma_planta").attr("src", fotoUrl);
+                // Cuando termina la última inserción
+                if (pendientes === 0) {
+                    // Cambiamos la imagen en pantalla por la foto capturada
+                    $$("#imagen_confirma_planta").attr("src", fotoUrl);
 
-            // Trazabilidad simple: CAPTURA_EVIDENCIA_INGRESO_PLANTA
-            (async () => {
-                try {
-                    app.dialog.progress("Cargando...");
-                    let datos = await generarDataTrazabilidad(
-                        TipoAccionTypes.CAPTURA_EVIDENCIA_INGRESO_PLANTA,
-                        Obtener_dato_local('user_activo'),
-                        {
-                            cantidadGuias: guias.length,
-                            foto: fotoUrl
+                    // Trazabilidad simple: CAPTURA_EVIDENCIA_INGRESO_PLANTA
+                    (async () => {
+                        try {
+                            app.dialog.progress("Cargando...");
+
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.CAPTURA_EVIDENCIA_INGRESO_PLANTA,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    cantidadGuias: guias.length,
+                                    foto: fotoUrl
+                                }
+                            );
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            app.dialog.close();
+                            capturandoIngresoPlanta = false;
+                            app.dialog.alert(
+                                "Evidencia de ingreso a planta registrada para todas las guías pendientes.",
+                                "GFE"
+                            );
                         }
-                    );
-
-                    await obtenerUbicacionEInsertarLog(
-                        Obtener_dato_local('user_activo'),
-                        datos
-                    );
-                } catch (e) {
-                    console.error(e);
-                } finally {
-                    app.dialog.close();
-                    capturandoIngresoPlanta = false;
-                    app.dialog.alert(
-                        "Evidencia de ingreso a planta registrada para todas las guías pendientes.",
-                        "GFE"
-                    );
+                    })();
                 }
-            })();
-        }
+            });
+        });
     });
 }
+
+function confirmarIngresoPlanta() {
+    app.dialog.confirm(
+        "¿Está seguro que desea confirmar el ingreso planta?. Se requiere una conexión a Internet activa",
+        "GFE",
+        async function () {
+
+            // 1) Bloquear si versión app inválida
+            const versionInvalida = parseInt(Obtener_dato_local("version_app_invalida") || "0");
+            if (versionInvalida === 1) {
+                app.dialog.alert(
+                    "La versión de la aplicación instalada no es la última vigente. " +
+                    "Actualice la app antes de confirmar el ingreso a planta.",
+                    "Actualización requerida"
+                );
+                return false;
+            }
+
+            // 2) Validar conexión básica
+            if (checkConnection() == "No network connection") {
+                app.dialog.alert("No hay conexión a Internet", "GFE");
+                return false;
+            }
+
+            // 3) Mostrar un único preloader y envolver TODO en try/finally
+            app.dialog.preloader("Informando despacho planta...");
+
+            try {
+                // 3.1) Promisificar comprueba_conexion
+                const result_conexion = await new Promise((resolve) => {
+                    comprueba_conexion("0", function (res) {
+                        resolve(res);
+                    });
+                });
+
+                if (result_conexion != 1) {
+                    app.dialog.alert("No se pudo establecer la conexión con el servidor.", "GFE");
+                    return;
+                }
+
+                // 3.2) Validar evidencias locales
+                const validacion = await validarEvidenciasIngresoPlantaLocales();
+                if (!validacion.valido) {
+                    app.dialog.alert(validacion.mensaje, "GFE");
+                    return;
+                }
+
+                // 3.3) Cambiar texto del preloader y enviar al servidor
+
+
+                const response = await enviarConfirmacionIngresoPlantaService();
+                console.log("[INGRESO] Resultado final:", response);
+
+                app.dialog.alert(
+                    `Proceso finalizado. Total: ${response.total}, ` +
+                    `exitosos: ${response.exitosos}, errores: ${response.erroneos}.`,
+                    "GFE", function () {
+                        ir_atras_boton();
+                    }
+                );
+            } catch (ex) {
+                const errorMessage = ex && ex.message ? ex.message : ex;
+                console.error("[INGRESO] Error en confirmarIngresoPlanta:", ex);
+                app.dialog.alert(
+                    `Ocurrió un error durante el proceso: ${errorMessage}`,
+                    "GFE"
+                );
+            } finally {
+                // Pase lo que pase, cerramos el preloader
+                try {
+                    app.dialog.close();
+                } catch (e) {
+                    // Por si no hay diálogos abiertos, no queremos reventar aquí
+                    console.warn("No había diálogo que cerrar:", e);
+                }
+            }
+        }
+    );
+}
+

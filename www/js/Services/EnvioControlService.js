@@ -41,6 +41,8 @@ async function enviarConfirmacionIngresoPlantaService() {
         erroneos: 0
     };
 
+    console.log(respuesta);
+
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
 
     if (gdeNoConfirmadas !== "-1" && Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0) {
@@ -50,12 +52,22 @@ async function enviarConfirmacionIngresoPlantaService() {
         for (let i = 0; i < gdeNoConfirmadas.length; i++) {
             try {
                 const gde = gdeNoConfirmadas[i];
+                console.log("[INGRESO] Enviando GDE:", i, gde.ID_UNICO_MOVIL);
 
                 const response = await enviarConfirmacionIngresoPlantaWebService(gde.ID_UNICO_MOVIL);
+                console.log("[INGRESO] Respuesta WS:", response);
 
                 if (response.STATUS === true) {
 
+                    console.log("[INGRESO] Actualizando GDE local:", gde.ROWID);
                     await DATOS_confirmaIngresoPlanta(gde.ROWID);
+                    console.log("[INGRESO] GDE_CONFIRMA_INGRESO_PLANTA OK");
+
+                    const cambioEstadoOk = await cambiarEstadoEvidenciasIngreso(gde.ROWID, 'I');
+                    console.log("[INGRESO] cambiarEstadoEvidenciasIngreso OK:", cambioEstadoOk);
+
+                    // ⚠️ PROBAR PRIMERO SIN Trazabilidad
+                    console.log("[INGRESO] ANTES trazabilidad");
 
                     const datos = await generarDataTrazabilidad(
                         TipoAccionTypes.CONFIRMA_INGRESO_PLANTA,
@@ -66,22 +78,28 @@ async function enviarConfirmacionIngresoPlantaService() {
                             id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
                         }
                     );
+                    console.log("[INGRESO] generarDataTrazabilidad OK");
 
                     await obtenerUbicacionEInsertarLog(
                         Obtener_dato_local('user_activo'),
                         datos
                     );
+                    console.log("[INGRESO] obtenerUbicacionEInsertarLog OK");
 
                     respuesta.exitosos++;
                 } else {
+                    console.log("[INGRESO] WS STATUS = false");
                     respuesta.erroneos++;
                 }
             } catch (ex) {
-                alert("Error en la confirmación de ingreso:", ex);
+                console.error("[INGRESO] Error en la confirmación de ingreso:", ex);
                 respuesta.erroneos++;
             }
         }
+
     }
+
+    console.log(respuesta);
     return respuesta;
 }
 
