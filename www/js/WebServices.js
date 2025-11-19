@@ -1753,16 +1753,6 @@ function enviar_imagenes(bandera, callback) {
                             typeof callback == "function" && callback(1);
                         }
                     }
-
-                    /*uploadPhoto(result[i].ARCHIVO, result[i].ID_UNICO_MOVIL, i + 1, tamano, ruta, true, function (result2) {
-                        conta++;
-                        //alert(conta+"tamano");
-                        if (confirma_guardado_parametro(conta, tamano) == 1) {
-                            typeof callback == "function" && callback(1);
-                        }
-
-                    });*/
-
                 }
             }
         });

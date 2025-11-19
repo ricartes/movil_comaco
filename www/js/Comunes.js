@@ -716,3 +716,47 @@ function manejarIntentosCapturaEvidencias(intentosActuales, intentosMaximos) {
     }
     return { intentosActualizados: intentosActuales, debeAnular: true };
 }
+
+
+function xmlToJson(xml) {
+    // Credito al snippet clásico adaptado
+    var obj = {};
+
+    if (xml.nodeType === 1) { // ELEMENT_NODE
+        // atributos
+        if (xml.attributes && xml.attributes.length > 0) {
+            obj["@attributes"] = {};
+            for (var j = 0; j < xml.attributes.length; j++) {
+                var attribute = xml.attributes.item(j);
+                obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+            }
+        }
+    } else if (xml.nodeType === 3) { // TEXT_NODE
+        var text = xml.nodeValue.trim();
+        if (text) {
+            obj = text;
+        }
+    }
+
+    // hijos
+    if (xml.hasChildNodes()) {
+        for (var i = 0; i < xml.childNodes.length; i++) {
+            var item = xml.childNodes.item(i);
+            var nodeName = item.nodeName;
+
+            var child = xmlToJson(item);
+            if (child === "") continue; // ignorar textos vacíos
+
+            if (typeof obj[nodeName] === "undefined") {
+                obj[nodeName] = child;
+            } else {
+                if (!Array.isArray(obj[nodeName])) {
+                    obj[nodeName] = [obj[nodeName]];
+                }
+                obj[nodeName].push(child);
+            }
+        }
+    }
+
+    return obj;
+}

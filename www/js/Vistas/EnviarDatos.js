@@ -1,81 +1,120 @@
-$$(document).on('page:init', '.page[data-name="enviar-datos"]', function (e,page) {
+$$(document).on('page:init', '.page[data-name="enviar-datos"]', function (e, page) {
 
-	envio_automatico_activado=0;
-	$$("#enviados_appbar").text("Envio automático desactivado...");
+    envio_automatico_activado = 0;
+    $$("#enviados_appbar").text("Envio automático desactivado...");
 
-	$$('#btn_enviar').on('click', function () {
-		enviar_datos();
-	});
+    $$('#btn_enviar').on('click', function () {
+        enviar_datos();
+    });
 
 });
 
 
 
-function enviar_datos(){
-	var mensaje="";
-	app.dialog.preloader("Enviando Guías");
-	var error_aserrable=0;
-	var error_pulpable=0;
+function enviar_datos() {
+    var mensaje = "";
+    app.dialog.preloader("Enviando Guías");
+    var error_aserrable = 0;
+    var error_pulpable = 0;
 
 
 
 
-if(checkConnection()!="No network connection"){
-		envio_automatico_activado=0;
-		Guardar_dato_local("bloqueado",1);
-		comprueba_conexion("0", function(result_conexion) {
-			//alert(result_conexion);
-			if(result_conexion==1){
+    if (checkConnection() != "No network connection") {
+        envio_automatico_activado = 0;
+        Guardar_dato_local("bloqueado", 1);
+        comprueba_conexion("0", async function (result_conexion) {
+            //alert(result_conexion);
+            if (result_conexion == 1) {
 
-				
+                try {
 
-				enviar_guias_proveedor("0", function(result_guias) {
-					//lert(result_guias);
-					if(result_guias==1 || result_guias==0){
+                    try {
+                        const versionValida = await validarVersionApp();
+                        Guardar_dato_local("version_app_invalida", versionValida ? 0 : 1);
+                        if (!versionValida) {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.VERSION_INCORRECTA_APP,
+                                Obtener_dato_local('user_activo')
+                            );
 
-						enviar_evidencias_proveedor("0", function(result_evidencias) {
-							enviar_imagenes("0", function(result_imagenes) {
-								Guardar_dato_local("bloqueado",0);
-								envio_automatico_activado=1;
-								app.dialog.close();
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
 
-								if(result_evidencias==1 || result_evidencias==0 || result_imagenes==1 || result_imagenes==0){
+                            Guardar_dato_local("bloqueado", 0);
 
-									app.dialog.alert("Datos enviados correctamente","Envio de guías", function () {
-										mainView.router.navigate('/');																				
-									});
+                            app.dialog.alert(
+                                "La versión de la aplicación instalada en este dispositivo no es la última vigente. " +
+                                "Por favor, actualice la app antes de continuar.",
+                                "Actualización requerida"
+                            );
 
-								}else{
-									Guardar_dato_local("bloqueado",0);
-									envio_automatico_activado=1;
-									app.dialog.close();
-									app.dialog.alert("Error al enviar las evidencias","Envio de guías");
-								}
-							});
+                            return false;
+                        }
+                    } catch (ex) {
+                        Guardar_dato_local("version_app_invalida", 1);
+                        throw ex;
 
-						});
+                    }
+                    enviar_guias_proveedor("0", function (result_guias) {
+                        //lert(result_guias);
+                        if (result_guias == 1 || result_guias == 0) {
+
+                            enviar_evidencias_proveedor("0", function (result_evidencias) {
+                                enviar_imagenes("0", function (result_imagenes) {
+                                    Guardar_dato_local("bloqueado", 0);
+                                    envio_automatico_activado = 1;
+                                    app.dialog.close();
+
+                                    if (result_evidencias == 1 || result_evidencias == 0 || result_imagenes == 1 || result_imagenes == 0) {
+
+                                        app.dialog.alert("Datos enviados correctamente", "Envio de guías", function () {
+                                            mainView.router.navigate('/');
+                                        });
+
+                                    } else {
+                                        Guardar_dato_local("bloqueado", 0);
+                                        envio_automatico_activado = 1;
+                                        app.dialog.close();
+                                        app.dialog.alert("Error al enviar las evidencias", "Envio de guías");
+                                    }
+                                });
+
+                            });
 
 
-					}else{
+                        } else {
 
-						Guardar_dato_local("bloqueado",0);
-						envio_automatico_activado=1;
-						app.dialog.close();
-						app.dialog.alert("Error al enviar las guías","Envio de guías");
-					}
-				});
-			}else{
-				Guardar_dato_local("bloqueado",0);
-				envio_automatico_activado=1;
-				app.dialog.close();
-				app.dialog.alert("No se ha podido establecer la conexion con el servidor","Envio de guías");
-			}
+                            Guardar_dato_local("bloqueado", 0);
+                            envio_automatico_activado = 1;
+                            app.dialog.close();
+                            app.dialog.alert("Error al enviar las guías", "Envio de guías");
+                        }
+                    });
 
-		});
-	}else{
-		Guardar_dato_local("bloqueado",0);
-		envio_automatico_activado=1;
-		app.dialog.close();
-		app.dialog.alert("Conexión a Internet no detectada","Envio de guías");
-	}
+                } catch (e) {
+                    envio_automatico_activado = 1;
+                    app.dialog.close();
+                    app.dialog.alert(
+                        "Ocurrió un error al intentar enviar las guías. Intente nuevamente.",
+                        "GFE"
+                    );
+                    return false;
+                }
+            } else {
+                Guardar_dato_local("bloqueado", 0);
+                envio_automatico_activado = 1;
+                app.dialog.close();
+                app.dialog.alert("No se ha podido establecer la conexion con el servidor", "Envio de guías");
+            }
+
+        });
+    } else {
+        Guardar_dato_local("bloqueado", 0);
+        envio_automatico_activado = 1;
+        app.dialog.close();
+        app.dialog.alert("Conexión a Internet no detectada", "Envio de guías");
+    }
 }

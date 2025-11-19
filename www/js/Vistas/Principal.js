@@ -35,6 +35,14 @@ var app = new Framework7({
     },
 });
 
+
+var timmerEnvio = null;          // envíos de guías/evidencias/imágenes
+var timmerTrazabilidad = null;   // solo trazabilidad
+var versionAppCheckHecho = false;
+var versionAppValida = true;   // por defecto asumimos válida hasta comprobar
+var versionAppAlertMostrado = false;
+
+
 // Init/Create left panel view
 
 // Init/Create main view
@@ -70,90 +78,7 @@ function onError() {
     alert("onError!");
 }
 
-function EnvioAutomatico(segundo_plano, automatico) {
-    var bloqueado = Obtener_dato_local("bloqueado");
-    //alert(bloqueado);
 
-    if (envio_automatico_activado == 1 || automatico == 1) {
-        if (bloqueado == 0) {
-            var mensaje = "";
-            var error_aserrable = 0;
-            var error_pulpable = 0;
-            envio_automatico_activado = 0;
-            Guardar_dato_local("bloqueado", 1);
-
-            if (segundo_plano == 1) {
-                /*cordova.plugins.backgroundMode.configure({
-                            title: 'GFE',
-                            icon: 'ldpi',
-                            text: 'Enviando...'
-                        });*/
-            }
-
-            if (checkConnection() != "No network connection") {
-                comprueba_conexion("0", function (result_conexion) {
-                    if (result_conexion == 1) {
-                        enviar_guias_proveedor("0", function (result_guias) {
-                            enviar_evidencias_proveedor("0", function (result_evidencias) {
-                                enviar_imagenes("0", function (result_imagenes) {
-                                    enviar_actualizacion_numero_guias(
-                                        "0",
-                                        function (result_actualizadas) {
-                                            Guardar_dato_local("bloqueado", 0);
-                                            envio_automatico_activado = 1;
-                                            if (
-                                                result_evidencias == 1 ||
-                                                result_evidencias == 0 ||
-                                                result_imagenes == 1 ||
-                                                result_imagenes == 0
-                                            ) {
-                                                //$$("#ESTADO_").text("Datos enviados correctamente");
-                                            } else {
-                                                // $$("#ESTADO_").text("Error al enviar datos");
-                                            }
-                                        }
-                                    );
-                                });
-                            });
-                        });
-                    } else {
-                        Guardar_dato_local("bloqueado", 0);
-                        envio_automatico_activado = 1;
-                        $$("#ESTADO_").text("Conexión no establecida con el servidor");
-
-                        if (segundo_plano == 1) {
-                            /*cordova.plugins.backgroundMode.configure({
-                                              title: 'GFE',
-                                              icon: 'ldpi',
-                                              text: 'Conexión no establecida con el servidor'
-                                          });*/
-                        }
-                    }
-                });
-            } else {
-                Guardar_dato_local("bloqueado", 0);
-                envio_automatico_activado = 1;
-                $$("#ESTADO_").text("Conexión a Internet no detectada");
-
-                if (segundo_plano == 1) {
-                    /*cordova.plugins.backgroundMode.configure({
-                                  title: 'GFE',
-                                  icon: 'ldpi',
-                                  text: 'Conexión a Internet no detectada'
-                              });*/
-                }
-            }
-        } else {
-            if (segundo_plano == 1) {
-                /*cordova.plugins.backgroundMode.configure({
-                            title: 'GFE',
-                            icon: 'ldpi',
-                            text: 'proceso bloqueado... Otro envio en curso'
-                        });*/
-            }
-        }
-    }
-}
 
 function controlarTrackingDinamico() {
     // Evita crear múltiples intervalos si ya existe
@@ -181,12 +106,101 @@ function controlarTrackingDinamico() {
     }, 10000);
 }
 
+async function cicloEnvioAutomaticoDatos() {
+    const bloqueado = Obtener_dato_local("bloqueado");
+
+    // Si la app está ocupada en otra cosa, no hacemos nada
+    if (bloqueado != 0) {
+        return;
+    }
+
+    // Validar versión de la app solo la primera vez
+    if (!versionAppCheckHecho) {
+        versionAppCheckHecho = true;
+
+        try {
+            const esValida = await validarVersionApp();
+            versionAppValida = !!esValida;
+            Guardar_dato_local("version_app_invalida", versionAppValida ? 0 : 1);
+
+
+
+            if (!versionAppValida && !versionAppAlertMostrado) {
+                versionAppAlertMostrado = true;
+                envio_automatico_activado = 0;
+
+                let datos = await generarDataTrazabilidad(
+                    TipoAccionTypes.VERSION_INCORRECTA_APP,
+                    Obtener_dato_local('user_activo')
+                );
+
+                await obtenerUbicacionEInsertarLog(
+                    Obtener_dato_local('user_activo'),
+                    datos
+                );
+                if (timmerEnvio) {
+                    clearInterval(timmerEnvio);
+                    timmerEnvio = null;
+                }
+
+                app.dialog.alert(
+                    "La versión instalada no es compatible con el servidor. " +
+                    "Actualice la app para reactivar el envío automático de datos.",
+                    "Actualización requerida"
+                );
+            }
+        } catch (e) {
+            console.error("Error validando versión:", e);
+            versionAppValida = false;
+            Guardar_dato_local("version_app_invalida", 1);
+
+            envio_automatico_activado = 0;
+
+            if (!versionAppAlertMostrado) {
+                versionAppAlertMostrado = true;
+
+                if (timmerEnvio) {
+                    clearInterval(timmerEnvio);
+                    timmerEnvio = null;
+                }
+
+                app.dialog.alert(
+                    "No se pudo validar la versión de la app. " +
+                    "El envío automático de datos ha sido desactivado.",
+                    "Advertencia"
+                );
+            }
+        }
+    }
+
+    // Si la versión NO es válida → no se envían datos
+    if (!versionAppValida) {
+        return;
+    }
+
+    // Si la versión es válida, lanzamos el envío normal
+    EnvioAutomatico_segundo_plano(1, 1);
+}
+
+
+
+async function cicloEnvioTrazabilidad() {
+    const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
+
+    if (bloqueadoTraza === 0) {
+        try {
+            await compruebaEnviaTrazabilidad();
+        } catch (e) {
+            console.warn("Error enviando trazabilidad:", e);
+        }
+    }
+}
+
+
+
 function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
 
     Guardar_dato_local("bloqueado", 1);
-    const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
-
-
 
     if (checkConnection() != "No network connection") {
         comprueba_conexion("0", function (result_conexion) {
@@ -195,28 +209,25 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
                     enviar_evidencias_proveedor("0", function (result_evidencias) {
                         enviar_imagenes("0", function (result_imagenes) {
 
-                            enviar_actualizacion_numero_guias(
-                                "0",
-                                function (result_actualizadas) {
-                                    Guardar_dato_local("bloqueado", 0);
-                                    envio_automatico_activado = 1;
-                                    if (
-                                        result_evidencias == 1 ||
-                                        result_evidencias == 0 ||
-                                        result_imagenes == 1 ||
-                                        result_imagenes == 0
-                                    ) {
-                                        //$$("#ESTADO_").text("Datos enviados correctamente");
-                                    } else {
-                                        // $$("#ESTADO_").text("Error al enviar datos");
-                                    }
+                            enviar_actualizacion_numero_guias("0", function (result_actualizadas) {
+                                Guardar_dato_local("bloqueado", 0);
+                                envio_automatico_activado = 1;
+
+                                if (
+                                    result_evidencias == 1 ||
+                                    result_evidencias == 0 ||
+                                    result_imagenes == 1 ||
+                                    result_imagenes == 0
+                                ) {
+                                    // OK silencioso
+                                } else {
+                                    // Error silencioso
                                 }
-                            );
+                            });
+
                         });
                     });
                 });
-
-
 
             } else {
                 Guardar_dato_local("bloqueado", 0);
@@ -224,10 +235,6 @@ function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
         });
     } else {
         Guardar_dato_local("bloqueado", 0);
-    }
-    if (bloqueadoTraza === 0) {
-        compruebaEnviaTrazabilidad().then((resultadoTrazabilidad) => {
-        }).catch((error) => { });
     }
 }
 
@@ -254,33 +261,41 @@ function compruebaEnviaTrazabilidad() {
 }
 
 function onActivate() {
-    //cordova.plugins.backgroundMode.disableWebViewOptimizations();
-    //var isSilent = !cordova.plugins.backgroundMode.getDefaults().silent;
-    //cordova.plugins.backgroundMode.setDefaults({ silent: isSilent });
-
     cordova.plugins.backgroundMode.disableWebViewOptimizations();
-    envio_automatico_activado = 1;
-    var counter = 0;
-    timmer = setInterval(function () {
-        var bloqueado = Obtener_dato_local("bloqueado");
 
-        if (bloqueado == 0) {
-            EnvioAutomatico_segundo_plano(1, 1);
-        } else {
-            /*cordova.plugins.backgroundMode.configure({
-                              title: 'GFE',
-                              icon: 'ldpi',
-                              text: 'Proceso bloqueado...'
-                          });*/
-        }
-    }, 10000);
+    envio_automatico_activado = 1;
+    versionAppCheckHecho = false;
+    versionAppValida = true;
+    versionAppAlertMostrado = false;
+
+    // Timer de trazabilidad: SIEMPRE debe correr
+    if (!timmerTrazabilidad) {
+        timmerTrazabilidad = setInterval(cicloEnvioTrazabilidad, 10000);
+    }
+
+    // Timer de envío de datos: puede ser desactivado por versión inválida
+    if (!timmerEnvio) {
+        timmerEnvio = setInterval(cicloEnvioAutomaticoDatos, 10000);
+    }
 }
+
+function onDeactivate() {
+    if (timmerEnvio) {
+        clearInterval(timmerEnvio);
+        timmerEnvio = null;
+    }
+    if (timmerTrazabilidad) {
+        clearInterval(timmerTrazabilidad);
+        timmerTrazabilidad = null;
+    }
+}
+
+
 
 
 
 //cuando el dispositivo ha cargado todos los elementos
 document.addEventListener("deviceready", async function () {
-
 
     inicializarVariables();
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
@@ -309,6 +324,13 @@ document.addEventListener("deviceready", async function () {
         Guardar_dato_local("version_app", version);
         $$("#ver_app").text(version);
     });
+
+    cordova.getAppVersion.getVersionCode(function (versionCode) {
+        // Ej: 4000
+        Guardar_dato_local("version_app_code", versionCode);
+        console.log("versionCode:", versionCode);
+    });
+
 
     try {
         await Tablas_crear_tablas(); //ok
@@ -352,8 +374,6 @@ document.addEventListener("deviceready", async function () {
     var rut_activo = Obtener_dato_local("ultimo_activo");
     var clave_activo = Obtener_dato_local("ultimo_password");
 
-    //alert(rut_activo);
-    //alert(clave_activo);
 
     if (rut_activo != undefined && clave_activo != undefined) {
         $$("#input_username").val(rut_activo);
@@ -855,52 +875,6 @@ function envio_guias_automatico() {
 async function clickIngresoPlanta() {
 
     mainView.router.navigate("/IngresoPlanta/");
-
-    /*app.dialog.confirm(
-        "¿Está seguro que desea confirmar el ingreso planta?. Se requiere una conexión a Internet activa",
-        "GFE",
-        async function () {
-
-            if (checkConnection() == "No network connection") {
-                app.dialog.alert("No hay conexión a Internet", "GFE");
-                return false;
-            } else {
-                app.dialog.progress("Enviando...")
-                comprueba_conexion("0", async function (result_conexion) {
-
-
-                    if (result_conexion == 1) {
-
-
-                        try {
-                            response = await enviarConfirmacionIngresoPlantaService();
-                            app.dialog.alert(`Proceso finalizado con éxito. Se envío un total de  ${response.total} datos.`, "GFE")
-
-
-                        } catch (ex) {
-                            const errorMessage = ex.message || ex; // Extrae el mensaje del error, si es posible
-                            app.dialog.alert(`Ocurrió un error durante el proceso: ${errorMessage}`, "GFE");
-                        }
-                        finally {
-
-                            app.dialog.close();
-                        }
-                    }
-                    else {
-                        app.dialog.close();
-                        app.dialog.alert("No se pudo extablecer la conexión con el servidor.");
-                    }
-
-                });
-
-            }
-
-
-        }
-    );*/
-
-
-
 
 }
 

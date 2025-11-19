@@ -122,8 +122,6 @@ function enviarTrazabilidad(trazabilidad) {
             respuesta.error = error.message;
             resolve(respuesta);
         });
-
-
     });
 
 }

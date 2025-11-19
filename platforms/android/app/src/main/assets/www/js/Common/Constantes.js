@@ -19,7 +19,8 @@ const constantes = {
         camionCargado1: 2,
         camionCargado2: 4,
         padronVehiculo: 5,
-        otra: 6
+        otra: 6,
+        ingresoPlanta: 7
     }
 
 

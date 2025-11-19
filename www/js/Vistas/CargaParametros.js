@@ -37,129 +37,172 @@ function carga_parametros() {
         comprueba_conexion("0", async function (result_conexion) {
 
             if (result_conexion == 1) {
+                try {
 
-                let datos = await generarDataTrazabilidad(
-                    TipoAccionTypes.INICIA_CARGA_PARAMETROS,
-                    Obtener_dato_local('user_activo')
-                );
+                    let datos = await generarDataTrazabilidad(
+                        TipoAccionTypes.INICIA_CARGA_PARAMETROS,
+                        Obtener_dato_local('user_activo')
+                    );
 
-                const resultado = await obtenerUbicacionEInsertarLog(
-                    Obtener_dato_local('user_activo'),
-                    datos
-                );
+                    await obtenerUbicacionEInsertarLog(
+                        Obtener_dato_local('user_activo'),
+                        datos
+                    );
 
+                    try {
+                        const versionValida = await validarVersionApp();
+                        Guardar_dato_local("version_app_invalida", versionValida ? 0 : 1);
+                        if (!versionValida) {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.VERSION_INCORRECTA_APP,
+                                Obtener_dato_local('user_activo')
+                            );
 
-                cargar_orden_compra(username, empresa, 0, function (result) {
-                    if (result > 0) {
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
+                            );
 
+                            // Versión desactualizada => no seguimos con carga de parámetros
+                            envio_automatico_activado = 1;
+                            $$(".link").removeClass("disabled");
+                            $$('#btn_carga_parametros').removeClass("disabled");
 
-                        cargar_transporte(rut, result, function (result3) {
-                            if (result3 > 0) {
+                            app.dialog.alert(
+                                "La versión de la aplicación instalada en este dispositivo no es la última vigente. " +
+                                "Por favor, actualice la app antes de continuar.",
+                                "Actualización requerida"
+                            );
 
-                                cargar_empresa(rut, result3, function (result4) {
-                                    if (result4 > 0) {
-
-                                        cargar_parametros_generales(rut, "1", result4, function (result5) {
-
-                                            if (result5 > 0) {
-                                                cargar_patente_ex(rut, "1", result5, function (result6) {
-                                                    if (result6 > 6) {
-
-
-                                                        ws_cargaGeocercas(rut, "1", result6, function (result7) {
-                                                            if (result7 > 0) {
-                                                                envio_automatico_activado = 1;
-                                                                $$('#btn_carga_parametros').addClass("disabled");
-                                                                $$(".link").removeClass("disabled");
-                                                                Guardar_dato_local("fecha_hora_carga_parametros", FechaHoraActual());
-
-                                                                (async () => {
-                                                                    let datos = await generarDataTrazabilidad(
-                                                                        TipoAccionTypes.FINALIZA_CARGA_PARAMETROS,
-                                                                        Obtener_dato_local('user_activo')
-                                                                    );
-
-                                                                    const resultado = await obtenerUbicacionEInsertarLog(
-                                                                        Obtener_dato_local('user_activo'),
-                                                                        datos
-                                                                    );
-
-                                                                    app.dialog.alert("Parametros cargados correctamente", "Carga parámetros", function () {
-                                                                        mainView.router.navigate('/');
-                                                                    });
-                                                                })();
-
-
-
-                                                            } else {
-                                                                mensaje = "Error al cargar Geocercas";
-                                                                app.dialog.alert(
-                                                                    mensaje,
-                                                                    "GFE"
-                                                                );
-
-                                                            }
-
-                                                        });
-
-
-
-
-                                                    } else {
-                                                        mensaje = "Error al cargar patentes ex";
-                                                        app.dialog.alert(mensaje, "GFE");
-                                                    }
-
-                                                });
-
-
-
-                                            } else {
-                                                mensaje = "Error al cargar parametro general";
-                                                app.dialog.alert(mensaje, "GFE");
-                                            }
-
-
-                                        });
-
-
-                                    } else {
-                                        mensaje = "Error al cargar datos de empresa";
-                                        app.dialog.alert(mensaje, "GFE");
-                                    }
-
-
-                                });
-
-
-
-                            } else {
-                                mensaje = "Error al cargar datos Transporte";
-                                app.dialog.alert(mensaje, "GFE");
-
-                            }
-
-
-                        });
-
-
-
-                    } else {
-                        envio_automatico_activado = 1;
-                        var mensaje = "";
-                        if (result == 0) {
-                            mensaje = "No hay parámetros por cargar para el usuario ingresado.\n Compruebe con el administrador que tenga zonas asignadas";
-                        } else {
-                            mensaje = "Error al cargar Orden Compra";
+                            return false;
                         }
-
-                        app.dialog.alert(mensaje, "GFE");
-                        $$(".link").removeClass("disabled");
-                        $$('#btn_carga_parametros').removeClass("disabled")
-                        return false;
+                    } catch (ex) {
+                        Guardar_dato_local("version_app_invalida", 1);
+                        throw ex;
                     }
 
-                });
+                    cargar_orden_compra(username, empresa, 0, function (result) {
+                        if (result > 0) {
+
+                            cargar_transporte(rut, result, function (result3) {
+                                if (result3 > 0) {
+
+                                    cargar_empresa(rut, result3, function (result4) {
+                                        if (result4 > 0) {
+
+                                            cargar_parametros_generales(rut, "1", result4, function (result5) {
+
+                                                if (result5 > 0) {
+                                                    cargar_patente_ex(rut, "1", result5, function (result6) {
+                                                        if (result6 > 6) {
+
+
+                                                            ws_cargaGeocercas(rut, "1", result6, function (result7) {
+                                                                if (result7 > 0) {
+                                                                    envio_automatico_activado = 1;
+                                                                    $$('#btn_carga_parametros').addClass("disabled");
+                                                                    $$(".link").removeClass("disabled");
+                                                                    Guardar_dato_local("fecha_hora_carga_parametros", FechaHoraActual());
+
+                                                                    (async () => {
+                                                                        let datos = await generarDataTrazabilidad(
+                                                                            TipoAccionTypes.FINALIZA_CARGA_PARAMETROS,
+                                                                            Obtener_dato_local('user_activo')
+                                                                        );
+
+                                                                        const resultado = await obtenerUbicacionEInsertarLog(
+                                                                            Obtener_dato_local('user_activo'),
+                                                                            datos
+                                                                        );
+
+                                                                        app.dialog.alert("Parametros cargados correctamente", "Carga parámetros", function () {
+                                                                            mainView.router.navigate('/');
+                                                                        });
+                                                                    })();
+
+
+
+                                                                } else {
+                                                                    mensaje = "Error al cargar Geocercas";
+                                                                    app.dialog.alert(
+                                                                        mensaje,
+                                                                        "GFE"
+                                                                    );
+
+                                                                }
+
+                                                            });
+
+
+
+
+                                                        } else {
+                                                            mensaje = "Error al cargar patentes ex";
+                                                            app.dialog.alert(mensaje, "GFE");
+                                                        }
+
+                                                    });
+
+
+
+                                                } else {
+                                                    mensaje = "Error al cargar parametro general";
+                                                    app.dialog.alert(mensaje, "GFE");
+                                                }
+
+
+                                            });
+
+
+                                        } else {
+                                            mensaje = "Error al cargar datos de empresa";
+                                            app.dialog.alert(mensaje, "GFE");
+                                        }
+
+
+                                    });
+
+
+
+                                } else {
+                                    mensaje = "Error al cargar datos Transporte";
+                                    app.dialog.alert(mensaje, "GFE");
+
+                                }
+
+
+                            });
+
+
+
+                        } else {
+                            envio_automatico_activado = 1;
+                            var mensaje = "";
+                            if (result == 0) {
+                                mensaje = "No hay parámetros por cargar para el usuario ingresado.\n Compruebe con el administrador que tenga zonas asignadas";
+                            } else {
+                                mensaje = "Error al cargar Orden Compra";
+                            }
+
+                            app.dialog.alert(mensaje, "GFE");
+                            $$(".link").removeClass("disabled");
+                            $$('#btn_carga_parametros').removeClass("disabled")
+                            return false;
+                        }
+
+                    });
+
+                } catch (e) {
+                    console.error("Error en carga_parametros:", e);
+                    envio_automatico_activado = 1;
+                    $$(".link").removeClass("disabled");
+                    $$('#btn_carga_parametros').removeClass("disabled");
+                    app.dialog.alert(
+                        "Ocurrió un error al intentar cargar los parámetros. Intente nuevamente.",
+                        "GFE"
+                    );
+                    return false;
+                }
 
             } else {
 
