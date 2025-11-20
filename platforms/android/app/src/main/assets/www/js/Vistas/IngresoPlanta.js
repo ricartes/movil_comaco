@@ -219,7 +219,6 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
         evidencia.EVIDENCIA_COORDENADA_X = latitud;
         evidencia.EVIDENCIA_COORDENADA_Y = longitud;
 
-        console.log(evidencia);
 
         // 1) Borrar evidencia anterior (si existe) para esa guía/tipo
         DATOS_borra_evidencia_guia(evidencia, function () {
@@ -243,7 +242,11 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
                                 Obtener_dato_local('user_activo'),
                                 {
                                     cantidadGuias: guias.length,
-                                    foto: fotoUrl
+                                    foto: fotoUrl,
+                                    rol: gde?.GDE_COD_ORIGEN ?? null,
+                                    despacho: gde,
+                                    id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
+                                    resultadoUbicacionSimulada: resultadoUbicacionSimulada
                                 }
                             );
 

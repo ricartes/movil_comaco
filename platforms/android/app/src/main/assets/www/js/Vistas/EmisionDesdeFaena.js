@@ -42,7 +42,7 @@ var options_gps = {
 
 $$(document).on('page:init', '.page[data-name="emision-desde-faena"]', function (e, page) {
 
-
+    inicializarDatosGde();
     rut_valido = 1;
     idgde_acutal = mainView.router.currentRoute.params.idgde;
     tipo_emision = mainView.router.currentRoute.params.tipoemision;
