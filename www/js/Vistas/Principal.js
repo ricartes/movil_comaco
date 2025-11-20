@@ -81,23 +81,30 @@ function onError() {
 
 
 function controlarTrackingDinamico() {
-    // Evita crear múltiples intervalos si ya existe
     if (trackingIntervalId !== null) return;
 
     trackingIntervalId = setInterval(async () => {
         try {
             const usuarioActivo = Obtener_dato_local("rut_activo");
-            const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+            const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
             const procesoActual = Obtener_dato_local("id_proceso_activo");
+
+            console.log('[TRACKING] usuarioActivo:', usuarioActivo);
+            console.log('[TRACKING] procesoActual:', procesoActual);
+            console.log('[TRACKING] gdeNoConfirmadas length:', Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas.length : 'no array');
 
             const hayGuiasPendientes = (
                 (procesoActual && procesoActual !== "") ||
                 (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0)
             );
 
+            console.log('[TRACKING] hayGuiasPendientes:', hayGuiasPendientes);
+
             if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
+                console.log('[TRACKING] -> startTracking()');
                 startTracking();
             } else {
+                console.log('[TRACKING] -> stopTracking()');
                 stopTracking();
             }
         } catch (e) {

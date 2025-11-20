@@ -7,11 +7,12 @@ let ultimoGuardadoMs = 0;
 const ultimaUbicacionPorGuia = new Map();
 
 // Umbrales de tiempo (en ms)
-const UMBRAL_MS_GDE_ACTUAL = 10 * 1000;        // 10 segundos
-const UMBRAL_MS_GUIA_NO_CONFIRMADA = 30 * 1000; // 30 segundos
+const UMBRAL_MS_GDE_ACTUAL = 5 * 1000;        // 10 segundos
+const UMBRAL_MS_GUIA_NO_CONFIRMADA = 5 * 1000; // 10 segundos
+const UMBRAL_MS_GLOBAL = 5 * 1000;
 
 // Distancia mínima para considerar que hubo movimiento relevante (en metros)
-const DISTANCIA_MINIMA_MOVIMIENTO = 10; // puedes bajar a 5 si quieres más detalle
+const DISTANCIA_MINIMA_MOVIMIENTO = 2; // puedes bajar a 5 si quieres más detalle
 
 
 // Configura el plugin
@@ -21,9 +22,9 @@ function configureBackgroundGeolocation() {
     BackgroundGeolocation.configure({
         locationProvider: BackgroundGeolocation.RAW_PROVIDER, // O RAW_PROVIDER si quieres full precisión
         desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Máxima precisión GPS
-        stationaryRadius: 10,      // 10 metros: si se mueve menos, se considera quieto
-        distanceFilter: 10,        // mínimo 10 metros entre puntos
-        interval: 10000,           // intenta actualizar cada 10 segundos
+        stationaryRadius: 5,      // 10 metros: si se mueve menos, se considera quieto
+        distanceFilter: 5,        // mínimo 10 metros entre puntos
+        interval: 5000,           // intenta actualizar cada 10 segundos
         fastestInterval: 5000,     // nunca más rápido que cada 5 segundos
         activitiesInterval: 10000, // chequea actividad cada 10 segundos
         debug: false,
@@ -35,15 +36,20 @@ function configureBackgroundGeolocation() {
     // Maneja actualizaciones de ubicación
     BackgroundGeolocation.on('location', async function (location) {
         try {
+            console.log('[BG] location recibida:', JSON.stringify(location));
+
             const { latitude, longitude, speed, time } = location;
             const ahoraMs = Date.now();
 
+            console.log('[BG] ultimoTimestamp:', ultimoTimestamp, 'time actual:', time);
             if (ultimoTimestamp && time === ultimoTimestamp) {
+                console.log('[BG] DESCARTA -> mismo timestamp que el anterior');
                 return;
             }
 
             // Filtro por tiempo: mínimo 10s entre registros guardados
-            if (ultimoGuardadoMs && (ahoraMs - ultimoGuardadoMs) < 10000) {
+            if (ultimoGuardadoMs && (ahoraMs - ultimoGuardadoMs) < UMBRAL_MS_GLOBAL) {
+                console.log('[BG] DESCARTA -> menos de 10s desde el último guardado');
                 return;
             }
 
@@ -54,26 +60,25 @@ function configureBackgroundGeolocation() {
                     lastKnownLocation.latitude,
                     lastKnownLocation.longitude
                 );
-
+                console.log('[BG] distancia respecto al último punto:', distancia, 'm, speed:', speed);
 
                 if (speed <= 0 && distancia < 1) {
-
+                    console.log('[BG] DESCARTA -> quieto y distancia < 1m');
                     return;
                 }
             }
+
+            console.log('[BG] ACEPTA -> actualiza lastKnownLocation y guarda');
             lastKnownLocation = location;
             ultimoTimestamp = time;
             ultimoGuardadoMs = ahoraMs;
 
-            // Guardar ubicación en la base de datos
             await saveLocation(location);
 
-            // Indica que la ubicación ha sido procesada
+            console.log('[BG] saveLocation() completó OK');
             return;
         } catch (error) {
             console.error("Error al procesar la ubicación:", error);
-
-            // Asegúrate de llamar a `finish` incluso si ocurre un error
             return;
         }
     });
@@ -212,19 +217,26 @@ function getLastKnownLocation() {
 }
 
 
-// Función para guardar la ubicación en una base de datos o API
-// Función para guardar la ubicación en una base de datos o API
 async function saveLocation(location) {
     const usuarioActivo = Obtener_dato_local('user_activo');
     const procesoActual = Obtener_dato_local("id_proceso_activo");
     const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
+
+    console.log('[SAVE] usuarioActivo:', usuarioActivo);
+    console.log('[SAVE] procesoActual:', procesoActual);
+    console.log('[SAVE] guiasNoConfirmadas length:', Array.isArray(guiasNoConfirmadas) ? guiasNoConfirmadas.length : 'NO ARRAY');
+    console.log('[SAVE] location usada:', location);
 
     // 1) Guía/proceso actual
     if (procesoActual && procesoActual !== "") {
         const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
         const idUnicoActual = gde_actual?.ID_UNICO_MOVIL ?? null;
 
+        console.log('[SAVE] GDE actual:', gde_actual);
+        console.log('[SAVE] idUnicoActual:', idUnicoActual);
+
         if (idUnicoActual && puedeRegistrarParaGuia(idUnicoActual, location, UMBRAL_MS_GDE_ACTUAL)) {
+            console.log('[SAVE] -> REGISTRA para guía ACTUAL', idUnicoActual);
             const datos = await generarDataTrazabilidad(
                 TipoAccionTypes.CAPTURA_UBICACION,
                 usuarioActivo,
@@ -235,11 +247,10 @@ async function saveLocation(location) {
                 }
             );
 
-            await obtenerUbicacionEInsertarLog(
-                usuarioActivo,
-                datos,
-                location
-            );
+            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
+            console.log('[SAVE] Insert trazabilidad guía ACTUAL OK');
+        } else {
+            console.log('[SAVE] NO registra para guía ACTUAL (puedeRegistrarParaGuia = false)');
         }
     }
 
@@ -249,10 +260,14 @@ async function saveLocation(location) {
             const idUnicoGuia = guia?.ID_UNICO_MOVIL ?? null;
             if (!idUnicoGuia) continue;
 
-            // Solo registramos si pasó suficiente tiempo y se movió lo suficiente
+            console.log('[SAVE] Evaluando guía NO CONFIRMADA:', idUnicoGuia);
+
             if (!puedeRegistrarParaGuia(idUnicoGuia, location, UMBRAL_MS_GUIA_NO_CONFIRMADA)) {
+                console.log('[SAVE] NO registra para guía', idUnicoGuia, '(puedeRegistrarParaGuia = false)');
                 continue;
             }
+
+            console.log('[SAVE] -> REGISTRA para guía NO CONFIRMADA', idUnicoGuia);
 
             const datos = await generarDataTrazabilidad(
                 TipoAccionTypes.CAPTURA_UBICACION,
@@ -264,11 +279,8 @@ async function saveLocation(location) {
                 }
             );
 
-            await obtenerUbicacionEInsertarLog(
-                usuarioActivo,
-                datos,
-                location
-            );
+            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
+            console.log('[SAVE] Insert trazabilidad guía', idUnicoGuia, 'OK');
         }
     }
 }
@@ -285,13 +297,16 @@ function esUbicacionAntigua(timestamp) {
 
 
 function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
-    if (!idUnicoMovilGde) return false; // sin ID no registramos
+    if (!idUnicoMovilGde) {
+        console.log('[FILTRO] SIN idUnicoMovilGde -> false');
+        return false;
+    }
 
     const ahoraMs = Date.now();
     const registroPrevio = ultimaUbicacionPorGuia.get(idUnicoMovilGde);
 
     if (!registroPrevio) {
-        // Primera vez: siempre registramos
+        console.log('[FILTRO] Primera vez para', idUnicoMovilGde, '-> true');
         ultimaUbicacionPorGuia.set(idUnicoMovilGde, {
             lat: location.latitude,
             lon: location.longitude,
@@ -301,26 +316,27 @@ function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
     }
 
     const diffMs = ahoraMs - registroPrevio.tsMs;
+    console.log('[FILTRO] diffMs:', diffMs, 'umbralMs:', umbralMs);
 
-    // Si no ha pasado el tiempo mínimo, no registres
     if (diffMs < umbralMs) {
+        console.log('[FILTRO] Rechazado por tiempo (< umbralMs)');
         return false;
     }
 
-    // Calcula la distancia desde el último punto guardado para ESTA guía
     const distancia = calcularDistanciaMetros(
         location.latitude,
         location.longitude,
         registroPrevio.lat,
         registroPrevio.lon
     );
+    console.log('[FILTRO] distancia:', distancia, 'm');
 
-    // Si se movió muy poco, no vale la pena guardar
     if (distancia < DISTANCIA_MINIMA_MOVIMIENTO) {
+        console.log('[FILTRO] Rechazado por poca distancia (<', DISTANCIA_MINIMA_MOVIMIENTO, 'm)');
         return false;
     }
 
-    // OK, actualizamos último punto y permitimos registrar
+    console.log('[FILTRO] ACEPTA -> actualiza último punto de', idUnicoMovilGde);
     ultimaUbicacionPorGuia.set(idUnicoMovilGde, {
         lat: location.latitude,
         lon: location.longitude,
