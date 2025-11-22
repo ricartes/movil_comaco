@@ -459,7 +459,7 @@ export default class GdeDAO {
         ];
         const indexAlt = 'idx_gde_emp_rut_estado_createdAt_id';
 
-        console.log('🚀 iterarPendientesDeEnvio INICIO', { empId, rutEmisor, pageSize });
+
 
         let yielded = 0;
 
@@ -477,9 +477,7 @@ export default class GdeDAO {
                 ];
             }
 
-            console.log('🧭 Ciclo: selector:\n', JSON.stringify(selector, null, 2));
-            console.log('📚 Índice preferido:', indexStrict);
-            console.log('🧩 Orden preferido:', sortStrict);
+
 
             let res;
             try {
@@ -489,12 +487,10 @@ export default class GdeDAO {
                 console.warn('❌ find con índice estricto falló:', e1?.message);
                 try {
                     // INTENTO 2: índice alternativo
-                    console.log('🔁 Reintentando con índice alternativo:', indexAlt);
                     res = await runPage(selector, sortAlt, indexAlt);
                 } catch (e2) {
                     console.warn('❌ find con índice alternativo falló:', e2?.message);
                     // INTENTO 3: sin índice/sort, filtro en memoria
-                    console.log('🟠 Fallback sin índice: traeremos un batch “grande” y ordenaremos en memoria.');
                     const resRaw = await this.db.find({
                         selector: selectorBase,
                         limit: pageSize * 3,
@@ -520,7 +516,6 @@ export default class GdeDAO {
             }
 
             const docs = res?.docs || [];
-            console.log('🔎 Encontrados:', docs.length);
             if (!docs.length) break;
 
             yield docs;
@@ -534,7 +529,6 @@ export default class GdeDAO {
             if (!lastCreatedAt || !lastId) break;
         }
 
-        console.log('✅ iterarPendientesDeEnvio FIN. Total yield:', yielded);
     }
 
 

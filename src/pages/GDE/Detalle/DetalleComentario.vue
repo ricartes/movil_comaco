@@ -37,7 +37,7 @@
                     :disabled="soloLectura"
                     @input="onInput('horaLlegada', $event)"
                 />
-    
+
                 <f7-list-input
                     label="Sector origen"
                     type="text"
@@ -138,6 +138,16 @@
                     :disabled="soloLectura"
                     @input="onInput('numeroAgendamiento', $event)"
                 />
+
+                <f7-list-input
+                    label="Número Guía Anterior"
+                    type="number"
+                    inputmode="numeric"
+                    @keypress="soloEntero"
+                    :value="form.numeroGuiaAnterior"
+                    :disabled="soloLectura"
+                    @input="onInputNum('numeroGuiaAnterior', $event)"
+                />
             </f7-list>
         </f7-card-content>
     </f7-card>
@@ -149,7 +159,7 @@ import {
     updateComentarios,
     COMENTARIOS_READONLY_KEYS,
 } from "@/app/services/GdeComentarioService";
-import { horaActual } from "../../../js/Utils/formatters";
+import { horaActual } from "@/js/Utils/formatters";
 
 export default {
     name: "DetalleComentario",
@@ -177,6 +187,7 @@ export default {
                 comentarios: "",
                 horaAgendamiento: null,
                 numeroAgendamiento: null,
+                numeroGuiaAnterior: null,
             },
             saving: false,
         };
@@ -198,6 +209,11 @@ export default {
         },
     },
     methods: {
+        soloEntero(e) {
+            if ([".", ",", "e", "-"].includes(e.key)) {
+                e.preventDefault();
+            }
+        },
         _val(eOrVal) {
             return typeof eOrVal === "object" ? eOrVal?.target?.value : eOrVal;
         },

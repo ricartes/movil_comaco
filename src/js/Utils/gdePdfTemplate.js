@@ -359,6 +359,7 @@ function buildBoxOperacion(doc) {
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
             kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
+            kvLine("Forma de pago", doc?.ordenCompra?.glosaFormaPago ?? "—"),
             kvLine("Fecha Corta", doc?.comentarios?.anioCosecha ?? "—"),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),

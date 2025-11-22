@@ -64,6 +64,7 @@ export class OrdenCompraDTO {
         ocCliente = null,
         tipoCertificacion = null,
         codigoCertificacion = null,
+        glosaFormaPago = null,
         // campos internos opcionales de pouch:
         _id = undefined,
         _rev = undefined,
@@ -132,6 +133,7 @@ export class OrdenCompraDTO {
         this.ocCliente = ocCliente;
         this.tipoCertificacion = tipoCertificacion;
         this.codigoCertificacion = codigoCertificacion;
+        this.glosaFormaPago = glosaFormaPago;
     }
 }
 
