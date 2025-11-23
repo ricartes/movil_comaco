@@ -15,9 +15,25 @@ export default class OrdenCompraDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);
-        return docs.map(ocDocToDTO)
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                numOc: { $ne: null }
+            }
+        });
+
+        const map = new Map();
+        for (const d of res.docs) {
+            const num = String(d.numOc ?? '').trim();
+            if (!num) continue;
+            if (!map.has(num)) map.set(num, d);
+        }
+
+        return Array.from(map.values())
+            .sort((a, b) => Number(a.numOc) - Number(b.numOc))
+            .map(ocDocToDTO);
     }
+
 
 
     async obtenerPorDatos(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto) {

@@ -9,8 +9,40 @@
             <f7-nav-title>Ingreso GDE</f7-nav-title>
         </f7-navbar>
 
+        <f7-block strong class="alert-wrapper">
+            <div class="alert alert-info">
+                <i class="f7-icons">info_circle</i>
+                Si conoce el Númnero de Orden de Compra, puede seleccionarla
+                para autocompletar los datos relacionados.
+            </div>
+        </f7-block>
+
         <f7-list no-hairlines-md form>
             <!-- ZONA -->
+
+            <f7-list-item
+                title="Orden Compra"
+                class="select-orden-compra"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :value="ordenCompraSeleccionada?.numOc || ''"
+                    @change="handleOrdenCompraChange"
+                >
+                    <option value="" disabled>
+                        Seleccione una Orden de compra
+                    </option>
+                    <option
+                        v-for="z in ordenesCompra"
+                        :key="z.numOc"
+                        :value="z.numOc"
+                    >
+                        {{ z.numOc }}
+                    </option>
+                </select>
+            </f7-list-item>
+
             <f7-list-item
                 title="Zona"
                 class="select-zona"
@@ -636,7 +668,10 @@ import {
     obtenerPrecioProducto,
 } from "@/app/services/Parametros/ProductoService";
 
-import { obtenerOrdenCompra } from "@/app/services/Parametros/OrdenCompraService";
+import {
+    listarOrdenesCaompra,
+    obtenerOrdenCompra,
+} from "@/app/services/Parametros/OrdenCompraService";
 
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
 import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
@@ -676,6 +711,8 @@ export default {
                 sheetCloseLinkText: "Listo",
                 searchbarPlaceholder: "Buscar",
             },
+            aplicandoOc: false,
+            ordenesCompra: [],
             zonas: [],
             proveedores: [],
             predios: [],
@@ -693,6 +730,7 @@ export default {
             empresasContratista: [],
             lineasContratista: [],
             conductorValido: true,
+            ordenCompraSeleccionada: null,
             form: {
                 sincronizado: false,
                 sincronizadoAt: false,
@@ -779,6 +817,7 @@ export default {
         f7.dialog.preloader("Cargando...");
         try {
             this.generarDatosEmisor();
+            await this.cargarOrdenesCompra();
             await this.cargarZonas();
             await this.cargarTransportistas();
             await this.cargarCarguios();
@@ -896,6 +935,10 @@ export default {
             };
         },
 
+        async cargarOrdenesCompra() {
+            this.ordenesCompra = await listarOrdenesCaompra();
+        },
+
         async cargarZonas() {
             this.zonas = await listarPorEmpresa(this.usuarioActivo.empresa);
             if (this.zonas.length === 1) {
@@ -941,10 +984,354 @@ export default {
             }
         },
 
+        async handleOrdenCompraChange(e) {
+            const nuevoNumero = e.target.value;
+
+            this.ordenCompraSeleccionada =
+                this.ordenesCompra.find((o) => o.numOc === nuevoNumero) || null;
+
+            if (this.ordenCompraSeleccionada) {
+                try {
+                    this.aplicandoOc = true; // 👈 empieza modo “llenado automático”
+                    f7.dialog.preloader("Aplicando Orden de Compra...");
+                    await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
+                } catch (err) {
+                    console.error("Error aplicando OC:", err);
+                    f7.dialog.alert(
+                        "No fue posible aplicar los datos de la Orden de Compra seleccionada.",
+                        "Error"
+                    );
+                } finally {
+                    this.aplicandoOc = false; // 👈 fin modo automático
+                    f7.dialog.close();
+                }
+            }
+        },
+
+        limpiarOrdenCompraSeleccionada() {
+            this.ordenCompraSeleccionada = null;
+            //this.form.ordenCompra = null; // opcional pero recomendado
+
+            this.$nextTick(() => {
+                try {
+                    // Resetear el Smart Select de OC (texto)
+                    const ss = f7.smartSelect.get(
+                        ".select-orden-compra .smart-select"
+                    );
+                    ss && ss.setValueText("Seleccione una Orden de compra");
+                } catch (e) {
+                    console.warn(
+                        "No se pudo actualizar smart-select de OC:",
+                        e
+                    );
+                }
+
+                // Resetear el <select> nativo (valor)
+                const sel = this.$el.querySelector(
+                    ".select-orden-compra select"
+                );
+                if (sel) {
+                    sel.value = "";
+                }
+            });
+        },
+
+        async asignarZonaDesdeOc(oc) {
+            // en tu OC: zona = codEncargado
+            const nuevaZona =
+                this.zonas.find((z) => z.codigo === oc.codEncargado) || null;
+
+            if (!nuevaZona) {
+                f7.dialog.alert(
+                    `La zona ${oc.codEncargado} de la Orden de Compra no está configurada para esta empresa.`,
+                    "Zona no encontrada"
+                );
+                return false;
+            }
+
+            // Limpia todo lo que depende de la zona
+            this.resetDesde("zona");
+            this.form.zona = nuevaZona;
+
+            await this.$nextTick();
+
+            // Actualizar texto del Smart Select de zona
+            try {
+                const ss = f7.smartSelect.get(".select-zona .smart-select");
+                ss && ss.setValueText(this.form.zona.descripcion);
+            } catch (e) {
+                console.warn("No se pudo actualizar smart-select de zona:", e);
+            }
+
+            // Cargar proveedores de la nueva zona
+            await this.cargarProveedores();
+
+            return true;
+        },
+
+        async asignarProveedorDesdeOc(oc) {
+            if (!this.proveedores?.length) {
+                return false;
+            }
+
+            const nuevoProv =
+                this.proveedores.find(
+                    (p) => String(p.rutProveedor) === String(oc.rutProveedor)
+                ) || null;
+
+            if (!nuevoProv) {
+                // No cortamos el flujo, solo devolvemos false
+                console.warn(
+                    "Proveedor de OC no encontrado en lista local:",
+                    oc.rutProveedor
+                );
+                return false;
+            }
+
+            this.resetDesde("proveedor");
+            this.form.proveedor = nuevoProv;
+
+            await this.$nextTick();
+
+            try {
+                const texto = `${nuevoProv.rutProveedor} ${nuevoProv.nomProveedor}`;
+                const ss = f7.smartSelect.get(
+                    ".select-proveedor .smart-select"
+                );
+                ss && ss.setValueText(texto);
+            } catch (e) {
+                console.warn(
+                    "No se pudo actualizar smart-select de proveedor:",
+                    e
+                );
+            }
+
+            await this.cargarPredios();
+
+            return true;
+        },
+
+        async asignarPredioDesdeOc(oc) {
+            if (!this.predios?.length) return false;
+
+            const nuevoPredio =
+                this.predios.find(
+                    (p) => String(p.rolPredio) === String(oc.rolPredio)
+                ) || null;
+
+            if (!nuevoPredio) {
+                console.warn(
+                    "Predio de OC no encontrado en lista local:",
+                    oc.rolPredio
+                );
+                return false;
+            }
+
+            this.resetDesde("predio");
+            this.form.predio = nuevoPredio;
+
+            await this.$nextTick();
+
+            try {
+                const txt = `${this.form.predio.rolPredio} ${this.form.predio.predio}`;
+                const ss = f7.smartSelect.get(".select-predio .smart-select");
+                ss && ss.setValueText(txt);
+            } catch (e) {
+                console.warn(
+                    "No se pudo actualizar smart-select de predio:",
+                    e
+                );
+            }
+
+            // Mantener misma lógica que cuando el usuario selecciona predio
+            await this.validarGeocerca();
+            if (this.form.datosGeocerca.validada === true) {
+                await this.cargarRodales();
+                await this.cargarClientes();
+            }
+
+            return true;
+        },
+        async asignarClienteDesdeOc(oc) {
+            if (!this.clientes?.length) return false;
+
+            const nuevoCliente =
+                this.clientes.find(
+                    (c) => String(c.rutCliente) === String(oc.rutCliente)
+                ) || null;
+
+            if (!nuevoCliente) {
+                console.warn(
+                    "Cliente de OC no encontrado en lista local:",
+                    oc.rutCliente
+                );
+                return false;
+            }
+
+            this.resetDesde("cliente");
+            this.form.cliente = nuevoCliente;
+
+            await this.$nextTick();
+            this.mostrarInformacionCliente();
+            this.obtenerIndicadorTraslado();
+            await this.cargarDestinosCliente();
+
+            try {
+                const txt = `${this.form.cliente.rutCliente} ${this.form.cliente.razonSocialCliente}`;
+                const ss = f7.smartSelect.get(".select-cliente .smart-select");
+                ss && ss.setValueText(txt);
+            } catch (e) {
+                console.warn(
+                    "No se pudo actualizar smart-select de cliente:",
+                    e
+                );
+            }
+
+            return true;
+        },
+
+        async asignarDestinoDesdeOc(oc) {
+            if (!this.destinos?.length) return false;
+
+            const nuevoDestino =
+                this.destinos.find(
+                    (d) =>
+                        String(d.destinoCliente) === String(oc.destinoCliente)
+                ) || null;
+
+            if (!nuevoDestino) {
+                console.warn(
+                    "Destino de OC no encontrado en lista local:",
+                    oc.destinoCliente
+                );
+                return false;
+            }
+
+            this.resetDesde("destino");
+            this.form.destino = nuevoDestino;
+
+            await this.$nextTick();
+            this.cargarInformacionDestino();
+            await this.cargarProductos();
+
+            try {
+                const ss = f7.smartSelect.get(".destino-cliente .smart-select");
+                ss && ss.setValueText(this.form.destino.destinoCliente);
+            } catch (e) {
+                console.warn(
+                    "No se pudo actualizar smart-select de destino:",
+                    e
+                );
+            }
+
+            return true;
+        },
+
+        async asignarProductoYLargoDesdeOc(oc) {
+            // productos ya cargados en cargarProductos()
+            if (!this.productos?.length) return false;
+
+            const nuevoProd =
+                this.productos.find(
+                    (p) => Number(p.codProducto) === Number(oc.codProducto)
+                ) || null;
+
+            if (!nuevoProd) {
+                console.warn(
+                    "Producto de OC no encontrado en lista local:",
+                    oc.codProducto
+                );
+                return false;
+            }
+
+            this.resetDesde("producto");
+            this.form.producto = nuevoProd;
+
+            await this.$nextTick();
+
+            try {
+                const ss = f7.smartSelect.get(".select-producto .smart-select");
+                ss && ss.setValueText(this.form.producto.nombreProducto);
+            } catch (e) {
+                console.warn(
+                    "No se pudo actualizar smart-select de producto:",
+                    e
+                );
+            }
+
+            // Precio + largos + orden compra interna
+            await this.cargarPrecioProducto();
+            await this.cargarLargosProducto();
+            await this.obtenerOrdenCompra();
+
+            // Largo desde OC (largoTrozo)
+            if (
+                Array.isArray(this.largosProducto) &&
+                this.largosProducto.length
+            ) {
+                const largoDesdeOc = this.largosProducto.find(
+                    (l) => Number(l) === Number(oc.largoTrozo)
+                );
+
+                if (largoDesdeOc != null) {
+                    this.form.largoProducto = largoDesdeOc;
+
+                    await this.$nextTick();
+                    try {
+                        const ssLargo = f7.smartSelect.get(
+                            ".largo-producto .smart-select"
+                        );
+                        ssLargo &&
+                            ssLargo.setValueText(
+                                `${this.form.largoProducto} Metro(s)`
+                            );
+                    } catch (e) {
+                        console.warn(
+                            "No se pudo actualizar smart-select de largo:",
+                            e
+                        );
+                    }
+                }
+            }
+
+            await this.$nextTick();
+            this.cargarInformacionProducto();
+
+            return true;
+        },
+
+        async aplicarOrdenCompra(oc) {
+            // 1) Zona
+            const okZona = await this.asignarZonaDesdeOc(oc);
+            if (!okZona) return;
+
+            const okProv = await this.asignarProveedorDesdeOc(oc);
+            if (!okProv) return;
+
+            // 3) Predio (depende de proveedor)
+            const okPredio = await this.asignarPredioDesdeOc(oc);
+            if (!okPredio) return;
+
+            // 4) Cliente (depende de predio)
+            const okCli = await this.asignarClienteDesdeOc(oc);
+            if (!okCli) return;
+
+            // 5) Destino (depende de cliente)
+            const okDest = await this.asignarDestinoDesdeOc(oc);
+            if (!okDest) return;
+
+            // 6) Producto + largo (depende de destino)
+            await this.asignarProductoYLargoDesdeOc(oc);
+        },
+
         async handleZonaChange(e) {
             const nuevoCodigo = e.target.value;
             const nuevaZona =
                 this.zonas.find((z) => z.codigo === nuevoCodigo) || null;
+
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
 
             const aplicarCambio = async () => {
                 this.resetDesde("zona"); // 👈 limpia todo
@@ -997,6 +1384,9 @@ export default {
         },
 
         async handleProveedorChange(e) {
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
             const nuevoRut = e.target.value;
             const nuevoProv =
                 this.proveedores.find((p) => p.rutProveedor === nuevoRut) ||
@@ -1010,6 +1400,9 @@ export default {
         },
 
         async handlePredioChange(e) {
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
             const nuevoPredio = e.target.value;
             this.form.predio =
                 this.predios.find((p) => p.rolPredio === nuevoPredio) || null;
@@ -1114,6 +1507,9 @@ export default {
         },
 
         async handleClienteChange(e) {
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
             const nuevoCliente = e.target.value;
             if (nuevoCliente) {
                 this.form.cliente =
@@ -1160,6 +1556,9 @@ export default {
             }
         },
         async handleDestinoChange(e) {
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
             const nuevoDestino = e.target.value;
             this.form.destino =
                 this.destinos.find((p) => p.destinoCliente === nuevoDestino) ||
@@ -1172,6 +1571,9 @@ export default {
         },
 
         async handleProductoChange(e) {
+            if (!this.aplicandoOc) {
+                this.limpiarOrdenCompraSeleccionada();
+            }
             const nuevoProducto = Number(e.target.value);
             this.form.producto =
                 this.productos.find((p) => p.codProducto === nuevoProducto) ||
@@ -1499,6 +1901,19 @@ export default {
 
         resetDesde(nivel) {
             // Orden de dependencia: zona → proveedor → predio → cliente → destino → producto → largo → transportista → patCamion → patCarro → conductor
+
+            const nivelesQueRompenOc = [
+                "zona",
+                "proveedor",
+                "predio",
+                "cliente",
+                "destino",
+                "producto",
+            ];
+            if (nivelesQueRompenOc.includes(nivel)) {
+                this.form.ordenCompra = null;
+            }
+
             if (nivel === "zona") {
                 this.form.proveedor = null;
                 this.proveedores = [];
