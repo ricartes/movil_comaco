@@ -363,7 +363,6 @@ function buildBoxOperacion(doc) {
             kvLine("Fecha Corta", doc?.comentarios?.anioCosecha ?? "—"),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),
-            kvLine("Número Guía anterior", doc?.comentarios?.numeroGuiaAnterior ?? "—"),
         ],
     };
 
@@ -600,7 +599,7 @@ function buildComentarioFull(doc) {
             widths: ["*"],
             body: [
                 [{ text: "COMENTARIO:", bold: true, fontSize: TAMANO_LETRA_ELEMENTOS, }],
-                [{ text: `${fStr(doc?.comentarios?.comentarios)}. Hora Agendamiento: ${fStr(doc?.comentarios?.horaAgendamiento)}. Número Agendamiento: ${fStr(doc?.comentarios?.numeroAgendamiento)}`, margin: [0, 6, 0, 6], fontSize: TAMANO_LETRA_ELEMENTOS, }],
+                [{ text: `${fStr(doc?.comentarios?.comentarios)}. Hora Agendamiento: ${fStr(doc?.comentarios?.horaAgendamiento)}. Número Agendamiento: ${fStr(doc?.comentarios?.numeroAgendamiento)}. N° Guía anterior: ${fStr(doc?.comentarios?.numeroGuiaAnterior)}`, margin: [0, 6, 0, 6], fontSize: TAMANO_LETRA_ELEMENTOS, }],
             ],
         },
         layout: boxedLayoutTight,

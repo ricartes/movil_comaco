@@ -378,13 +378,12 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(div());
     //comentarios
     const anioPlantacion = (M.comentarios.fechaPlantacion || '').substring(0, 4);
-
-    await printRawText(wrap(`NÚMERO GUÍA ANTERIOR: ${M.comentarios.numeroGuiaAnterior ?? ''}`));
     await printRawText(wrap(`OBS: ${M.comentarios.comentarios ?? ''}`));
     await printRawText(wrap(`HORA AGENDAMIENTO: ${M.comentarios.horaAgendamiento ?? ''}`));
     await printRawText(wrap(`NÚMERO AGENDAMIENTO: ${M.comentarios.numeroAgendamiento ?? ''}`));
     await printRawText(wrap(`AÑO PLANTACIÓN: ${anioPlantacion}`));
     await printRawText(wrap(`FECHA CORTA: ${M.comentarios.fechaCorta}`));
+    await printRawText(wrap(`NÚMERO GUÍA ANTERIOR: ${M.comentarios.numeroGuiaAnterior ?? ''}`));
     await printRawText(div());
 
 
