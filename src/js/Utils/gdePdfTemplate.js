@@ -363,6 +363,7 @@ function buildBoxOperacion(doc) {
             kvLine("Fecha Corta", doc?.comentarios?.anioCosecha ?? "—"),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),
+            kvLine("Número Guía anterior", doc?.comentarios?.numeroGuiaAnterior ?? "—"),
         ],
     };
 

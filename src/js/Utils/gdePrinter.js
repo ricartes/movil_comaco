@@ -105,6 +105,7 @@ function mapDoc(doc) {
         planManejo: doc?.comentarios?.planManejo || '',
         horaAgendamiento: doc?.comentarios?.horaAgendamiento || '',
         numeroAgendamiento: doc?.comentarios?.numeroAgendamiento || '',
+        numeroGuiaAnterior: doc?.comentarios?.numeroGuiaAnterior || '',
     }
 
     const trans = {
@@ -378,6 +379,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     //comentarios
     const anioPlantacion = (M.comentarios.fechaPlantacion || '').substring(0, 4);
 
+    await printRawText(wrap(`NÚMERO GUÍA ANTERIOR: ${M.comentarios.numeroGuiaAnterior ?? ''}`));
     await printRawText(wrap(`OBS: ${M.comentarios.comentarios ?? ''}`));
     await printRawText(wrap(`HORA AGENDAMIENTO: ${M.comentarios.horaAgendamiento ?? ''}`));
     await printRawText(wrap(`NÚMERO AGENDAMIENTO: ${M.comentarios.numeroAgendamiento ?? ''}`));

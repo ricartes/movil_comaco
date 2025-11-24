@@ -145,6 +145,21 @@
                     </i>
                     {{ form.datosGeocerca.mensajeValidacion }}
                 </div>
+
+                <div class="text-align-right" style="margin-top: 8px">
+                    <f7-button
+                        small
+                        outline
+                        color="red"
+                        :disabled="reintentandoGeocerca"
+                        @click="reintentarGeocerca"
+                    >
+                        <span v-if="!reintentandoGeocerca"
+                            >Reintentar validación de geocerca</span
+                        >
+                        <span v-else>Reintentando…</span>
+                    </f7-button>
+                </div>
             </f7-block>
 
             <!-- CLIENTE: depende de predio -->
@@ -625,7 +640,10 @@
             </f7-list-item>
         </f7-list>
 
-        <f7-block v-if="form.linea" class="text-align-center">
+        <f7-block
+            v-if="form.linea && form.datosGeocerca.validada === true"
+            class="text-align-center"
+        >
             <f7-button fill large color="blue" @click="ingresar">
                 Ingresar
             </f7-button>
@@ -712,6 +730,7 @@ export default {
                 searchbarPlaceholder: "Buscar",
             },
             aplicandoOc: false,
+            reintentandoGeocerca: false,
             ordenesCompra: [],
             zonas: [],
             proveedores: [],
@@ -922,6 +941,38 @@ export default {
             } catch (err) {
                 console.error("Error cargando IVA:", err);
                 this.form.ivaPct = this.ivaPorDefecto; // fallback en error
+            }
+        },
+
+        async reintentarGeocerca() {
+            if (!this.form.predio) return; // seguridad
+
+            this.reintentandoGeocerca = true;
+            try {
+                // Reutiliza toda tu lógica actual
+                await this.validarGeocerca();
+
+                // Si ahora quedó válida, seguimos el mismo flujo que al seleccionar predio
+                if (this.form.datosGeocerca.validada === true) {
+                    await this.cargarRodales();
+                    await this.cargarClientes();
+
+                    // Opcional: mover la vista hacia el siguiente paso (cliente/destino)
+                    await this.scrollTo({
+                        ref: "destinoCliente",
+                        block: "start",
+                        offset: 72,
+                        behavior: "smooth",
+                    });
+                }
+            } catch (err) {
+                console.warn("Error reintentando geocerca:", err);
+                f7.dialog.alert(
+                    "Ocurrió un error al reintentar la validación de geocerca.",
+                    "Error"
+                );
+            } finally {
+                this.reintentandoGeocerca = false;
             }
         },
 

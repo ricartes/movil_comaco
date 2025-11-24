@@ -115,6 +115,16 @@
                 />
 
                 <f7-list-input
+                    label="Número Guía Anterior"
+                    type="number"
+                    inputmode="numeric"
+                    @keypress="soloEntero"
+                    :value="form.numeroGuiaAnterior"
+                    :disabled="soloLectura"
+                    @input="onInputNum('numeroGuiaAnterior', $event)"
+                />
+
+                <f7-list-input
                     label="Comentarios"
                     type="textarea"
                     resizable
@@ -137,16 +147,6 @@
                     :value="form.numeroAgendamiento"
                     :disabled="soloLectura"
                     @input="onInput('numeroAgendamiento', $event)"
-                />
-
-                <f7-list-input
-                    label="Número Guía Anterior"
-                    type="number"
-                    inputmode="numeric"
-                    @keypress="soloEntero"
-                    :value="form.numeroGuiaAnterior"
-                    :disabled="soloLectura"
-                    @input="onInputNum('numeroGuiaAnterior', $event)"
                 />
             </f7-list>
         </f7-card-content>
