@@ -2121,44 +2121,37 @@ export default {
             }
         },
         async ingresar() {
-            // 1) Primero: obtener ubicación (obligatoria)
-            f7.dialog.preloader("Obteniendo ubicación…");
+            // Un solo preloader para todo el flujo
+            f7.dialog.preloader("Guardando GDE…");
 
-            let ubicacion = null;
             try {
-                ubicacion = await getLocationOnce();
-
-                // Validación básica por si vuelve algo raro
-                if (
-                    !ubicacion ||
-                    typeof ubicacion.lat !== "number" ||
-                    typeof ubicacion.lng !== "number"
-                ) {
-                    throw new Error("Ubicación inválida");
-                }
-            } catch (geoErr) {
-                console.error("Error obteniendo ubicación:", geoErr);
-
-                // Cerramos el preloader de ubicación
+                // 1) Obtener ubicación (obligatoria)
+                let ubicacion = null;
                 try {
-                    f7.dialog.close();
-                } catch {}
+                    ubicacion = await getLocationOnce();
 
-                // Bloqueamos el flujo de guardado
-                f7.dialog.alert(
-                    "No se pudo obtener la ubicación del dispositivo. " +
-                        "Verifica que el GPS esté encendido y que la app tenga permisos de ubicación.",
-                    "No se puede ingresar la GDE"
-                );
+                    // Validación básica
+                    if (
+                        !ubicacion ||
+                        typeof ubicacion.lat !== "number" ||
+                        typeof ubicacion.lng !== "number"
+                    ) {
+                        throw new Error("Ubicación inválida");
+                    }
+                } catch (geoErr) {
+                    console.error("Error obteniendo ubicación:", geoErr);
 
-                return; // ⛔️ importante: NO seguimos al guardado
-            }
+                    // Mensaje específico por ubicación
+                    f7.dialog.alert(
+                        "No se pudo obtener la ubicación del dispositivo. " +
+                            "Verifica que el GPS esté encendido y que la app tenga permisos de ubicación.",
+                        "No se puede ingresar la GDE"
+                    );
 
-            // 2) Si llegamos aquí, tenemos ubicación -> ahora sí guardamos la GDE
-            try {
-                f7.dialog.preloader("Guardando GDE…");
+                    return; // ⛔️ No seguimos al guardado
+                }
 
-                // Adjuntar ubicación obligatoria
+                // 2) Si llegamos aquí, tenemos ubicación válida -> guardar GDE
                 this.form.ubicacion = ubicacion;
 
                 const gdeInsertada = await ingresarGde(this.form);
@@ -2178,12 +2171,13 @@ export default {
                     "Error"
                 );
             } finally {
-                // Cerrar cualquier preloader que quede abierto
+                // Se ejecuta SIEMPRE, incluso si hubo `return` arriba
                 try {
                     f7.dialog.close();
                 } catch {}
             }
         },
+
         onUpdateConductor(nuevo) {
             this.form.conductor = nuevo;
             f7.smartSelect
