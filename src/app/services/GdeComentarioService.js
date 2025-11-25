@@ -26,6 +26,7 @@ export async function ensureComentariosInit(id) {
         guiaProveedor: "",
         volumenProveedor: null,
         anioCosecha: null,
+        numeroGuiaAnterior: null,
         // estos dos se siembran desde rodal si es posible:
         fechaPlantacion: seedFecha,
         planManejo: seedPlan,

@@ -18,13 +18,14 @@
                     </tr>
 
                     <!-- Motivo catálogo -->
+                    <!-- Motivo catálogo -->
                     <tr v-if="isNula && motivoCatalogo">
                         <td class="label-cell"><b>Motivo anulación:</b></td>
                         <td>{{ motivoCatalogo }}</td>
                     </tr>
 
-                    <!-- Glosa / detalle escrito -->
-                    <tr v-if="isNula && motivoGlosa">
+                    <!-- Glosa / detalle escrito SOLO si el motivo requiere glosa -->
+                    <tr v-if="isNula && requiereGlosa && motivoGlosa">
                         <td class="label-cell"><b>Detalle motivo:</b></td>
                         <td>{{ motivoGlosa }}</td>
                     </tr>
@@ -65,12 +66,14 @@ export default {
         motivoCatalogo() {
             return this.doc?.motivoAnulacionSeleccionado?.glosa || null;
         },
-
-        // texto final guardado (glosa adicional / combinada)
         motivoGlosa() {
             return this.doc?.motivoAnulacion || null;
         },
-
+        requiereGlosa() {
+            return (
+                this.doc?.motivoAnulacionSeleccionado?.requiereGlosa === true
+            );
+        },
         badgeColor() {
             const raw = this.doc?.estado?.color || "gray";
             return String(raw).replace(/^color-/, "");
