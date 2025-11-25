@@ -379,6 +379,9 @@ export default {
             try {
                 if (this.validarIngresoVolumenes()) {
                     f7.dialog.preloader("Emitiendo guia...");
+
+                    
+
                     const updatedDoc = await emitirGde(this.doc);
                     this.doc = updatedDoc; // 👈 actualizas el doc en memoria
                     f7.dialog.alert(

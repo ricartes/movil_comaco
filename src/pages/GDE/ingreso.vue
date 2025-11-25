@@ -2121,26 +2121,48 @@ export default {
             }
         },
         async ingresar() {
+            // 1) Primero: obtener ubicación (obligatoria)
+            f7.dialog.preloader("Obteniendo ubicación…");
+
+            let ubicacion = null;
             try {
-                // Mostrar preloader
+                ubicacion = await getLocationOnce();
+
+                // Validación básica por si vuelve algo raro
+                if (
+                    !ubicacion ||
+                    typeof ubicacion.lat !== "number" ||
+                    typeof ubicacion.lng !== "number"
+                ) {
+                    throw new Error("Ubicación inválida");
+                }
+            } catch (geoErr) {
+                console.error("Error obteniendo ubicación:", geoErr);
+
+                // Cerramos el preloader de ubicación
+                try {
+                    f7.dialog.close();
+                } catch {}
+
+                // Bloqueamos el flujo de guardado
+                f7.dialog.alert(
+                    "No se pudo obtener la ubicación del dispositivo. " +
+                        "Verifica que el GPS esté encendido y que la app tenga permisos de ubicación.",
+                    "No se puede ingresar la GDE"
+                );
+
+                return; // ⛔️ importante: NO seguimos al guardado
+            }
+
+            // 2) Si llegamos aquí, tenemos ubicación -> ahora sí guardamos la GDE
+            try {
                 f7.dialog.preloader("Guardando GDE…");
 
-                // Intentar geolocalización (si falla, seguimos sin bloquear el flujo)
-                let ubicacion = null;
-                try {
-                    ubicacion = await getLocationOnce();
-                } catch (geoErr) {
-                    // Puedes notificar suave, pero no bloquees el guardado
-                    console.warn("No se pudo obtener ubicación:", geoErr);
-                }
-
-                // Adjuntar ubicación (aunque sea null)
+                // Adjuntar ubicación obligatoria
                 this.form.ubicacion = ubicacion;
 
-                // Guardar GDE
                 const gdeInsertada = await ingresarGde(this.form);
 
-                // Éxito
                 f7.dialog.alert("GDE ingresada correctamente.", "Éxito", () => {
                     f7.views.main?.router?.navigate(
                         `/gde/detalle/${gdeInsertada._id}`,
@@ -2156,13 +2178,12 @@ export default {
                     "Error"
                 );
             } finally {
-                // Cerrar preloader siempre
+                // Cerrar cualquier preloader que quede abierto
                 try {
-                    f7.dialog.close(); // cierra el preloader dialog si está abierto
+                    f7.dialog.close();
                 } catch {}
             }
         },
-
         onUpdateConductor(nuevo) {
             this.form.conductor = nuevo;
             f7.smartSelect

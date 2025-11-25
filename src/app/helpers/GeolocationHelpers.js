@@ -18,6 +18,6 @@ export async function getLocationOnce() {
         };
     } catch (e) {
         console.warn("No se pudo obtener ubicación:", e.message || e);
-        return null;
+        throw e;
     }
 }

@@ -291,7 +291,6 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     if (M.trans.transportista) await printRawText(wrap(`EMP. TRANSP.: ${M.trans.transportista.toUpperCase()}`));
     await printRawText(div());
     await printRawText(wrap(`ID: ${M.ordenCompra.numOc}`));
-    await printRawText(wrap(`FORMA DE PAGO: ${M.ordenCompra.glosaFormaPago}`));
     await printRawText(wrap(`COORDENADA X: ${M.ordenCompra.coordenadaX}`));
     await printRawText(wrap(`COORDENADA Y: ${M.ordenCompra.coordenadaY}`));
 

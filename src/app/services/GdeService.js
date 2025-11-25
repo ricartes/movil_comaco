@@ -4,6 +4,7 @@ import { getGdeDao, getSiiFolioDao } from "@/app/services/initServices";
 import config from "@/Common/json/config.json";
 import { nowLocalIso, nowLocalIsoWithOffset } from "@/app/helpers/FechasHelpers";
 import { makeGdeDoc } from '@/app/mappers/gdeMapper';
+import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 
 export async function listarPorEmpresaYRutPaginado(empId, rut, opts) {
     return await getGdeDao().listarPorEmpresaYRutPaginado(empId, rut, opts);
@@ -85,6 +86,11 @@ export async function emitirGde(gde) {
     if (!rutEmisor) throw new Error("Rut emisor no informado.");
     if (!gde._id || !gde._rev) throw new Error("Documento GDE sin _id/_rev.");
 
+    const ubicacion = await getLocationOnce();
+    if (!ubicacion) {
+        throw new Error("No se puede emitir debido a que Ubicación no  está disponible");
+    }
+
     const folioDao = getSiiFolioDao();
     const gdeDao = getGdeDao();
     const EG = config.parametros.estadosGuia;
@@ -144,7 +150,7 @@ export async function emitirGde(gde) {
             tedGeneradoAt: fechaIso,
             srfId: urfDTO.srfId,
             updatedAt: fechaIso,
-            // flags de sync:
+            ubicacion: ubicacion,
             sincronizado: false,
             sincronizadoAt: null,
         });
