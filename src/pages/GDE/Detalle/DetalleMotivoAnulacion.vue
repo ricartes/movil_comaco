@@ -146,11 +146,14 @@ export default {
                 );
                 return;
             }
+            const glosaFinal = this.motivoAnulacionSeleccionado.requiereGlosa
+                ? this.glosaAdicional.trim()
+                : this.motivoAnulacionSeleccionado.glosa;
 
             // Emitimos al padre
             this.$emit("confirmar", {
                 motivoSeleccionado: this.motivoAnulacionSeleccionado,
-                glosaAdicional: this.glosaAdicional.trim(),
+                glosaAdicional: glosaFinal,
             });
         },
     },
