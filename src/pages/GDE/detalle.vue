@@ -401,23 +401,32 @@ export default {
             }
         },
 
-        async onAnular(motivo) {
-            f7.dialog.preloader("Anulando guia...");
+        async onAnular({ doc, motivoSeleccionado, glosaAdicional }) {
             try {
-                const updatedDoc = await anularGde(this.doc, motivo);
+                f7.dialog.preloader("Anulando guía...");
+
+                const updatedDoc = await anularGde(
+                    doc,
+                    motivoSeleccionado,
+                    glosaAdicional
+                );
+
                 this.doc = updatedDoc; // 👈 actualizas el doc en memoria
+
                 f7.dialog.alert("Guía anulada correctamente.", "Éxito", () => {
                     this.scrollArriba();
                     this.onEnviar(true);
                 });
             } catch (e) {
-                const mensaje = e?.message
-                    ? e.message
-                    : "Ha ocurrido un error inesperado al anular la guía.";
+                const mensaje =
+                    e?.message ||
+                    "Ha ocurrido un error inesperado al anular la guía.";
 
                 f7.dialog.alert(mensaje, "Error");
             } finally {
-                f7.dialog.close();
+                try {
+                    f7.dialog.close();
+                } catch {}
             }
         },
 

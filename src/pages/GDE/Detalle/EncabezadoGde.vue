@@ -7,6 +7,7 @@
                         <td class="label-cell"><b>Folio:</b></td>
                         <td>{{ doc.folio ?? "Sin folio" }}</td>
                     </tr>
+
                     <tr>
                         <td class="label-cell"><b>Estado:</b></td>
                         <td>
@@ -15,10 +16,19 @@
                             </f7-badge>
                         </td>
                     </tr>
-                    <tr v-if="isNula">
+
+                    <!-- Motivo catálogo -->
+                    <tr v-if="isNula && motivoCatalogo">
                         <td class="label-cell"><b>Motivo anulación:</b></td>
-                        <td>{{ doc.motivoAnulacion ?? "-" }}</td>
+                        <td>{{ motivoCatalogo }}</td>
                     </tr>
+
+                    <!-- Glosa / detalle escrito -->
+                    <tr v-if="isNula && motivoGlosa">
+                        <td class="label-cell"><b>Detalle motivo:</b></td>
+                        <td>{{ motivoGlosa }}</td>
+                    </tr>
+
                     <tr>
                         <td class="label-cell"><b>Creada:</b></td>
                         <td>{{ formatFecha(doc.createdAt) }}</td>
@@ -31,9 +41,12 @@
 
 <script>
 import config from "@/Common/json/config.json";
+
 export default {
     name: "EncabezadoGde",
-    props: { doc: Object, required: true },
+    props: {
+        doc: { type: Object, required: true },
+    },
     computed: {
         st() {
             return this.doc?.estado?.id;
@@ -47,10 +60,28 @@ export default {
         isNula() {
             return this.st === this.ID_NULA;
         },
+
+        // glosa del catálogo (motivo seleccionado)
+        motivoCatalogo() {
+            return this.doc?.motivoAnulacionSeleccionado?.glosa || null;
+        },
+
+        // texto final guardado (glosa adicional / combinada)
+        motivoGlosa() {
+            return this.doc?.motivoAnulacion || null;
+        },
+
         badgeColor() {
-            // si viene "color-red" → "red"; si no viene, usa "gray"
             const raw = this.doc?.estado?.color || "gray";
             return String(raw).replace(/^color-/, "");
+        },
+    },
+    methods: {
+        formatFecha(fechaIso) {
+            if (!fechaIso) return "—";
+            const d = new Date(fechaIso);
+            if (Number.isNaN(d.getTime())) return "—";
+            return d.toLocaleString(); // o tu formateador real
         },
     },
 };

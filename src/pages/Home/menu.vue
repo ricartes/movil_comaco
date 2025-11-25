@@ -242,6 +242,14 @@ export default {
                             this.user.rut
                         ),
                 },
+                {
+                    key: "Motivos de Anulación",
+                    run: () =>
+                        CargaParametrosService.cargarMotivosAnulacion(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
             ];
 
             const tasks = [...tasksBase];

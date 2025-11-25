@@ -6,7 +6,7 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
     getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
-    getZonaDao, getGeocercaDao, getLargoProductoDao
+    getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
@@ -21,6 +21,7 @@ import { mapServerEmpresaContratistaToDoc } from '@/app/mappers/empresaContratis
 import { mapServerRodalToDoc } from '@/app/mappers/rodalMapper'
 import { mapServerZonaToDoc } from '@/app/mappers/ZonaMapper'
 import { mapServerGeocercaToDoc } from '@/app/mappers/GeocercaMapper'
+import { mapServerMotivoAnulacionToDoc } from '@/app/mappers/MotivoAnulacionMapper'
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
     const token = store.state.token
@@ -180,6 +181,18 @@ const CargaParametrosService = {
             mapper: mapServerGeocercaToDoc,
             daoGetter: getGeocercaDao,
             nombre: 'Geocercas',
+        })
+    },
+
+
+    cargarMotivosAnulacion(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarMotivosAnulacion,
+            mapper: mapServerMotivoAnulacionToDoc,
+            daoGetter: getMotivoAnulacionDao,
+            nombre: 'Motivos de Anulación',
         })
     },
 }

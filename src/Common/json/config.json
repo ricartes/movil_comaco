@@ -136,6 +136,7 @@
         "RescatarPrecios": "precio",
         "RescatarEmpresas": "empresa",
         "RescatarParametroGeneral": "parametro-general",
+        "RescatarMotivosAnulacion": "motivo-anulacion",
         "RescatarCarguios": "carguio",
         "RescatarEmpresaContratista": "empresa-contratista",
         "RescatarRodales": "rodal",
@@ -170,7 +171,8 @@
             "geocerca": "geocerca",
             "siiUsuarioRangoFolio": "sii-usuario-rango-folio",
             "folio": "folio",
-            "largoProducto": "largo-producto"
+            "largoProducto": "largo-producto",
+            "motivoAnulacion": "motivo-anulacion"
         }
     }
 }

@@ -27,7 +27,7 @@ export async function descartarGde(gde) {
     return await getGdeDao().eliminar(gde); // devuelve doc completo
 }
 
-export async function anularGde(gde, motivoAnulacion) {
+export async function anularGde(gde, motivoSeleccionado, glosaAdicional) {
 
     if (!gde || typeof gde !== "object") throw new Error("GDE inválida.");
     const empId = gde?.empresa?.id ?? gde?.empId;
@@ -37,10 +37,26 @@ export async function anularGde(gde, motivoAnulacion) {
     const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`
     const ahoraISO = new Date().toISOString()
 
+    const motivoTexto =
+        (glosaAdicional && glosaAdicional.trim()) ||
+        motivoSeleccionado?.glosa ||
+        "";
+
+    // Dejamos un objeto "plano" del motivo para evitar proxys de Vue
+    const motivoSeleccionadoPlano = motivoSeleccionado
+        ? {
+            id: motivoSeleccionado.id,
+            glosa: motivoSeleccionado.glosa,
+            requiereGlosa: !!motivoSeleccionado.requiereGlosa,
+            empId: motivoSeleccionado.empId,
+        }
+        : null;
+
     try {
         const actualizado = await gdeDao.patch(gde._id, {
             estado: estadoAnulada,
-            motivoAnulacion: motivoAnulacion,
+            motivoAnulacion: motivoTexto,
+            motivoAnulacionSeleccionado: motivoSeleccionadoPlano,
             sincronizado: false,
             sincronizadoAt: null,
             syncing: false,
@@ -78,9 +94,9 @@ export async function emitirGde(gde) {
 
     try {
 
-        if (gde?.estado?.id === EG.EMITIDA.id 
+        if (gde?.estado?.id === EG.EMITIDA.id
             || gde?.estado?.id === EG.ENVIADA.id
-            || gde?.estado?.id === EG.NULA.id 
+            || gde?.estado?.id === EG.NULA.id
             || Number.isFinite(gde?.folio)) {
             return gde; // ya estaba emitida; idempotente
         }

@@ -109,6 +109,11 @@ export async function crearIndicesTipo(db) {
 
 
 
+        // === motivo-anulacion ===
+        { ddoc: 'idx_motAnu_type', fields: ['type'] },
+        { ddoc: 'idx_motAnu_empId', fields: ['type', 'empId'] },
+        { ddoc: 'idx_motAnu_empId_id', fields: ['type', 'empId', 'id'] },
+
 
     ];
 

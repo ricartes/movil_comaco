@@ -12,8 +12,8 @@
         <f7-block strong class="alert-wrapper">
             <div class="alert alert-info">
                 <i class="f7-icons">info_circle</i>
-                Si conoce el Númnero de Orden de Compra, puede seleccionarla
-                para autocompletar los datos relacionados.
+                Si conoce el Número de Orden, puede seleccionarla para
+                autocompletar los datos relacionados.
             </div>
         </f7-block>
 
@@ -21,7 +21,7 @@
             <!-- ZONA -->
 
             <f7-list-item
-                title="Orden Compra"
+                title="Número Orden"
                 class="select-orden-compra"
                 smart-select
                 :smart-select-params="ssParams"
@@ -31,7 +31,7 @@
                     @change="handleOrdenCompraChange"
                 >
                     <option value="" disabled>
-                        Seleccione una Orden de compra
+                        Seleccione Número de Orden
                     </option>
                     <option
                         v-for="z in ordenesCompra"

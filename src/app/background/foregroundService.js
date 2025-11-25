@@ -8,8 +8,9 @@ import { syncPendientesStreaming } from '@/app/services/GdeEnvioService'
 const CHANNEL_ID = 'gde-sync'
 let intervalId = null
 let running = false
+let isSyncRunning = false
 
-// ✅ Pide/valida POST_NOTIFICATIONS en Android 13+ y devuelve true/false
+
 async function ensureNotificationPermission() {
     if (Capacitor.getPlatform() !== 'android') return true
     try {
@@ -29,8 +30,13 @@ async function ensureNotificationPermission() {
 }
 
 function stopSyncLoop() {
-    if (intervalId) { clearInterval(intervalId); intervalId = null }
+    if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+    }
+    isSyncRunning = false // por si justo estaba en medio de una ejecución
 }
+
 
 export async function startGdeSyncForegroundService(empId, rutEmisor) {
     if (Capacitor.getPlatform() !== 'android') return
@@ -64,12 +70,14 @@ export async function startGdeSyncForegroundService(empId, rutEmisor) {
         // Loop cada 60s
         stopSyncLoop()
         intervalId = setInterval(async () => {
+            if (isSyncRunning) return
+            isSyncRunning = true
             try {
-                await syncPendientesStreaming(empId, rutEmisor)
-
+                await withTimeout(syncPendientesStreaming(empId, rutEmisor), 30_000)
             } catch (e) {
-                console.warn('[SYNC] error:', e?.message || e)
-
+                console.warn('[SYNC] error/timeout:', e?.message || e)
+            } finally {
+                isSyncRunning = false
             }
         }, 60_000)
     } catch (e) {
@@ -88,7 +96,21 @@ export async function stopGdeSyncForegroundService() {
 
 export function attachNotificationActionHandler() {
     if (Capacitor.getPlatform() !== 'android') return
-    ForegroundService.addListener('buttonPressed', async (event) => {
-        if (event?.id === 1) await stopGdeSyncForegroundService()
+
+    ForegroundService.addListener('buttonClicked', async (event) => {
+        if (event?.buttonId === 1) {
+            await stopGdeSyncForegroundService()
+        }
     })
 }
+
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms),
+        ),
+    ])
+}
+
+
