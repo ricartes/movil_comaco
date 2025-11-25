@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Con F7-Vue no hace falta importar <f7-*> explícitamente.
-import formatters from '../../../js/mixins/formatters'
+import formatters from "../../../js/mixins/formatters";
 // @ts-ignore: allow importing local JSON without changing tsconfig
-import config from '../../../Common/json/config.json';
+import config from "../../../Common/json/config.json";
 import { computed } from "vue";
 
 // Saco solo lo que voy a usar
@@ -110,7 +110,11 @@ interface GdeDoc {
         planManejo?: string | null;
         puntoX?: number | null;
         puntoY?: number | null;
+        numeroGuiaAnterior?: number | null;
         comentarios?: string;
+    };
+    ordenCompra?: {
+        glosaFormaPago?: string | null;
     };
 }
 
@@ -197,8 +201,6 @@ function formatCoord(n?: number | null) {
                     <dd>{{ props.doc?.emisor?.rut ?? "—" }}</dd>
                     <dt>Email</dt>
                     <dd>{{ props.doc?.emisor?.email ?? "—" }}</dd>
-                    <dt>Rol</dt>
-                    <dd>{{ props.doc?.emisor?.rol ?? "—" }}</dd>
                 </dl>
             </div>
 
@@ -291,6 +293,8 @@ function formatCoord(n?: number | null) {
                     <dd>{{ formatBool(props.doc?.trasvasije) }}</dd>
                     <dt>Venta en piso</dt>
                     <dd>{{ formatBool(props.doc?.ventaPiso) }}</dd>
+                    <dt>Forma de pago</dt>
+                    <dd>{{ props.doc?.ordenCompra?.glosaFormaPago ?? "—" }}</dd>
                 </dl>
             </div>
 
@@ -499,6 +503,10 @@ function formatCoord(n?: number | null) {
                         {{
                             formatCoord(props.doc?.comentarios?.puntoY ?? null)
                         }}
+                    </dd>
+                    <dt>Número guía anterior</dt>
+                    <dd>
+                        {{ props.doc?.comentarios?.numeroGuiaAnterior || "—" }}
                     </dd>
                     <dt>Comentarios</dt>
                     <dd>{{ props.doc?.comentarios?.comentarios || "—" }}</dd>
