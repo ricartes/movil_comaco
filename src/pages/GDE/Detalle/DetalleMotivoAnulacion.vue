@@ -98,21 +98,18 @@ export default {
 
         handleMotivoAnulacionChange(e) {
             const idSeleccionado = e.target.value;
-            console.log("ID motivo anulación seleccionado:", idSeleccionado);
-            console.log(this.motivosAnulacion);
 
             this.motivoAnulacionSeleccionado =
                 this.motivosAnulacion.find(
                     (o) => String(o.id) === String(idSeleccionado)
                 ) || null;
 
-            // reset glosa al cambiar motivo
-            this.glosaAdicional = "";
-
-            console.log(
-                "Motivo anulación seleccionado:",
-                this.motivoAnulacionSeleccionado
-            );
+            if (this.motivoAnulacionSeleccionado?.requiereGlosa) {
+                this.glosaAdicional = "";
+            } else {
+                // 👉 Autorellenar automáticamente
+                this.glosaAdicional = this.motivoAnulacionSeleccionado.glosa;
+            }
         },
 
         handleGlosaChange(e) {
