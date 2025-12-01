@@ -191,7 +191,7 @@ function errorGpsIngresoPlanta(err) {
 }
 
 
-// 5) Crear una evidencia por cada GDE y reutilizar fotos.js
+// 5) Crear una evidencia por cada GDE
 function guardarEvidenciasIngresoPlanta(latitud, longitud) {
     const guias = evidenciaIngresoContext.guias || [];
     const fotoUrl = evidenciaIngresoContext.fotoUrl;
@@ -254,6 +254,9 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
                                 Obtener_dato_local('user_activo'),
                                 datos
                             );
+
+                            await validarGeocercaYUbicacion(gde, gde.ROWID);
+
                         } catch (e) {
                             console.error(e);
                         } finally {
@@ -270,6 +273,105 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
         });
     });
 }
+
+
+
+
+async function esperarUbicacionReal(gde) {
+    let intentos = 0;
+    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+    while (resultadoUbicacionSimulada.esUbicacionSimulada) {
+
+        if (intentos === 0) {
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                Obtener_dato_local('user_activo'),
+                {
+                    rol: gde?.GDE_COD_ORIGEN ?? null,
+                    despacho: gde,
+                    id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
+                    resultadoUbicacionSimulada
+                }
+            );
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+        }
+
+        try { app.dialog.close(); } catch { }
+
+        await new Promise(resolve => {
+            app.dialog.alert(
+                'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
+                "GFE Proveedores",
+                async () => {
+                    app.dialog.progress("Cargando...");
+                    setTimeout(async () => {
+                        resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                        resolve();
+                    }, 1500);
+                }
+            );
+        });
+
+        intentos++;
+    }
+
+    return true;
+}
+
+async function validarGeocercaYUbicacion(gde, id_gde_actual) {
+
+    if (!configuracionGeocercas.habilitado ||
+        !configuracionGeocercas.habilitadoPorAccion.confirmaIngresoPlanta) {
+        return false; // no corre nada
+    }
+
+    try {
+
+        const resultado = await validarGeocerca(gde?.GDE_COD_ORIGEN);
+        const resultadoValidacion = resultado.validacion;
+
+        // Validación de cierre control
+        const cierre = await validarCierreControl(
+            resultadoValidacion,
+            id_gde_actual,
+            constantes.tipoPunto.final
+        );
+
+        // 1) validar ubicación real
+        await esperarUbicacionReal(gde);
+
+        // 2) si debe cerrar control => trazabilidad
+        if (cierre.cierra || cierre.advertencia) {
+
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.GEOCERCA_INVALIDA,
+                Obtener_dato_local('user_activo'),
+                {
+                    rol: gde?.GDE_COD_ORIGEN ?? null,
+                    despacho: gde,
+                    id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null
+                }
+            );
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local('user_activo'),
+                datos
+            );
+        }
+
+    } catch (error) {
+        app.dialog.close();
+        app.dialog.alert(error, "GFE");
+        throw error;
+    }
+}
+
+
+
 
 function confirmarIngresoPlanta() {
     app.dialog.confirm(
