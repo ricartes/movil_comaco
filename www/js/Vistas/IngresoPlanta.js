@@ -191,8 +191,9 @@ function errorGpsIngresoPlanta(err) {
 }
 
 
-// 5) Crear una evidencia por cada GDE
-function guardarEvidenciasIngresoPlanta(latitud, longitud) {
+// 5) Crear una evidencia por cada GDE y reutilizar fotos.js
+// 5) Crear una evidencia por cada GDE y reutilizar fotos.js
+async function guardarEvidenciasIngresoPlanta(latitud, longitud) {
     const guias = evidenciaIngresoContext.guias || [];
     const fotoUrl = evidenciaIngresoContext.fotoUrl;
 
@@ -201,175 +202,114 @@ function guardarEvidenciasIngresoPlanta(latitud, longitud) {
         return;
     }
 
-    let pendientes = guias.length;
+    capturandoIngresoPlanta = true;
+    app.dialog.progress("Cargando...");
 
-    guias.forEach(function (gde) {
-        const evidencia = new CL_GDE_Evidencia();
-        evidencia.ID_UNICO_MOVIL = "evid_gde" + obtener_IDUNICO();
+    const anuladas = [];
+    const advertencias = [];
 
+    try {
+        // 1) Validar mock location UNA SOLA VEZ antes de procesar guías
+        // Usamos la primera guía como referencia para trazabilidad
+        const gdeReferencia = guias[0] || null;
+        await validarUbicacionNoSimuladaGlobal(gdeReferencia);
 
-        evidencia.ID_GDE = gde.ROWID;
-        evidencia.ID_UNICO_MOVIL_GDE = gde.ID_UNICO_MOVIL;
-        evidencia.GDE_ESTADO_MOVIL = "B";     // borrador local
-        evidencia.FECHA_EVIDENCIA = "";
-        evidencia.OBSERVACION = "EVIDENCIA CONFIRMA INGRESO PLANTA";
-        evidencia.ARCHIVO = fotoUrl;
-        evidencia.ENVIADO = 0;                // pendiente de envío
-        evidencia.TIPO_EVIDENCIA = constantes.tipoEvidencia.ingresoPlanta;
-        evidencia.EVIDENCIA_COORDENADA_X = latitud;
-        evidencia.EVIDENCIA_COORDENADA_Y = longitud;
+        // 2) Procesar guías una por una
+        for (const gde of guias) {
+            // 2.1) Guardar evidencia (borrar + insertar) para esta guía
+            const evidenciaIdUnico = await new Promise((resolve, reject) => {
+                const evidencia = new CL_GDE_Evidencia();
+                evidencia.ID_UNICO_MOVIL = "evid_gde" + obtener_IDUNICO();
 
+                evidencia.ID_GDE = gde.ROWID;
+                evidencia.ID_UNICO_MOVIL_GDE = gde.ID_UNICO_MOVIL;
+                evidencia.GDE_ESTADO_MOVIL = "B";
+                evidencia.FECHA_EVIDENCIA = "";
+                evidencia.OBSERVACION = "EVIDENCIA CONFIRMA INGRESO PLANTA";
+                evidencia.ARCHIVO = fotoUrl;
+                evidencia.ENVIADO = 0;
+                evidencia.TIPO_EVIDENCIA = constantes.tipoEvidencia.ingresoPlanta;
+                evidencia.EVIDENCIA_COORDENADA_X = latitud;
+                evidencia.EVIDENCIA_COORDENADA_Y = longitud;
 
-        // 1) Borrar evidencia anterior (si existe) para esa guía/tipo
-        DATOS_borra_evidencia_guia(evidencia, function () {
-            // 2) Insertar la nueva evidencia
-            DATOS_guardar_evidencia_guia(evidencia, function () {
-                console.log("guarda");
-                pendientes--;
-
-                // Cuando termina la última inserción
-                if (pendientes === 0) {
-                    // Cambiamos la imagen en pantalla por la foto capturada
-                    $$("#imagen_confirma_planta").attr("src", fotoUrl);
-
-                    // Trazabilidad simple: CAPTURA_EVIDENCIA_INGRESO_PLANTA
-                    (async () => {
-                        try {
-                            app.dialog.progress("Cargando...");
-
-                            let datos = await generarDataTrazabilidad(
-                                TipoAccionTypes.CAPTURA_EVIDENCIA_INGRESO_PLANTA,
-                                Obtener_dato_local('user_activo'),
-                                {
-                                    cantidadGuias: guias.length,
-                                    foto: fotoUrl,
-                                    rol: gde?.GDE_COD_ORIGEN ?? null,
-                                    despacho: gde,
-                                    id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
-                                    resultadoUbicacionSimulada: resultadoUbicacionSimulada
-                                }
-                            );
-
-                            await obtenerUbicacionEInsertarLog(
-                                Obtener_dato_local('user_activo'),
-                                datos
-                            );
-
-                            await validarGeocercaYUbicacion(gde, gde.ROWID);
-
-                        } catch (e) {
-                            console.error(e);
-                        } finally {
-                            app.dialog.close();
-                            capturandoIngresoPlanta = false;
-                            app.dialog.alert(
-                                "Evidencia de ingreso a planta registrada para todas las guías pendientes.",
-                                "GFE"
-                            );
-                        }
-                    })();
-                }
+                DATOS_borra_evidencia_guia(evidencia, function () {
+                    DATOS_guardar_evidencia_guia(evidencia, function () {
+                        resolve(evidencia.ID_UNICO_MOVIL);
+                    }, reject);
+                }, reject);
             });
-        });
-    });
-}
 
-
-
-
-async function esperarUbicacionReal(gde) {
-    let intentos = 0;
-    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
-
-    while (resultadoUbicacionSimulada.esUbicacionSimulada) {
-
-        if (intentos === 0) {
-            const datos = await generarDataTrazabilidad(
-                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
-                Obtener_dato_local('user_activo'),
+            // 2.2) Trazabilidad CAPTURA_EVIDENCIA_INGRESO_PLANTA (por guía)
+            const datosCap = await generarDataTrazabilidad(
+                TipoAccionTypes.CAPTURA_EVIDENCIA_INGRESO_PLANTA,
+                Obtener_dato_local("user_activo"),
                 {
+                    cantidadGuias: guias.length,
+                    foto: fotoUrl,
                     rol: gde?.GDE_COD_ORIGEN ?? null,
                     despacho: gde,
                     id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
-                    resultadoUbicacionSimulada
-                }
-            );
-            await obtenerUbicacionEInsertarLog(
-                Obtener_dato_local('user_activo'),
-                datos
-            );
-        }
-
-        try { app.dialog.close(); } catch { }
-
-        await new Promise(resolve => {
-            app.dialog.alert(
-                'Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.',
-                "GFE Proveedores",
-                async () => {
-                    app.dialog.progress("Cargando...");
-                    setTimeout(async () => {
-                        resultadoUbicacionSimulada = await detectarUbicacionSimulada();
-                        resolve();
-                    }, 1500);
-                }
-            );
-        });
-
-        intentos++;
-    }
-
-    return true;
-}
-
-async function validarGeocercaYUbicacion(gde, id_gde_actual) {
-
-    if (!configuracionGeocercas.habilitado ||
-        !configuracionGeocercas.habilitadoPorAccion.confirmaIngresoPlanta) {
-        return false; // no corre nada
-    }
-
-    try {
-
-        const resultado = await validarGeocerca(gde?.GDE_COD_ORIGEN);
-        const resultadoValidacion = resultado.validacion;
-
-        // Validación de cierre control
-        const cierre = await validarCierreControl(
-            resultadoValidacion,
-            id_gde_actual,
-            constantes.tipoPunto.final
-        );
-
-        // 1) validar ubicación real
-        await esperarUbicacionReal(gde);
-
-        // 2) si debe cerrar control => trazabilidad
-        if (cierre.cierra || cierre.advertencia) {
-
-            const datos = await generarDataTrazabilidad(
-                TipoAccionTypes.GEOCERCA_INVALIDA,
-                Obtener_dato_local('user_activo'),
-                {
-                    rol: gde?.GDE_COD_ORIGEN ?? null,
-                    despacho: gde,
-                    id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null
                 }
             );
 
             await obtenerUbicacionEInsertarLog(
-                Obtener_dato_local('user_activo'),
-                datos
+                Obtener_dato_local("user_activo"),
+                datosCap
             );
+
+            // 2.3) Geocerca por guía (SIN mock location aquí, ya se validó antes)
+            let geoRes = {
+                anulada: false,
+                advertencia: false,
+                mensaje: null
+            };
+
+            if (configuracionGeocercas.habilitado &&
+                configuracionGeocercas.habilitadoPorAccion.evidenciaIngresoPlanta) {
+
+                geoRes = await procesarGeocercaIngresoPlantaPorGuia(gde, evidenciaIdUnico);
+            }
+
+            // Solo guardamos resumen en memoria para mostrar mensaje.
+            // NO anulamos todavía; eso se hace en confirmarIngresoPlanta.
+            if (geoRes.anulada) {
+                anuladas.push({ gde, mensaje: geoRes.mensaje });
+            } else if (geoRes.advertencia) {
+                advertencias.push({ gde, mensaje: geoRes.mensaje });
+            }
         }
+
+        // 3) Al final, actualizar imagen y mostrar resumen global
+        $$("#imagen_confirma_planta").attr("src", fotoUrl);
+
+        let mensajeFinal =
+            "Evidencia de ingreso a planta registrada para todas las guías procesadas.";
+
+        if (anuladas.length) {
+            mensajeFinal +=
+                `\n\n${anuladas.length} guía(s) se encuentran FUERA de geocerca ` +
+                `y serán anuladas al confirmar ingreso planta.`;
+        }
+
+        if (advertencias.length) {
+            mensajeFinal +=
+                `\n\n${advertencias.length} guía(s) presentan ADVERTENCIA de geocerca. ` +
+                `Se recomienda revisar su posición antes de confirmar.`;
+        }
+
+        app.dialog.alert(mensajeFinal, "GFE");
 
     } catch (error) {
-        app.dialog.close();
-        app.dialog.alert(error, "GFE");
-        throw error;
+        console.error("Error en flujo de ingreso a planta:", error);
+        app.dialog.alert(
+            "Ocurrió un error al registrar las evidencias de ingreso a planta. Intente nuevamente.",
+            "GFE"
+        );
+    } finally {
+        try { app.dialog.close(); } catch { }
+        capturandoIngresoPlanta = false;
     }
 }
-
 
 
 
@@ -419,16 +359,27 @@ function confirmarIngresoPlanta() {
                     return;
                 }
 
-                // 3.3) Cambiar texto del preloader y enviar al servidor
+                // 3.2-bis) Aplicar anulaciones por geocerca ANTES de enviar al servidor
+                const resumenGeocerca = await aplicarAnulacionPorGeocercaEnConfirmacion();
 
-
+                // 3.3) Enviar al servidor las guías que queden válidas
                 const response = await enviarConfirmacionIngresoPlantaService();
                 console.log("[INGRESO] Resultado final:", response);
 
+                let mensajeFinal =
+                    `Proceso finalizado.\n\n` +
+                    `Total: ${response.total}, exitosos: ${response.exitosos}, errores: ${response.erroneos}.`;
+
+                if (resumenGeocerca && resumenGeocerca.anuladas > 0) {
+                    mensajeFinal +=
+                        `\n\nAdicionalmente, ${resumenGeocerca.anuladas} guía(s) ` +
+                        `fueron anuladas por encontrarse fuera de la geocerca.`;
+                }
+
                 app.dialog.alert(
-                    `Proceso finalizado. Total: ${response.total}, ` +
-                    `exitosos: ${response.exitosos}, errores: ${response.erroneos}.`,
-                    "GFE", function () {
+                    mensajeFinal,
+                    "GFE",
+                    function () {
                         ir_atras_boton();
                     }
                 );
@@ -452,3 +403,180 @@ function confirmarIngresoPlanta() {
     );
 }
 
+
+
+async function validarUbicacionNoSimuladaGlobal(gdeReferencia) {
+    let intentos = 0;
+    let resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+
+    while (resultadoUbicacionSimulada.esUbicacionSimulada) {
+        if (intentos === 0) {
+            // Trazabilidad solo en el primer intento
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.UTILIZA_UBICACION_SIMULADA,
+                Obtener_dato_local("user_activo"),
+                {
+                    rol: gdeReferencia?.GDE_COD_ORIGEN ?? null,
+                    despacho: gdeReferencia,
+                    id_unico_movil_gde: gdeReferencia?.ID_UNICO_MOVIL ?? null,
+                    resultadoUbicacionSimulada
+                }
+            );
+
+            await obtenerUbicacionEInsertarLog(
+                Obtener_dato_local("user_activo"),
+                datos
+            );
+        }
+
+        // Cerramos diálogos previos por seguridad
+        try { app.dialog.close(); } catch { }
+
+        // Alerta que obliga al usuario a usar GPS real
+        await new Promise((resolve) => {
+            app.dialog.alert(
+                "Se detectó ubicación adulterada... Debe utilizar la ubicación real para poder continuar.",
+                "GFE Proveedores",
+                async function () {
+                    app.dialog.progress("Verificando ubicación...");
+                    setTimeout(async () => {
+                        resultadoUbicacionSimulada = await detectarUbicacionSimulada();
+                        try { app.dialog.close(); } catch { }
+                        resolve();
+                    }, 1500);
+                }
+            );
+        });
+
+        intentos++;
+    }
+
+    // Sale del while solo cuando la ubicación ya NO es simulada
+    return true;
+}
+
+
+
+async function procesarGeocercaIngresoPlantaPorGuia(gde, evidenciaIdUnico) {
+    const resumen = {
+        anulada: false,
+        advertencia: false,
+        mensaje: null,
+    };
+
+    if (!configuracionGeocercas.habilitado ||
+        !configuracionGeocercas.habilitadoPorAccion.ingresoPlanta) {
+        return resumen;
+    }
+
+    // 1) Validar geocerca
+    const resGeo = await validarGeocerca(gde.GDE_COD_ORIGEN);
+    const resultadoValidacion = resGeo.validacion;
+
+    // 2) Validar cierre control
+    const resultado = await validarCierreControl(
+        resultadoValidacion,
+        gde.ROWID,                      // o id_gde_actual
+        constantes.tipoPunto.final
+    );
+
+    // Aquí ya asumimos que la ubicación es real (mock location validado antes)
+
+    if (resultado.cierra) {
+        resumen.anulada = true;
+        resumen.mensaje = resultado.mensaje || "Guía fuera de geocerca (ingreso planta).";
+
+        // Trazabilidad geocerca inválida (solo registramos, no anulamos aún)
+        const datos = await generarDataTrazabilidad(
+            TipoAccionTypes.GEOCERCA_INVALIDA,
+            Obtener_dato_local("user_activo"),
+            {
+                rol: gde?.GDE_COD_ORIGEN ?? null,
+                despacho: gde,
+                id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
+                contexto: "CAPTURA_EVIDENCIA_INGRESO_PLANTA"
+            }
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local("user_activo"),
+            datos
+        );
+
+    } else if (resultado.advertencia) {
+        resumen.advertencia = true;
+        resumen.mensaje = resultado.mensaje || "Advertencia de geocerca en ingreso planta.";
+
+        const datos = await generarDataTrazabilidad(
+            TipoAccionTypes.GEOCERCA_ADVERTENCIA,
+            Obtener_dato_local("user_activo"),
+            {
+                rol: gde?.GDE_COD_ORIGEN ?? null,
+                despacho: gde,
+                id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
+                contexto: "CAPTURA_EVIDENCIA_INGRESO_PLANTA"
+            }
+        );
+
+        await obtenerUbicacionEInsertarLog(
+            Obtener_dato_local("user_activo"),
+            datos
+        );
+    }
+
+    return resumen;
+}
+
+async function aplicarAnulacionPorGeocercaEnConfirmacion() {
+    const resumen = {
+        total: 0,
+        anuladas: 0
+    };
+
+    // Obtenemos nuevamente las guías pendientes
+    const guiasPendientes = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+
+    if (guiasPendientes === "-1" || !Array.isArray(guiasPendientes) || guiasPendientes.length === 0) {
+        return resumen;
+    }
+
+    resumen.total = guiasPendientes.length;
+
+    for (const gde of guiasPendientes) {
+        // Reutilizamos validarGeocerca + validarCierreControl,
+        // pero AQUÍ sí aplicamos la anulación.
+        try {
+            const resGeo = await validarGeocerca(gde.GDE_COD_ORIGEN);
+            const resultadoValidacion = resGeo.validacion;
+
+            const resultado = await validarCierreControl(
+                resultadoValidacion,
+                gde.ROWID,
+                constantes.tipoPunto.final
+            );
+
+            if (resultado.cierra) {
+                // Aquí sí se anula efectivamente la guía
+                const anula = await ControlServiceAnular(
+                    gde.ROWID,
+                    resultado.latitud,
+                    resultado.longitud,
+                    "",
+                    `${constantes.mensajeGeocercaNoValida} (CONFIRMA INGRESO PLANTA)`
+                );
+
+                if (anula) {
+                    resumen.anuladas++;
+
+                    // Si quieres, puedes registrar una trazabilidad específica de ANULACIÓN aquí
+                    // distinta a la de la captura (opcional).
+                }
+            }
+
+        } catch (e) {
+            console.error("Error aplicando anulación por geocerca en confirmación:", e);
+        }
+    }
+
+    return resumen;
+}
