@@ -27,6 +27,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
@@ -70,6 +71,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
                                     Obtener_dato_local('user_activo'),
                                     {
                                         rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                        destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                         despacho: gde_actual,
                                         id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                         resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -122,6 +124,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
                                         Obtener_dato_local('user_activo'),
                                         {
                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                             despacho: gde_actual,
                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                         }
@@ -147,6 +150,7 @@ $$(document).on('page:init', '.page[data-name="evidencia-guia"]', async function
                                         Obtener_dato_local('user_activo'),
                                         {
                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                             despacho: gde_actual,
                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                         }
@@ -204,6 +208,7 @@ async function emitir_guia() {
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
@@ -316,6 +321,7 @@ async function confirmaCargaEvidencia(id_gde) {
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
             mensajeMostrado: `EVIDENCIA n° ${cantidadEvidencias + 1}`
@@ -350,6 +356,7 @@ async function confirmaCargaEvidencia(id_gde) {
                                 Obtener_dato_local('user_activo'),
                                 {
                                     rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                     despacho: gde_actual,
                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                     resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -403,6 +410,7 @@ async function confirmaCargaEvidencia(id_gde) {
                                 Obtener_dato_local('user_activo'),
                                 {
                                     rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                     despacho: gde_actual,
                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                 }
@@ -429,6 +437,7 @@ async function confirmaCargaEvidencia(id_gde) {
                                 Obtener_dato_local('user_activo'),
                                 {
                                     rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                     despacho: gde_actual,
                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                 }

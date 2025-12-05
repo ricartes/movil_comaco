@@ -301,6 +301,7 @@ function cambiar_numero_guia() {
                     Obtener_dato_local('user_activo'),
                     {
                         rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                        destino: gde_actual?.GDE_COD_DESTINO ?? null,
                         despacho: gde_actual,
                         id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                     }

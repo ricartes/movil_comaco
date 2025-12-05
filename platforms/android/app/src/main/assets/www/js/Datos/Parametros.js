@@ -106,7 +106,7 @@ function nuevo_orden_compra(ordencompra, callback) {
     alert(ordencompra.PRECIO_FLETE);*/
     //alert(ordencompra.GROUNUM);
     this.db.transaction(function (tr) {
-        tr.executeSql("INSERT INTO ORDEN_COMPRA (DocEntry, C_codigo, SN_Nombre, SN_Destino, project, NumAtCard, ItemCode, Description, U_ClienteDestino, Rol, Predio, Rol_comuna, Fec_fin, latitud_geocerca, longitud_geocerca, radio_geocerca, flag_geocerca, tiempo_espera_carguio) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [ordencompra.DocEntry, ordencompra.C_codigo, ordencompra.SN_Nombre, ordencompra.SN_Destino, ordencompra.project, ordencompra.NumAtCard, ordencompra.ItemCode, ordencompra.Description, ordencompra.U_ClienteDestino, ordencompra.Rol, ordencompra.Predio, ordencompra.Rol_comuna, ordencompra.Fec_fin, ordencompra.latitud_geocerca, ordencompra.longitud_geocerca, ordencompra.radio_geocerca, ordencompra.flag_geocerca, ordencompra.tiempo_espera_carguio], function (tr, rs) {
+        tr.executeSql("INSERT INTO ORDEN_COMPRA (DocEntry, C_codigo, SN_Nombre, SN_Destino, project, NumAtCard, ItemCode, Description, U_ClienteDestino, Rol, Predio, Rol_comuna, Fec_fin, latitud_geocerca, longitud_geocerca, radio_geocerca, flag_geocerca, tiempo_espera_carguio, codigo_destino) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [ordencompra.DocEntry, ordencompra.C_codigo, ordencompra.SN_Nombre, ordencompra.SN_Destino, ordencompra.project, ordencompra.NumAtCard, ordencompra.ItemCode, ordencompra.Description, ordencompra.U_ClienteDestino, ordencompra.Rol, ordencompra.Predio, ordencompra.Rol_comuna, ordencompra.Fec_fin, ordencompra.latitud_geocerca, ordencompra.longitud_geocerca, ordencompra.radio_geocerca, ordencompra.flag_geocerca, ordencompra.tiempo_espera_carguio, ordencompra.codigo_destino], function (tr, rs) {
             typeof callback == "function" && callback(rs);
         });
     });
@@ -1590,6 +1590,7 @@ function DATOS_seleccionar_datos_proveedores(valor, fecha_hora, callback) {
                     orden_compra.Rol = rs_datos.Rol;
                     orden_compra.Predio = rs_datos.Predio;
                     orden_compra.tiempo_espera_carguio = rs_datos.tiempo_espera_carguio;
+                    orden_compra.codigo_destino = rs_datos.codigo_destino;
                     orden_compra.Fec_fin = rs_datos.Fec_fin;
                     orden_compra.Fec_fin = new Date(orden_compra.Fec_fin);
                     fecha_hora_actual = new Date(fecha_hora);
@@ -1640,6 +1641,7 @@ function DATOS_seleccionar_datos_proveedores_por_DocEntry(valor, codProducto, ca
                 orden_compra.Predio = rs_datos.Predio;
                 orden_compra.Rol_comuna = rs_datos.Rol_comuna;
                 orden_compra.tiempo_espera_carguio = rs_datos.tiempo_espera_carguio;
+                orden_compra.codigo_destino = rs_datos.codigo_destino;
 
                 typeof callback == "function" && callback(orden_compra);
             }

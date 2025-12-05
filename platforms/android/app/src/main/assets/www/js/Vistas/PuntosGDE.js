@@ -28,6 +28,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual_puntos_gde,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
@@ -147,6 +148,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                                                 Obtener_dato_local('user_activo'),
                                                                 {
                                                                     rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                    destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                                                     despacho: gde_actual_puntos_gde,
                                                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                                                     resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -198,6 +200,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                                                 Obtener_dato_local('user_activo'),
                                                                 {
                                                                     rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                    destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                                                     despacho: gde_actual_puntos_gde,
                                                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                                                 }
@@ -224,6 +227,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                                                 Obtener_dato_local('user_activo'),
                                                                 {
                                                                     rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                                                    destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                                                     despacho: gde_actual_puntos_gde,
                                                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                                                 }
@@ -421,6 +425,7 @@ async function obtener_punto_final() {
                             Obtener_dato_local('user_activo'),
                             {
                                 rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                 despacho: gde_actual_puntos_gde,
                                 id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                 mensajeMostrado: mensaje
@@ -468,6 +473,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual_puntos_gde,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
@@ -505,6 +511,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
                                     Obtener_dato_local('user_activo'),
                                     {
                                         rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                        destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                         despacho: gde_actual_puntos_gde,
                                         id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                         resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -557,6 +564,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
                                         Obtener_dato_local('user_activo'),
                                         {
                                             rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                            destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                             despacho: gde_actual_puntos_gde,
                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                         }
@@ -585,6 +593,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
                                     Obtener_dato_local('user_activo'),
                                     {
                                         rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                        destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                                         despacho: gde_actual_puntos_gde,
                                         id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                     }
@@ -630,6 +639,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
             Obtener_dato_local('user_activo'),
             {
                 rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
                 despacho: gde_actual_puntos_gde,
                 id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
             }

@@ -557,8 +557,6 @@ function guardar_datos_guia(latitud, longitud) {
 
         DATOS_seleccionar_datos_proveedores_por_DocEntry(gde.DocEntry, gde.GDE_COD_PRODUCTO, function (proveedor) {
 
-
-
             gde.GDE_COD_CLIENTE = proveedor.C_codigo;
             gde.GDE_NOMBRE_CLIENTE = proveedor.SN_Nombre
             gde.GDE_DESTINO = proveedor.SN_Destino
@@ -568,6 +566,7 @@ function guardar_datos_guia(latitud, longitud) {
             gde.GDE_ROL = proveedor.Rol;
             gde.GDE_NOMBRE_PRODUCTO = proveedor.Description;
             gde.GDE_COD_ORIGEN = proveedor.NumAtCard;
+            gde.GDE_COD_DESTINO = proveedor.codigo_destino;
             gde.ID_UNICO_MOVIL = "gde_pro" + obtener_IDUNICO();
             gde.GDE_ESTADO_MOVIL = "B";
 

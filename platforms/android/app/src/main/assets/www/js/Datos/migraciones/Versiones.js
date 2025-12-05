@@ -45,6 +45,14 @@ var version6Esquema = {
     ]
 }
 
+var version7Esquema = {
+    versionNumber: 7,
+    queries: [
+        "ALTER TABLE ORDEN_COMPRA ADD COLUMN codigo_destino TEXT",
+        "ALTER TABLE GDE ADD GDE_COD_DESTINO TEXT"
+    ]
+}
+
 
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
@@ -53,7 +61,8 @@ var versionesEsquema = [
     version3Esquema,
     version4Esquema,
     version5Esquema,
-    version6Esquema
+    version6Esquema,
+    version7Esquema
 ];
 
 

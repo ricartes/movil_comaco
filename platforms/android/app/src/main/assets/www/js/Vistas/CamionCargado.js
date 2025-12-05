@@ -22,6 +22,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
         }
@@ -96,6 +97,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                                                         Obtener_dato_local('user_activo'),
                                                         {
                                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                                             despacho: gde_actual,
                                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                                             resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -147,6 +149,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                                                         Obtener_dato_local('user_activo'),
                                                         {
                                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                                             despacho: gde_actual,
                                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                                         }
@@ -172,6 +175,7 @@ $$(document).on('page:init', '.page[data-name="camion-cargado"]', async function
                                                         Obtener_dato_local('user_activo'),
                                                         {
                                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                                             despacho: gde_actual,
                                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                                         }
@@ -244,6 +248,7 @@ async function capturar_evidencia_camion_cargado(tipo_evidencia) {
                         Obtener_dato_local('user_activo'),
                         {
                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                             despacho: gde_actual,
                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                             mensajeMostrado: mensaje
@@ -291,6 +296,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
         Obtener_dato_local('user_activo'),
         {
             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+            destino: gde_actual?.GDE_COD_DESTINO ?? null,
             despacho: gde_actual,
             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
         }
@@ -332,6 +338,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
                                 Obtener_dato_local('user_activo'),
                                 {
                                     rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                    destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                     despacho: gde_actual,
                                     id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null,
                                     resultadoUbicacionSimulada: resultadoUbicacionSimulada
@@ -401,6 +408,7 @@ async function cargar_evidencia_camion_cargado(evidencia, tipo) {
                                         Obtener_dato_local('user_activo'),
                                         {
                                             rol: gde_actual?.GDE_COD_ORIGEN ?? null,
+                                            destino: gde_actual?.GDE_COD_DESTINO ?? null,
                                             despacho: gde_actual,
                                             id_unico_movil_gde: gde_actual?.ID_UNICO_MOVIL ?? null
                                         }
