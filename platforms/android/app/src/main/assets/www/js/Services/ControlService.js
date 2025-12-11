@@ -10,12 +10,15 @@ function ControlServiceAnular(id = null, latitud, longitud, tipoCoordenada, mens
                                 inicializarDatosGde();
                                 resolve(true);
                             });
-                        }
-                        if (tipoCoordenada == "I") {
+                        } else if (tipoCoordenada == "I") {
                             DATOS_Actualiza_PuntoInicial(id, latitud, longitud, function (result) {
                                 inicializarDatosGde();
                                 resolve(true);
                             });
+                        } else {
+                            // ➜ No hay coordenada, igual resolvemos
+                            inicializarDatosGde();
+                            resolve(true);
                         }
 
                     });

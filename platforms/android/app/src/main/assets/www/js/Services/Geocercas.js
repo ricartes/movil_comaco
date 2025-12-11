@@ -49,7 +49,7 @@ async function detectarUbicacionSimulada() {
 }
 
 
-function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
+function validarCierreControl(validacionGeocerca, id_gde, tipoPunto, confirmaIngresoPlanta = false) {
     let resultado = {
         cierra: true,
         advertencia: false,
@@ -83,7 +83,13 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto) {
             }
 
         } else {
-            resultado.mensaje = "No se puede continuar debido a que el predio seleccionado no tiene una Geocerca asociada."
+            resultado.mensaje = "El predio seleccionado no tiene una Geocerca asociada."
+            if (confirmaIngresoPlanta) {
+                resultado.mensaje = "El destino seleccionado no tiene una Geocerca asociada."
+                resultado.advertencia = true;
+                resultado.cierra = false;
+            }
+
             resolve(resultado);
         }
     });

@@ -16,7 +16,7 @@ const configuracionGeocercas = {
         avanzaHaciaEvidencia: false,
         evidenciaOtros: false,
         informarDespacho: false,
-        evidenciaIngresoPlanta: false,
+        evidenciaIngresoPlanta: true,
         confirmaIngresoPlanta: true,
     }
 }
