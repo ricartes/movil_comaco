@@ -1952,6 +1952,32 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
 }
 
 
+function enviarAnulacionGuiaWebService(idUnico, motivo) {
+    return new Promise((resolve, reject) => {
+        DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
+
+            const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_AnulacionGuia';
+            const cadenaParam = `idUnico=${encodeURIComponent(idUnico)}&motivo=${encodeURIComponent(motivo)}`;
+
+            axios
+                .post(ruta, cadenaParam, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    timeout: 5000
+                })
+                .then((response) => {
+                    resolve(response.data);
+                })
+                .catch((error) => {
+                    reject({ MENSAJE: error.message, ERROR_MSJ: error.code });
+                });
+        });
+    });
+}
+
+
+
 
 function enviarTrazabilidadWebService(trazabilidad) {
     return new Promise((resolve, reject) => {

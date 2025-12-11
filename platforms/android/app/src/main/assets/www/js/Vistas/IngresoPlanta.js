@@ -449,16 +449,25 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                 );
 
                 if (resultado.cierra) {
+                    const motivoAnulacion = `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA INGRESO PLANTA)`;
                     const anula = await ControlServiceAnular(
                         gde.ROWID,
                         resultado.latitud,
                         resultado.longitud,
                         "",
-                        `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA INGRESO PLANTA)`
+                        motivoAnulacion
                     );
 
 
                     if (anula) {
+
+                        try {
+                            await enviarMotivoAnulacion(gde.ID_UNICO_MOVIL, motivoAnulacion);
+                        } catch (errWs) {
+                            console.error("Error al enviar motivo de anulación al WS:", errWs);
+                            // No bloqueamos al usuario por falla del WS
+                        }
+
                         let datos = await generarDataTrazabilidad(
                             TipoAccionTypes.GEOCERCA_INVALIDA,
                             Obtener_dato_local('user_activo'),
@@ -575,13 +584,22 @@ function confirmarIngresoPlanta() {
 
             // 1) Bloquear si versión app inválida
             const versionInvalida = parseInt(Obtener_dato_local("version_app_invalida") || "0");
+
+
+
             if (versionInvalida === 1) {
                 app.dialog.alert(
                     "La versión de la aplicación instalada no es la última vigente. " +
                     "Actualice la app antes de confirmar el ingreso a planta.",
-                    "Actualización requerida"
+                    "Actualización requerida",
+                    function () {
+                        mainView.router.navigate("/");
+
+                    }
                 );
+
                 return false;
+
             }
 
             // 2) Validar conexión básica
@@ -812,15 +830,23 @@ async function aplicarAnulacionPorGeocercaEnConfirmacion() {
         );
 
         if (resultado.cierra) {
+            const motivoAnulacion = `${constantes.mensajeGeocercaNoValida} (CONFIRMA INGRESO PLANTA)`;
             const anula = await ControlServiceAnular(
                 gde.ROWID,
                 resultado.latitud,
                 resultado.longitud,
                 "",
-                `${constantes.mensajeGeocercaNoValida} (CONFIRMA INGRESO PLANTA)`
+                motivoAnulacion
             );
 
             if (anula) {
+
+                try {
+                    await enviarMotivoAnulacion(gde.ID_UNICO_MOVIL, motivoAnulacion);
+                } catch (errWs) {
+                    console.error("Error al enviar motivo de anulación al WS (confirmación):", errWs);
+                }
+
                 resumen.anuladas++;
             }
         }

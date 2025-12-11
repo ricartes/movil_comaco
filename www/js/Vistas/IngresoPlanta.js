@@ -41,7 +41,10 @@ $$(document).on('page:init', '.page[data-name="ingreso-planta"]', async function
     gdeSeleccionadaIngresoPlanta = null;
     noEncuentraAlgunaGeocerca = false;
 
+    refrescarEstadoBotonConfirmar();
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
+
+
 
     app.dialog.close();
 
@@ -91,13 +94,11 @@ function deshabilitarUIIngresoPlanta() {
     $$('#combo_gde').html('<option value="">SIN GUÍAS</option>');
     $$('#combo_gde').attr('disabled', true);
 
-    // deshabilitar botón y "simular" deshabilitado en la imagen
-    $$('#btn_confirma_ingreso_planta')
-        .addClass('disabled')
-        .addClass('color-gray');
-
+  
     // imagen por defecto
     $$('#imagen_confirma_planta').attr('src', 'imagenes/icon_foto.png');
+
+    setBotonConfirmarIngresoPlantaHabilitado(false);
 }
 
 
@@ -137,6 +138,8 @@ function onChangeComboGdeIngresoPlanta(rowidSeleccionado) {
         intentosEvidenciaIngresoPlanta = 0;
         $$('#imagen_confirma_planta').attr('src', 'imagenes/icon_foto.png');
         $$('#texto_gde .item-title').text('SELECCIONAR');
+
+        refrescarEstadoBotonConfirmar();
         return;
     }
 
@@ -194,6 +197,7 @@ function onChangeComboGdeIngresoPlanta(rowidSeleccionado) {
                     $$("#imagen_confirma_planta").attr("src", datos_evidencia[0].ARCHIVO);
                 }
             }
+            refrescarEstadoBotonConfirmar();
         }
     );
 }
@@ -414,19 +418,15 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                 intentosMaximosIngresoPlanta
             );
 
-            console.log(resss);
-
-
             const intentosActualizados = resss.intentosActualizados;
             const debeAnular = resss.debeAnular;
 
+            intentosEvidenciaIngresoPlanta = intentosActualizados;
             // Calcular intentos restantes
             const intentosRestantes = Math.max(
                 0,
                 intentosMaximosIngresoPlanta - intentosActualizados
             );
-
-
 
             // Guardar intentos en BD
             await DATOS_ActualizarIntentosEvidencia(
@@ -449,16 +449,26 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                 );
 
                 if (resultado.cierra) {
+                    const motivoAnulacion = `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA INGRESO PLANTA)`;
                     const anula = await ControlServiceAnular(
                         gde.ROWID,
                         resultado.latitud,
                         resultado.longitud,
                         "",
-                        `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA INGRESO PLANTA)`
+                        motivoAnulacion
                     );
 
 
                     if (anula) {
+                        let wsNotificado = false;
+                        try {
+                            await enviarMotivoAnulacion(gde.ID_UNICO_MOVIL, motivoAnulacion);
+                            wsNotificado = true;
+                        } catch (errWs) {
+                            console.error("Error al enviar motivo de anulación al WS:", errWs);
+                            // No bloqueamos al usuario por falla del WS
+                        }
+
                         let datos = await generarDataTrazabilidad(
                             TipoAccionTypes.GEOCERCA_INVALIDA,
                             Obtener_dato_local('user_activo'),
@@ -482,8 +492,25 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                         encuentraFotoFueraGeocercaFotoIngresoPlanta = false;
                         permiteIngresoFotografiasIngresoPlanta = false;
 
+                        refrescarEstadoBotonConfirmar();
+
+
+                        let mensajeAlerta =
+                            geoRes.mensaje || constantes.mensajeGeocercaNoValida;
+
+                        // Añadimos info explícita de anulación
+                        if (wsNotificado) {
+                            mensajeAlerta +=
+                                "\n\nLa guía ha sido anulada y " +
+                                "se ha informado esta anulación al sistema central.";
+                        } else {
+                            mensajeAlerta +=
+                                "\n\nLa guía ha sido anulada localmente, pero no se pudo " +
+                                "informar al sistema central. Contacte al administrador.";
+                        }
+
                         app.dialog.alert(
-                            geoRes.mensaje || constantes.mensajeGeocercaNoValida,
+                            mensajeAlerta,
                             "GFE",
                             function () {
                                 mainView.router.navigate("/");
@@ -522,17 +549,21 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                 app.dialog.alert(mensajeMostrado, "GFE");
             }
 
+            refrescarEstadoBotonConfirmar();
+
         } else if (geoRes.advertencia) {
             // solo advertencia geocerca (no suma intentos)
             app.dialog.alert(
                 geoRes.mensaje || "Advertencia de geocerca en ingreso planta.",
                 "GFE"
             );
+            refrescarEstadoBotonConfirmar();
         } else {
             app.dialog.alert(
                 "Evidencia de ingreso a planta registrada correctamente.",
                 "GFE"
             );
+            refrescarEstadoBotonConfirmar();
         }
 
         // 5) Actualizar imagen
@@ -575,13 +606,22 @@ function confirmarIngresoPlanta() {
 
             // 1) Bloquear si versión app inválida
             const versionInvalida = parseInt(Obtener_dato_local("version_app_invalida") || "0");
+
+
+
             if (versionInvalida === 1) {
                 app.dialog.alert(
                     "La versión de la aplicación instalada no es la última vigente. " +
                     "Actualice la app antes de confirmar el ingreso a planta.",
-                    "Actualización requerida"
+                    "Actualización requerida",
+                    function () {
+                        mainView.router.navigate("/");
+
+                    }
                 );
+
                 return false;
+
             }
 
             // 2) Validar conexión básica
@@ -812,15 +852,23 @@ async function aplicarAnulacionPorGeocercaEnConfirmacion() {
         );
 
         if (resultado.cierra) {
+            const motivoAnulacion = `${constantes.mensajeGeocercaNoValida} (CONFIRMA INGRESO PLANTA)`;
             const anula = await ControlServiceAnular(
                 gde.ROWID,
                 resultado.latitud,
                 resultado.longitud,
                 "",
-                `${constantes.mensajeGeocercaNoValida} (CONFIRMA INGRESO PLANTA)`
+                motivoAnulacion
             );
 
             if (anula) {
+
+                try {
+                    await enviarMotivoAnulacion(gde.ID_UNICO_MOVIL, motivoAnulacion);
+                } catch (errWs) {
+                    console.error("Error al enviar motivo de anulación al WS (confirmación):", errWs);
+                }
+
                 resumen.anuladas++;
             }
         }
@@ -831,3 +879,27 @@ async function aplicarAnulacionPorGeocercaEnConfirmacion() {
 
     return resumen;
 }
+
+
+function setBotonConfirmarIngresoPlantaHabilitado(habilitar) {
+    const $btn = $$('#btn_confirma_ingreso_planta');
+
+    if (habilitar) {
+        $btn.removeClass('disabled color-gray');
+        $btn.attr('disabled', false);
+    } else {
+        $btn.addClass('disabled color-gray');
+        $btn.attr('disabled', true);
+    }
+}
+
+function refrescarEstadoBotonConfirmar() {
+    const puedeConfirmar =
+        !!gdeSeleccionadaIngresoPlanta &&          // hay guía
+        !noEncuentraAlgunaGeocerca &&             // no falló por geocerca no encontrada
+        !encuentraFotoFueraGeocercaFotoIngresoPlanta && // no hay foto fuera de geocerca
+        permiteIngresoFotografiasIngresoPlanta === true; // no agotó intentos / no marcada para anular
+
+    setBotonConfirmarIngresoPlantaHabilitado(puedeConfirmar);
+}
+

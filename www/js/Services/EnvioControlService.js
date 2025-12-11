@@ -105,6 +105,21 @@ async function enviarConfirmacionIngresoPlantaService() {
 
 
 
+async function enviarMotivoAnulacion(idUnico, motivo) {
+    try {
+        const respuesta = await enviarAnulacionGuiaWebService(idUnico, motivo);
+        return respuesta;   // devuelve la respuesta del webservice
+    } catch (error) {
+        console.error("Error al enviar motivo de anulación:", error);
+        return {
+            STATUS: false,
+            MENSAJE: "Error al comunicar con el servidor",
+            ERROR: error
+        };
+    }
+}
+
+
 async function reenviarFotosService(id_gde_actual) {
     try {
 

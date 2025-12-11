@@ -89,7 +89,7 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto, confirmaIng
             if (confirmaIngresoPlanta) {
                 resultado.mensaje = "El destino seleccionado no tiene una Geocerca asociada."
                 resultado.advertencia = true;
-                resultado.cierra = false;
+                resultado.cierra = true;
             }
 
             resolve(resultado);
