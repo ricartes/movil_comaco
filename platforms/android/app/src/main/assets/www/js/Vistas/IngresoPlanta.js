@@ -10,6 +10,7 @@ let intentosEvidenciaIngresoPlanta = 0;
 let intentosConfirmar;
 let encuentraFotoFueraGeocercaFotoIngresoPlanta;
 let permiteIngresoFotografiasIngresoPlanta;
+let noEncuentraAlgunaGeocerca;
 
 // NUEVO: lista de GDE y la seleccionada
 let gdePendientesIngresoPlanta = [];
@@ -38,6 +39,7 @@ $$(document).on('page:init', '.page[data-name="ingreso-planta"]', async function
     evidenciaIngresoContext.fotoUrl = null;
     gdePendientesIngresoPlanta = [];
     gdeSeleccionadaIngresoPlanta = null;
+    noEncuentraAlgunaGeocerca = false;
 
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
 
@@ -455,8 +457,6 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
                         `${constantes.mensajeGeocercaNoValida} (CAPTURA EVIDENCIA INGRESO PLANTA)`
                     );
 
-                    alert(JSON.stringify(anula));
-                    alert("pasa");
 
                     if (anula) {
                         let datos = await generarDataTrazabilidad(
@@ -560,6 +560,11 @@ function confirmarIngresoPlanta() {
 
             if (!gdeSeleccionadaIngresoPlanta) {
                 app.dialog.alert("Debe seleccionar una guía para confirmar ingreso planta.", "GFE");
+                return false;
+            }
+
+            if (noEncuentraAlgunaGeocerca) {
+                app.dialog.alert("Existen Destinos que no tienen geocerca asociadas. Cargue parámetros, en caso de volver a mostrar este mensaje, contacte al Administrador.", "GFE");
                 return false;
             }
 
@@ -729,6 +734,7 @@ async function procesarGeocercaIngresoPlantaPorGuia(gde, evidenciaIdUnico) {
 
     // Aquí ya asumimos que la ubicación es real (mock location validado antes)
 
+    noEncuentraAlgunaGeocerca = resultado.geocercaNoEncontrada;
     if (resultado.cierra) {
         resumen.anulada = true;
         resumen.mensaje = resultado.mensaje || "Guía fuera de geocerca (ingreso planta).";
@@ -751,6 +757,9 @@ async function procesarGeocercaIngresoPlantaPorGuia(gde, evidenciaIdUnico) {
         );
 
     } else if (resultado.advertencia) {
+
+
+
         resumen.advertencia = true;
         resumen.mensaje = resultado.mensaje || "Advertencia de geocerca en ingreso planta.";
 
@@ -771,6 +780,7 @@ async function procesarGeocercaIngresoPlantaPorGuia(gde, evidenciaIdUnico) {
             datos
         );
     }
+
 
     return resumen;
 }

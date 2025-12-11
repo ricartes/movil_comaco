@@ -53,6 +53,7 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto, confirmaIng
     let resultado = {
         cierra: true,
         advertencia: false,
+        geocercaNoEncontrada: false,
         mensaje: "No se puede continuar debido a que la ubicación se encuentra fuera del KMZ."
     }
     return new Promise((resolve, reject) => {
@@ -83,6 +84,7 @@ function validarCierreControl(validacionGeocerca, id_gde, tipoPunto, confirmaIng
             }
 
         } else {
+            resultado.geocercaNoEncontrada = true;
             resultado.mensaje = "El predio seleccionado no tiene una Geocerca asociada."
             if (confirmaIngresoPlanta) {
                 resultado.mensaje = "El destino seleccionado no tiene una Geocerca asociada."
