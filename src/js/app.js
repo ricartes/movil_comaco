@@ -11,34 +11,35 @@ import { initializeDatabases, localDbInstance } from '../app/db/dbConfig'
 import { initializeServices } from '../app/services/initServices'
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics'
 import Utilidades from '@/app/Utilidades'
+import { reportException } from "@/js/Utils/crashlytics.util";
 
-    // === Inicializa Crashlytics ===
-    ; (async () => {
-        try {
-            const dispositivo = await Utilidades.buildDispositivoPayload()
+// === Inicializa Crashlytics ===
+; (async () => {
+    try {
+        const dispositivo = await Utilidades.buildDispositivoPayload()
 
-            // ⛑️ userId debe ir como objeto y no vacío
-            if (dispositivo?.uid && typeof dispositivo.uid === 'string' && dispositivo.uid.trim()) {
-                await FirebaseCrashlytics.setUserId({ userId: dispositivo.uid })
-                await FirebaseCrashlytics.setCustomKey({ key: 'uuid', value: dispositivo.uid })
-            } else {
-                console.warn('[Crashlytics] UUID vacío/indefinido, no se llama setUserId')
-            }
-
-            // Custom keys (normaliza a string)
-            await FirebaseCrashlytics.setCustomKey({ key: 'deviceModel', value: dispositivo?.modelo ?? '' })
-            await FirebaseCrashlytics.setCustomKey({ key: 'manufacturer', value: dispositivo?.fabricante ?? '' })
-            await FirebaseCrashlytics.setCustomKey({ key: 'platform', value: dispositivo?.plataforma ?? '' })
-            await FirebaseCrashlytics.setCustomKey({ key: 'osVersion', value: dispositivo?.versionSo ?? '' })
-            await FirebaseCrashlytics.setCustomKey({ key: 'appVersion', value: dispositivo?.versionApp ?? '' })
-
-            await FirebaseCrashlytics.log({ message: 'Crashlytics init OK (desde Utilidades)' })
-
-            console.log('[Crashlytics] inicializado correctamente');
-        } catch (e) {
-            console.warn('[Crashlytics] init error', e)
+        // ⛑️ userId debe ir como objeto y no vacío
+        if (dispositivo?.uid && typeof dispositivo.uid === 'string' && dispositivo.uid.trim()) {
+            await FirebaseCrashlytics.setUserId({ userId: dispositivo.uid })
+            await FirebaseCrashlytics.setCustomKey({ key: 'uuid', value: dispositivo.uid })
+        } else {
+            console.warn('[Crashlytics] UUID vacío/indefinido, no se llama setUserId')
         }
-    })()
+
+        // Custom keys (normaliza a string)
+        await FirebaseCrashlytics.setCustomKey({ key: 'deviceModel', value: dispositivo?.modelo ?? '' })
+        await FirebaseCrashlytics.setCustomKey({ key: 'manufacturer', value: dispositivo?.fabricante ?? '' })
+        await FirebaseCrashlytics.setCustomKey({ key: 'platform', value: dispositivo?.plataforma ?? '' })
+        await FirebaseCrashlytics.setCustomKey({ key: 'osVersion', value: dispositivo?.versionSo ?? '' })
+        await FirebaseCrashlytics.setCustomKey({ key: 'appVersion', value: dispositivo?.versionApp ?? '' })
+
+        await FirebaseCrashlytics.log({ message: 'Crashlytics init OK (desde Utilidades)' })
+
+        console.log('[Crashlytics] inicializado correctamente');
+    } catch (e) {
+        console.warn('[Crashlytics] init error', e)
+    }
+})()
 
 window.addEventListener('error', (e) => {
     FirebaseCrashlytics.recordException({
@@ -48,14 +49,7 @@ window.addEventListener('error', (e) => {
 })
 
 window.addEventListener('unhandledrejection', (e) => {
-    const reason = e?.reason
-    const msg = (reason && typeof reason === 'object' && 'message' in reason)
-        ? reason.message
-        : String(reason || '[unhandledrejection] sin motivo')
-    const stack = (reason && typeof reason === 'object' && 'stack' in reason)
-        ? reason.stack
-        : ''
-    FirebaseCrashlytics.recordException({ message: msg, stack })
+    reportException(e?.reason, "UnhandledPromise");
 })
 
 // Import Framework7 Styles

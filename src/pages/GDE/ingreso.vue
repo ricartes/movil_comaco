@@ -653,6 +653,7 @@
 
 <script>
 import { f7 } from "framework7-vue";
+import { reportException } from "@/js/Utils/crashlytics.util";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 import {
     ensureLocationPermissionOnce,
@@ -1501,6 +1502,10 @@ export default {
                         this.form.datosGeocerca.mensajeValidacion =
                             "No podrá continuar con la emisión debido a un error al validar la geocerca. Compruebe si tiene el acceso a ubicación activado.";
                         console.warn("No se pudo obtener ubicación:", geoErr);
+
+                        await reportException(geoErr, "Geocerca", {
+                            rol_predio: this.form?.predio?.rolPredio ?? "N/A",
+                        });
                     } finally {
                         f7.dialog.close();
                     }
