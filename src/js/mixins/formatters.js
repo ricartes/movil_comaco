@@ -7,6 +7,8 @@ import {
     formatFechaHoraCorta, // dd/MM/yyyy HH:mm
     dateInputToISOStart,
     dateInputToISOEnd,
+    normalizeYYYYMM,
+    formatMMYYYY
 } from '@/js/Utils/formatters';
 
 export default {
@@ -18,5 +20,7 @@ export default {
         formatFechaHoraCorta,
         dateInputToISOStart,
         dateInputToISOEnd,
+        normalizeYYYYMM,
+        formatMMYYYY,
     },
 };

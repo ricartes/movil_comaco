@@ -5,6 +5,7 @@ import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
 import { formatearRut } from '@/js/Utils/rut';
+import { formatMMYYYY } from "@/js/Utils/formatters";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
@@ -358,7 +359,7 @@ function buildBoxOperacion(doc) {
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
             kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
-            kvLine("Fecha Corta", doc?.comentarios?.anioCosecha ?? "—"),
+            kvLine("Fecha Corta", formatMMYYYY(doc?.comentarios?.anioCosecha)),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),
         ],

@@ -71,11 +71,12 @@
                 <f7-list-input
                     label="Fecha Corta (Mes/Año)"
                     type="text"
+                    placeholder="MM/AAAA"
                     readonly
                     inputmode="none"
                     id="picker-mes-anio"
-                    :value="form.mesAnio"
                     :disabled="soloLectura"
+                    :value="anioCosechaVisual"
                 />
 
                 <!-- DESDE RODAL (semilla) — bloqueados -->
@@ -152,6 +153,8 @@
 </template>
 
 <script>
+import { f7 } from "framework7-vue";
+
 import {
     ensureComentariosInit,
     updateComentarios,
@@ -188,25 +191,123 @@ export default {
                 numeroGuiaAnterior: null,
             },
             saving: false,
+            pickerMesAnio: null,
         };
     },
     async mounted() {
         const base = await ensureComentariosInit(this.doc._id);
         this.form = { ...this.form, ...base };
-        // avisamos al padre que estos campos ya quedaron en doc.comentarios
 
-        if (!soloLectura && this.form.horaAgendamiento === null) {
+        if (!this.soloLectura && this.form.horaAgendamiento === null) {
             this.form.horaAgendamiento = horaActual();
         }
 
+        if (!this.soloLectura && this.form.anioCosecha != null) {
+            const norm = this.normalizeYYYYMM(this.form.anioCosecha);
+            if (norm && norm !== this.form.anioCosecha) {
+                this.form.anioCosecha = norm;
+                await this._save({ anioCosecha: norm });
+            }
+        }
+
+        // Esperar a que se renderice el input real
+        this.$nextTick(() => {
+            this.initPickerMesAnio();
+        });
+
         this.$emit("doc-updated", { comentarios: { ...base } });
     },
+
+    beforeDestroy() {
+        if (this.pickerMesAnio) {
+            this.pickerMesAnio.destroy();
+            this.pickerMesAnio = null;
+        }
+    },
+
     computed: {
         fechaPlantacionFormateada() {
             return this.formatFecha(this.form.fechaPlantacion);
         },
+        anioCosechaVisual() {
+            const norm = this.normalizeYYYYMM(this.form.anioCosecha);
+            return norm ? this.formatMMYYYY(norm) : "";
+        },
     },
     methods: {
+        openMesAnioPicker() {
+            if (this.soloLectura) return;
+            if (this.pickerMesAnio) this.pickerMesAnio.open();
+        },
+
+        initPickerMesAnio() {
+            if (this.soloLectura) return;
+
+            const inputEl = "#picker-mes-anio";
+            const el = document.querySelector(inputEl);
+            if (!el) {
+                console.warn("[MesAnioPicker] No existe el input:", inputEl);
+                return;
+            }
+
+            const years = [];
+            const yNow = new Date().getFullYear();
+            for (let y = 2000; y <= yNow + 5; y++) years.push(String(y));
+
+            const months = Array.from({ length: 12 }, (_, i) =>
+                String(i + 1).padStart(2, "0")
+            );
+
+            const norm = this.normalizeYYYYMM(this.form.anioCosecha); // <-- null si está vacío
+
+            if (this.pickerMesAnio) {
+                this.pickerMesAnio.destroy();
+                this.pickerMesAnio = null;
+            }
+
+            this.pickerMesAnio = f7.picker.create({
+                inputEl,
+                openIn: "sheet",
+                rotateEffect: true,
+                toolbarCloseText: "Listo",
+
+                // ✅ SOLO setear value si ya hay algo guardado
+                ...(norm
+                    ? { value: [norm.split("-")[1], norm.split("-")[0]] }
+                    : {}),
+
+                // ✅ lo que se muestra en el input
+                formatValue: () => this.anioCosechaVisual || "",
+
+                cols: [
+                    { textAlign: "center", values: months, width: 100 }, // mes
+                    { textAlign: "center", values: years, width: 120 }, // año
+                ],
+
+                on: {
+                    change: async (picker, values) => {
+                        const [m, y] = values;
+                        const yyyymm = `${y}-${m}`;
+                        if (yyyymm === this.form.anioCosecha) return;
+
+                        this.form.anioCosecha = yyyymm;
+                        await this._save({ anioCosecha: yyyymm });
+                    },
+                },
+            });
+
+            // ✅ si está vacío, F7 igual puede escribir algo: lo limpiamos sí o sí
+            if (!norm) {
+                el.value = "";
+            }
+        },
+
+        toYYYYMM(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, "0");
+            return `${y}-${m}`;
+        },
+
         soloEntero(e) {
             if ([".", ",", "e", "-"].includes(e.key)) {
                 e.preventDefault();

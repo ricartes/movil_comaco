@@ -91,3 +91,22 @@ export function horaActual() {
 
     return `${hh}:${mm}`;
 }
+
+
+// dateUtils.js
+export function normalizeYYYYMM(val) {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (/^\d{4}$/.test(s)) return `${s}-01`;
+    if (/^\d{4}-\d{2}$/.test(s)) return s;
+    return null;
+}
+
+export function formatMMYYYY(val) {
+    const norm = normalizeYYYYMM(val);
+    if (!norm) return "—";
+
+    const [y, m] = norm.split("-");
+    return `${m}/${y}`;
+}
+

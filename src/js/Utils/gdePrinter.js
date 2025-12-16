@@ -6,7 +6,8 @@ import store from '@/js/store';
 import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 import { formatearRut } from '@/js/Utils/rut';
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
-import { formatFechaCorta } from '@/js/Utils/formatters';
+import { formatFechaCorta, formatMMYYYY } from '@/js/Utils/formatters';
+
 
 // ===== Ajustes de ticket =====
 let PAPER_WIDTH = 32;
@@ -381,7 +382,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`HORA AGENDAMIENTO: ${M.comentarios.horaAgendamiento ?? ''}`));
     await printRawText(wrap(`NÚMERO AGENDAMIENTO: ${M.comentarios.numeroAgendamiento ?? ''}`));
     await printRawText(wrap(`AÑO PLANTACIÓN: ${anioPlantacion}`));
-    await printRawText(wrap(`FECHA CORTA: ${M.comentarios.fechaCorta}`));
+    await printRawText(wrap(`FECHA CORTA: ${formatMMYYYY(M.comentarios.fechaCorta)}`));
     await printRawText(wrap(`NÚMERO GUÍA ANTERIOR: ${M.comentarios.numeroGuiaAnterior ?? ''}`));
     await printRawText(div());
 

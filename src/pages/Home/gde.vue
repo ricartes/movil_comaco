@@ -134,19 +134,7 @@ export default {
     },
 
     methods: {
-        // helpers fechas (del input date)
-        dateInputToISOStart(val) {
-            if (!val) return undefined;
-            // val = 'YYYY-MM-DD'
-            const [y, m, d] = String(val).split("-").map(Number);
-            return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
-        },
-        dateInputToISOEnd(val) {
-            if (!val) return undefined;
-            const [y, m, d] = String(val).split("-").map(Number);
-            return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
-        },
-
+        
         normalizeEstados(v) {
             if (Array.isArray(v)) return v;
             if (v == null || v === "") return [];
