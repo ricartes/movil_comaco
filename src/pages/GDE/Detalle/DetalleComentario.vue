@@ -69,15 +69,13 @@
                     @input="onInputNum('volumenProveedor', $event)"
                 />
                 <f7-list-input
-                    label="Año cosecha"
-                    type="number"
-                    inputmode="numeric"
-                    step="1"
-                    min="1900"
-                    max="2100"
-                    :value="form.anioCosecha"
+                    label="Fecha Corta (Mes/Año)"
+                    type="text"
+                    readonly
+                    inputmode="none"
+                    id="picker-mes-anio"
+                    :value="form.mesAnio"
                     :disabled="soloLectura"
-                    @input="onInputInt('anioCosecha', $event)"
                 />
 
                 <!-- DESDE RODAL (semilla) — bloqueados -->
