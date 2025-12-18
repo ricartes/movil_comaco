@@ -1,6 +1,9 @@
 import config from "@/Common/json/config.json"
 import { getBaseDao } from "@/app/services/initServices";
-import { transportistaDocToDTO, transportistaSimpleDocToDTO, patenteDocToDTO, conductorDocToDTO } from '@/app/mappers/transportistaMapper'
+import {
+    transportistaDocToDTO, transportistaSimpleDocToDTO, patenteDocToDTO,
+    patenteCarroDocToDTO, conductorDocToDTO
+} from '@/app/mappers/transportistaMapper'
 
 
 let instance = null;
@@ -68,26 +71,31 @@ export default class TransportistaDAO {
     async listarPatentesCarroPorTransportistaCamion(rutTransportista, patCamion) {
         const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.transportista);
 
-        const norm = v => String(v ?? '').trim().toUpperCase();
+        const norm = v => String(v ?? "").trim().toUpperCase();
 
-        const rutIn = String(rutTransportista ?? '').trim();
+        const rutIn = String(rutTransportista ?? "").trim();
         const patCamIn = norm(patCamion);
 
-
-        // filtra por rut y camión, y descarta patCarro vacío
+        // filtra por rut + camión y exige patCarro
         const filtrados = docs.filter(d =>
-            String(d.rutTransportista ?? '').trim() === rutIn &&
+            String(d.rutTransportista ?? "").trim() === rutIn &&
             norm(d.patCamion) === patCamIn &&
-            norm(d.patCarro) !== ''
+            norm(d.patCarro) !== ""
         );
 
-        // distinct por patCarro
-        const set = new Set(filtrados.map(d => norm(d.patCarro)));
+        // distinct por patCarro, pero guardando el doc (igual que camiones)
+        const map = new Map();
+        for (const d of filtrados) {
+            const key = norm(d.patCarro);
+            if (!key) continue;
+            if (!map.has(key)) map.set(key, d);
+        }
 
-        // array de strings ordenado
-        return Array.from(set).sort();
+        // DTOs (si quieres orden, lo hacemos por patente)
+        return Array.from(map.entries())
+            .sort((a, b) => a[0].localeCompare(b[0])) // ordena por patente normalizada
+            .map(([, doc]) => patenteCarroDocToDTO(doc));
     }
-
 
 
     async listarConductoresPorCamionYCarro(rutTransportista, patCamion, patCarro) {

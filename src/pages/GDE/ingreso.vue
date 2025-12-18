@@ -435,14 +435,35 @@
             >
                 <select
                     :key="`sel-pcarro-${form.transportista?.rutTransportista}-${form.patenteCamion?.patCamion}`"
-                    :value="form.patenteCarro || ''"
+                    :value="form.patenteCarro?.patCarro || ''"
                     @change="handlePatenteCarroChange"
                 >
                     <option value="" disabled>Seleccione Patente carro</option>
-                    <option v-for="p in patentesCarro" :key="p" :value="p">
-                        {{ p }}
+                    <option
+                        v-for="p in patentesCarro"
+                        :key="p.patCarro"
+                        :value="p.patCarro"
+                    >
+                        {{ p.patCarro }}
                     </option>
                 </select>
+            </f7-list-item>
+
+            <f7-list-item
+                accordion-item
+                accordion-opened
+                title="Información del Camión/Carro"
+                class="camion-info"
+                ref="camionAccordion"
+                v-if="form.patenteCarro"
+            >
+                <f7-accordion-content>
+                    <InformacionCamion
+                        v-if="form.patenteCarro"
+                        :camion="form.patenteCamion"
+                        :carro="form.patenteCarro"
+                    />
+                </f7-accordion-content>
             </f7-list-item>
 
             <f7-list-item
@@ -697,6 +718,7 @@ import InformacionDestino from "@/pages/GDE/Ingreso/InformacionDestino.vue";
 import InformacionProducto from "@/pages/GDE/Ingreso/InformacionProducto.vue";
 import InformacionRodal from "@/pages/GDE/Ingreso/InformacionRodal.vue";
 import InformacionConductor from "@/pages/GDE/Ingreso/InformacionConductor.vue";
+import InformacionCamion from "@/pages/GDE/Ingreso/InformacionCamion.vue";
 import store from "@/js/store";
 import {
     listarDestinosPorCliente,
@@ -718,6 +740,7 @@ export default {
         InformacionCliente,
         InformacionDestino,
         InformacionProducto,
+        InformacionCamion,
         InformacionConductor,
         InformacionRodal,
     },
@@ -1722,8 +1745,9 @@ export default {
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".patente-carro .smart-select")
-                    .setValueText(this.form.patenteCarro);
+                    .setValueText(this.form.patenteCarro.patCarro);
                 this.cargarConductores();
+                this.cargarInformacionCamion();
             }
         },
 
@@ -1753,8 +1777,31 @@ export default {
         },
 
         async handlePatenteCarroChange(e) {
-            this.resetDesde("patCarro"); // limpia desde patente carro en adelante
-            this.cargarConductores();
+            const nueva = String(e.target.value || "")
+                .trim()
+                .toUpperCase();
+
+            this.resetDesde("patCarro");
+
+            this.form.patenteCarro =
+                this.patentesCarro.find(
+                    (p) =>
+                        String(p.patCarro || "")
+                            .trim()
+                            .toUpperCase() === nueva
+                ) || null;
+
+            await this.$nextTick();
+
+            // actualizar texto del smartselect (por si acaso)
+            if (this.form.patenteCarro) {
+                f7.smartSelect
+                    .get(".patente-carro .smart-select")
+                    .setValueText(this.form.patenteCarro.patCarro);
+            }
+
+            await this.cargarConductores();
+            this.cargarInformacionCamion();
         },
 
         async cargarConductores() {
@@ -1762,7 +1809,7 @@ export default {
                 ? await listarConductoresPorCamionYCarro(
                       this.form.transportista.rutTransportista,
                       this.form.patenteCamion.patCamion,
-                      this.form.patenteCarro
+                      this.form.patenteCarro.patCarro
                   )
                 : [];
 
@@ -1935,6 +1982,12 @@ export default {
 
         cargarInformacionDestino() {
             const ref = this.$refs.destinoAccordion;
+            const el = ref?.$el || ref?.el || ref; // el DOM real
+            if (el) f7.accordion.open(el);
+        },
+
+        cargarInformacionCamion() {
+            const ref = this.$refs.camionAccordion;
             const el = ref?.$el || ref?.el || ref; // el DOM real
             if (el) f7.accordion.open(el);
         },

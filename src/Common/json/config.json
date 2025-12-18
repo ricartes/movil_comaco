@@ -116,7 +116,14 @@
             "M3ST": "M3ST"
         },
         "maximoCarguios": 1,
-        "cantidadBancos": 6,
+        "cantidadBancos": {
+            "camion": 4,
+            "carro": 4
+        },
+        "tipoBanco": {
+            "camion": "CAMION",
+            "carro": "CARRO"
+        },
         "diametroDesde": 14,
         "diametroHasta": 72,
         "valorTransformacionMetros": 100,

@@ -8,6 +8,8 @@ export default class TransportistaDTO {
         codTransportista,
         nomTransportista,
         rutTransportista,
+        anchoCamion,
+        anchoCarro,
         vigencia
     ) {
         this.patCamion = patCamion;
@@ -17,6 +19,8 @@ export default class TransportistaDTO {
         this.codTransportista = codTransportista;
         this.nomTransportista = nomTransportista;
         this.rutTransportista = rutTransportista;
+        this.anchoCamion = anchoCamion;
+        this.anchoCarro = anchoCarro;
         this.vigencia = vigencia;
     }
 }

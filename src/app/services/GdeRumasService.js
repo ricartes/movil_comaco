@@ -28,13 +28,41 @@ export async function ensureDetalleMR(gdeId) {
 }
 
 export function generarDetalleMR(doc) {
-    const cantidad = Number(config.parametros.cantidadBancos || 6);
+    const cfg = config?.parametros ?? {};
+
+    // soporta: cantidadBancos: 6 (legacy) o { camion: 4, carro: 4 }
+    const cantidadCfg = cfg.cantidadBancos;
+
+    const cantidadCamion =
+        typeof cantidadCfg === "object" && cantidadCfg
+            ? Number(cantidadCfg.camion || 0)
+            : Number(cantidadCfg || 6);
+
+    const cantidadCarro =
+        typeof cantidadCfg === "object" && cantidadCfg
+            ? Number(cantidadCfg.carro || 0)
+            : 0;
+
+    const total = cantidadCamion + cantidadCarro;
+
     const largo = Number(doc?.largoProducto || 0);
     const precio = Number(doc?.precioProducto?.precio || 0);
 
-    return Array.from({ length: cantidad }, (_, i) =>
-        makeDetalleMRBanco(i + 1, largo, precio)
-    );
+    const tipoCfg = cfg.tipoBanco || { camion: "CAMION", carro: "CARRO" };
+    const TIPO_CAMION = tipoCfg.camion ?? "CAMION";
+    const TIPO_CARRO = tipoCfg.carro ?? "CARRO";
+
+    return Array.from({ length: total }, (_, i) => {
+        const esCamion = i < cantidadCamion;
+
+        return makeDetalleMRBanco(
+            i + 1,
+            largo,
+            precio,
+            esCamion ? TIPO_CAMION : TIPO_CARRO,
+            esCamion ? (i + 1) : (i - cantidadCamion + 1) // correlativo dentro del tipo
+        );
+    });
 }
 
 export async function saveDetalleMR(gdeId, detalleMR) {
@@ -70,9 +98,11 @@ export async function saveDetalleMR(gdeId, detalleMR) {
 }
 
 /** DTO por fila/banco MR */
-function makeDetalleMRBanco(id, largo, precioUnitario) {
+function makeDetalleMRBanco(id, largo, precioUnitario, tipoBanco, ordenTipo) {
     return {
         id,
+        tipoBanco,   // "CAMION" | "CARRO"
+        ordenTipo,   // 1..N dentro de su tipo (opcional pero útil)
         ancho: 0,
         largo,
         precioUnitario,
