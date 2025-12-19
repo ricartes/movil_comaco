@@ -1,6 +1,7 @@
 // src/app/services/GdeRumasService.js
 import { getGdeDao } from "@/app/services/initServices";
 import { toNum, computeDocTotals, applyTotals } from "@/app/helpers/TotalesHelpers";
+import { getAnchoCamion, getAnchoCarro, tieneCarro } from "@/app/helpers/AnchoPatentesHelper";
 
 import config from "@/Common/json/config.json";
 
@@ -29,8 +30,6 @@ export async function ensureDetalleMR(gdeId) {
 
 export function generarDetalleMR(doc) {
     const cfg = config?.parametros ?? {};
-
-    // soporta: cantidadBancos: 6 (legacy) o { camion: 4, carro: 4 }
     const cantidadCfg = cfg.cantidadBancos;
 
     const cantidadCamion =
@@ -38,8 +37,10 @@ export function generarDetalleMR(doc) {
             ? Number(cantidadCfg.camion || 0)
             : Number(cantidadCfg || 6);
 
+    const hayCarro = tieneCarro(doc);
+
     const cantidadCarro =
-        typeof cantidadCfg === "object" && cantidadCfg
+        hayCarro && typeof cantidadCfg === "object" && cantidadCfg
             ? Number(cantidadCfg.carro || 0)
             : 0;
 
@@ -52,18 +53,27 @@ export function generarDetalleMR(doc) {
     const TIPO_CAMION = tipoCfg.camion ?? "CAMION";
     const TIPO_CARRO = tipoCfg.carro ?? "CARRO";
 
+    const anchoCamion = getAnchoCamion(doc);
+    const anchoCarro = getAnchoCarro(doc);
+
     return Array.from({ length: total }, (_, i) => {
         const esCamion = i < cantidadCamion;
 
-        return makeDetalleMRBanco(
+        const banco = makeDetalleMRBanco(
             i + 1,
             largo,
             precio,
             esCamion ? TIPO_CAMION : TIPO_CARRO,
-            esCamion ? (i + 1) : (i - cantidadCamion + 1) // correlativo dentro del tipo
+            esCamion ? (i + 1) : (i - cantidadCamion + 1)
         );
+
+        // ancho por defecto según tipo (si existe)
+        banco.ancho = esCamion ? (anchoCamion ?? 0) : (anchoCarro ?? 0);
+
+        return banco;
     });
 }
+
 
 export async function saveDetalleMR(gdeId, detalleMR) {
     const cantidadDecimales = config.parametros.cantidadDecimalesMr || 3;
