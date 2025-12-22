@@ -41,6 +41,18 @@
             </template>
         </f7-list-item>
 
+        <!-- Importar Forestruck -->
+        <f7-list-item
+            link
+            title="Importar desde Forestruck"
+            @click="importarForestruck"
+            color="orange"
+        >
+            <template #media>
+                <f7-icon f7="tray_arrow_down_fill" color="orange" />
+            </template>
+        </f7-list-item>
+        <!-- Generar informe -->
         <f7-list-item
             link
             title="Generar informe"
@@ -80,6 +92,9 @@ export default {
     methods: {
         nuevaGuia() {
             f7.views.main?.router?.navigate("/gde/ingreso/?tab=home");
+        },
+        importarForestruck() {
+            f7.views.main?.router?.navigate("/gde/importar?tab=home");
         },
         abrirInforme() {
             f7.views.main?.router?.navigate("/informe/");

@@ -65,12 +65,6 @@ export async function anularGde(gde, motivoSeleccionado, glosaAdicional) {
             updatedAt: ahoraISO,
         });
 
-        console.log('📄 GDE anulada:', {
-            _id: gde._id,
-            estado: actualizado.estado?.id,
-            motivo: actualizado.motivoAnulacion,
-            sincronizado: actualizado.sincronizado,
-        });
         return actualizado
     } catch (e) {
         throw e;

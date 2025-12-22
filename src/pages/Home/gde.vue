@@ -43,9 +43,34 @@
             />
         </f7-list>
 
-        <f7-fab position="right-bottom" @click="onCrear">
-            <f7-icon ios="f7:plus" md="material:add" />
-        </f7-fab>
+        <!-- FAB con 2 acciones -->
+        <template #fixed>
+            <!-- FAB -->
+            <f7-fab
+                position="right-bottom"
+                morph-to=".gde-create-sheet.fab-morph-target"
+            >
+                <f7-icon ios="f7:plus" md="material:add" />
+            </f7-fab>
+
+            <!-- Target morph -->
+            <div class="list links-list gde-create-sheet fab-morph-target">
+                <ul>
+                    <li>
+                        <a @click="crearBorrador" class="fab-close">
+                            <i class="f7-icons">doc_text</i>
+                            Nueva guía (borrador)
+                        </a>
+                    </li>
+                    <li>
+                        <a @click="importarForestruck" class="fab-close">
+                            <i class="f7-icons">tray_arrow_down</i>
+                            Importar desde Forestruck
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </template>
     </f7-page>
 </template>
 
@@ -134,7 +159,6 @@ export default {
     },
 
     methods: {
-        
         normalizeEstados(v) {
             if (Array.isArray(v)) return v;
             if (v == null || v === "") return [];
@@ -274,9 +298,13 @@ export default {
             }
         },
 
-        onCrear() {
+        crearBorrador() {
             f7.views.main?.router?.navigate("/gde/ingreso/?tab=gde");
         },
+        importarForestruck() {
+            f7.views.main?.router?.navigate("/gde/importar?tab=gde");
+        },
+
         openDetalle(g) {
             f7.views.main?.router?.navigate(`/gde/detalle/${g._id}`);
         },
@@ -285,5 +313,37 @@ export default {
 </script>
 
 <style scoped>
-/* …tus estilos tal cual… */
+.gde-create-sheet {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--f7-safe-area-bottom) + var(--f7-toolbar-height) + 16px);
+
+    width: min(320px, calc(100vw - 32px));
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 20000;
+
+    /* 👇 ESTO ES LO CLAVE */
+    background-color: var(--f7-page-bg-color, #fff);
+
+    /* look nativo */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.gde-create-sheet .list ul {
+    background: transparent;
+}
+
+.gde-create-sheet .list li {
+    border-bottom: 1px solid var(--f7-list-item-border-color);
+}
+
+.gde-create-sheet .list li:last-child {
+    border-bottom: none;
+}
+
+.gde-create-sheet a {
+    padding: 16px;
+    font-size: 15px;
+}
 </style>
