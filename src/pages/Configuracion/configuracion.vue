@@ -139,6 +139,66 @@
                 </template>
             </f7-list-item>
         </f7-list>
+
+        <f7-block-title>Integración de guías (JSON)</f7-block-title>
+        <f7-list inset strong>
+            <f7-list-item title="Carpeta de intercambio">
+                <template #after>
+                    <span class="chip chip-outline" v-if="guidesConfigured">
+                        <span class="chip-media"
+                            ><f7-icon f7="folder"></f7-icon
+                        ></span>
+                        <span class="chip-label">{{ guidesDisplayPath }}</span>
+                    </span>
+                    <span v-else class="text-muted">No configurada</span>
+                </template>
+            </f7-list-item>
+
+            <f7-list-item
+                link
+                @click="selectGuidesFolder"
+                :title="
+                    guidesConfigured ? 'Cambiar carpeta' : 'Seleccionar carpeta'
+                "
+                :disabled="importGuidesLoading || !isAndroid"
+            >
+                <template #media
+                    ><f7-icon f7="folder_badge_plus"></f7-icon
+                ></template>
+            </f7-list-item>
+
+            <f7-list-item
+                link
+                @click="testGuidesFolder"
+                title="Probar acceso"
+                :disabled="importGuidesLoading || !guidesConfigured"
+            >
+                <template #media
+                    ><f7-icon f7="checkmark_shield"></f7-icon
+                ></template>
+            </f7-list-item>
+
+            <f7-list-item
+                link
+                @click="clearGuidesFolder"
+                title="Quitar configuración"
+                class="text-red-600"
+                :disabled="importGuidesLoading || !guidesConfigured"
+            >
+                <template #media><f7-icon f7="trash"></f7-icon></template>
+            </f7-list-item>
+
+            <f7-list-item class="li-alert no-padding" v-if="!guidesConfigured">
+                <template #inner>
+                    <div class="alert alert-warning">
+                        <i class="f7-icons">info_circle</i>
+                        Seleccione la carpeta donde el sistema externo dejará
+                        los archivos JSON. Este permiso se solicita una sola
+                        vez.
+                    </div>
+                </template>
+            </f7-list-item>
+        </f7-list>
     </f7-page>
 </template>
 
@@ -152,6 +212,7 @@ import {
     disconnectPrinter,
 } from "@/app/services/PrinterService";
 import { ensureBluetoothPermissions } from "@/app/helpers/bluetooth-permissions";
+import { StorageAccess } from "@/app/plugins/StorageAccess";
 
 export default {
     name: "ConfiguracionImpresora",
@@ -169,6 +230,8 @@ export default {
             errorMsg: "",
             selectedKeyModel: "", // name|address
             selectedWidthModel: "", // "32" | "48"
+            importGuidesLoading: false,
+            guidesTick: 0,
         };
     },
     computed: {
@@ -195,6 +258,18 @@ export default {
             return this.currentName
                 ? `${this.currentName}|${this.currentAddr || ""}`
                 : "";
+        },
+        guidesConfigured() {
+            this.guidesTick;
+            return !!store.state?.importGuides?.treeUri;
+        },
+        guidesDisplayPath() {
+            this.guidesTick;
+            return store.state?.importGuides?.displayPath || "No configurada";
+        },
+        guidesTreeUri() {
+            this.guidesTick;
+            return store.state?.importGuides?.treeUri || null;
         },
     },
     async created() {
@@ -448,10 +523,127 @@ export default {
                 .open();
         },
 
+        async selectGuidesFolder() {
+            if (!this.isAndroid) {
+                f7.dialog.alert(
+                    "Esta función está disponible solo en Android."
+                );
+                return;
+            }
+            this.ensureStorageAccess();
+
+            this.importGuidesLoading = true;
+
+            const dlg = f7.dialog.preloader("Seleccione la carpeta…");
+            try {
+                // Plugin Capacitor (lo implementaremos ahora)
+
+                const res = await StorageAccess.pickFolder();
+                // res: { treeUri, displayPath }
+
+                if (!res?.treeUri) {
+                    throw new Error("No se recibió una carpeta válida.");
+                }
+
+                await store.dispatch("setGuidesFolder", {
+                    treeUri: res.treeUri,
+                    displayPath: res.displayPath || "Carpeta seleccionada",
+                });
+                this.guidesTick++; // 👈 fuerza update inmediato
+                await this.$nextTick();
+
+                f7.toast
+                    .create({ text: "Carpeta guardada", closeTimeout: 1200 })
+                    .open();
+            } catch (e) {
+                console.warn("selectGuidesFolder:", e);
+                f7.dialog.alert(
+                    e?.message ||
+                        "No se pudo seleccionar la carpeta. Inténtelo nuevamente."
+                );
+            } finally {
+                try {
+                    dlg.close();
+                } catch {}
+                this.importGuidesLoading = false;
+            }
+        },
+
+        async testGuidesFolder() {
+            if (!this.guidesTreeUri) {
+                f7.dialog.alert("Primero seleccione una carpeta.");
+                return;
+            }
+
+            this.ensureStorageAccess();
+
+            this.importGuidesLoading = true;
+            const dlg = f7.dialog.preloader("Probando acceso…");
+            try {
+                // lista solo JSON visibles (pendientes)
+                const res = await StorageAccess.listJson({
+                    treeUri: this.guidesTreeUri,
+                });
+                const files = res?.files || [];
+                const count = Array.isArray(files) ? files.length : 0;
+                const first = count > 0 ? `\nEj: ${files[0]?.name || ""}` : "";
+
+                f7.dialog.alert(
+                    `Acceso OK.\nArchivos JSON encontrados: ${count}${first}`
+                );
+            } catch (e) {
+                console.warn("testGuidesFolder:", e);
+                f7.dialog.alert(
+                    e?.message ||
+                        "No se pudo acceder a la carpeta. Vuelva a seleccionarla."
+                );
+            } finally {
+                try {
+                    dlg.close();
+                } catch {}
+                this.importGuidesLoading = false;
+            }
+        },
+
+        async clearGuidesFolder() {
+            const ok = await new Promise((resolve) => {
+                f7.dialog.confirm(
+                    "¿Desea quitar la configuración de la carpeta de intercambio?",
+                    "Confirmar",
+                    () => resolve(true),
+                    () => resolve(false)
+                );
+            });
+
+            if (!ok) return;
+
+            await store.dispatch("clearGuidesFolder");
+
+            this.guidesTick++; // 👈 fuerza update inmediato
+            await this.$nextTick();
+
+            f7.toast
+                .create({ text: "Configuración eliminada", closeTimeout: 1200 })
+                .open();
+        },
+
         back() {
             f7.views.main?.router?.navigate("/home/?tab=menu", {
                 reloadAll: true,
             });
+        },
+        ensureStorageAccess() {
+            if (!this.isAndroid) {
+                throw new Error("Disponible solo en Android.");
+            }
+            if (
+                !StorageAccess ||
+                typeof StorageAccess.pickFolder !== "function"
+            ) {
+                throw new Error(
+                    "Plugin StorageAccess no está disponible. ¿Ejecutaste npx cap sync android?"
+                );
+            }
         },
     },
 };
@@ -499,5 +691,10 @@ export default {
 .button-row :deep(.button) {
     width: 100%;
     box-sizing: border-box;
+}
+.alert-warning {
+    border: 1px solid #ffeeba;
+    background: #fff3cd;
+    color: #856404;
 }
 </style>

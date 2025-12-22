@@ -14,6 +14,10 @@ const DISPO_LASTCHECK_KEY = 'dispo_lastcheck'  // epoch (string)
 const PRN_NAME_KEY = 'printer_name';   // opcional: guarda también address si tu fork lo entrega
 const PRN_ADDR_KEY = 'printer_addr';
 const PRN_PAPER_WIDTH_KEY = 'printer_paper_width'; // 32 (57–58mm) | 48 (80mm)
+const GUIDES_TREE_URI_KEY = 'guides_tree_uri'
+const GUIDES_DISPLAY_PATH_KEY = 'guides_display_path'
+const GUIDES_CONFIGURED_AT_KEY = 'guides_configured_at'
+
 
 
 const store = createStore({
@@ -30,6 +34,12 @@ const store = createStore({
             address: null,
             paperWidth: null,
         },
+        importGuides: {
+            treeUri: null,
+            displayPath: null,
+            configuredAt: null,
+        },
+
     },
     getters: {
         isAuth({ state }) { return !!state.user },
@@ -49,6 +59,9 @@ const store = createStore({
         },
         userRut({ state }) { return state.user?.rut ?? null },
         userEmpId({ state }) { return state.user?.empresa ?? state.user?.empId ?? null },
+        guidesTreeUri({ state }) { return state.importGuides?.treeUri ?? null },
+        guidesDisplayPath({ state }) { return state.importGuides?.displayPath ?? null },
+        guidesConfigured({ state }) { return !!state.importGuides?.treeUri },
 
 
     },
@@ -113,6 +126,22 @@ const store = createStore({
                 state.printer.name = pName || null;
                 state.printer.address = pAddr || null;
                 state.printer.paperWidth = pWidth ? Number(pWidth) : null; // ← NUEVO
+
+
+                // ====== Carpeta importación guías (persistido)
+                const [
+                    { value: gTree } = {},
+                    { value: gPath } = {},
+                    { value: gAt } = {},
+                ] = await Promise.all([
+                    Preferences.get({ key: GUIDES_TREE_URI_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: GUIDES_DISPLAY_PATH_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: GUIDES_CONFIGURED_AT_KEY }).catch(() => ({ value: null })),
+                ])
+
+                state.importGuides.treeUri = gTree || null
+                state.importGuides.displayPath = gPath || null
+                state.importGuides.configuredAt = gAt || null
 
             } finally {
                 // ✅ garantizado: evita quedarse en “Cargando…”
@@ -204,6 +233,27 @@ const store = createStore({
             await Preferences.remove({ key: PRN_PAPER_WIDTH_KEY });
             window.dispatchEvent(new CustomEvent('printer:widthChanged', { detail: { paperWidth: null } }));
         },
+
+        async setGuidesFolder({ state }, { treeUri, displayPath }) {
+            state.importGuides.treeUri = treeUri ?? null
+            state.importGuides.displayPath = displayPath ?? null
+            state.importGuides.configuredAt = new Date().toISOString()
+
+            await Preferences.set({ key: GUIDES_TREE_URI_KEY, value: String(state.importGuides.treeUri ?? '') })
+            await Preferences.set({ key: GUIDES_DISPLAY_PATH_KEY, value: String(state.importGuides.displayPath ?? '') })
+            await Preferences.set({ key: GUIDES_CONFIGURED_AT_KEY, value: String(state.importGuides.configuredAt ?? '') })
+
+            window.dispatchEvent(new CustomEvent('guides:folderChanged', { detail: { treeUri, displayPath } }))
+        },
+
+        async clearGuidesFolder({ state }) {
+            state.importGuides = { treeUri: null, displayPath: null, configuredAt: null }
+            await Preferences.remove({ key: GUIDES_TREE_URI_KEY })
+            await Preferences.remove({ key: GUIDES_DISPLAY_PATH_KEY })
+            await Preferences.remove({ key: GUIDES_CONFIGURED_AT_KEY })
+            window.dispatchEvent(new CustomEvent('guides:folderChanged', { detail: { treeUri: null, displayPath: null } }))
+        },
+
 
     },
 })

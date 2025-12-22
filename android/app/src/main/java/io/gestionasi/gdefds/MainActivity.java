@@ -8,9 +8,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        registerPlugin(StorageAccessPlugin.class);
 
-        // 🚫 Desactiva completamente el botón "Atrás" del sistema Android
+        super.onCreate(savedInstanceState);
+        //Desactiva completamente el botón "Atrás" del sistema Android
         getOnBackPressedDispatcher().addCallback(this,
             new OnBackPressedCallback(true) {
                 @Override
