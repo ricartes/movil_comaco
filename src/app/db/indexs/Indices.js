@@ -114,6 +114,10 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_motAnu_empId', fields: ['type', 'empId'] },
         { ddoc: 'idx_motAnu_empId_id', fields: ['type', 'empId', 'id'] },
 
+        // === forestruck-import-log ===
+        { ddoc: 'idx_forestruckImportLog_fileKey', fields: ['type', 'status'] },
+
+
 
     ];
 

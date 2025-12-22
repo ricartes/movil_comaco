@@ -21,6 +21,7 @@ import TrazabilidadDAO from '@/app/DAO/TrazabilidadDAO';
 import SiiFolioDAO from '@/app/DAO/SiiFolioDAO';
 import LargoProductoDAO from '@/app/DAO/Parametros/LargoProductoDAO';
 import MotivoAnulacionDAO from '@/app/DAO/Parametros/MotivoAnulacionDAO';
+import ForestruckImportLogDAO from '@/app/DAO/Parametros/ForestruckImportLogDAO';
 
 // Inicializa UsuarioDAO con la instancia de la base de datos
 // La función acepta la instancia de la base de datos como parámetro
@@ -47,6 +48,7 @@ let _geocercaDao;
 let _siiFolioDao;
 let _largoProductoDao;
 let _motivoAnulacionDao;
+let _forestruckImportLogDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -73,6 +75,7 @@ export function initializeServices(dbInstance) {
     _siiFolioDao = new SiiFolioDAO(dbInstance);
     _largoProductoDao = new LargoProductoDAO(dbInstance);
     _motivoAnulacionDao = new MotivoAnulacionDAO(dbInstance);
+    _forestruckImportLogDao = new ForestruckImportLogDAO(dbInstance);
 }
 
 export function getBaseDao() {
@@ -233,4 +236,10 @@ export function getMotivoAnulacionDao() {
         throw new Error("_motivoAnulacionDao no ha sido inicializado.");
     }
     return _motivoAnulacionDao;
+}
+export function getForestruckImportLogDao() {
+    if (!_forestruckImportLogDao) {
+        throw new Error("_forestruckImportLogDao no ha sido inicializado.");
+    }
+    return _forestruckImportLogDao;
 }

@@ -179,7 +179,8 @@
             "siiUsuarioRangoFolio": "sii-usuario-rango-folio",
             "folio": "folio",
             "largoProducto": "largo-producto",
-            "motivoAnulacion": "motivo-anulacion"
+            "motivoAnulacion": "motivo-anulacion",
+            "forestruckImportLog": "forestruck-import-log"
         }
     }
 }
