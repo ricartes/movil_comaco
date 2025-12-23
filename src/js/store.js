@@ -39,6 +39,8 @@ const store = createStore({
             displayPath: null,
             configuredAt: null,
         },
+        forestruckPreview: null,
+
 
     },
     getters: {
@@ -62,6 +64,7 @@ const store = createStore({
         guidesTreeUri({ state }) { return state.importGuides?.treeUri ?? null },
         guidesDisplayPath({ state }) { return state.importGuides?.displayPath ?? null },
         guidesConfigured({ state }) { return !!state.importGuides?.treeUri },
+        forestruckPreview({ state }) { return state.forestruckPreview },
 
 
     },
@@ -253,6 +256,26 @@ const store = createStore({
             await Preferences.remove({ key: GUIDES_CONFIGURED_AT_KEY })
             window.dispatchEvent(new CustomEvent('guides:folderChanged', { detail: { treeUri: null, displayPath: null } }))
         },
+
+        async setForestruckPreview({ state }, payload) {
+            // ⚠️ NO guardes Proxys / objetos raros del plugin.
+            const safe = payload ? {
+                fileKey: payload.fileKey || null,
+                imported: !!payload.imported,
+                file: payload.file ? {
+                    name: payload.file.name || "",
+                    uri: payload.file.uri || "",
+                    size: Number(payload.file.size || 0),
+                    lastModified: Number(payload.file.lastModified || 0),
+                } : null,
+                // Si el json es gigante y te pesa, puedes no guardarlo aquí (ver nota abajo)
+                json: payload.json ?? null,
+            } : null;
+
+            state.forestruckPreview = safe;
+            window.dispatchEvent(new CustomEvent('forestruck:previewChanged', { detail: safe }));
+        },
+
 
 
     },

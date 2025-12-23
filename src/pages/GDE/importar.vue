@@ -175,10 +175,9 @@ export default {
         async abrirPreview(it) {
             try {
                 const payload = await leerJsonForestruckParaPreview(it);
-                console.log(payload);
-
-                // ✅ en tu store es dispatch, no commit
+            
                 await store.dispatch("setForestruckPreview", payload);
+
 
                 console.log("pasa");
 
