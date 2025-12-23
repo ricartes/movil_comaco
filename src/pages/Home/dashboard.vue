@@ -94,7 +94,7 @@ export default {
             f7.views.main?.router?.navigate("/gde/ingreso/?tab=home");
         },
         importarForestruck() {
-            f7.views.main?.router?.navigate("/gde/importar?tab=home");
+            f7.views.main?.router?.navigate("/gde/importar/?tab=home");
         },
         abrirInforme() {
             f7.views.main?.router?.navigate("/informe/");

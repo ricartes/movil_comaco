@@ -54,22 +54,29 @@
             </f7-fab>
 
             <!-- Target morph -->
-            <div class="list links-list gde-create-sheet fab-morph-target">
-                <ul>
-                    <li>
-                        <a @click="crearBorrador" class="fab-close">
-                            <i class="f7-icons">doc_text</i>
-                            Nueva guía (borrador)
-                        </a>
-                    </li>
-                    <li>
-                        <a @click="importarForestruck" class="fab-close">
-                            <i class="f7-icons">tray_arrow_down</i>
-                            Importar desde Forestruck
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <f7-list inset strong class="gde-create-sheet fab-morph-target">
+                <f7-list-item
+                    link
+                    title="Nueva guía (borrador)"
+                    @click="crearBorrador"
+                    class="fab-close"
+                >
+                    <template #media>
+                        <f7-icon f7="doc_text" />
+                    </template>
+                </f7-list-item>
+
+                <f7-list-item
+                    link
+                    title="Importar desde Forestruck"
+                    @click="importarForestruck"
+                    class="fab-close"
+                >
+                    <template #media>
+                        <f7-icon f7="tray_arrow_down" />
+                    </template>
+                </f7-list-item>
+            </f7-list>
         </template>
     </f7-page>
 </template>
@@ -302,7 +309,7 @@ export default {
             f7.views.main?.router?.navigate("/gde/ingreso/?tab=gde");
         },
         importarForestruck() {
-            f7.views.main?.router?.navigate("/gde/importar?tab=gde");
+            f7.views.main?.router?.navigate("/gde/importar/?tab=gde");
         },
 
         openDetalle(g) {
@@ -330,20 +337,28 @@ export default {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 
-.gde-create-sheet .list ul {
-    background: transparent;
+.gde-create-sheet .links-list a,
+.gde-create-sheet a.fab-close {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* separa icono y texto */
+    justify-content: flex-start;
+    padding: 12px 16px;
 }
 
-.gde-create-sheet .list li {
-    border-bottom: 1px solid var(--f7-list-item-border-color);
+.gde-create-sheet .f7-icons {
+    width: 22px; /* fija ancho para alinear ambos items */
+    text-align: center;
+    font-size: 18px;
+    flex: 0 0 22px;
 }
 
-.gde-create-sheet .list li:last-child {
-    border-bottom: none;
+.gde-create-sheet a.fab-close {
+    color: inherit; /* respeta tema */
 }
 
-.gde-create-sheet a {
-    padding: 16px;
-    font-size: 15px;
+/* opcional: que se note el hover/tap */
+.gde-create-sheet a.fab-close:active {
+    opacity: 0.6;
 }
 </style>

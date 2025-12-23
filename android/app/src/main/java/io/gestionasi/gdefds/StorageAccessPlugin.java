@@ -104,4 +104,39 @@ public class StorageAccessPlugin extends Plugin {
         ret.put("files", out);
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void readText(PluginCall call) {
+        String uriStr = call.getString("uri");
+        if (uriStr == null || uriStr.isEmpty()) {
+            call.reject("uri es requerido.");
+            return;
+        }
+
+        Uri uri = Uri.parse(uriStr);
+
+        try (java.io.InputStream is = getContext().getContentResolver().openInputStream(uri)) {
+            if (is == null) {
+                call.reject("No se pudo abrir el archivo.");
+                return;
+            }
+
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+
+            String text = baos.toString("UTF-8");
+
+            JSObject ret = new JSObject();
+            ret.put("text", text);
+            call.resolve(ret);
+
+        } catch (Exception e) {
+            call.reject("No se pudo leer el archivo: " + e.getMessage());
+        }
+    }
+
 }

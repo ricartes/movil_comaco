@@ -1,0 +1,155 @@
+// src/app/services/ForestruckImportService.js
+import { StorageAccess } from "@/app/plugins/StorageAccess";
+import { getForestruckImportLogDao } from "@/app/services/initServices";
+
+// --------------------
+// Errores de dominio
+// --------------------
+export class ForestruckImportError extends Error {
+    constructor(code, message, cause = null) {
+        super(message);
+        this.name = "ForestruckImportError";
+        this.code = code;       // e.g. "FOLDER_NOT_CONFIGURED", "LIST_FAILED", ...
+        this.cause = cause;
+    }
+}
+
+// --------------------
+// Helpers
+// --------------------
+export function buildFileKey(f) {
+    // key estable + detecta regeneración del JSON
+    return `${f.name}|${Number(f.size || 0)}|${Number(f.lastModified || 0)}`;
+}
+
+function ensureArray(x) {
+    return Array.isArray(x) ? x : [];
+}
+
+function normalizeFile(f) {
+    // Capacitor suele entregar objetos planos desde JSArray => normalizamos campos
+    return {
+        name: f?.name || "",
+        uri: f?.uri || "",
+        size: Number(f?.size || 0),
+        lastModified: Number(f?.lastModified || 0),
+    };
+}
+
+function validateTreeUri(treeUri) {
+    if (!treeUri) {
+        throw new ForestruckImportError(
+            "FOLDER_NOT_CONFIGURED",
+            "Carpeta de intercambio no configurada."
+        );
+    }
+}
+
+// --------------------
+// API del servicio
+// --------------------
+export async function listarImportablesForestruck(treeUri) {
+    validateTreeUri(treeUri);
+
+    try {
+        const logDao = getForestruckImportLogDao();
+
+        // 1) listar JSON desde plugin
+        const res = await StorageAccess.listJson({ treeUri });
+        const rawFiles = ensureArray(res?.files);
+        const files = rawFiles.map(normalizeFile).filter((f) => f.name && f.uri);
+
+        // 2) logs importados desde Pouch (DAO)
+        const logs = await logDao.listarTodos(); // debe retornar array de docs
+        const importedSet = new Set(ensureArray(logs).map((d) => d.fileKey));
+
+        // 3) merge + orden
+        return files
+            .map((f) => {
+                const fileKey = buildFileKey(f);
+                return { file: f, fileKey, imported: importedSet.has(fileKey) };
+            })
+            .sort((a, b) => (b.file.lastModified || 0) - (a.file.lastModified || 0));
+
+    } catch (e) {
+        throw new ForestruckImportError(
+            "LIST_FAILED",
+            "No se pudo listar los JSON de Forestruck.",
+            e
+        );
+    }
+}
+
+export async function leerJsonForestruckParaPreview(item) {
+    const uri = item?.file?.uri;
+    if (!uri) {
+        throw new ForestruckImportError("INVALID_FILE", "Archivo inválido.");
+    }
+    console.log(uri);
+
+    try {
+        const r = await StorageAccess.readText({ uri }); // <-- requiere el método readText en el plugin
+        const raw = String(r?.text || "");
+
+        let json = null;
+        try {
+            json = JSON.parse(raw);
+        } catch (parseErr) {
+            throw new ForestruckImportError(
+                "INVALID_JSON",
+                "El archivo no contiene un JSON válido.",
+                parseErr
+            );
+        }
+
+        return {
+            json,
+            file: item.file,
+            fileKey: item.fileKey,
+            imported: !!item.imported,
+        };
+    } catch (e) {
+
+        // si ya es ForestruckImportError, lo propagamos tal cual
+        if (e instanceof ForestruckImportError) throw e;
+
+        throw new ForestruckImportError(
+            "READ_FAILED",
+            "No se pudo leer el archivo seleccionado.",
+            e
+        );
+    }
+}
+
+/**
+ * Llamar DESPUÉS de importar exitosamente (cuando guardas la GDE en Pouch)
+ */
+export async function registrarImportacionExitosa({ fileKey, file, meta = {} }) {
+    if (!fileKey) {
+        throw new ForestruckImportError("INVALID_FILEKEY", "fileKey es requerido.");
+    }
+
+    try {
+        const logDao = getForestruckImportLogDao();
+
+        // el shape lo defines tú, pero ideal dejar trazabilidad
+        const doc = {
+            type: "forestruck-import-log", // o desde config si quieres
+            fileKey,
+            fileName: file?.name || null,
+            fileUri: file?.uri || null,
+            size: Number(file?.size || 0),
+            lastModified: Number(file?.lastModified || 0),
+            importedAt: new Date().toISOString(),
+            ...meta, // ej: { gdeId, empId, rut, folio, ... }
+        };
+
+        return await logDao.upsertPorFileKey(doc);
+    } catch (e) {
+        throw new ForestruckImportError(
+            "LOG_WRITE_FAILED",
+            "No se pudo registrar el log de importación.",
+            e
+        );
+    }
+}

@@ -1,5 +1,5 @@
 import config from "@/Common/json/config.json";
-import { makeId } from "../mappers/_id";
+import { makeId } from "../../mappers/_id";
 
 let instance = null;
 
@@ -13,11 +13,11 @@ export default class ForestruckImportLogDAO {
     }
 
     makeDocId(fileKey) {
-        // ID estable por archivo
         return makeId(config.bd.tipoEntidad.forestruckImportLog, fileKey);
     }
 
-    async upsertImportado({ fileKey, fileName, path, gdeId }) {
+    async upsertImportado({ fileKey, fileName, uri, gdeId }) {
+        if (!fileKey) throw new Error("fileKey requerido");
         const _id = this.makeDocId(fileKey);
 
         let prev = null;
@@ -27,39 +27,50 @@ export default class ForestruckImportLogDAO {
             if (e.status !== 404) throw e;
         }
 
+        const now = new Date().toISOString();
+
         const doc = {
             ...(prev || {}),
             _id,
             type: config.bd.tipoEntidad.forestruckImportLog,
             fileKey,
-            fileName,
-            path,
+            fileName: fileName || prev?.fileName || null,
+            uri: uri || prev?.uri || null,
             status: "imported",
-            importedAt: new Date().toISOString(),
+            error: null,
+            importedAt: now,
+            createdAt: prev?.createdAt || now,
+            updatedAt: now,
             gdeId: gdeId || prev?.gdeId || null,
         };
 
         return await this.db.put(doc);
     }
 
-    async marcarFallido({ fileKey, fileName, path, error }) {
+    async marcarFallido({ fileKey, fileName, uri, error }) {
+        if (!fileKey) throw new Error("fileKey requerido");
         const _id = this.makeDocId(fileKey);
 
         let prev = null;
-        try { prev = await this.db.get(_id); } catch (e) {
+        try {
+            prev = await this.db.get(_id);
+        } catch (e) {
             if (e.status !== 404) throw e;
         }
+
+        const now = new Date().toISOString();
 
         const doc = {
             ...(prev || {}),
             _id,
             type: config.bd.tipoEntidad.forestruckImportLog,
             fileKey,
-            fileName,
-            path,
+            fileName: fileName || prev?.fileName || null,
+            uri: uri || prev?.uri || null,
             status: "failed",
             error: String(error || ""),
-            updatedAt: new Date().toISOString(),
+            createdAt: prev?.createdAt || now,
+            updatedAt: now,
         };
 
         return await this.db.put(doc);
@@ -81,7 +92,6 @@ export default class ForestruckImportLogDAO {
         return res?.docs || [];
     }
 
-    // Útil: consultar SOLO los importados
     async listarImportados() {
         const res = await this.db.find({
             selector: {

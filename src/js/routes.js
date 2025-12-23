@@ -6,6 +6,7 @@ import BloqueadoPermisos from '@/pages/BloqueadoPermisos.vue';
 import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
+import importar from '@/pages/gde/importar.vue';
 import GdeDetalle from '@/pages/gde/detalle.vue';
 import ListadoFolios from '@/pages/folios/listado.vue';
 import Configuracion from '@/pages/configuracion/configuracion.vue';
@@ -58,6 +59,11 @@ var routes = [
         path: '/gde/ingreso/',
         component: GdeIngreso,
         name: 'gde-ingreso'
+    },
+    {
+        path: '/gde/importar/',
+        component: importar,
+        name: 'gde-importar'
     },
     {
         path: '/gde/detalle/:id',
