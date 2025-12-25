@@ -106,7 +106,8 @@
         "parametrosGenerales": {
             "precioPorDefecto": 2,
             "porcentajeIva": 3,
-            "cantidadMaximasDiasAnular": 7
+            "cantidadMaximasDiasAnular": 7,
+            "forestruckMapping": 8
         },
         "unidadesMedida": {
             "M3": "M3",

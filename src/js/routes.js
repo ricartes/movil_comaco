@@ -7,6 +7,7 @@ import NotFoundPage from '../pages/404.vue';
 import home from '@/pages/home.vue';
 import GdeIngreso from '@/pages/gde/ingreso.vue';
 import importar from '@/pages/gde/importar.vue';
+import previewGdeForestruck from '@/pages/gde/importar/preview.vue';
 import GdeDetalle from '@/pages/gde/detalle.vue';
 import ListadoFolios from '@/pages/folios/listado.vue';
 import Configuracion from '@/pages/configuracion/configuracion.vue';
@@ -64,6 +65,16 @@ var routes = [
         path: '/gde/importar/',
         component: importar,
         name: 'gde-importar'
+    },
+    {
+        path: '/gde/importar/',
+        component: importar,
+        name: 'gde-importar'
+    },
+    {
+        path: '/gde/importar/preview/',
+        component: previewGdeForestruck,
+        name: 'gde-importar-preview'
     },
     {
         path: '/gde/detalle/:id',

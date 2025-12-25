@@ -276,6 +276,10 @@ const store = createStore({
             window.dispatchEvent(new CustomEvent('forestruck:previewChanged', { detail: safe }));
         },
 
+        async clearForestruckPreview({ state }) {
+            state.forestruckPreview = null;
+        },
+
 
 
     },

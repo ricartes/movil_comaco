@@ -62,6 +62,31 @@ function fTime(x) {
         : d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 }
 function fStr(x) { return x == null ? "—" : String(x); }
+
+
+function getPatCamionTexto(doc) {
+    const pc = doc?.patenteCamion;
+    if (!pc) return "—";
+    // normalmente es { patCamion: "..." }
+    if (typeof pc === "string") return pc; // por si algún legacy raro
+    return pc.patCamion ?? "—";
+}
+
+function getPatCarroTexto(doc) {
+    const pc = doc?.patenteCarro;
+    if (!pc) return "—";
+    if (typeof pc === "string") return pc;
+    return pc.patCarro ?? "—";
+}
+
+function getAnchoCarro(doc) {
+    const pc = doc?.patenteCarro;
+    if (!pc || typeof pc === "string") return null;
+    const n = Number(pc.anchoCarro);
+    return Number.isFinite(n) ? n : null;
+}
+
+
 function fCLP(n) {
     if (n == null) return "—";
     return Number(n).toLocaleString("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
@@ -679,7 +704,20 @@ function buildTransporteBox(doc) {
                     fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
                         { text: [{ text: 'Transportista: ', bold: true }, fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)] },
-                        { text: [{ text: 'Patente: ', bold: true }, fStr(doc?.patenteCamion?.patCamion), { text: '.  Carro: ', bold: true }, fStr(doc?.patenteCarro)] },
+                        { text: [{ text: 'Patente: ', bold: true }, fStr(doc?.patenteCamion?.patCamion), { text: '.  Carro: ', bold: true }, fStr(doc?.patenteCarro)] }, {
+                            text: [
+                                { text: "Patente: ", bold: true },
+                                fStr(getPatCamionTexto(doc)),
+                                { text: ".  Carro: ", bold: true },
+                                fStr(getPatCarroTexto(doc)),
+                                // opcional: mostrar ancho carro si viene
+                                ...(getAnchoCarro(doc) != null
+                                    ? [{ text: " (ancho: ", bold: true }, String(getAnchoCarro(doc)), { text: ")", bold: true }]
+                                    : []
+                                ),
+                            ],
+                        },
+
                         { text: [{ text: 'Nombre Chofer: ', bold: true }, fStr(doc?.conductor?.nomChofer), { text: '.  RUT Chofer: ', bold: true }, fStr(doc?.conductor?.rutChofer)] },
                     ]
                 }]

@@ -26,7 +26,10 @@ interface GdeDoc {
     largoProducto?: number | string;
     transportista?: { nomTransportista?: string };
     patenteCamion?: { patCamion?: string };
-    patenteCarro?: string | null;
+    patenteCarro?:
+        | string
+        | { patCarro?: string; anchoCarro?: number | null }
+        | null;
     conductor?: { nomChofer?: string };
     empresaContratista?: {
         nombreContratista?: string;
@@ -133,6 +136,20 @@ const showTon = computed(() =>
         unidadActual.value
     )
 );
+
+const patenteCarroTexto = computed(() => {
+    const pc = props.doc?.patenteCarro as any;
+    if (!pc) return "—";
+    if (typeof pc === "string") return pc;
+    return pc?.patCarro ?? "—";
+});
+
+const anchoCarro = computed(() => {
+    const pc = props.doc?.patenteCarro as any;
+    if (!pc || typeof pc === "string") return null;
+    const n = Number(pc?.anchoCarro);
+    return Number.isFinite(n) ? n : null;
+});
 
 function formatHora(h?: string | null) {
     if (!h) return "—";
@@ -309,7 +326,13 @@ function formatCoord(n?: number | null) {
                     <dt>Camión</dt>
                     <dd>{{ props.doc?.patenteCamion?.patCamion ?? "—" }}</dd>
                     <dt>Carro</dt>
-                    <dd>{{ props.doc?.patenteCarro ?? "—" }}</dd>
+                    <dd>
+                        {{ patenteCarroTexto }}
+                        <template v-if="anchoCarro !== null">
+                            <span class="pill">ancho: {{ anchoCarro }}</span>
+                        </template>
+                    </dd>
+
                     <dt>Conductor</dt>
                     <dd>{{ props.doc?.conductor?.nomChofer ?? "—" }}</dd>
 

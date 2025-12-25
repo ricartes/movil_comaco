@@ -109,10 +109,22 @@ function mapDoc(doc) {
         numeroGuiaAnterior: doc?.comentarios?.numeroGuiaAnterior || '',
     }
 
+    const patenteCarroRaw = doc?.patenteCarro;
+    const patenteCarro =
+        (typeof patenteCarroRaw === "string")
+            ? patenteCarroRaw
+            : (patenteCarroRaw?.patCarro || "");
+
+    const anchoCarro =
+        (typeof patenteCarroRaw === "object" && patenteCarroRaw != null)
+            ? patenteCarroRaw?.anchoCarro ?? null
+            : null;
+
     const trans = {
         transportista: `${doc?.transportista?.nomTransportista} - ${doc?.transportista?.rutTransportista || ''} `,
         patenteCamion: doc?.patenteCamion?.patCamion || '',
-        patenteCarro: doc?.patenteCarro || '',
+        patenteCarro,
+        anchoCarro,
         rutChofer: doc?.conductor?.rutChofer || '',
         nomChofer: doc?.conductor?.nomChofer || '',
         proveedor: `${doc?.proveedor?.nomProveedor || ''} - ${doc?.proveedor?.rutProveedor || ''}`,
@@ -300,7 +312,11 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
     // Transporte
     if (M.trans.patenteCamion) await printRawText(`PATENTE CAMIÓN: ${M.trans.patenteCamion}`);
-    if (M.trans.patenteCarro) await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}`);
+    if (M.trans.patenteCarro) {
+        const extra = (M.trans.anchoCarro != null) ? ` (ANCHO: ${numDec(M.trans.anchoCarro, 2)})` : '';
+        await printRawText(`PATENTE CARRO: ${M.trans.patenteCarro}${extra}`);
+    }
+
     if (M.trans.nomChofer) await printRawText(wrap(`CONDUCTOR: ${M.trans.nomChofer.toUpperCase()}`));
     if (M.trans.rutChofer) await printRawText(`RUT CONDUCTOR: ${M.trans.rutChofer}`);
 
