@@ -1,9 +1,16 @@
 import { getClienteDao } from "@/app/services/initServices"
 
+export async function listarClientes() {
+
+    return await getClienteDao().listar();
+}
+
+
 export async function listarClientesPorPredio(codEncargado, rutProveedor, rolPredio) {
 
     return await getClienteDao().listarPorPredio(codEncargado, rutProveedor, rolPredio);
 }
+
 
 export async function listarDestinosPorCliente(codEncargado, rutProveedor, rolPredio, rutCliente) {
 

@@ -1,0 +1,49 @@
+// GdeDraftFactory.js
+import config from "@/Common/json/config.json";
+
+export function createGdeDraftDefault() {
+    return {
+        sincronizado: false,
+        sincronizadoAt: false,
+        motivoAnulacion: null,
+        emisor: null,
+        estado: config.parametros.estadosGuia.BORRADOR,
+        empresa: null,
+        zona: null,
+        proveedor: null,
+        predio: null,
+        cliente: null,
+        destino: null,
+        indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
+        trasvasije: false,
+        ventaPiso: false,
+        producto: null,
+        precioProducto: null,
+        largoProducto: null,
+        transportista: null,
+        patenteCamion: null,
+        patenteCarro: null,
+        conductor: null,
+        carguios: [],
+        patentesCarguio: [],
+        rodal: null,
+        empresaContratista: null,
+        linea: null,
+        ordenCompra: null,
+        ubicacion: null,
+        datosGeocerca: {
+            geocerca: null,
+            validada: true,
+            mensajeValidacion: "",
+        },
+        totales: {
+            mr: { volumen: 0, valor: 0 },
+            m3: { volumen: 0, valor: 0 },
+            ton: { volumen: 0, valor: 0 },
+            neto: 0,
+            ivaPct: 19,
+            ivaMonto: 0,
+            total: 0,
+        },
+    };
+}

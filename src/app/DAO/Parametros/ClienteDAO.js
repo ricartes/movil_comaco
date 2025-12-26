@@ -14,10 +14,33 @@ export default class PredioDAO {
     }
 
 
+    // OrdenCompraService.js (o donde esté tu listar)
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra)
-        return docs.map(clienteDocToDTO)
+        const res = await this.db.find({
+            selector: { type: config.bd.tipoEntidad.ordenCompra },
+            // si tienes un índice por type úsalo; si no, puedes omitir use_index
+            // use_index: 'idx_tipo',
+        });
+
+        const map = new Map();
+
+        for (const d of res.docs) {
+            const rut = String(d.rutCliente ?? '').trim();
+            if (!rut) continue;
+
+            // 1 por rutCliente (primer doc que aparezca)
+            if (!map.has(rut)) map.set(rut, d);
+        }
+
+        return Array.from(map.values())
+            .sort((a, b) => {
+                const nA = (a.razonSocialCliente || '').toLowerCase();
+                const nB = (b.razonSocialCliente || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(clienteDocToDTO);
     }
+
 
 
     // PredioService.js

@@ -110,3 +110,11 @@ export function formatMMYYYY(val) {
     return `${m}/${y}`;
 }
 
+
+export function pretty(obj) {
+    try {
+        return JSON.stringify(obj, null, 2);
+    } catch {
+        return String(obj);
+    }
+}

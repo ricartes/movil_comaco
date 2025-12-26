@@ -726,8 +726,12 @@ import {
 } from "@/app/services/Parametros/ClienteService";
 import { listarRodalesPorOrigen } from "@/app/services/Parametros/RodalService";
 import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
-import { listarParametrosGenerales } from "@/app/services/Parametros/ParametrosGeneralService";
+import {
+    listarParametrosGenerales,
+    generarPorcentajeIva,
+} from "@/app/services/Parametros/ParametrosGeneralService";
 import { ingresarGde } from "@/app/services/GdeService";
+import { createGdeDraftDefault } from "@/app/factory/GdeDraftFactory";
 import config from "@/Common/json/config.json";
 
 export default {
@@ -774,50 +778,7 @@ export default {
             lineasContratista: [],
             conductorValido: true,
             ordenCompraSeleccionada: null,
-            form: {
-                sincronizado: false,
-                sincronizadoAt: false,
-                motivoAnulacion: null,
-                emisor: null,
-                estado: config.parametros.estadosGuia.BORRADOR,
-                empresa: null,
-                zona: null, // objeto zona seleccionado
-                proveedor: null, // objeto proveedor seleccionado
-                predio: null, // objeto predio seleccionado
-                cliente: null, // objeto cliente seleccionado
-                destino: null,
-                indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
-                trasvasije: false,
-                ventaPiso: false,
-                producto: null,
-                precioProducto: null,
-                largoProducto: null,
-                transportista: null,
-                patenteCamion: null,
-                patenteCarro: null,
-                conductor: null,
-                carguios: [],
-                patentesCarguio: [],
-                rodal: null,
-                empresaContratista: null,
-                linea: null,
-                ordenCompra: null,
-                ubicacion: null,
-                datosGeocerca: {
-                    geocerca: null,
-                    validada: true,
-                    mensajeValidacion: "",
-                },
-                totales: {
-                    mr: { volumen: 0, valor: 0 },
-                    m3: { volumen: 0, valor: 0 },
-                    ton: { volumen: 0, valor: 0 },
-                    neto: 0,
-                    ivaPct: 19,
-                    ivaMonto: 0,
-                    total: 0,
-                },
-            },
+            form: createGdeDraftDefault(),
         };
     },
     computed: {
@@ -851,10 +812,6 @@ export default {
         parametrosGenerales() {
             return config.parametros.parametrosGenerales;
         },
-
-        ivaPorDefecto() {
-            return config.parametros.ivaPorDefecto;
-        },
     },
     async created() {
         f7.dialog.preloader("Cargando...");
@@ -870,8 +827,11 @@ export default {
             this.form.parametrosGenerales = await listarParametrosGenerales(
                 this.usuarioActivo.empresa
             );
-            await this.generarPorcentajeIva();
+            this.form.ivaPct = await generarPorcentajeIva(
+                this.usuarioActivo.empresa
+            );
         } catch (ex) {
+            alert(ex.message || "Error desconocido");
             f7.dialog.alert("Ha ocurrido un error al iniciar registro.");
         } finally {
             f7.dialog.close();
@@ -937,35 +897,6 @@ export default {
 
             // OK: ya puedes seguir tu flujo normal (cargar combos, validar geocerca, etc.)
             this._waitingLocationPermission = false;
-        },
-        async generarPorcentajeIva() {
-            try {
-                const empresaId = this?.usuarioActivo?.empresa ?? 1;
-                const parametros = await listarParametrosGenerales(empresaId);
-
-                // Busca primero por id=3 y empId=empresa; si no, por glosa "IVA"
-                const arr = Array.isArray(parametros) ? parametros : [];
-                const pById = arr.find(
-                    (p) =>
-                        Number(p.id) ===
-                            this.parametrosGenerales.porcentajeIva &&
-                        String(p.empId) === String(empresaId)
-                );
-                const pByGlosa = arr.find(
-                    (p) =>
-                        String(p.empId) === String(empresaId) &&
-                        String(p.glosa || "").toUpperCase() === "IVA"
-                );
-
-                const raw = pById?.valor ?? pByGlosa?.valor;
-                const n = Number(raw);
-
-                this.form.ivaPct =
-                    Number.isFinite(n) && n > 0 ? n : this.ivaPorDefecto; // ← fallback 19
-            } catch (err) {
-                console.error("Error cargando IVA:", err);
-                this.form.ivaPct = this.ivaPorDefecto; // fallback en error
-            }
         },
 
         async reintentarGeocerca() {

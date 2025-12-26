@@ -8,7 +8,8 @@ import {
     dateInputToISOStart,
     dateInputToISOEnd,
     normalizeYYYYMM,
-    formatMMYYYY
+    formatMMYYYY,
+    pretty
 } from '@/js/Utils/formatters';
 
 export default {
@@ -22,5 +23,6 @@ export default {
         dateInputToISOEnd,
         normalizeYYYYMM,
         formatMMYYYY,
+        pretty
     },
 };
