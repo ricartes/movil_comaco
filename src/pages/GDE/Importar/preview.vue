@@ -164,7 +164,7 @@
                     fill
                     large
                     color="blue"
-                    :disabled="!puedeGuardar || preview.imported"
+
                     @click="importar"
                 >
                     {{
@@ -460,14 +460,6 @@ export default {
             return v == null ? "—" : String(v);
         },
 
-        homologarUnidadesMedida() {
-            const um = this.form?.producto?.unidadMedida;
-            const hom = this.homologarUnidadMedida(um);
-            if (this.form?.producto) {
-                this.form.producto.unidadMedida = hom; // null si no calza
-            }
-        },
-
         async importar() {
             if (!this.puedeGuardar) return;
 
@@ -484,7 +476,12 @@ export default {
                 this.form.gdeOrigen = origenForestruck;
 
                 // 2) Homologar UM
-                this.homologarUnidadesMedida();
+                if (this.form?.producto) {
+                    this.form.producto.unidadMedida =
+                        this.homologarUnidadMedida(
+                            this.form.producto.unidadMedida
+                        );
+                }
 
                 // 3) Ubicación
                 const ubicacion = await getLocationOnce();
