@@ -132,16 +132,22 @@ export async function registrarImportacionExitosa({ fileKey, file, meta = {} }) 
     try {
         const logDao = getForestruckImportLogDao();
 
-        // el shape lo defines tú, pero ideal dejar trazabilidad
         const doc = {
-            type: "forestruck-import-log", // o desde config si quieres
             fileKey,
             fileName: file?.name || null,
-            fileUri: file?.uri || null,
+            uri: file?.uri || null,
             size: Number(file?.size || 0),
             lastModified: Number(file?.lastModified || 0),
+
+            status: "imported",
+            error: null,
             importedAt: new Date().toISOString(),
-            ...meta, // ej: { gdeId, empId, rut, folio, ... }
+
+            // trazabilidad extra (opcional)
+            ...meta,
+
+            // si quieres fijar el type acá, puedes, pero el DAO ya lo asegura igual
+            // type: config.bd.tipoEntidad.forestruckImportLog,
         };
 
         return await logDao.upsertPorFileKey(doc);
@@ -149,6 +155,34 @@ export async function registrarImportacionExitosa({ fileKey, file, meta = {} }) 
         throw new ForestruckImportError(
             "LOG_WRITE_FAILED",
             "No se pudo registrar el log de importación.",
+            e
+        );
+    }
+}
+
+export async function registrarImportacionFallida({ fileKey, file, error, meta = {} }) {
+    if (!fileKey) {
+        throw new ForestruckImportError("INVALID_FILEKEY", "fileKey es requerido.");
+    }
+
+    try {
+        const logDao = getForestruckImportLogDao();
+
+        return await logDao.marcarFallidoPorFileKey({
+            fileKey,
+            fileName: file?.name || null,
+            uri: file?.uri || null,
+            size: Number(file?.size || 0),
+            lastModified: Number(file?.lastModified || 0),
+
+            error: error?.message || String(error || ""),
+
+            ...meta,
+        });
+    } catch (e) {
+        throw new ForestruckImportError(
+            "LOG_WRITE_FAILED",
+            "No se pudo registrar el log de importación fallida.",
             e
         );
     }

@@ -138,6 +138,41 @@
                 </f7-list-item>
             </f7-list>
 
+            <f7-block
+                v-if="mappingOk && faltanCombos.length"
+                strong
+                class="alert-wrapper"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Faltan datos para continuar:
+                    <b>
+                        {{
+                            faltanCombos
+                                .map(
+                                    (c) =>
+                                        comboRegistry[c.entity]?.title || c.key
+                                )
+                                .join(", ")
+                        }}
+                    </b>
+                </div>
+            </f7-block>
+
+            <f7-block v-if="mappingOk" class="text-align-center">
+                <f7-button
+                    fill
+                    large
+                    color="blue"
+                    :disabled="!puedeGuardar || preview.imported"
+                    @click="importar"
+                >
+                    {{
+                        preview.imported ? "Ya importada" : "Importar y Guardar"
+                    }}
+                </f7-button>
+            </f7-block>
+
             <f7-block v-if="mappingLoading" strong class="alert-wrapper">
                 <div class="alert alert-info">
                     <i class="f7-icons">hourglass</i>
@@ -174,6 +209,10 @@ import {
 import config from "@/Common/json/config.json"; // parametrosGenerales.forestruckMapping = 8
 import { obtenerEmpresa } from "@/app/services/Parametros/EmpresaService";
 import { FORESTRUCK_COMBO_REGISTRY } from "@/app/mappers/Forestruck/ForestruckComboRegistry";
+import {
+    registrarImportacionExitosa,
+    registrarImportacionFallida,
+} from "@/app/services/ForestruckImportService";
 
 export default {
     name: "ImportarForestruckPreviewPage",
@@ -209,6 +248,31 @@ export default {
 
         usuarioActivo() {
             return store.state?.user || null;
+        },
+        faltanCombos() {
+            if (!this.mappingOk || !this.form) return [];
+            const plan = Array.isArray(this.comboPlan) ? this.comboPlan : [];
+
+            return plan.filter((c) => {
+                const entity = c.entity;
+                const def = this.comboRegistry?.[entity];
+                if (!def?.value) return true; // si no tengo cómo evaluar, lo considero faltante
+
+                const current = this.form?.[c.key];
+                const v = current ? String(def.value(current) ?? "") : "";
+                return !v; // vacío => falta
+            });
+        },
+
+        puedeGuardar() {
+            return (
+                !!this.preview &&
+                this.mappingOk &&
+                !this.mappingLoading &&
+                !this.combosLoading &&
+                !!this.form &&
+                this.faltanCombos.length === 0
+            );
         },
     },
 
@@ -394,6 +458,109 @@ export default {
             const v = this.getByPath(this.form, field?.path);
             if (typeof field?.fmt === "function") return field.fmt(v);
             return v == null ? "—" : String(v);
+        },
+
+        homologarUnidadesMedida() {
+            const um = this.form?.producto?.unidadMedida;
+            const hom = this.homologarUnidadMedida(um);
+            if (this.form?.producto) {
+                this.form.producto.unidadMedida = hom; // null si no calza
+            }
+        },
+
+        async importar() {
+            if (!this.puedeGuardar) return;
+
+            const preview = this.preview;
+            const fileKey = preview?.fileKey || null;
+            const file = preview?.file || null; // { name, uri, size, lastModified }
+            const origenForestruck =
+                config?.parametros?.origenGde?.forestruck ?? 2;
+
+            f7.dialog.preloader("Guardando GDE importada…");
+
+            try {
+                // 1) ORIGEN
+                this.form.gdeOrigen = origenForestruck;
+
+                // 2) Homologar UM
+                this.homologarUnidadesMedida();
+
+                // 3) Ubicación
+                const ubicacion = await getLocationOnce();
+                if (
+                    !ubicacion ||
+                    typeof ubicacion.lat !== "number" ||
+                    typeof ubicacion.lng !== "number"
+                ) {
+                    throw new Error(
+                        "No se pudo obtener la ubicación del dispositivo."
+                    );
+                }
+                this.form.ubicacion = ubicacion;
+
+                // 4) Guardar GDE
+                const gdeInsertada = await ingresarGde(this.form);
+
+                // 5) Registrar log exitoso (SERVICE)
+                try {
+                    await registrarImportacionExitosa({
+                        fileKey,
+                        file,
+                        meta: {
+                            gdeId: gdeInsertada?._id || null,
+                            gdeOrigen: origenForestruck,
+                            empId: this.usuarioActivo?.empresa ?? null,
+                            rut: this.usuarioActivo?.rut ?? null,
+                        },
+                    });
+                } catch (logErr) {
+                    console.warn(
+                        "No se pudo registrar log de importación:",
+                        logErr
+                    );
+                    // no bloquea el éxito del guardado
+                }
+
+                // 6) UI
+                try {
+                    store.state.forestruckPreview.imported = true;
+                } catch {}
+
+                f7.dialog.alert("GDE importada correctamente.", "Éxito", () => {
+                    f7.views.main?.router?.navigate(
+                        `/gde/detalle/${gdeInsertada._id}`,
+                        { reloadAll: true }
+                    );
+                });
+            } catch (err) {
+                console.error(err);
+
+                // Log fallido (SERVICE)
+                try {
+                    await registrarImportacionFallida({
+                        fileKey,
+                        file,
+                        error: err,
+                        meta: {
+                            gdeOrigen: origenForestruck,
+                            empId: this.usuarioActivo?.empresa ?? null,
+                            rut: this.usuarioActivo?.rut ?? null,
+                        },
+                    });
+                } catch (logErr) {
+                    console.warn("No se pudo registrar log fallido:", logErr);
+                }
+
+                f7.dialog.alert(
+                    err?.message || "Ocurrió un error al importar la GDE.",
+                    "Error"
+                );
+            } finally {
+                try {
+                    f7.dialog.close();
+                } catch {}
+            }
         },
     },
 

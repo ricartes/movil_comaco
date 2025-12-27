@@ -1,3 +1,4 @@
+// src/app/dao/ForestruckImportLogDAO.js
 import config from "@/Common/json/config.json";
 import { makeId } from "../../mappers/_id";
 
@@ -16,73 +17,75 @@ export default class ForestruckImportLogDAO {
         return makeId(config.bd.tipoEntidad.forestruckImportLog, fileKey);
     }
 
-    async upsertImportado({ fileKey, fileName, uri, gdeId }) {
-        if (!fileKey) throw new Error("fileKey requerido");
-        const _id = this.makeDocId(fileKey);
-
-        let prev = null;
+    async _getOrNull(_id) {
         try {
-            prev = await this.db.get(_id);
-        } catch (e) {
-            if (e.status !== 404) throw e;
-        }
-
-        const now = new Date().toISOString();
-
-        const doc = {
-            ...(prev || {}),
-            _id,
-            type: config.bd.tipoEntidad.forestruckImportLog,
-            fileKey,
-            fileName: fileName || prev?.fileName || null,
-            uri: uri || prev?.uri || null,
-            status: "imported",
-            error: null,
-            importedAt: now,
-            createdAt: prev?.createdAt || now,
-            updatedAt: now,
-            gdeId: gdeId || prev?.gdeId || null,
-        };
-
-        return await this.db.put(doc);
-    }
-
-    async marcarFallido({ fileKey, fileName, uri, error }) {
-        if (!fileKey) throw new Error("fileKey requerido");
-        const _id = this.makeDocId(fileKey);
-
-        let prev = null;
-        try {
-            prev = await this.db.get(_id);
-        } catch (e) {
-            if (e.status !== 404) throw e;
-        }
-
-        const now = new Date().toISOString();
-
-        const doc = {
-            ...(prev || {}),
-            _id,
-            type: config.bd.tipoEntidad.forestruckImportLog,
-            fileKey,
-            fileName: fileName || prev?.fileName || null,
-            uri: uri || prev?.uri || null,
-            status: "failed",
-            error: String(error || ""),
-            createdAt: prev?.createdAt || now,
-            updatedAt: now,
-        };
-
-        return await this.db.put(doc);
-    }
-
-    async obtenerPorFileKey(fileKey) {
-        try {
-            return await this.db.get(this.makeDocId(fileKey));
+            return await this.db.get(_id);
         } catch (e) {
             if (e.status === 404) return null;
             throw e;
         }
+    }
+
+    /**
+     * Upsert genérico por fileKey (para que el SERVICE sea el dueño del shape)
+     */
+    async upsertPorFileKey(doc) {
+        const fileKey = doc?.fileKey;
+        if (!fileKey) throw new Error("fileKey requerido");
+
+        const _id = this.makeDocId(fileKey);
+        const prev = await this._getOrNull(_id);
+
+        const now = new Date().toISOString();
+
+        const merged = {
+            ...(prev || {}),
+            ...(doc || {}),
+            _id,
+            type: config.bd.tipoEntidad.forestruckImportLog,
+            fileKey,
+            createdAt: prev?.createdAt || now,
+            updatedAt: now,
+        };
+
+        return await this.db.put(merged);
+    }
+
+    async marcarFallidoPorFileKey({ fileKey, error, ...rest }) {
+        return await this.upsertPorFileKey({
+            ...rest,
+            fileKey,
+            status: "failed",
+            error: String(error || ""),
+            failedAt: new Date().toISOString(),
+        });
+    }
+
+    // --- Wrappers (compatibilidad con tu código actual) ---
+    async upsertImportado({ fileKey, fileName, uri, gdeId }) {
+        return await this.upsertPorFileKey({
+            fileKey,
+            fileName: fileName || null,
+            uri: uri || null,
+            gdeId: gdeId || null,
+            status: "imported",
+            error: null,
+            importedAt: new Date().toISOString(),
+        });
+    }
+
+    async marcarFallido({ fileKey, fileName, uri, error }) {
+        return await this.marcarFallidoPorFileKey({
+            fileKey,
+            fileName: fileName || null,
+            uri: uri || null,
+            error,
+        });
+    }
+
+    async obtenerPorFileKey(fileKey) {
+        if (!fileKey) return null;
+        return await this._getOrNull(this.makeDocId(fileKey));
     }
 
     async listarTodos() {

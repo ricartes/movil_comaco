@@ -62,6 +62,7 @@ import store from '@/js/store'
 // Import App Component
 import App from '../components/app.vue'
 import formattersMixin from '@/js/mixins/formatters'
+import VolumenMixin from '@/js/mixins/volumen'
 import rutMixin from '@/js/mixins/rut'
 import framework7Mixin from '@/js/mixins/framework7'
 import validacionMixin from '@/js/mixins/validacionMixin'

@@ -2110,7 +2110,8 @@ export default {
             }
         },
         async ingresar() {
-            // Un solo preloader para todo el flujo
+            // Un solo preloader para todo el
+            const origenLocal = config?.parametros?.origenGde?.local ?? 1;
             f7.dialog.preloader("Guardando GDE…");
 
             try {
@@ -2141,6 +2142,7 @@ export default {
                 }
 
                 // 2) Si llegamos aquí, tenemos ubicación válida -> guardar GDE
+                this.form.gdeOrigen = origenLocal;
                 this.form.ubicacion = ubicacion;
 
                 const gdeInsertada = await ingresarGde(this.form);
