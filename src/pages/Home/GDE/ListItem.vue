@@ -15,6 +15,14 @@
         <template #text>
             <div class="line">
                 <!-- Estado -->
+
+                <span
+                    v-if="esForestruck(item)"
+                    class="chip chip-small chip-uniform chip-fill color-orange"
+                >
+                    <span class="chip-label">FORESTRUCK</span>
+                </span>
+
                 <span
                     class="chip chip-small chip-uniform"
                     :class="
@@ -74,6 +82,11 @@ export default {
                 : "Sin folio asignado.";
         },
 
+        esForestruck(g) {
+            const fore = config?.parametros?.origenGde?.forestruck ?? 2;
+            return Number(g?.gdeOrigen) === Number(fore);
+        },
+
         estadoChipClass(id, texto) {
             const estados = this.estadosGuia || {};
             const upId = (id || "").toUpperCase();
@@ -91,7 +104,10 @@ export default {
             const um = (g.producto?.unidadMedida || "").toUpperCase();
             const v = this.volumenSegunUM(g);
             if (v == null || isNaN(Number(v))) return um;
-            const decs = um === U.MR ? this.cantidadDecimalesMr : this.cantidadDecimalesM3;
+            const decs =
+                um === U.MR
+                    ? this.cantidadDecimalesMr
+                    : this.cantidadDecimalesM3;
             return `${Number(v).toFixed(decs)} ${um}`;
         },
         volumenSegunUM(g) {

@@ -9,6 +9,15 @@
                     </tr>
 
                     <tr>
+                        <td class="label-cell"><b>Origen:</b></td>
+                        <td>
+                            <f7-badge :color="origenBadgeColor">
+                                {{ origenTexto }}
+                            </f7-badge>
+                        </td>
+                    </tr>
+
+                    <tr>
                         <td class="label-cell"><b>Estado:</b></td>
                         <td>
                             <f7-badge :color="badgeColor">
@@ -17,7 +26,6 @@
                         </td>
                     </tr>
 
-                    <!-- Motivo catálogo -->
                     <!-- Motivo catálogo -->
                     <tr v-if="isNula && motivoCatalogo">
                         <td class="label-cell"><b>Motivo anulación:</b></td>
@@ -60,6 +68,19 @@ export default {
         },
         isNula() {
             return this.st === this.ID_NULA;
+        },
+        ORIGEN() {
+            return config?.parametros?.origenGde || {};
+        },
+        esForestruck() {
+            const fore = this.ORIGEN?.forestruck ?? 2;
+            return Number(this.doc?.gdeOrigen) === Number(fore);
+        },
+        origenTexto() {
+            return this.esForestruck ? "FORESTRUCK" : "PROPIA DE FDS";
+        },
+        origenBadgeColor() {
+            return this.esForestruck ? "orange" : "blue";
         },
 
         // glosa del catálogo (motivo seleccionado)

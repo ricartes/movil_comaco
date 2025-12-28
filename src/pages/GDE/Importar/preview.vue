@@ -160,13 +160,7 @@
             </f7-block>
 
             <f7-block v-if="mappingOk" class="text-align-center">
-                <f7-button
-                    fill
-                    large
-                    color="blue"
-
-                    @click="importar"
-                >
+                <f7-button fill large color="blue" @click="importar">
                     {{
                         preview.imported ? "Ya importada" : "Importar y Guardar"
                     }}
@@ -213,6 +207,8 @@ import {
     registrarImportacionExitosa,
     registrarImportacionFallida,
 } from "@/app/services/ForestruckImportService";
+import { ingresarGde } from "@/app/services/GdeService";
+import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 
 export default {
     name: "ImportarForestruckPreviewPage",
@@ -461,7 +457,7 @@ export default {
         },
 
         async importar() {
-            if (!this.puedeGuardar) return;
+            //if (!this.puedeGuardar) return;
 
             const preview = this.preview;
             const fileKey = preview?.fileKey || null;
