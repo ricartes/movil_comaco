@@ -1,19 +1,32 @@
 // ForestruckImportSummaryBuilder.js
+import config from "@/Common/json/config.json"; 
 
 function collectMappedTargetPaths(mapping) {
     const out = new Set();
+    const origen = config.parametros.parametrosImportacion.origen;
 
     const blocks = mapping?.blocks || {};
-    for (const [, block] of Object.entries(blocks)) {
-        if (block?.mode !== "json") continue;
+    for (const [blockKey, block] of Object.entries(blocks)) {
+        if (!blockKey || !block) continue;
 
-        const map = block?.map || {};
-        for (const targetPath of Object.keys(map)) {
-            if (targetPath) out.add(String(targetPath));
+        // ✅ combobox/static: permitir al menos el prefijo del bloque (ej: "zona", "cliente", "largoProducto")
+        if (block.mode === origen.static || block.mode === origen.combobox) {
+            out.add(String(blockKey));
+            continue;
+        }
+
+        // ✅ json: permitir los targetPaths del map (ej: "producto.codProducto", etc)
+        if (block.mode === origen.json) {
+            const map = block?.map || {};
+            for (const targetPath of Object.keys(map)) {
+                if (targetPath) out.add(String(targetPath));
+            }
         }
     }
+
     return out;
 }
+
 
 // match flexible:
 // - si mapping trae "producto" -> permite "producto.codProducto", etc.

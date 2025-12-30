@@ -50,6 +50,36 @@ export default class PredioDAO {
     }
 
 
+
+
+    /**
+     * Lista todos los largos disponibles en la colección de largos de producto
+     * @returns 
+     */
+    async listarTodosLosLargos() {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.largoProducto
+            }
+        });
+
+        // distinct por largoTrozo (considera null como “sin largo”)
+        const set = new Set();
+        for (const d of docs) {
+            // normaliza a string para dedupe estable
+            const key = d.largo == null ? 'NULL' : String(d.largo);
+            set.add(key);
+        }
+
+        // Devuelve números (o null) ordenados
+        const largos = Array.from(set).map(k => (k === 'NULL' ? null : Number(k)));
+        // Opcional: ordena colocando null al final
+        largos.sort((a, b) => (a == null) - (b == null) || (a - b));
+
+        return largos;
+    }
+
+
     /**
      * Lista los largos disponibles para un producto en base a los parámetros de orden-compra
      * 

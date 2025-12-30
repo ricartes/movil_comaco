@@ -120,6 +120,13 @@
             "local": 1,
             "forestruck": 2
         },
+        "parametrosImportacion": {
+            "origen": {
+                "json": "json",
+                "static": "static",
+                "combobox": "combobox"
+            }
+        },
         "maximoCarguios": 1,
         "cantidadBancos": {
             "camion": 4,

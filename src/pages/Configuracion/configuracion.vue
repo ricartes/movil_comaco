@@ -140,7 +140,7 @@
             </f7-list-item>
         </f7-list>
 
-        <f7-block-title>Integración de guías (JSON)</f7-block-title>
+        <f7-block-title>Integración de guías Forestruck</f7-block-title>
         <f7-list inset strong>
             <f7-list-item title="Carpeta de intercambio">
                 <template #after>

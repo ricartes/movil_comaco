@@ -260,22 +260,24 @@ export default {
         },
 
         async onPageInit() {
-            const ok = await this.precheckCached({ force: true }); // init: fuerza 1 vez
-            if (!ok) return;
+            await this.withLoading(async () => {
+                const ok = await this.precheckCached({ force: true });
+                if (!ok) return;
 
-            await this.reload(); // reload ya NO llama precheck
-            this._autoLoadedOnce = true;
+                await this.reload();
+                this._autoLoadedOnce = true;
+            }, "Cargando...");
         },
 
         async onPageBeforeIn() {
-            // Vuelves desde Configuración: fuerza sync + params (por si cambió empresa/token)
-            const ok = await this.precheckCached({ force: true });
-            if (!ok) return;
+            await this.withLoading(async () => {
+                const ok = await this.precheckCached({ force: true });
+                if (!ok) return;
 
-            // Evita doble reload si pageInit y beforein se disparan muy seguidos
-            if (this._autoLoadedOnce) {
-                await this.reload();
-            }
+                if (this._autoLoadedOnce) {
+                    await this.reload();
+                }
+            }, "Cargando...");
         },
 
         async reload() {
@@ -312,24 +314,22 @@ export default {
         },
 
         async onClickActualizar() {
-            // fuerza sync y params 1 vez (si quieres)
-            const ok = await this.precheckCached({ force: true });
-            if (!ok) return;
-            await this.reload();
+            await this.withLoading(async () => {
+                const ok = await this.precheckCached({ force: true });
+                if (!ok) return;
+
+                await this.reload();
+            }, "Cargando...");
         },
+
         async abrirPreview(it) {
-            // bloqueo duro si faltan precondiciones
             if (!this.canOperate) return;
 
-            try {
+            await this.withLoading(async () => {
                 const payload = await leerJsonForestruckParaPreview(it);
                 await store.dispatch("setForestruckPreview", payload);
-
                 f7.views.main.router.navigate("/gde/importar/preview/");
-            } catch (e) {
-                console.log(e);
-                f7.dialog.alert(e?.message || "No se pudo leer el JSON.");
-            }
+            }, "Leyendo JSON...");
         },
 
         async precheckCached({ force = false } = {}) {

@@ -1,4 +1,6 @@
 // /app/mappers/Forestruck/ForestruckMappingApplier.js
+
+import config from "@/Common/json/config.json";
 import { createGdeDraftDefault } from "@/app/factory/GdeDraftFactory";
 import { getByPath, setByPath } from "@/app/mappers/MappingUtils";
 
@@ -102,10 +104,11 @@ function cloneValue(v) {
 }
 
 function applyStaticBlock(gde, blockKey, block) {
+    const origen = config.parametros.parametrosImportacion.origen;
     // Por defecto setea en la key del bloque (zona, etc.)
     const targetPath = block?.targetPath || blockKey;
 
-    if (block?.mode === "static") {
+    if (block?.mode === origen.static) {
         setByPath(gde, targetPath, cloneValue(block?.value));
         return true;
     }
@@ -123,6 +126,7 @@ function applyStaticBlock(gde, blockKey, block) {
 
 
 export function buildGdeDraftFromForestruck(sourceJson, mapping) {
+    const origen = config.parametros.parametrosImportacion.origen;
     const gde = createGdeDraftDefault();
     const blocks = mapping?.blocks || {};
 
@@ -133,7 +137,7 @@ export function buildGdeDraftFromForestruck(sourceJson, mapping) {
 
     // 2) Luego aplica los bloques JSON (como ya lo tienes)
     for (const [, block] of Object.entries(blocks)) {
-        if (block?.mode !== "json") continue;
+        if (block?.mode !== origen.json) continue;
 
         const map = block?.map || {};
         for (const [targetPath, sourcePath] of Object.entries(map)) {
@@ -149,7 +153,7 @@ export function buildGdeDraftFromForestruck(sourceJson, mapping) {
 
     // 3) Finalmente, para combobox deja null (UI resolverá después)
     for (const [blockKey, block] of Object.entries(blocks)) {
-        if (block?.mode === "combobox") {
+        if (block?.mode === origen.combobox) {
             gde[blockKey] = null;
         }
     }
@@ -158,9 +162,10 @@ export function buildGdeDraftFromForestruck(sourceJson, mapping) {
 }
 
 export function getComboPlan(mapping) {
+    const origen = config.parametros.parametrosImportacion.origen;
     const blocks = mapping?.blocks || {};
     return Object.entries(blocks)
-        .filter(([, b]) => b?.mode === "combobox")
+        .filter(([, b]) => b?.mode === origen.combobox)
         .map(([key, b]) => ({ key, entity: b.entity }));
 }
 

@@ -20,6 +20,14 @@ export function getByPath(obj, path) {
     return cur;
 }
 
+
+/**
+ * 
+ * @param {*} obj 
+ * @param {*} path 
+ * @param {*} value 
+ * @returns 
+ */
 export function setByPath(obj, path, value) {
     if (obj == null || !path) return;
 
@@ -36,11 +44,16 @@ export function setByPath(obj, path, value) {
             const idx = Number(m[2]);
 
             if (!Array.isArray(cur[key])) cur[key] = [];
-            if (cur[key][idx] == null || typeof cur[key][idx] !== "object") cur[key][idx] = {};
 
             if (isLast) {
+                // ✅ si es el último segmento, el elemento puede ser string/number/object/etc.
                 cur[key][idx] = value;
                 return;
+            }
+
+            // ✅ si NO es el último, entonces sí necesitamos que sea objeto para seguir navegando
+            if (cur[key][idx] == null || typeof cur[key][idx] !== "object") {
+                cur[key][idx] = {};
             }
 
             cur = cur[key][idx];

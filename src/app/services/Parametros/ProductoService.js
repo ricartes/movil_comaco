@@ -17,8 +17,18 @@ export async function listarProductosPorClienteDestino(codEncargado, rutProveedo
     return await getProductoDao().listarProductosPorClienteDestino(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente);
 }
 
+
+
+/** * Lista todos los largos disponibles en la colección de largos de producto
+ * @returns 
+ */
+export async function listarTodosLosLargos() {
+
+    return await getProductoDao().listarTodosLosLargos();
+}
+
 /**
- * Lista largo productos
+ * Lista largo productos asociados a un producto específico
  * @param {*} codEncargado 
  * @param {*} rutProveedor 
  * @param {*} rolPredio 
