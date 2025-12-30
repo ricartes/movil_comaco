@@ -1,21 +1,22 @@
 <template>
-    <f7-block strong class="alert-wrapper">
+    <f7-block strong inset class="alert-wrapper">
         <div class="alert alert-info">
             <i class="f7-icons">info_circle</i>
 
-            <div class="msg">
-                El detalle de volumen no se ingresa, ya que esta guía fue
-                importada desde Forestruck.
-            </div>
-
-            <!-- ✅ Resumen -->
-            <div class="resume">
-                <div class="line">
-                    <b>Volumen total ({{ labelUM }}):</b>
-                    <span class="mono">{{ volumenFmt }}</span>
+            <div class="content">
+                <div class="msg">
+                    El detalle de volumen no se ingresa, ya que esta guía fue
+                    importada desde Forestruck.
                 </div>
-                <div class="line">
-                    <b>Neto:</b> <span class="mono">{{ netoFmt }}</span>
+
+                <div class="resume">
+                    <div class="line">
+                        <b>Volumen total ({{ labelUM }}):</b>
+                        <span class="mono">{{ volumenFmt }}</span>
+                    </div>
+                    <div class="line">
+                        <b>Neto:</b> <span class="mono">{{ netoFmt }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -63,38 +64,36 @@ export default {
 </script>
 
 <style scoped>
-.alert-info {
-    border: 1px solid #bce8f1;
-    background: #d9edf7;
-    color: #31708f;
+.alert {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 10px;
+    padding: 12px 12px; /* padding general */
+    display: flex;
+    align-items: flex-start;
+}
+
+.alert i {
+    font-size: 18px;
+    margin-top: 1px;
+}
+
+/* ✅ ESTE es el “padding lateral” del texto */
+.content {
+    padding-left: 6px; /* o 8px si lo quieres más notorio */
+    flex: 1;
 }
 
 .msg {
-    display: inline;
+    line-height: 1.3;
 }
 
-/* mini resumen bajo el texto */
 .resume {
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px dashed rgba(49, 112, 143, 0.35);
     font-size: 13px;
     display: grid;
-    gap: 4px;
-}
-
-.line {
-    display: flex;
     gap: 6px;
-    flex-wrap: wrap;
-}
-
-.mono {
-    font-variant-numeric: tabular-nums;
-}
-.alert-wrapper {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    padding: 5px;
 }
 </style>

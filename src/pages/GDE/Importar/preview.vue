@@ -63,7 +63,7 @@
                 </div>
             </f7-block>
 
-            <f7-block strong v-if="mappingOk && importSummary.length">
+            <f7-block strong inset v-if="mappingOk && importSummary.length">
                 <div class="text-color-gray">
                     Campos importados desde Forestruck
                 </div>
@@ -85,19 +85,19 @@
                 </div>
             </f7-block>
 
-            <f7-block strong v-if="mappingOk">
+            <!-- <f7-block strong v-if="mappingOk">
                 <div class="text-color-gray">JSON origen (debug)</div>
                 <pre style="white-space: pre-wrap; font-size: 12px">{{
                     pretty(sourceJson)
                 }}</pre>
-            </f7-block>
+            </f7-block> -->
 
-            <f7-block strong v-if="mappingOk">
+            <!-- <f7-block strong v-if="mappingOk">
                 <div class="text-color-gray">GDE draft mapeado</div>
                 <pre style="white-space: pre-wrap; font-size: 12px">{{
                     pretty(form)
                 }}</pre>
-            </f7-block>
+            </f7-block> -->
 
             <!-- Info directorio -->
             <f7-block class="mb-0" v-if="mappingOk && comboPlan?.length">
@@ -141,6 +141,7 @@
             <f7-block
                 v-if="mappingOk && faltanCombos.length"
                 strong
+                inset
                 class="alert-wrapper"
             >
                 <div class="alert alert-info">
