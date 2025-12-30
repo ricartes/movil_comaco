@@ -364,7 +364,8 @@ export default {
 
         async cargarPreview() {
             const preview = this.preview;
-
+            const origenForestruck =
+                config?.parametros?.origenGde?.forestruck ?? 2;
             this.sourceJson = preview?.json || null;
 
             // ✅ importante: mappingValue ya está cargado y validado
@@ -372,6 +373,29 @@ export default {
                 this.sourceJson,
                 this.mappingValue
             );
+
+            this.form.gdeOrigen = origenForestruck;
+
+            try {
+                if (this.form?.producto) {
+                    this.form.producto.unidadMedida =
+                        this.homologarUnidadMedida(
+                            this.form.producto.unidadMedida
+                        );
+
+                    this.applyTotalesFromTotalVolumen(this.form, {
+                        um: this.form.producto.unidadMedida,
+                        totalVolumen: this.form?.totales?.volumen, // ← mapping: totales.volumen
+                        monto:
+                            this.form?.totales?.neto ??
+                            this.form?.totales?.total, // $ monto
+                        resetBuckets: true,
+                        syncLegacy: true,
+                    });
+                }
+            } catch (e) {
+                console.warn("No se pudo aplicar totales por UM:", e);
+            }
 
             this.importSummary = buildForestruckImportSummary(
                 this.mappingValue,
@@ -452,7 +476,11 @@ export default {
 
         formatSummaryField(field) {
             const v = this.getByPath(this.form, field?.path);
-            if (typeof field?.fmt === "function") return field.fmt(v);
+
+            if (typeof field?.fmt === "function") {
+                return field.fmt(v, this.form); // ✅ pasamos el doc completo
+            }
+
             return v == null ? "—" : String(v);
         },
 
@@ -465,20 +493,9 @@ export default {
             const origenForestruck =
                 config?.parametros?.origenGde?.forestruck ?? 2;
 
-            f7.dialog.preloader("Guardando GDE importada…");
+            const dlg = f7.dialog.preloader("Guardando GDE importada…");
 
             try {
-                // 1) ORIGEN
-                this.form.gdeOrigen = origenForestruck;
-
-                // 2) Homologar UM
-                if (this.form?.producto) {
-                    this.form.producto.unidadMedida =
-                        this.homologarUnidadMedida(
-                            this.form.producto.unidadMedida
-                        );
-                }
-
                 // 3) Ubicación
                 const ubicacion = await getLocationOnce();
                 if (
@@ -551,7 +568,7 @@ export default {
                 );
             } finally {
                 try {
-                    f7.dialog.close();
+                    dlg.close();
                 } catch {}
             }
         },

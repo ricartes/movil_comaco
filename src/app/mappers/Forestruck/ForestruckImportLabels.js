@@ -1,5 +1,8 @@
 // src/app/mappers/Forestruck/ForestruckImportSummary.js
 
+import { getUM, getVolumenByUM } from "@/js/Utils/volumen"; // o donde los tengas
+
+
 export const FORESTRUCK_IMPORT_SUMMARY = [
     {
         group: "Zona",
@@ -78,6 +81,57 @@ export const FORESTRUCK_IMPORT_SUMMARY = [
         ],
     },
     {
+        group: "Carguío",
+        fields: [
+            { path: "carguios[0].rutCarguio", label: "RUT Empresa carguío" },
+            { path: "carguios[0].nombreCarguio", label: "Empresa carguío" },
+            { path: "carguios[0].patenteCarguio", label: "Equipo / Patente carguío" },
+        ],
+    },
+
+    // ✅ NUEVO: Patentes carguío (array simple)
+    {
+        group: "Patentes carguío",
+        fields: [
+            { path: "patentesCarguio[0]", label: "Equipo / Patente carguío" },
+        ],
+    },
+
+    // ✅ NUEVO: Rodal
+    {
+        group: "Rodal",
+        fields: [
+            { path: "rodal.fechaPlantacion", label: "Fecha plantación" },
+            { path: "rodal.planManejo", label: "Plan manejo" },
+            { path: "rodal.nroaviso", label: "N° aviso" },
+        ],
+    },
+
+    // ✅ NUEVO: Empresa contratista
+    {
+        group: "Empresa contratista",
+        fields: [
+            { path: "empresaContratista.rutContratista", label: "RUT contratista" },
+            { path: "empresaContratista.nombreContratista", label: "Nombre contratista" },
+        ],
+    },
+
+    // ✅ NUEVO: Orden de compra
+    {
+        group: "Orden de compra",
+        fields: [
+            { path: "ordenCompra.codProveedor", label: "Cod. proveedor" },
+            { path: "ordenCompra.rutProveedor", label: "RUT proveedor" },
+            { path: "ordenCompra.nomProveedor", label: "Nombre proveedor" },
+            { path: "ordenCompra.rolPredio", label: "ROL predio" },
+            { path: "ordenCompra.rolComuna", label: "ROL comuna" },
+            { path: "ordenCompra.predio", label: "Predio" },
+            { path: "ordenCompra.nombreProducto", label: "Producto (código)" },
+            { path: "ordenCompra.diametroMin", label: "Diámetro min", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
+            { path: "ordenCompra.diametroMax", label: "Diámetro max", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
+        ],
+    },
+    {
         group: "Conductor",
         fields: [
             { path: "conductor.rutChofer", label: "RUT" },
@@ -88,9 +142,17 @@ export const FORESTRUCK_IMPORT_SUMMARY = [
     {
         group: "Totales",
         fields: [
-            { path: "totales.ton", label: "Toneladas", fmt: (v) => (v == null ? "—" : String(v)) },
-            { path: "totales.m3", label: "m³", fmt: (v) => (v == null ? "—" : String(v)) },
-            { path: "totales.mr", label: "MR", fmt: (v) => (v == null ? "—" : String(v)) },
+            // ✅ NUEVO: Volumen según UM
+            {
+                path: "totales.volumen",
+                label: "Volumen",
+                fmt: (v, doc) => (v == null ? "—" : `${v} ${doc?.producto?.unidadMedida || ""}`.trim()),
+            },
+            { path: "totales.neto", label: "Neto", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
+            { path: "totales.ivaPct", label: "% IVA", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
+            { path: "totales.ivaMonto", label: "IVA", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
+            { path: "totales.total", label: "Total", type: "number", fmt: (v) => (v == null ? "—" : String(v)) },
         ],
     },
+
 ];

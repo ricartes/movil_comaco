@@ -1,10 +1,10 @@
 // src/js/mixins/volumen.js
 import {
-    homologarUnidadMedida
+    homologarUnidadMedida, applyTotalesFromTotalVolumen
 } from '@/js/Utils/volumen';
 
 export default {
     methods: {
-        homologarUnidadMedida,
+        homologarUnidadMedida, applyTotalesFromTotalVolumen
     },
 };
