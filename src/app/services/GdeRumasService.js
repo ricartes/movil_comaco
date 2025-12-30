@@ -5,7 +5,10 @@ import { getAnchoCamion, getAnchoCarro, tieneCarro } from "@/app/helpers/AnchoPa
 
 import config from "@/Common/json/config.json";
 
-
+function isForestruckDoc(doc) {
+    const ORIGEN_FORESTRUCK = config?.parametros?.origenGde?.forestruck ?? 2;
+    return Number(doc?.gdeOrigen) === Number(ORIGEN_FORESTRUCK);
+}
 
 
 /** público: asegura que exista detalleMR en la GDE */
@@ -13,19 +16,25 @@ export async function ensureDetalleMR(gdeId) {
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
-    if (!Array.isArray(doc.detalleMR)) {
-        const detalleMR = generarDetalleMR(doc);
-        doc.detalleMR = detalleMR;
+    if (isForestruckDoc(doc)) {
+        return { doc, detalleMR: Array.isArray(doc.detalleMR) ? doc.detalleMR : [] };
+    } else {
+        if (!Array.isArray(doc.detalleMR)) {
+            const detalleMR = generarDetalleMR(doc);
+            doc.detalleMR = detalleMR;
 
-        // totales MR en 0 si faltan
-        doc = initTotalesMRIfMissing(doc);
+            // totales MR en 0 si faltan
+            doc = initTotalesMRIfMissing(doc);
 
-        // GUARDAR por el DAO
-        doc = await dao.actualizar(doc);
-        return { doc, detalleMR };
+            // GUARDAR por el DAO
+            doc = await dao.actualizar(doc);
+            return { doc, detalleMR };
+        }
+
+        return { doc, detalleMR: doc.detalleMR };
     }
 
-    return { doc, detalleMR: doc.detalleMR };
+
 }
 
 export function generarDetalleMR(doc) {
@@ -80,31 +89,41 @@ export async function saveDetalleMR(gdeId, detalleMR) {
     const dao = getGdeDao();
     let doc = await dao.obtener(gdeId);
 
-    doc.detalleMR = detalleMR;
+    if (isForestruckDoc(doc)) {
+        // opcional: igual puedes guardar detalleMR si algún día lo agregas,
+        // pero NO tocar totales.
+        doc.detalleMR = Array.isArray(detalleMR) ? detalleMR : [];
+        doc = await dao.actualizar(doc);
+        return doc;
+    } else {
+        doc.detalleMR = detalleMR;
 
-    const volumenReal = detalleMR.reduce(
-        (a, b) => a + Number(b.volumen || 0),
-        0
-    );
-    const volumen = Number(volumenReal.toFixed(cantidadDecimales));
+        const volumenReal = detalleMR.reduce(
+            (a, b) => a + Number(b.volumen || 0),
+            0
+        );
+        const volumen = Number(volumenReal.toFixed(cantidadDecimales));
 
 
 
-    const precioUnitario = Number(doc?.precioProducto?.precio || 0);
+        const precioUnitario = Number(doc?.precioProducto?.precio || 0);
 
-    const valor = Math.round(volumen * precioUnitario);
+        const valor = Math.round(volumen * precioUnitario);
 
-    doc = initTotalesMRIfMissing(doc);
-    doc.totales.mr.volumen = volumen;
-    doc.totales.mr.valor = valor;
-    doc.totales.volMr = doc.totales.mr.volumen;
-    doc.totales.totalMr = doc.totales.mr.valor;
+        doc = initTotalesMRIfMissing(doc);
+        doc.totales.mr.volumen = volumen;
+        doc.totales.mr.valor = valor;
+        doc.totales.volMr = doc.totales.mr.volumen;
+        doc.totales.totalMr = doc.totales.mr.valor;
 
-    const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.MR ?? "MR", { sumAllUMs: false });
+        const totals = computeDocTotals(doc, config?.parametros?.unidadesMedida?.MR ?? "MR", { sumAllUMs: false });
 
-    applyTotals(doc, totals);
-    doc = await dao.actualizar(doc);
-    return doc;
+        applyTotals(doc, totals);
+        doc = await dao.actualizar(doc);
+        return doc;
+    }
+
+
 }
 
 /** DTO por fila/banco MR */

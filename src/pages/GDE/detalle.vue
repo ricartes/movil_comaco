@@ -27,70 +27,49 @@
                 :properties="{ opened: true }"
             >
                 <f7-accordion-content>
-                    <!-- DESPUÉS: sin card externo -->
-                    <DetalleM3
-                        v-if="doc.producto.unidadMedida === unidadesMedida.M3"
-                        ref="detalleM3Ref"
+                    <DetalleVolumenForestruck
                         :doc="doc"
-                        :gde-id="id"
-                        :solo-lectura="soloLectura"
-                        @doc-updated="
-                            (patch) => {
-                                if (patch.totales) {
-                                    doc.totales = {
-                                        ...doc.totales,
-                                        ...patch.totales,
-                                    };
-                                }
-                                Object.keys(patch).forEach((key) => {
-                                    if (key !== 'totales')
-                                        doc[key] = patch[key];
-                                });
-                            }
-                        "
-                        @valid-change="
-                            (v) => {
-                                detalleValidoM3 = !!v;
-                            }
-                        "
+                        v-if="esForestruck"
+                        strong
+                        class="alert-wrapper"
                     />
 
-                    <DetalleMR
-                        v-else-if="
-                            doc.producto.unidadMedida === unidadesMedida.MR
-                        "
-                        ref="detalleMrRef"
-                        :doc="doc"
-                        :gde-id="id"
-                        :solo-lectura="soloLectura"
-                        @doc-updated="
-                            (patch) => {
-                                if (patch.totales) {
-                                    doc.totales = {
-                                        ...doc.totales,
-                                        ...patch.totales,
-                                    };
+                    <template v-else>
+                        <!-- DESPUÉS: sin card externo -->
+                        <DetalleM3
+                            v-if="
+                                doc.producto.unidadMedida === unidadesMedida.M3
+                            "
+                            ref="detalleM3Ref"
+                            :doc="doc"
+                            :gde-id="id"
+                            :solo-lectura="soloLectura"
+                            @doc-updated="
+                                (patch) => {
+                                    if (patch.totales) {
+                                        doc.totales = {
+                                            ...doc.totales,
+                                            ...patch.totales,
+                                        };
+                                    }
+                                    Object.keys(patch).forEach((key) => {
+                                        if (key !== 'totales')
+                                            doc[key] = patch[key];
+                                    });
                                 }
-                                // Actualizar otras propiedades planas igualmente si vienen
-                                Object.keys(patch).forEach((key) => {
-                                    if (key !== 'totales')
-                                        doc[key] = patch[key];
-                                });
-                            }
-                        "
-                        @valid-change="
-                            (v) => {
-                                detalleValidoMR = !!v;
-                            }
-                        "
-                    />
+                            "
+                            @valid-change="
+                                (v) => {
+                                    detalleValidoM3 = !!v;
+                                }
+                            "
+                        />
 
-                    <f7-card
-                        class="ton-card detalle-ton-root"
-                        v-else-if="requiereValidacionTon"
-                    >
-                        <DetalleTon
-                            ref="detalleTonRef"
+                        <DetalleMR
+                            v-else-if="
+                                doc.producto.unidadMedida === unidadesMedida.MR
+                            "
+                            ref="detalleMrRef"
                             :doc="doc"
                             :gde-id="id"
                             :solo-lectura="soloLectura"
@@ -111,15 +90,50 @@
                             "
                             @valid-change="
                                 (v) => {
-                                    detalleValidoTon = !!v;
+                                    detalleValidoMR = !!v;
                                 }
                             "
                         />
-                    </f7-card>
 
-                    <div v-else>
-                        <span>No hay detalle para la unidad seleccionada.</span>
-                    </div>
+                        <f7-card
+                            class="ton-card detalle-ton-root"
+                            v-else-if="requiereValidacionTon"
+                        >
+                            <DetalleTon
+                                ref="detalleTonRef"
+                                :doc="doc"
+                                :gde-id="id"
+                                :solo-lectura="soloLectura"
+                                @doc-updated="
+                                    (patch) => {
+                                        if (patch.totales) {
+                                            doc.totales = {
+                                                ...doc.totales,
+                                                ...patch.totales,
+                                            };
+                                        }
+                                        // Actualizar otras propiedades planas igualmente si vienen
+                                        Object.keys(patch).forEach((key) => {
+                                            if (key !== 'totales')
+                                                doc[key] = patch[key];
+                                        });
+                                    }
+                                "
+                                @valid-change="
+                                    (v) => {
+                                        detalleValidoTon = !!v;
+                                    }
+                                "
+                            />
+                        </f7-card>
+
+                        <div v-else>
+                            <span
+                                >No hay detalle para la unidad
+                                seleccionada.</span
+                            >
+                        </div>
+                    </template>
                 </f7-accordion-content>
             </f7-list-item>
 
@@ -196,6 +210,7 @@ import DetalleTon from "@/pages/GDE/Detalle/DetalleTon.vue";
 import DatosGde from "@/pages/GDE/Detalle/DatosGde.vue";
 import DetalleComentario from "@/pages/GDE/Detalle/DetalleComentario.vue";
 import OpcionesGde from "@/pages/GDE/Detalle/OpcionesGde.vue";
+import DetalleVolumenForestruck from "@/pages/GDE/Detalle/DetalleVolumenForestruck.vue";
 import config from "@/Common/json/config.json";
 import { buildDefinition } from "@/js/utils/gdePdfTemplate";
 import { createPdfAndOpen } from "@/js/utils/pdfNative";
@@ -214,6 +229,7 @@ export default {
         DetalleTon,
         DetalleComentario,
         OpcionesGde,
+        DetalleVolumenForestruck,
     },
 
     data() {
@@ -228,6 +244,11 @@ export default {
     },
 
     computed: {
+        esForestruck() {
+            const origenForestruck =
+                config?.parametros?.origenGde?.forestruck ?? 2;
+            return Number(this.doc?.gdeOrigen) === Number(origenForestruck);
+        },
         soloLectura() {
             const st = this.doc?.estado?.id;
             const EG = config.parametros.estadosGuia;
@@ -259,12 +280,15 @@ export default {
             }
         },
         requiereValidacionMR() {
+            if (this.esForestruck) return false;
             return this.doc?.producto?.unidadMedida === this.unidadesMedida.MR;
         },
         requiereValidacionM3() {
+            if (this.esForestruck) return false;
             return this.doc?.producto?.unidadMedida === this.unidadesMedida.M3;
         },
         requiereValidacionTon() {
+            if (this.esForestruck) return false;
             const u = this.doc?.producto?.unidadMedida;
             return [
                 this.unidadesMedida.TON,
@@ -379,8 +403,6 @@ export default {
             try {
                 if (this.validarIngresoVolumenes()) {
                     f7.dialog.preloader("Emitiendo guia...");
-
-                    
 
                     const updatedDoc = await emitirGde(this.doc);
                     this.doc = updatedDoc; // 👈 actualizas el doc en memoria
