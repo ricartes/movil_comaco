@@ -17,6 +17,7 @@
         "usuarioNoAutentificado": "Usuario no autentificado. Debe volver a iniciar sesión"
     },
     "parametros": {
+        "habilitaIntegracionForestruck": false,
         "tiposDocumento": {
             "gde": 52
         },

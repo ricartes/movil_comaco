@@ -43,6 +43,7 @@
 
         <!-- Importar Forestruck -->
         <f7-list-item
+            v-if="habilitaIntegracionForestruck"
             link
             title="Importar desde Forestruck"
             @click="importarForestruck"
@@ -72,7 +73,7 @@
 import { f7 } from "framework7-vue";
 import store from "@/js/store";
 import DashboardPrincipal from "@/pages/Home/Dashboard/DashboardPrincipal.vue";
-
+import config from "@/Common/json/config.json";
 export default {
     name: "DashboardPage",
     components: { DashboardPrincipal },
@@ -87,6 +88,9 @@ export default {
         },
         offline() {
             return store.state.offline;
+        },
+        habilitaIntegracionForestruck() {
+            return !!config?.parametros?.habilitaIntegracionForestruck;
         },
     },
     methods: {

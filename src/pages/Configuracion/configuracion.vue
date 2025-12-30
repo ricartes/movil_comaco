@@ -22,6 +22,7 @@
         <f7-list form inset strong>
             <!-- IMPRESORAS -->
             <f7-list-item
+                :key="printerTick"
                 title="Impresora Bluetooth"
                 class="select-impresora"
                 smart-select
@@ -59,6 +60,7 @@
 
             <!-- ANCHO / PAPER WIDTH -->
             <f7-list-item
+                :key="widthTick"
                 title="Ancho de impresión"
                 class="select-paperwidth"
                 smart-select
@@ -141,7 +143,7 @@
         </f7-list>
 
         <f7-block-title>Integración de guías Forestruck</f7-block-title>
-        <f7-list inset strong>
+        <f7-list inset strong v-if="habilitaIntegracionForestruck">
             <f7-list-item title="Carpeta de intercambio">
                 <template #after>
                     <span class="chip chip-outline" v-if="guidesConfigured">
@@ -199,6 +201,11 @@
                 </template>
             </f7-list-item>
         </f7-list>
+
+        <f7-block v-else
+            >Funcionalidad en desarrollo. Disponible en nuevas
+            versiones.</f7-block
+        >
     </f7-page>
 </template>
 
@@ -213,7 +220,7 @@ import {
 } from "@/app/services/PrinterService";
 import { ensureBluetoothPermissions } from "@/app/helpers/bluetooth-permissions";
 import { StorageAccess } from "@/app/plugins/StorageAccess";
-
+import config from "@/Common/json/config.json";
 export default {
     name: "ConfiguracionImpresora",
     data() {
@@ -232,6 +239,8 @@ export default {
             selectedWidthModel: "", // "32" | "48"
             importGuidesLoading: false,
             guidesTick: 0,
+            printerTick: 0,
+            widthTick: 0,
         };
     },
     computed: {
@@ -244,9 +253,10 @@ export default {
         currentAddr() {
             return store.state?.printer?.address || null;
         },
-        selected() {
-            return !!this.currentName;
+        habilitaIntegracionForestruck() {
+            return !!config?.parametros?.habilitaIntegracionForestruck;
         },
+
         hasSelection() {
             // usa v-model (reactivo) y, por si viene desde la persistencia, cae al store
             return !!this.selectedKeyModel || !!this.currentName;
@@ -410,7 +420,7 @@ export default {
                 // 🔵 3. Si los permisos están concedidos, listar impresoras normalmente
                 const raw = await listPrinters();
                 this.printers = this.normalizeList(raw);
-
+                this.printerTick++;
                 if (this.printers.length === 0) {
                     this.errorMsg =
                         "No se encontraron impresoras Bluetooth emparejadas. " +
@@ -471,7 +481,7 @@ export default {
         },
 
         async testPrint() {
-            if (!this.selected) {
+            if (!this.hasSelection) {
                 f7.dialog.alert("Seleccione una impresora primero.");
                 return;
             }
@@ -514,6 +524,9 @@ export default {
 
             this.selectedKeyModel = ""; // limpia el v-model
             // this.selectedWidthModel = ""; // si activas clearPrinterWidth, limpia también el v-model
+
+            this.printerTick++;
+            this.widthTick++;
 
             this.updateSSLabel(); // solo texto del SmartSelect impresora
             this.updateSSWidthLabel(); // texto del SmartSelect ancho

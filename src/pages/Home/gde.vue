@@ -67,6 +67,7 @@
                 </f7-list-item>
 
                 <f7-list-item
+                    v-if="habilitaIntegracionForestruck"
                     link
                     title="Importar desde Forestruck"
                     @click="importarForestruck"
@@ -147,6 +148,9 @@ export default {
         },
         estadosGuia() {
             return config?.parametros?.estadosGuia || {};
+        },
+        habilitaIntegracionForestruck() {
+            return !!config?.parametros?.habilitaIntegracionForestruck;
         },
     },
 

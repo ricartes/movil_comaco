@@ -150,13 +150,18 @@ async function getPreferredPrinterName() {
 /** Conecta si no está conectado. Devuelve true si hay conexión al final. */
 async function pingPrinter() {
     try {
-        // intento mínimo sin reconexión
-        await callWithReconnect('printText', ['\n'], { retries: 0, reconnect: false });
+        // Solo comandos invisibles: init + feed
+        await callWithReconnect('printText', [
+            ESC_POS_LATIN +
+            String.fromCharCode(27, 64) +  // ESC @ (init)
+            String.fromCharCode(12)        // Form feed
+        ], { retries: 0, reconnect: false });
         return true;
     } catch {
         return false;
     }
 }
+
 
 export async function ensureConnected() {
     if (await isConnected() && await pingPrinter()) return true;
