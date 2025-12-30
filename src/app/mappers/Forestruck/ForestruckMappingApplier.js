@@ -11,6 +11,39 @@ function buildIndexByInfoType(sourceDocArray) {
     return idx;
 }
 
+
+
+function resolveValueOrStatic(sourceJson, mapping, sourcePath) {
+    if (typeof sourcePath !== "string") return null;
+
+    // $static:...
+    if (sourcePath.startsWith("$static:")) {
+        const raw = sourcePath.slice("$static:".length);
+
+        // caster simple
+        if (raw === "null") return null;
+        if (raw === "true") return true;
+        if (raw === "false") return false;
+
+        const n = Number(raw);
+        if (Number.isFinite(n) && raw.trim() !== "") return n;
+
+        return raw; // string
+    }
+
+    // $ref:...
+    if (sourcePath.startsWith("$ref:")) {
+        const ref = sourcePath.slice("$ref:".length);
+        const v = getByPath(config, ref);
+        return v === undefined ? null : v;
+    }
+
+    // normal Forestruck
+    const v = resolveForestruckValue(sourceJson, mapping?.source, sourcePath);
+    return v === undefined ? null : v;
+}
+
+
 /**
  * Resuelve rutas tipo "Item.ItemCode" donde:
  * - "Item" es el InfoType dentro de Document[]
@@ -55,19 +88,57 @@ function toNumberOrNull(v) {
     return Number.isFinite(n) ? n : null;
 }
 
+
+function cloneValue(v) {
+    // structuredClone no está siempre en todos los WebViews antiguos
+    try {
+        if (typeof structuredClone === "function") return structuredClone(v);
+    } catch { }
+    try {
+        return JSON.parse(JSON.stringify(v));
+    } catch {
+        return v; // último recurso (referencia)
+    }
+}
+
+function applyStaticBlock(gde, blockKey, block) {
+    // Por defecto setea en la key del bloque (zona, etc.)
+    const targetPath = block?.targetPath || blockKey;
+
+    if (block?.mode === "static") {
+        setByPath(gde, targetPath, cloneValue(block?.value));
+        return true;
+    }
+
+    if (block?.mode === "staticRef") {
+        // ref: "parametros.forestruckDefaults.zona" (por ejemplo)
+        const ref = block?.ref;
+        const val = ref ? getByPath(config, ref) : undefined;
+        setByPath(gde, targetPath, cloneValue(val ?? null));
+        return true;
+    }
+
+    return false;
+}
+
+
 export function buildGdeDraftFromForestruck(sourceJson, mapping) {
     const gde = createGdeDraftDefault();
-
     const blocks = mapping?.blocks || {};
+
+    // 1) Primero aplica static/staticRef (si existen)
+    for (const [blockKey, block] of Object.entries(blocks)) {
+        applyStaticBlock(gde, blockKey, block);
+    }
+
+    // 2) Luego aplica los bloques JSON (como ya lo tienes)
     for (const [, block] of Object.entries(blocks)) {
         if (block?.mode !== "json") continue;
 
         const map = block?.map || {};
         for (const [targetPath, sourcePath] of Object.entries(map)) {
-            const raw = resolveForestruckValue(sourceJson, mapping?.source, sourcePath);
-            const val = raw === undefined ? null : raw;
+            const val = resolveValueOrStatic(sourceJson, mapping, sourcePath);
 
-            // casteo de números solo para totales (como definimos)
             if (String(targetPath).startsWith("totales.")) {
                 setByPath(gde, targetPath, toNumberOrNull(val));
             } else {
@@ -76,11 +147,9 @@ export function buildGdeDraftFromForestruck(sourceJson, mapping) {
         }
     }
 
-    // Importante: NO meter __pendingCombos en el objeto guardado.
-    // Si el mapping declara bloques combobox, solo dejamos la propiedad null en el draft.
+    // 3) Finalmente, para combobox deja null (UI resolverá después)
     for (const [blockKey, block] of Object.entries(blocks)) {
         if (block?.mode === "combobox") {
-            // Solo si no existe ya (por si el draft base lo trae)
             gde[blockKey] = null;
         }
     }
@@ -94,5 +163,7 @@ export function getComboPlan(mapping) {
         .filter(([, b]) => b?.mode === "combobox")
         .map(([key, b]) => ({ key, entity: b.entity }));
 }
+
+
 
 
