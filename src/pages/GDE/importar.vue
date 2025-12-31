@@ -52,7 +52,7 @@
                 link
                 :title="it.file.name"
                 :subtitle="it.file.uri"
-                @click="abrirPreview(it)"
+                @click="() => !it.imported && abrirPreview(it)"
             >
                 <template #media>
                     <f7-icon
@@ -325,6 +325,16 @@ export default {
         async abrirPreview(it) {
             if (!this.canOperate) return;
 
+            if (it?.imported) {
+                f7.toast
+                    .create({
+                        text: "Esta guía ya fue integrada.",
+                        closeTimeout: 1500,
+                    })
+                    .open();
+                return;
+            }
+
             await this.withLoading(async () => {
                 const payload = await leerJsonForestruckParaPreview(it);
                 await store.dispatch("setForestruckPreview", payload);
@@ -405,5 +415,9 @@ export default {
     border: 1px solid #ebccd1;
     background: #f2dede;
     color: #a94442;
+}
+
+.is-imported {
+    opacity: 0.7;
 }
 </style>

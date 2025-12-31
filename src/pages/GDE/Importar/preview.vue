@@ -84,8 +84,8 @@
                     </ul>
                 </div>
             </f7-block>
-
-            <!-- <f7-block strong v-if="mappingOk">
+            <!-- 
+            <f7-block strong v-if="mappingOk">
                 <div class="text-color-gray">JSON origen (debug)</div>
                 <pre style="white-space: pre-wrap; font-size: 12px">{{
                     pretty(sourceJson)
@@ -160,8 +160,26 @@
                 </div>
             </f7-block>
 
+            <f7-block
+                v-if="preview?.imported"
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Esta guía ya fue integrada. No se puede volver a importar.
+                </div>
+            </f7-block>
+
             <f7-block v-if="mappingOk" class="text-align-center">
-                <f7-button fill large color="blue" @click="importar">
+                <f7-button
+                    fill
+                    large
+                    color="blue"
+                    @click="importar"
+                    :disabled="preview?.imported || !puedeGuardar"
+                >
                     {{
                         preview.imported ? "Ya importada" : "Importar y Guardar"
                     }}
@@ -486,7 +504,10 @@ export default {
         },
 
         async importar() {
-            //if (!this.puedeGuardar) return;
+            if (this.preview?.imported) {
+                f7.dialog.alert("Esta guía ya fue integrada.", "Info");
+                return;
+            }
 
             const preview = this.preview;
             const fileKey = preview?.fileKey || null;

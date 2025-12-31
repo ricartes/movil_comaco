@@ -6,6 +6,7 @@ export function createGdeDraftDefault() {
         sincronizado: false,
         sincronizadoAt: false,
         motivoAnulacion: null,
+        referenciaGuiaForestruck: null,
         emisor: null,
         estado: config.parametros.estadosGuia.BORRADOR,
         empresa: null,
