@@ -999,9 +999,8 @@ function enviar_guias(bandera, callback) {
 
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia';
-
-
+        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V2';
+        
         DATOS_seleccionar_gde_por_enviar("0", function (result) {
             //alert(result);
             if (result == -1) {
@@ -1013,7 +1012,11 @@ function enviar_guias(bandera, callback) {
                     type: "POST",
                     url: ruta,
                     contetType: 'application/json; charset:ISO-8859-1',
-                    data: { guia: myJsonString },
+                    data: {
+                        guia_proveedor: myJsonString,
+                        uuid: Obtener_dato_local("uid") || "",
+                        versionApp: Obtener_dato_local("version_app") || ""
+                    },
                     dataType: 'xml',
                     success: function (data) {
 
