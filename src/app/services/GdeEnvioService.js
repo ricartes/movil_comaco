@@ -12,39 +12,38 @@ import HelperWebServices from "@/app/Webservices/HelperWebServices";
 export async function enviarGde(gde, ping = false) {
     const token = store.state.token;
     if (!token) throw new Error('Token no disponible');
-    if (ping) {
-        const online = await HelperWebServices.pingApi(10000);
-        if (!online) {
-            throw new Error('No hay conexión real con la API');
-        }
-    }
+
     const gdeDao = getGdeDao();
     const { ENVIADA, EMITIDA } = config.parametros.estadosGuia;
 
     const ahoraISO = new Date().toISOString();
-    const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`;
+    const idempotencyKey = gde?._id || `${gde.empId}-${gde.folio}`;
     const ruta = config.rutas.guardarGde;
 
-    console.debug(`[SYNC] start ${gde._id} folio=${gde.folio} idem=${idempotencyKey}`);
-
-
-    // Evitar dobles envíos concurrentes
-    await gdeDao.patch(gde._id, {
-        syncing: true,
-        ultimoErrorSync: null,
-    });
-
-    // 1) documento completo pero sin campos locales
-    const payloadBase = stripLocalFields(gde);
-
-    // 2) forzar estado y metadatos de envío
-    if (gde.estado?.id === EMITIDA.id) {
-        payloadBase.estado = { ...ENVIADA };
-    }
-    payloadBase.sentAt = ahoraISO;
-    payloadBase.tzOffsetMin = new Date().getTimezoneOffset() * -1;
+    // OJO: deja un flag para saber si terminó OK
+    let ok = false;
 
     try {
+        // Marcar inicio dentro del try
+        await gdeDao.patch(gde._id, {
+            syncing: true,
+            ultimoErrorSync: null,
+            ultimoIntentoSyncAt: ahoraISO, // útil para “stuck TTL”
+        });
+
+        if (ping) {
+            const online = await HelperWebServices.pingApi(10000);
+            if (!online) throw new Error('No hay conexión real con la API');
+        }
+
+        const payloadBase = stripLocalFields(gde);
+
+        if (gde.estado?.id === EMITIDA.id) {
+            payloadBase.estado = { ...ENVIADA };
+        }
+        payloadBase.sentAt = ahoraISO;
+        payloadBase.tzOffsetMin = new Date().getTimezoneOffset() * -1;
+
         const resp = await CargaParametrosWebServices.postJson(
             payloadBase,
             ruta,
@@ -52,14 +51,14 @@ export async function enviarGde(gde, ping = false) {
             { 'X-Idempotency-Key': String(idempotencyKey) }
         );
 
-
-
         if (!resp?.status) {
             throw new Error(resp?.message || `No se pudo enviar la guía N° ${gde.folio}`);
         }
 
-        // OK → marcar sincronizado y limpiar flags locales
-        const actualizado = await gdeDao.patch(gde._id, {
+        ok = true;
+
+        // Éxito
+        return await gdeDao.patch(gde._id, {
             estado: (gde.estado?.id === EMITIDA.id ? { ...ENVIADA } : gde.estado),
             sincronizado: true,
             sincronizadoAt: ahoraISO,
@@ -68,10 +67,8 @@ export async function enviarGde(gde, ping = false) {
             ultimoErrorSync: null,
         });
 
-
-        return actualizado;
     } catch (e) {
-        // Error → dejar listo para reintento
+        // Fallo
         await gdeDao.patch(gde._id, {
             sincronizado: false,
             ultimoErrorSync: e?.message || String(e),
@@ -79,8 +76,15 @@ export async function enviarGde(gde, ping = false) {
             syncing: false,
         });
         throw e;
+
+    } finally {
+        // Blindaje extra: si algo rarísimo pasó y no quedó ok, asegúrate de bajar syncing
+        if (!ok) {
+            try { await gdeDao.patch(gde._id, { syncing: false }); } catch { }
+        }
     }
 }
+
 
 
 
@@ -121,14 +125,31 @@ export async function syncPendientesStreaming(empId, rutEmisor) {
         return;
     }
 
+    const pendientes = await dao.listarPendientesDeEnvio(empId, rutEmisor, {
+        incluirStuck: true,
+        stuckMinutes: 10,
+        cooldownSeconds: 60,
+        limit: 500,
+    });
+
+    console.info("[SYNC] pendientes a enviar:", pendientes.length, pendientes.map(x => x._id));
+
+    for (const gde of pendientes) {
+        try {
+            await enviarGde(gde, false);
+        } catch (e) {
+            console.warn("[SYNC] Fallo enviar", gde._id, e?.message || e);
+        }
+    }
+
     console.debug('[SYNC] Inicio de sincronización GDE pendientes...');
-    for await (const bloque of dao.iterarPendientesDeEnvio(empId, rutEmisor, { pageSize: 50 })) {
+    /*for await (const bloque of dao.iterarPendientesDeEnvio(empId, rutEmisor, { pageSize: 50 })) {
         console.log(bloque);
         for (const gde of bloque) {
             console.log(gde);
             try { await enviarGde(gde); } catch (e) { console.warn('Fallo enviar', gde._id, e?.message); }
         }
-    }
+    }*/
 }
 
 

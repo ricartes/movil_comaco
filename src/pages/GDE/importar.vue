@@ -387,7 +387,7 @@ export default {
         },
 
         irAConfiguracion() {
-            f7.views.main?.router?.navigate("/configuracion");
+            f7.views.main?.router?.navigate("/configuracion/");
         },
     },
 };

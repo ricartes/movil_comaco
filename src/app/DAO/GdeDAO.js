@@ -415,6 +415,73 @@ export default class GdeDAO {
         }
     }
 
+
+    async listarPendientesDeEnvio(
+        empId,
+        rutEmisor,
+        {
+            incluirStuck = false,
+            stuckMinutes = 10,
+            cooldownSeconds = 60, // no reintentar si falló hace < 60s
+            limit = 500,
+        } = {}
+    ) {
+        const EG = config?.parametros?.estadosGuia;
+        if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
+            throw new Error("Config de estadosGuia inválida o incompleta");
+        }
+
+        const nowIso = new Date().toISOString();
+        const stuckBefore = new Date(Date.now() - stuckMinutes * 60 * 1000).toISOString();
+        const retryAfter = new Date(Date.now() - cooldownSeconds * 1000).toISOString();
+
+        const selector = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rutEmisor),
+            "estado.id": { $in: [EG.EMITIDA.id, EG.NULA.id] },
+            sincronizado: { $ne: true },
+            rescatado: { $ne: true },
+            createdAt: { $gte: "" }, // ancla Mango
+        };
+
+        const res = await this.db.find({ selector, limit });
+        let docs = res.docs || [];
+
+        // ✅ cinturón: SOLO GDE
+        docs = docs.filter(d => d?.type === config.bd.tipoEntidad.gde);
+
+        // filtro en memoria
+        docs = docs.filter(d => {
+            if (d?.sincronizado === true) return false;
+
+            // ⛔ cooldown: si falló hace poco, no reintentes aún
+            // (si no existe ultimoIntentoSyncAt, no bloquea)
+            if (d?.ultimoIntentoSyncAt && d.ultimoIntentoSyncAt > retryAfter) {
+                return false;
+            }
+
+            // pendientes normales
+            if (d?.syncing !== true) return true;
+
+            // stuck (solo si lo pediste)
+            if (!incluirStuck) return false;
+
+            const t = d?.ultimoIntentoSyncAt;
+            return !t || t < stuckBefore;
+        });
+
+        // orden estable
+        docs.sort(
+            (a, b) =>
+                (a.createdAt || "").localeCompare(b.createdAt || "") ||
+                (a._id || "").localeCompare(b._id || "")
+        );
+
+        return docs;
+    }
+
+
     async *iterarPendientesDeEnvio(empId, rutEmisor, { pageSize = 50 } = {}) {
         const EG = config?.parametros?.estadosGuia;
         if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
@@ -530,6 +597,80 @@ export default class GdeDAO {
         }
 
     }
+
+
+    async *iterarPendientesAtascados(empId, rutEmisor, { pageSize = 50, stuckMinutes = 10 } = {}) {
+        const EG = config?.parametros?.estadosGuia;
+        if (!EG?.EMITIDA?.id || !EG?.NULA?.id) {
+            throw new Error('Config de estadosGuia inválida o incompleta');
+        }
+
+        const stuckBefore = new Date(Date.now() - stuckMinutes * 60 * 1000).toISOString();
+
+        // Nota: selector simple para que use índice
+        const selectorBase = {
+            type: config.bd.tipoEntidad.gde,
+            empId: Number(empId),
+            rutEmisor: String(rutEmisor),
+            'estado.id': { $in: [EG.EMITIDA.id, EG.NULA.id] },
+
+            // solo atascados
+            syncing: true,
+            sincronizado: { $ne: true },
+
+            // anclas para sort del índice estricto
+            createdAt: { $gte: '' },
+        };
+
+        const sortStrict = [
+            { type: 'asc' },
+            { empId: 'asc' },
+            { rutEmisor: 'asc' },
+            { 'estado.id': 'asc' },
+            { syncing: 'asc' },
+            { sincronizado: 'asc' },
+            { createdAt: 'asc' },
+            { _id: 'asc' },
+        ];
+
+        const indexStrict = 'idx_gde_sync_estado_syncing_sinc_createdAt_id';
+
+        // Traemos “más” y filtramos por ultimoIntentoSyncAt < stuckBefore en memoria
+        // (porque meterlo en selector con $lt a veces rompe si no calza perfecto con el índice y sort)
+        const batchLimit = Math.max(pageSize * 5, 200);
+
+        const res = await this.db.find({
+            selector: selectorBase,
+            sort: sortStrict,
+            use_index: indexStrict,
+            limit: batchLimit,
+        });
+
+        let docs = res?.docs || [];
+        if (!docs.length) return;
+
+        docs = docs.filter(d =>
+            d?.syncing === true &&
+            d?.sincronizado !== true &&
+            (
+                !d?.ultimoIntentoSyncAt ||
+                String(d.ultimoIntentoSyncAt) < stuckBefore
+            )
+        );
+
+        // orden estable
+        docs.sort((a, b) => {
+            const c = (a?.createdAt || '').localeCompare(b?.createdAt || '');
+            return c !== 0 ? c : (a?._id || '').localeCompare(b?._id || '');
+        });
+
+        // paginar en yields
+        for (let i = 0; i < docs.length; i += pageSize) {
+            yield docs.slice(i, i + pageSize);
+        }
+    }
+
+
 
 
 
