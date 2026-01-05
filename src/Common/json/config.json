@@ -21,6 +21,10 @@
         "tiposDocumento": {
             "gde": 52
         },
+        "estadoIntegracionForestruck": {
+            "importado": "imported",
+            "fallido": "failed"
+        },
         "validaGeocerca": true,
         "ivaPorDefecto": 19,
         "estadoBloqueoDispositivo": {

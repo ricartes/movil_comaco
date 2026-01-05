@@ -534,7 +534,6 @@ export default {
                 // 4) Guardar GDE
                 const gdeInsertada = await ingresarGde(this.form);
 
-                // 5) Registrar log exitoso (SERVICE)
                 try {
                     await registrarImportacionExitosa({
                         fileKey,

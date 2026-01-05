@@ -52,23 +52,27 @@ export default class ForestruckImportLogDAO {
     }
 
     async marcarFallidoPorFileKey({ fileKey, error, ...rest }) {
+        const estadoFallido = config.parametros.estadoIntegracionForestruck.fallido || "failed";
         return await this.upsertPorFileKey({
             ...rest,
             fileKey,
-            status: "failed",
+            status: estadoFallido,
             error: String(error || ""),
             failedAt: new Date().toISOString(),
+            importedAt: null,
+            gdeId: null,
         });
     }
 
     // --- Wrappers (compatibilidad con tu código actual) ---
     async upsertImportado({ fileKey, fileName, uri, gdeId }) {
+        const estadoImportado = config.parametros.estadoIntegracionForestruck.importado || "imported";
         return await this.upsertPorFileKey({
             fileKey,
             fileName: fileName || null,
             uri: uri || null,
             gdeId: gdeId || null,
-            status: "imported",
+            status: estadoImportado,
             error: null,
             importedAt: new Date().toISOString(),
         });
@@ -96,10 +100,11 @@ export default class ForestruckImportLogDAO {
     }
 
     async listarImportados() {
+        const estadoImportado = config.parametros.estadoIntegracionForestruck.importado || "imported";
         const res = await this.db.find({
             selector: {
                 type: config.bd.tipoEntidad.forestruckImportLog,
-                status: "imported",
+                status: estadoImportado,
             },
         });
         return res?.docs || [];

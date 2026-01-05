@@ -57,21 +57,35 @@
                 <template #media>
                     <f7-icon
                         :f7="
-                            it.imported
+                            it.failed
+                                ? 'exclamationmark_circle_fill'
+                                : it.imported
                                 ? 'checkmark_circle_fill'
-                                : 'doc_text_fill'
+                                : 'clock_fill'
                         "
-                        :color="it.imported ? 'red' : 'green'"
+                        :color="
+                            it.failed ? 'red' : it.imported ? 'green' : 'yellow'
+                        "
                     />
                 </template>
 
                 <template #after>
                     <span
                         :class="
-                            it.imported ? 'text-color-red' : 'text-color-green'
+                            it.failed
+                                ? 'text-color-red'
+                                : it.imported
+                                ? 'text-color-green'
+                                : 'text-color-yellow'
                         "
                     >
-                        {{ it.imported ? "Integrado" : "Pendiente" }}
+                        {{
+                            it.failed
+                                ? "Error"
+                                : it.imported
+                                ? "Integrado"
+                                : "Pendiente"
+                        }}
                     </span>
                 </template>
             </f7-list-item>

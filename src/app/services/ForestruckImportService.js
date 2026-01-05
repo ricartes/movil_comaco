@@ -1,6 +1,7 @@
 // src/app/services/ForestruckImportService.js
 import { StorageAccess } from "@/app/plugins/StorageAccess";
 import { getForestruckImportLogDao } from "@/app/services/initServices";
+import config from "@/Common/json/config.json";
 
 // --------------------
 // Errores de dominio
@@ -51,6 +52,8 @@ function validateTreeUri(treeUri) {
 export async function listarImportablesForestruck(treeUri) {
     validateTreeUri(treeUri);
 
+    const estadoImportado = config.parametros.estadoIntegracionForestruck.importado || "imported";
+    const estadoFallido = config.parametros.estadoIntegracionForestruck.fallido || "failed";
     try {
         const logDao = getForestruckImportLogDao();
 
@@ -61,15 +64,25 @@ export async function listarImportablesForestruck(treeUri) {
 
         // 2) logs importados desde Pouch (DAO)
         const logs = await logDao.listarTodos(); // debe retornar array de docs
-        const importedSet = new Set(ensureArray(logs).map((d) => d.fileKey));
+        const logByKey = new Map(ensureArray(logs).map((d) => [d.fileKey, d]));
 
-        // 3) merge + orden
         return files
             .map((f) => {
                 const fileKey = buildFileKey(f);
-                return { file: f, fileKey, imported: importedSet.has(fileKey) };
+                const log = logByKey.get(fileKey) || null;
+
+                return {
+                    file: f,
+                    fileKey,
+                    imported: log?.status === estadoImportado,
+                    failed: log?.status === estadoFallido,
+                    status: log?.status || null,
+                    error: log?.error || null,
+                };
             })
             .sort((a, b) => (b.file.lastModified || 0) - (a.file.lastModified || 0));
+
+
 
     } catch (e) {
         throw new ForestruckImportError(
