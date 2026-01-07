@@ -703,27 +703,41 @@ function buildTransporteBox(doc) {
                     minHeight: BOX_CONTENT_MIN,
                     fontSize: TAMANO_LETRA_ELEMENTOS,
                     stack: [
-                        { text: [{ text: 'Transportista: ', bold: true }, fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)] },
-                        { text: [{ text: 'Patente: ', bold: true }, fStr(doc?.patenteCamion?.patCamion), { text: '.  Carro: ', bold: true }, fStr(doc?.patenteCarro)] }, {
+                        {
+                            text: [
+                                { text: 'Transportista: ', bold: true },
+                                fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)
+                            ]
+                        },
+                        {
                             text: [
                                 { text: "Patente: ", bold: true },
                                 fStr(getPatCamionTexto(doc)),
                                 { text: ".  Carro: ", bold: true },
                                 fStr(getPatCarroTexto(doc)),
-                                // opcional: mostrar ancho carro si viene
                                 ...(getAnchoCarro(doc) != null
-                                    ? [{ text: " (ancho: ", bold: true }, String(getAnchoCarro(doc)), { text: ")", bold: true }]
+                                    ? [
+                                        { text: " (ancho: ", bold: true },
+                                        String(getAnchoCarro(doc)),
+                                        { text: ")", bold: true }
+                                    ]
                                     : []
                                 ),
                             ],
                         },
-
-                        { text: [{ text: 'Nombre Chofer: ', bold: true }, fStr(doc?.conductor?.nomChofer), { text: '.  RUT Chofer: ', bold: true }, fStr(doc?.conductor?.rutChofer)] },
+                        {
+                            text: [
+                                { text: 'Nombre Chofer: ', bold: true },
+                                fStr(doc?.conductor?.nomChofer),
+                                { text: '.  RUT Chofer: ', bold: true },
+                                fStr(doc?.conductor?.rutChofer)
+                            ]
+                        },
                     ]
                 }]
             ]
         },
-        layout: boxedLayout,             // mismo look del bloque original
+        layout: boxedLayout,
     };
 }
 
