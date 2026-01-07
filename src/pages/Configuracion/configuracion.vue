@@ -103,6 +103,18 @@
                 </template>
             </f7-list-item>
 
+            <!-- Comprobar permisos Bluetooth -->
+            <f7-list-item
+                link
+                @click="checkBluetoothPermissions"
+                title="Comprobar permisos Bluetooth"
+                :disabled="loading || !isAndroid"
+            >
+                <template #media>
+                    <f7-icon f7="shield_checkmark"></f7-icon>
+                </template>
+            </f7-list-item>
+
             <!-- Probar impresión -->
             <f7-list-item
                 link
@@ -446,6 +458,57 @@ export default {
                 } catch {}
                 await this.$nextTick();
                 this.updateSSLabel(); // ← actualizar texto visible del SmartSelect
+            }
+        },
+
+        async checkBluetoothPermissions() {
+            if (!this.isAndroid) {
+                f7.dialog.alert(
+                    "La verificación de Bluetooth está disponible solo en Android."
+                );
+                return;
+            }
+
+            this.errorMsg = "";
+            const dlg = f7.dialog.preloader("Comprobando permisos…");
+
+            try {
+                // Solicita / valida permisos necesarios para escaneo
+                const ok = await ensureBluetoothPermissions({ needScan: true });
+
+                if (ok) {
+                    f7.toast
+                        .create({
+                            text: "Permisos de Bluetooth: OK",
+                            closeTimeout: 1500,
+                        })
+                        .open();
+                    // opcional: refrescar lista automáticamente
+                    // await this.refreshPrinters();
+                } else {
+                    this.errorMsg = "Permisos de Bluetooth no otorgados.";
+                    f7.dialog.alert(
+                        "No se otorgaron permisos de Bluetooth.\n" +
+                            "Puedes habilitarlos en Ajustes del sistema (Bluetooth/Permisos)."
+                    );
+
+                    // opcional: abrir ajustes
+                    try {
+                        const { App } = await import("@capacitor/app");
+                        await App.openSettings();
+                    } catch (err) {
+                        console.warn("No se pudo abrir Ajustes:", err);
+                    }
+                }
+            } catch (e) {
+                console.warn("checkBluetoothPermissions:", e);
+                f7.dialog.alert(
+                    e?.message || "No se pudo comprobar permisos de Bluetooth."
+                );
+            } finally {
+                try {
+                    dlg.close();
+                } catch {}
             }
         },
 
