@@ -14,6 +14,7 @@ const DISPO_LASTCHECK_KEY = 'dispo_lastcheck'  // epoch (string)
 const PRN_NAME_KEY = 'printer_name';   // opcional: guarda también address si tu fork lo entrega
 const PRN_ADDR_KEY = 'printer_addr';
 const PRN_PAPER_WIDTH_KEY = 'printer_paper_width'; // 32 (57–58mm) | 48 (80mm)
+const PRN_MODE_KEY = 'printer_mode'; // 'spp' | 'ble'
 const GUIDES_TREE_URI_KEY = 'guides_tree_uri'
 const GUIDES_DISPLAY_PATH_KEY = 'guides_display_path'
 const GUIDES_CONFIGURED_AT_KEY = 'guides_configured_at'
@@ -33,6 +34,7 @@ const store = createStore({
             name: null,
             address: null,
             paperWidth: null,
+            mode: null, // 'spp' | 'ble'
         },
         importGuides: {
             treeUri: null,
@@ -55,6 +57,7 @@ const store = createStore({
         printerName({ state }) { return state.printer.name },
         printerAddr({ state }) { return state.printer.address },
         printerPaperWidth({ state }) { return state.printer.paperWidth },
+        printerMode({ state }) { return state.printer.mode },
         userKey({ state }) {
             const u = state.user
             return u ? `${u.empresa ?? ''}|${u.rut ?? ''}` : ''
@@ -121,14 +124,20 @@ const store = createStore({
                     { value: pName } = {},
                     { value: pAddr } = {},
                     { value: pWidth } = {},
+                    { value: pMode } = {},
+
                 ] = await Promise.all([
                     Preferences.get({ key: PRN_NAME_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: PRN_ADDR_KEY }).catch(() => ({ value: null })),
                     Preferences.get({ key: PRN_PAPER_WIDTH_KEY }).catch(() => ({ value: null })),
+                    Preferences.get({ key: PRN_MODE_KEY }).catch(() => ({ value: null })),
+
                 ]);
                 state.printer.name = pName || null;
                 state.printer.address = pAddr || null;
-                state.printer.paperWidth = pWidth ? Number(pWidth) : null; // ← NUEVO
+                state.printer.paperWidth = pWidth ? Number(pWidth) : null;
+                state.printer.mode = (pMode === 'spp' || pMode === 'ble') ? pMode : null;
+
 
 
                 // ====== Carpeta importación guías (persistido)
@@ -225,17 +234,35 @@ const store = createStore({
 
 
         async clearPrinter({ state }) {
-            state.printer = { name: null, address: null };
+            state.printer.name = null;
+            state.printer.address = null;
+            state.printer.mode = null;
+
             await Preferences.remove({ key: PRN_NAME_KEY });
             await Preferences.remove({ key: PRN_ADDR_KEY });
+            await Preferences.remove({ key: PRN_MODE_KEY });
+
             window.dispatchEvent(new CustomEvent('printer:changed', { detail: { name: null, address: null } }));
+            window.dispatchEvent(new CustomEvent('printer:modeChanged', { detail: { mode: null } }));
         },
+
 
         async clearPrinterWidth({ state }) {
             state.printer.paperWidth = null;
             await Preferences.remove({ key: PRN_PAPER_WIDTH_KEY });
             window.dispatchEvent(new CustomEvent('printer:widthChanged', { detail: { paperWidth: null } }));
         },
+
+        async setPrinterMode({ state }, { mode }) {
+            const m = String(mode || '');
+            if (!['spp', 'ble'].includes(m)) return;
+
+            state.printer.mode = m;
+            await Preferences.set({ key: PRN_MODE_KEY, value: m });
+
+            window.dispatchEvent(new CustomEvent('printer:modeChanged', { detail: { mode: m } }));
+        },
+
 
         async setGuidesFolder({ state }, { treeUri, displayPath }) {
             state.importGuides.treeUri = treeUri ?? null
@@ -256,6 +283,31 @@ const store = createStore({
             await Preferences.remove({ key: GUIDES_CONFIGURED_AT_KEY })
             window.dispatchEvent(new CustomEvent('guides:folderChanged', { detail: { treeUri: null, displayPath: null } }))
         },
+
+        ssLabelMode() {
+            if (!this.isAndroid) return "No disponible en este dispositivo";
+            if (this.loading) return "Cargando…";
+            if (this.currentMode === "spp") return "Modo actual: SPP (Classic)";
+            if (this.currentMode === "ble") return "Modo actual: BLE (LE)";
+            return "Seleccione modo…";
+        },
+
+        selectedModeHuman() {
+            if (!this.selectedModeModel) return this.ssLabelMode();
+            return this.selectedModeModel === "ble" ? "BLE (LE)" : "SPP (Classic)";
+        },
+
+        updateSSModeLabel() {
+            const doUpdate = () => {
+                const ss = f7.smartSelect?.get?.(".select-printermode .smart-select");
+                if (!ss) return false;
+                ss.setValueText(this.selectedModeHuman());
+                return true;
+            };
+            if (doUpdate()) return;
+            setTimeout(doUpdate, 50);
+        },
+
 
         async setForestruckPreview({ state }, payload) {
             // ⚠️ NO guardes Proxys / objetos raros del plugin.

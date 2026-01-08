@@ -1,5 +1,5 @@
 // /app/services/GuiaPrinter.js
-import { printRawText, printBase64Safe, printTextSizeAlignSafe, connectByName, isConnected } from '@/app/services/PrinterService';
+import { printRawText, printBase64Safe, printTextSizeAlignSafe, ensureConnected, isConnected } from '@/app/services/Printer';
 import { generateHeaderBoxBase64 } from '@/js/Utils/ticketHeaderBox';
 import { renderThermalPdf417FromTED, stripDataUrl } from '@/js/Utils/pdf417-thermal';
 import store from '@/js/store';
@@ -215,17 +215,10 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     PAPER_WIDTH = paperWidth;
     COLS = cols;
     PIXELS = pixels;
-    try {
-        // Algunos forks NO requieren connect previo, pero si lo hace, mejor conectamos:
-        try {
-            const conn = await isConnected();
-            if (!conn) await connectByName(nameOrAddr);
-        } catch (_) {
-            await connectByName(nameOrAddr);
-        }
-    } catch (e) {
-        // no cortamos: hay forks que conectan on-demand
-    }
+
+    const ok = await ensureConnected();
+    if (!ok) throw new Error('No hay impresora configurada o no se pudo conectar.');
+
 
     const M = mapDoc(doc);
     // ===== Encabezado =====

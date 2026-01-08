@@ -22,12 +22,12 @@
         <f7-list form inset strong>
             <!-- IMPRESORAS -->
             <f7-list-item
-                :key="printerTick"
+                ref="ssPrinter"
                 title="Impresora Bluetooth"
                 class="select-impresora"
                 smart-select
                 :smart-select-params="ssParams"
-                :disabled="!isAndroid || loading || printers.length === 0"
+                :disabled="!isAndroid || loading"
             >
                 <select
                     v-model="selectedKeyModel"
@@ -41,6 +41,26 @@
                     <option v-for="p in printers" :key="p.key" :value="p.key">
                         {{ p.label }}
                     </option>
+                </select>
+            </f7-list-item>
+
+            <!-- MODO DE CONEXIÓN -->
+            <f7-list-item
+                ref="ssMode"
+                title="Modo de conexión"
+                class="select-printermode"
+                smart-select
+                :smart-select-params="ssParams"
+                :disabled="!isAndroid || loading"
+            >
+                <select
+                    v-model="selectedModeModel"
+                    @change="onModeChange"
+                    :disabled="!isAndroid || loading || printers.length === 0"
+                >
+                    <option value="" disabled>Seleccione modo…</option>
+                    <option value="spp">SPP (Bluetooth Classic)</option>
+                    <option value="ble">BLE (Bluetooth Low Energy)</option>
                 </select>
             </f7-list-item>
 
@@ -60,7 +80,7 @@
 
             <!-- ANCHO / PAPER WIDTH -->
             <f7-list-item
-                :key="widthTick"
+                ref="ssWidth"
                 title="Ancho de impresión"
                 class="select-paperwidth"
                 smart-select
@@ -89,6 +109,27 @@
                 </template>
             </f7-list-item>
         </f7-list>
+
+        <f7-block strong inset>
+            <div class="alert alert-info">
+                <i class="f7-icons">info_circle</i>
+                <div>
+                    <strong>Modo de conexión de la impresora</strong><br />
+                    <small>
+                        • <b>SPP (Bluetooth Classic)</b>: recomendado para la
+                        mayoría de las impresoras térmicas estándar (Epson,
+                        Bixolon, Rongta, etc.).<br />
+                        • <b>BLE (Bluetooth Low Energy)</b>: usar solo en
+                        impresoras chinas o modelos que no funcionen en modo
+                        clásico.<br />
+                        <span class="text-muted">
+                            Si no estás seguro, utiliza <b>SPP</b>.
+                        </span>
+                    </small>
+                </div>
+            </div>
+        </f7-block>
+
         <f7-block-title>Opciones de la impresora</f7-block-title>
         <f7-list inset strong>
             <!-- Actualizar -->
@@ -229,9 +270,11 @@ import {
     listPrinters,
     printTextSafe,
     disconnectPrinter,
-} from "@/app/services/PrinterService";
+} from "@/app/services/Printer";
+
 import { ensureBluetoothPermissions } from "@/app/helpers/bluetooth-permissions";
 import { StorageAccess } from "@/app/plugins/StorageAccess";
+
 import config from "@/Common/json/config.json";
 export default {
     name: "ConfiguracionImpresora",
@@ -250,6 +293,8 @@ export default {
             selectedKeyModel: "", // name|address
             selectedWidthModel: "", // "32" | "48"
             importGuidesLoading: false,
+            modeTick: 0,
+            selectedModeModel: "", // 'spp' | 'ble'
             guidesTick: 0,
             printerTick: 0,
             widthTick: 0,
@@ -276,6 +321,10 @@ export default {
         currentPaperWidth() {
             return store.state?.printer?.paperWidth ?? null;
         },
+        currentMode() {
+            return store.state?.printer?.mode || null;
+        },
+
         selectedKeyFromStore() {
             return this.currentName
                 ? `${this.currentName}|${this.currentAddr || ""}`
@@ -294,28 +343,34 @@ export default {
             return store.state?.importGuides?.treeUri || null;
         },
     },
+
     async created() {
-        // Hidratar store (persistencia)
+        // 1) Hidratar store (persistencia)
         if (!store.state.ready) {
             try {
                 await store.dispatch("hydrate");
             } catch {}
         }
 
-        await this.refreshPrinters();
-
-        // Aplica selección persistida al v-model (NO hacemos setValue del SmartSelect)
+        // 2) Precargar modelos DESDE store (antes de listar)
         this.selectedKeyModel = this.selectedKeyFromStore || "";
-
-        // Paper width persistido
         this.selectedWidthModel = this.currentPaperWidth
             ? String(this.currentPaperWidth)
             : "";
+        this.selectedModeModel = this.currentMode
+            ? String(this.currentMode)
+            : "";
 
+        // 3) Ahora sí: listar impresoras
+        await this.refreshPrinters();
+
+        // 4) Forzar label visible (ya con selección cargada)
         await this.$nextTick();
-        this.updateSSLabel(); // Solo actualiza el texto visible
-        this.updateSSWidthLabel(); // etiqueta de ancho
+        this.updateSSLabel();
+        this.updateSSModeLabel();
+        this.updateSSWidthLabel();
     },
+
     methods: {
         ssLabel() {
             if (!this.isAndroid) return "No disponible en este dispositivo";
@@ -339,18 +394,26 @@ export default {
         },
 
         normalizeList(raw) {
-            const arr = Array.isArray(raw) ? raw : [];
-            return arr
-                .map((item) => {
-                    const name =
-                        typeof item === "string" ? item : item?.name ?? "";
-                    const address =
-                        typeof item === "string" ? null : item?.address ?? null;
-                    const key = `${name}|${address || ""}`;
-                    const label = address ? `${name} (${address})` : name;
-                    return { key, name, address, label };
-                })
-                .filter((p) => p.name);
+            const out = [];
+            if (!Array.isArray(raw)) return out;
+
+            // el plugin devuelve [name, mac, type, name, mac, type, ...]
+            for (let i = 0; i < raw.length; i += 3) {
+                const name = raw[i];
+                const address = raw[i + 1];
+                const type = raw[i + 2]; // opcional
+
+                if (typeof name === "string" && typeof address === "string") {
+                    out.push({
+                        key: `${name}|${address}`,
+                        name,
+                        address,
+                        type,
+                        label: `${name} (${address})`,
+                    });
+                }
+            }
+            return out;
         },
 
         selectedLabel() {
@@ -368,34 +431,53 @@ export default {
                 : "57–58 mm (paperWidth 32)";
         },
 
-        // Intenta actualizar el texto del Smart Select; si aún no existe, reintenta
-        updateSSLabel() {
-            const doUpdate = () => {
-                const ss = f7.smartSelect?.get?.(
-                    ".select-impresora .smart-select"
-                );
-                if (!ss) return false;
-                ss.setValueText(this.selectedLabel()); // ← texto correcto del item seleccionado
-                return true;
-            };
+        ssLabelMode() {
+            if (!this.isAndroid) return "No disponible en este dispositivo";
+            if (this.loading) return "Cargando…";
+            if (this.currentMode === "spp") return "Modo actual: SPP (Classic)";
+            if (this.currentMode === "ble") return "Modo actual: BLE (LE)";
+            return "Seleccione modo…";
+        },
 
-            if (doUpdate()) return;
-            setTimeout(() => {
-                doUpdate();
-            }, 50);
+        selectedModeHuman() {
+            if (!this.selectedModeModel) return this.ssLabelMode();
+            return this.selectedModeModel === "ble"
+                ? "BLE (LE)"
+                : "SPP (Classic)";
+        },
+
+        updateSSLabel() {
+            const ss = f7.smartSelect.get(".select-impresora .smart-select");
+            ss && ss.setValueText(this.selectedLabel());
+        },
+
+        updateSSModeLabel() {
+            const ss = f7.smartSelect.get(".select-printermode .smart-select");
+            ss && ss.setValueText(this.selectedModeHuman());
         },
 
         updateSSWidthLabel() {
-            const doUpdate = () => {
-                const ss = f7.smartSelect?.get?.(
-                    ".select-paperwidth .smart-select"
-                );
-                if (!ss) return false;
-                ss.setValueText(this.selectedWidthHuman());
-                return true;
-            };
-            if (doUpdate()) return;
-            setTimeout(doUpdate, 50);
+            const ss = f7.smartSelect.get(".select-paperwidth .smart-select");
+            ss && ss.setValueText(this.selectedWidthHuman());
+        },
+
+        async onModeChange(e) {
+            const mode = String(e?.target?.value || "");
+            if (!["spp", "ble"].includes(mode)) return;
+
+            // 🔥 corta lo anterior
+            try {
+                await disconnectPrinter();
+            } catch {}
+
+            await store.dispatch("setPrinterMode", { mode });
+
+            await this.$nextTick();
+            this.updateSSModeLabel();
+
+            f7.toast
+                .create({ text: "Modo guardado", closeTimeout: 1200 })
+                .open();
         },
 
         async refreshPrinters() {
@@ -406,7 +488,7 @@ export default {
 
             this.errorMsg = "";
             this.loading = true;
-            this.updateSSLabel(); // “Buscando impresoras…”
+            //this.updateSSLabel(); // “Buscando impresoras…”
             const dlg = f7.dialog.preloader("Buscando impresoras…");
 
             try {
@@ -432,6 +514,7 @@ export default {
                 // 🔵 3. Si los permisos están concedidos, listar impresoras normalmente
                 const raw = await listPrinters();
                 this.printers = this.normalizeList(raw);
+
                 this.printerTick++;
                 if (this.printers.length === 0) {
                     this.errorMsg =
@@ -458,6 +541,8 @@ export default {
                 } catch {}
                 await this.$nextTick();
                 this.updateSSLabel(); // ← actualizar texto visible del SmartSelect
+                this.updateSSModeLabel();
+                this.updateSSWidthLabel();
             }
         },
 
@@ -548,9 +633,14 @@ export default {
                 f7.dialog.alert("Seleccione una impresora primero.");
                 return;
             }
+            if (!this.currentMode) {
+                f7.dialog.alert("Seleccione el modo de conexión (SPP o BLE).");
+                return;
+            }
+
             const dlg = f7.dialog.preloader("Imprimiendo…");
             try {
-                await printTextSafe("Prueba de impresión\n\n"); // se autoconecta por NOMBRE
+                await printTextSafe("Prueba de impresión\n\n"); // ✅ facade decide SPP vs BLE
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
@@ -722,6 +812,15 @@ export default {
             }
         },
     },
+
+    watch: {
+        selectedKeyModel() {
+            this.$nextTick(() => this.updateSSLabel());
+        },
+        printers() {
+            this.$nextTick(() => this.updateSSLabel());
+        },
+    },
 };
 </script>
 
@@ -772,5 +871,13 @@ export default {
     border: 1px solid #ffeeba;
     background: #fff3cd;
     color: #856404;
+}
+.alert-info {
+    border: 1px solid #bee5eb;
+    background: #e9f7fb;
+    color: #0c5460;
+}
+.alert-info b {
+    font-weight: 600;
 }
 </style>

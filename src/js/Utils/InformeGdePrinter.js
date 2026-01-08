@@ -3,9 +3,9 @@ import {
     printRawText,
     printBase64Safe,
     printTextSizeAlignSafe,
-    connectByName,
+    ensureConnected,
     isConnected,
-} from '@/app/services/PrinterService';
+} from '@/app/services/Printer';
 import store from '@/js/store';
 import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 
@@ -143,12 +143,10 @@ export async function printInformeDespacho(informe, opts = {}) {
     COLS = cols;
     PIXELS = pixels;
 
-    try {
-        const connected = await isConnected();
-        if (!connected) await connectByName(nameOrAddr);
-    } catch {
-        // algunos plugins conectan on demand
-    }
+    const ok = await ensureConnected();
+    if (!ok) throw new Error('No hay impresora configurada o no se pudo conectar.');
+
+
 
     // Cabecera
     await printRawText(center(empresa.toUpperCase()));

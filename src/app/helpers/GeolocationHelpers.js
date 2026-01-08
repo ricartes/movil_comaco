@@ -1,51 +1,48 @@
 import { Geolocation } from '@capacitor/geolocation';
-import { Capacitor } from '@capacitor/core';
+
+
 
 export async function getLocationOnce() {
-    // 1) Ver permisos
+    // 1) Permisos (fine o coarse)
     const perm = await Geolocation.checkPermissions();
-    if (perm.location !== 'granted') {
+    const granted =
+        perm.location === 'granted' || perm.coarseLocation === 'granted';
+
+    if (!granted) {
         const req = await Geolocation.requestPermissions();
-        if (req.location !== 'granted') {
-            throw new Error('Permiso de ubicación denegado.');
-        }
+        const ok =
+            req.location === 'granted' || req.coarseLocation === 'granted';
+        if (!ok) throw new Error('Permiso de ubicación denegado.');
     }
 
-    // 2) Intento 1 (rápido pero no tanto)
+    // 2) Intento A: usa caché reciente (rápido, útil offline)
     try {
-        const { coords, timestamp } = await Geolocation.getCurrentPosition({
+        const p = await Geolocation.getCurrentPosition({
             enableHighAccuracy: true,
-            timeout: 30000,   // 👈 sube a 20-30s
-            maximumAge: 0,
+            timeout: 5000,
+            maximumAge: 120000, // 2 min
         });
-
-        return {
-            lat: coords.latitude,
-            lng: coords.longitude,
-            accuracy: coords.accuracy ?? null,
-            timestamp: timestamp ?? Date.now(),
-        };
-    } catch (e) {
-        // 3) Fallback: si falló por timeout, reintenta con menor precisión
-        const msg = String(e?.message || e);
-        const isTimeout =
-            msg.includes('timeout') ||
-            msg.includes('timed out') ||
-            msg.includes('Could not obtain location in time');
-
-        if (!isTimeout) throw e;
-
-        const { coords, timestamp } = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: false,  // 👈 ayuda si el GPS no fija rápido
-            timeout: 30000,
-            maximumAge: 60000,          // permite caché de 1 min
-        });
-
-        return {
-            lat: coords.latitude,
-            lng: coords.longitude,
-            accuracy: coords.accuracy ?? null,
-            timestamp: timestamp ?? Date.now(),
-        };
+        return normalize(p);
+    } catch (_) {
+        // sigue
     }
+
+    // 3) Intento B: fix GPS real (bosque => más tiempo)
+    const p2 = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 60000, // 60s
+        maximumAge: 0,
+    });
+
+    return normalize(p2);
 }
+
+function normalize({ coords, timestamp }) {
+    return {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        accuracy: coords.accuracy ?? null,
+        timestamp: timestamp ?? Date.now(),
+    };
+}
+

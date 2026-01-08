@@ -115,12 +115,18 @@ function addPrefixToFirstChunk(chunks) {
     return [ESC_POS_LATIN + ESC_ALIGN_LEFT + first, ...rest];
 }
 // -----------------------------------------------------------
-
+// IMPORTANTE:
+// printRawText garantiza imprimir una línea completa.
+// Si el texto no termina en '\n', se agrega automáticamente.
+// Esto mantiene compatibilidad con GuiaPrinter y evita prints truncados.
 export async function printRawText(text) {
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay conexión con la impresora. Verifica la configuración.');
 
-    const src = (text == null || text === '') ? '\n' : String(text);
+    let src = (text == null || text === '') ? '\n' : String(text);
+
+    // 👇 asegura salto de línea como antes (compatibilidad)
+    if (!src.endsWith('\n')) src += '\n';
     const chunkSize = 1024;
 
     const chunks = [];
@@ -267,3 +273,4 @@ export async function printBarcodeSafe(system, data, align = '1', position = '2'
     // Firma típica: printBarcode(success, error, system, data, align, position, font, height)
     return callPlugin('printBarcode', String(system || ''), String(data || ''), String(align), String(position), String(font), String(height));
 }
+

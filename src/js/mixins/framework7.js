@@ -83,5 +83,15 @@ export default {
                 }
             });
         },
+
+        setSSText(ssTargetElOrRef, text, tries = 10) {
+            try {
+                const ss = f7.smartSelect.get(ssTargetElOrRef);
+                if (ss) { ss.setValueText(text); return; }
+            } catch (_) { }
+
+            if (tries > 0) setTimeout(() => this.setSSText(ssTargetElOrRef, text, tries - 1), 50);
+        },
+
     },
 }
