@@ -4,7 +4,10 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 
 const SCAN_MS = 4500;
 const CONNECT_TIMEOUT_MS = 8000;
+
+// ✅ Si te “pegaba” con imágenes, baja a 90 (tu prueba buena). Si no, 120 ok.
 const WRITE_CHUNK = 120;
+// ✅ 0 = más fluido. Si alguna impresora se pega, sube a 2..8ms.
 const WRITE_DELAY_MS = 0;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -15,86 +18,71 @@ const FFE1 = '0000ffe1-0000-1000-8000-00805f9b34fb';
 const FFF0 = '0000fff0-0000-1000-8000-00805f9b34fb';
 const FFF1 = '0000fff1-0000-1000-8000-00805f9b34fb';
 
+// ===== ESC/POS =====
+const CODEPAGE_N = 2; // CP850
 
-const ESC_POS_LATIN = '\x1C\x2E\x1B\x74\x10'; // Latin / CP1252
-
-
-const PREFIX = new Uint8Array([
-    0x1B, 0x40,       // ESC @ (init)
-    0x1B, 0x74, 0x10, // ESC t 16 (CP1252 en muchas térmicas)
-    0x1B, 0x61, 0x00, // ESC a 0 (left)
-]);
-
-
-const CODEPAGE_N = 2; // CP850 (tu caso)
-const ESC_INIT = new Uint8Array([0x1B, 0x40]);                 // ESC @
-const ESC_CP = new Uint8Array([0x1B, 0x74, CODEPAGE_N]);       // ESC t n
 const ESC_ALIGN = {
     left: new Uint8Array([0x1B, 0x61, 0x00]),
     center: new Uint8Array([0x1B, 0x61, 0x01]),
     right: new Uint8Array([0x1B, 0x61, 0x02]),
 };
+
 const ESC_SIZE = {
     normal: new Uint8Array([0x1B, 0x21, 0x00]),
     tall: new Uint8Array([0x1B, 0x21, 0x10]),
     big: new Uint8Array([0x1B, 0x21, 0x30]),
 };
 
-// reset completo a “texto normal”
-const RESET_TO_TEXT = new Uint8Array([
-    0x1B, 0x40,              // ESC @
-    0x1B, 0x74, CODEPAGE_N,   // ESC t n
-    0x1B, 0x61, 0x00,         // ESC a 0
-    0x1B, 0x21, 0x00,         // ESC ! 0
+// ✅ “Setup” empaquetado (1 sola escritura) — evita pausas por 4 writes seguidos
+const SETUP_TEXT_LEFT = new Uint8Array([
+    0x1B, 0x40,        // ESC @
+    0x1B, 0x52, 0x06,  // ESC R 6 (Spanish)
+    0x1B, 0x74, 0x02,  // ESC t 2 (CP850)
+    0x1B, 0x61, 0x00,  // ESC a 0 (left)
 ]);
 
+function setupWithAlign(align /* '0'|'1'|'2' */) {
+    const a = String(align) === '2'
+        ? 0x02
+        : String(align) === '1'
+            ? 0x01
+            : 0x00;
+
+    return new Uint8Array([
+        0x1B, 0x40,        // ESC @
+        0x1B, 0x52, 0x06,  // ESC R 6
+        0x1B, 0x74, 0x02,  // ESC t 2
+        0x1B, 0x61, a,     // ESC a align
+    ]);
+}
+
+// reset “texto normal” (sin sleeps grandes)
+const RESET_TO_TEXT = new Uint8Array([
+    0x1B, 0x40,
+    0x1B, 0x52, 0x06,
+    0x1B, 0x74, CODEPAGE_N,
+    0x1B, 0x61, 0x00,
+    0x1B, 0x21, 0x00,
+]);
 
 let _initialized = false;
 let _connectedDeviceId = null;
-let _cachedPick = null; // { serviceUuid, charUuid }
+let _cachedPick = null;
 
-
-async function runWithReconnect(jobFn) {
-    try {
-        return await jobFn();
-    } catch (e) {
-        if (!isNotConnectedError(e)) throw e;
-
-        // reconectar “limpio” y reintentar TODO
-        await forceResetConnection();
-        await ensureConnectedHard();
-        return await jobFn();
-    }
-}
-
-
-function encodeLatin1(str) {
-    str = String(str ?? '').normalize('NFC');
-    const out = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) {
-        out[i] = str.charCodeAt(i) & 0xFF; // áéíóúñ están dentro de 0..255
-    }
-    return out;
-}
-
-async function writeCmd(deviceId, serviceUuid, charUuid, bytes) {
-    // comandos críticos: con response para asegurar orden
-    await BleClient.write(deviceId, serviceUuid, charUuid, bytes);
-    //await sleep(30);
-}
-
-
+// =========================
+// ENCODER (tu tabla CP850)
+// =========================
 function encodeEsBasic(str) {
     str = String(str ?? '').normalize('NFC');
 
     const map = {
         'á': 160, 'é': 130, 'í': 161, 'ó': 162, 'ú': 163,
-        'Á': 180, 'É': 144, 'Í': 213, 'Ó': 224, 'Ú': 232,
+        // OJO: mayúsculas en tu impresora están raras; dejamos lo “seguro”
+        'Á': 181, 'É': 144, 'Í': 214, 'Ó': 224, 'Ú': 233,
         'ñ': 164, 'Ñ': 165,
         'ü': 129, 'Ü': 154,
         'º': 167, 'ª': 166,
     };
-
 
     const out = new Uint8Array(str.length);
     for (let i = 0; i < str.length; i++) {
@@ -102,27 +90,28 @@ function encodeEsBasic(str) {
         if (map[ch] != null) out[i] = map[ch];
         else {
             const cc = ch.charCodeAt(0);
-            out[i] = (cc >= 0 && cc <= 127) ? cc : 63; // 63='?' si no mapeado
+            out[i] = (cc >= 0 && cc <= 127) ? cc : 63;
         }
     }
     return out;
 }
 
-function prefix(codepageN = 2) {
-    return new Uint8Array([
-        0x1B, 0x40,          // ESC @ init
-        0x1B, 0x74, codepageN, // ESC t n
-        0x1B, 0x61, 0x00,    // ESC a 0 left
-    ]);
+// ✅ si tu impresora NO soporta bien tildes en mayúscula, activa esto
+// (esto NO genera pausas, solo “arregla” el texto)
+function normalizeEsText(str) {
+    return String(str ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // elimina tildes
+        .replace(/[¡¿]/g, m => (m === '¡' ? '!' : '?'));
 }
 
-
+// =========================
+// BLE CORE
+// =========================
 async function initOnce() {
     if (_initialized) return;
     await BleClient.initialize();
     _initialized = true;
-
-    // permisos scan (si falla, seguimos: a veces ya están concedidos)
     try { await BleClient.requestLEScanPermissions(); } catch { }
 }
 
@@ -136,17 +125,12 @@ async function scanFindDeviceIdByName(targetName) {
     await BleClient.requestLEScan({ allowDuplicates: false }, (result) => {
         const dev = result?.device;
         if (!dev) return;
-        const name = dev.name || '';
-        const id = dev.deviceId || '';
-        if (name && name === targetName) {
-            found = { name, deviceId: id };
-        }
+        if (dev.name === targetName) found = dev.deviceId;
     });
 
     await sleep(SCAN_MS);
     await BleClient.stopLEScan().catch(() => { });
-
-    return found?.deviceId || null;
+    return found;
 }
 
 async function withTimeout(promise, ms, tag) {
@@ -161,9 +145,7 @@ async function connectByScanName(targetName) {
     await initOnce();
 
     const deviceId = await scanFindDeviceIdByName(targetName);
-    if (!deviceId) {
-        throw new Error(`No se encontró por BLE: ${targetName}. Acércate, reinicia impresora y reintenta.`);
-    }
+    if (!deviceId) throw new Error(`No se encontró por BLE: ${targetName}`);
 
     await withTimeout(BleClient.connect(deviceId), CONNECT_TIMEOUT_MS, 'BLE connect');
     _connectedDeviceId = deviceId;
@@ -178,7 +160,6 @@ async function pickWriteCharacteristic(deviceId) {
     try {
         services = await BleClient.getServices(deviceId);
     } catch {
-        // si getServices no está disponible en tu build, probamos fallback FFE0/FFE1
         _cachedPick = { serviceUuid: FFE0, charUuid: FFE1 };
         return _cachedPick;
     }
@@ -189,27 +170,19 @@ async function pickWriteCharacteristic(deviceId) {
         return (s.characteristics || []).some((c) => norm(c.uuid) === norm(ch));
     };
 
-    if (has(FFE0, FFE1)) {
-        _cachedPick = { serviceUuid: FFE0, charUuid: FFE1 };
-        return _cachedPick;
-    }
-    if (has(FFF0, FFF1)) {
-        _cachedPick = { serviceUuid: FFF0, charUuid: FFF1 };
-        return _cachedPick;
-    }
+    if (has(FFE0, FFE1)) return (_cachedPick = { serviceUuid: FFE0, charUuid: FFE1 });
+    if (has(FFF0, FFF1)) return (_cachedPick = { serviceUuid: FFF0, charUuid: FFF1 });
 
-    // genérico: primera con write / writeWithoutResponse
     for (const s of services) {
         for (const c of (s.characteristics || [])) {
             const props = c.properties || {};
             if (props.write || props.writeWithoutResponse) {
-                _cachedPick = { serviceUuid: s.uuid, charUuid: c.uuid };
-                return _cachedPick;
+                return (_cachedPick = { serviceUuid: s.uuid, charUuid: c.uuid });
             }
         }
     }
 
-    throw new Error('No encontré ninguna characteristic con WRITE en services BLE.');
+    throw new Error('No encontré ninguna characteristic con WRITE.');
 }
 
 async function writeBytes(deviceId, svc, chr, bytes) {
@@ -224,58 +197,35 @@ async function writeBytes(deviceId, svc, chr, bytes) {
     }
 }
 
-
-
-
-// --- helpers imagen -> ESC/POS raster (GS v 0) ---
-
-function isDataUrl(s) {
-    return typeof s === 'string' && s.startsWith('data:');
+// Para “comandos críticos” (si lo necesitas), pero SIN sleeps grandes
+async function writeCmd(deviceId, svc, chr, bytes) {
+    await BleClient.write(deviceId, svc, chr, bytes);
 }
 
-function stripDataUrlToBase64(s) {
-    if (!isDataUrl(s)) return s;
-    const i = s.indexOf('base64,');
-    return i >= 0 ? s.slice(i + 7) : s;
-}
-
-function b64ToBlobUrl(base64, mime = 'image/png') {
-    const raw = atob(base64);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    const blob = new Blob([bytes], { type: mime });
-    return URL.createObjectURL(blob);
-}
-
+// =========================
+// IMAGEN -> ESC/POS raster
+// =========================
 async function loadImageFromBase64(base64String) {
-    // Asegura DataURL
     let src = String(base64String || '');
-    if (!src.startsWith('data:')) {
-        // asume PNG si viene pelado
-        src = 'data:image/png;base64,' + src;
-    }
+    if (!src.startsWith('data:')) src = 'data:image/png;base64,' + src;
 
-    // usar Image() (evita CSP blob:)
     const img = new Image();
     img.decoding = 'async';
 
     await new Promise((res, rej) => {
         img.onload = () => res();
-        img.onerror = (e) => rej(new Error('No se pudo cargar imagen base64'));
+        img.onerror = () => rej(new Error('No se pudo cargar imagen base64'));
         img.src = src;
     });
 
-    return img; // tiene width/height
+    return img;
 }
 
-
 function buildEscPosRasterFromImageData(imageData, width, height, threshold = 180) {
-    // ESC/POS GS v 0  m  xL xH  yL yH  [data]
-    // m=0 (normal), data = 1bit per pixel, rows packed in bytes (MSB first)
     const bytesPerRow = Math.ceil(width / 8);
     const data = new Uint8Array(bytesPerRow * height);
 
-    const d = imageData.data; // RGBA
+    const d = imageData.data;
     let di = 0;
 
     for (let y = 0; y < height; y++) {
@@ -287,18 +237,10 @@ function buildEscPosRasterFromImageData(imageData, width, height, threshold = 18
 
                 if (x < width) {
                     const idx = (y * width + x) * 4;
-                    const r = d[idx];
-                    const g = d[idx + 1];
-                    const b = d[idx + 2];
-                    const a = d[idx + 3];
+                    const r = d[idx], g = d[idx + 1], b = d[idx + 2], a = d[idx + 3];
 
-                    // blanco si transparente
-                    if (a < 32) {
-                        // bit 0 = blanco
-                    } else {
-                        // luminancia simple
+                    if (a >= 32) {
                         const lum = (r * 0.299 + g * 0.587 + b * 0.114);
-                        // en ESC/POS: 1 = negro, 0 = blanco
                         if (lum < threshold) byte |= 1;
                     }
                 }
@@ -325,32 +267,27 @@ async function rasterizeBase64ToEscPos(base64String, targetWidthPx) {
     const h0 = img.naturalHeight || img.height;
     if (!w0 || !h0) throw new Error('No pude leer dimensiones de la imagen');
 
-    // Escalar a targetWidthPx manteniendo ratio
     const scale = targetWidthPx ? (targetWidthPx / w0) : 1;
     let w = Math.max(8, Math.floor(w0 * scale));
     let h = Math.max(8, Math.floor(h0 * scale));
-
-    // width debe ser múltiplo de 8 para packing
     w = Math.ceil(w / 8) * 8;
 
-    // Canvas
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
-
-    // Draw
     ctx.drawImage(img, 0, 0, w, h);
 
     const imageData = ctx.getImageData(0, 0, w, h);
     return buildEscPosRasterFromImageData(imageData, w, h, 180);
 }
 
-
-// === API homologada ===
-
+// =========================
+// API
+// =========================
 export async function disconnectPrinter() {
     try {
         if (_connectedDeviceId) await BleClient.disconnect(_connectedDeviceId);
@@ -362,13 +299,22 @@ export async function disconnectPrinter() {
 export async function ensureConnected() {
     const name = getPreferredName();
     if (!name) return false;
-
     if (_connectedDeviceId) return true;
-
     await connectByScanName(name);
     return true;
 }
 
+export async function isConnected() {
+    return !!_connectedDeviceId;
+}
+
+export async function connectByName(name) {
+    if (!name) throw new Error('Nombre de impresora vacío');
+    await connectByScanName(name);
+    return true;
+}
+
+// ---------- TEXTO SIMPLE (SIN PAUSAS) ----------
 export async function printTextSafe(text = '') {
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay impresora BLE configurada.');
@@ -379,33 +325,55 @@ export async function printTextSafe(text = '') {
     let src = String(text ?? '');
     if (!src.endsWith('\n')) src += '\n';
 
+    // ✅ Si tus mayúsculas acentuadas salen mal, deja esto ON:
+    src = normalizeEsText(src);
+
     const body = encodeEsBasic(src);
 
-    // 👈 AGREGADO: codepage CP850 + left align (igual que printTextSizeAlignSafe)
-    await writeCmd(deviceId, serviceUuid, charUuid, ESC_INIT);
-    await writeCmd(deviceId, serviceUuid, charUuid, ESC_CP);
-    await writeCmd(deviceId, serviceUuid, charUuid, ESC_ALIGN.left);
-
+    // ✅ 1 solo “setup” (evita 4 writes con response)
+    await writeBytes(deviceId, serviceUuid, charUuid, SETUP_TEXT_LEFT);
     await writeBytes(deviceId, serviceUuid, charUuid, body);
 
-    // 👈 AGREGADO: reset para consistencia
-    await writeCmd(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
-    //await sleep(80);
+    // ❌ Sin RESET + sin sleeps => más fluido
 }
 
-
-
 export async function printRawText(text) {
-    // Igual que SPP: garantiza fin de línea
     let src = (text == null || text === '') ? '\n' : String(text);
     if (!src.endsWith('\n')) src += '\n';
-
     return printTextSafe(src);
 }
 
+// ---------- TEXTO CON TAMAÑO + ALINEACIÓN (SIN PAUSAS) ----------
+export async function printTextSizeAlignSafe(text, size = '0', align = '0') {
+    const ok = await ensureConnected();
+    if (!ok) throw new Error('No hay impresora BLE configurada.');
 
-// (Opcional) por ahora no lo implementes en BLE si no lo necesitas.
-// Convertir imagen a ESC/POS por BLE requiere rasterización + comandos ESC/POS.
+    const deviceId = _connectedDeviceId;
+    const { serviceUuid, charUuid } = await pickWriteCharacteristic(deviceId);
+
+    let src = String(text ?? '');
+    if (!src.endsWith('\n')) src += '\n';
+
+    // ✅ igual que arriba
+    src = normalizeEsText(src);
+    const body = encodeEsBasic(src);
+
+    const a = String(align) === '2' ? ESC_ALIGN.right : String(align) === '1' ? ESC_ALIGN.center : ESC_ALIGN.left;
+    const s = String(size) === '2' ? ESC_SIZE.big : String(size) === '1' ? ESC_SIZE.tall : ESC_SIZE.normal;
+
+    // ✅ setup empaquetado + luego tamaño/alineación (sin sleeps)
+    await writeBytes(deviceId, serviceUuid, charUuid, setupWithAlign(align));
+    await writeBytes(deviceId, serviceUuid, charUuid, s);
+    // (a ya viene en setupWithAlign, pero si quieres forzarlo igual, deja esto)
+    // await writeBytes(deviceId, serviceUuid, charUuid, a);
+
+    await writeBytes(deviceId, serviceUuid, charUuid, body);
+
+    // ✅ reset rápido (sin sleeps grandes)
+    await writeBytes(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
+}
+
+// ---------- IMAGEN BASE64 (SIN “PAUSAS ARTIFICIALES”) ----------
 export async function printBase64Safe(base64String, align = '1', paperWidth = '48') {
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay impresora BLE configurada.');
@@ -414,79 +382,15 @@ export async function printBase64Safe(base64String, align = '1', paperWidth = '4
     const { serviceUuid, charUuid } = await pickWriteCharacteristic(deviceId);
 
     const targetWidthPx = (String(paperWidth) === '32') ? 384 : 576;
-
-    const alignCmd =
-        String(align) === '0' ? new Uint8Array([0x1B, 0x61, 0x00]) :
-            String(align) === '2' ? new Uint8Array([0x1B, 0x61, 0x02]) :
-                new Uint8Array([0x1B, 0x61, 0x01]);
-
     const raster = await rasterizeBase64ToEscPos(base64String, targetWidthPx);
 
-    // imprime imagen
-    await writeBytes(deviceId, serviceUuid, charUuid, alignCmd);
+    // ✅ setup con align en 1 solo envío
+    await writeBytes(deviceId, serviceUuid, charUuid, setupWithAlign(align));
     await writeBytes(deviceId, serviceUuid, charUuid, raster);
 
-    // feed + "flush"
-    // al final de printBase64Safe, reemplaza tu bloque final por:
-    await writeCmd(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
-    await sleep(80);
+    // feed final (sin sleeps grandes)
+    await writeBytes(deviceId, serviceUuid, charUuid, new Uint8Array([0x0A, 0x0A, 0x0A]));
 
-    // ✅ deja explícitamente CP850 listo para lo que venga
-    await writeCmd(deviceId, serviceUuid, charUuid, prefix(2));
-    await sleep(40);
-
-}
-
-export async function printTextSizeAlignSafe(text, size = '0', align = '0') {
-    const ok = await ensureConnected();
-    if (!ok) throw new Error('No hay impresora BLE configurada.');
-
-    const deviceId = _connectedDeviceId;
-    const { serviceUuid, charUuid } = await pickWriteCharacteristic(deviceId);
-
-    const a =
-        String(align) === '2' ? ESC_ALIGN.right :
-            String(align) === '1' ? ESC_ALIGN.center :
-                ESC_ALIGN.left;
-
-    const s =
-        String(size) === '2' ? ESC_SIZE.big :
-            String(size) === '1' ? ESC_SIZE.tall :
-                ESC_SIZE.normal;
-
-    let src = String(text ?? '');
-    if (!src.endsWith('\n')) src += '\n';
-
-    const body = encodeEsBasic(src);
-
-    // ✅ orden garantizado (writeCmd)
-    await writeCmd(deviceId, serviceUuid, charUuid, ESC_INIT);
-    await writeCmd(deviceId, serviceUuid, charUuid, ESC_CP);
-    await writeCmd(deviceId, serviceUuid, charUuid, a);
-    await writeCmd(deviceId, serviceUuid, charUuid, s);
-
-    // ✅ texto (rápido)
-    await writeBytes(deviceId, serviceUuid, charUuid, body);
-
-    // ✅ importante: darle un mini tiempo para que el buffer aplique
-    await sleep(40);
-
-    // ✅ reset final con response (evita “pegues”)
-    await writeCmd(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
-    await sleep(80);
-}
-
-
-
-
-
-
-export async function connectByName(name) {
-    if (!name) throw new Error('Nombre de impresora vacío');
-    await connectByScanName(name);
-    return true;
-}
-
-export async function isConnected() {
-    return !!_connectedDeviceId;
+    // deja la impresora lista para texto CP850 (sin sleeps)
+    await writeBytes(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
 }
