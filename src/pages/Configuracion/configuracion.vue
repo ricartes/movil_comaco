@@ -269,6 +269,7 @@ import store from "@/js/store";
 import {
     listPrinters,
     printTextSafe,
+    printRawText,
     disconnectPrinter,
 } from "@/app/services/Printer";
 
@@ -640,7 +641,8 @@ export default {
 
             const dlg = f7.dialog.preloader("Imprimiendo…");
             try {
-                await printTextSafe("Prueba de impresión\n\n"); // ✅ facade decide SPP vs BLE
+                await printRawText("¡ÁÉÑ! áéñ"); // Debe salir PERFECTO
+
                 f7.toast
                     .create({ text: "Impresión enviada", closeTimeout: 1500 })
                     .open();
