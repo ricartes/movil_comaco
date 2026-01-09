@@ -59,8 +59,8 @@
                     :disabled="!isAndroid || loading || printers.length === 0"
                 >
                     <option value="" disabled>Seleccione modo…</option>
-                    <option value="spp">SPP (Bluetooth Classic)</option>
-                    <option value="ble">BLE (Bluetooth Low Energy)</option>
+                    <option value="spp">Bluetooth normal (recomendado)</option>
+                    <option value="ble">Bluetooth de bajo consumo</option>
                 </select>
             </f7-list-item>
 
@@ -116,14 +116,12 @@
                 <div>
                     <strong>Modo de conexión de la impresora</strong><br />
                     <small>
-                        • <b>SPP (Bluetooth Classic)</b>: recomendado para la
-                        mayoría de las impresoras térmicas estándar (Epson,
-                        Bixolon, Rongta, etc.).<br />
-                        • <b>BLE (Bluetooth Low Energy)</b>: usar solo en
-                        impresoras chinas o modelos que no funcionen en modo
-                        clásico.<br />
+                        • <b>Bluetooth normal</b>: recomendado para la mayoría
+                        de las impresoras térmicas.<br />
+                        • <b>Bluetooth de bajo consumo</b>: usar solo si la
+                        impresora no funciona con el modo normal.<br />
                         <span class="text-muted">
-                            Si no estás seguro, utiliza <b>SPP</b>.
+                            Si no estás seguro, utiliza <b>Bluetooth normal</b>.
                         </span>
                     </small>
                 </div>
@@ -435,16 +433,18 @@ export default {
         ssLabelMode() {
             if (!this.isAndroid) return "No disponible en este dispositivo";
             if (this.loading) return "Cargando…";
-            if (this.currentMode === "spp") return "Modo actual: SPP (Classic)";
-            if (this.currentMode === "ble") return "Modo actual: BLE (LE)";
-            return "Seleccione modo…";
+            if (this.currentMode === "spp")
+                return "Modo actual: Bluetooth normal (recomendado)";
+            if (this.currentMode === "ble")
+                return "Modo actual: Bluetooth de bajo consumo";
+            return "Seleccione modo de conexión…";
         },
-
         selectedModeHuman() {
             if (!this.selectedModeModel) return this.ssLabelMode();
+
             return this.selectedModeModel === "ble"
-                ? "BLE (LE)"
-                : "SPP (Classic)";
+                ? "Bluetooth de bajo consumo"
+                : "Bluetooth normal (recomendado)";
         },
 
         updateSSLabel() {
