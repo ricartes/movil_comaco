@@ -77,6 +77,7 @@ function carga_parametros() {
                             return false;
                         }
                     } catch (ex) {
+                        console.log(ex);
                         throw ex;
                     }
 
@@ -192,6 +193,7 @@ function carga_parametros() {
                     });
 
                 } catch (e) {
+                    console.log(e);
                     console.error("Error en carga_parametros:", e);
                     envio_automatico_activado = 1;
                     $$(".link").removeClass("disabled");

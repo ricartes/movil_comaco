@@ -37,7 +37,13 @@ async function validarVersionApp() {
     const ruta = paramServidor.PAG_VALOR + "/Webserviceproveedor.asmx/Cargar_Parametro_General";
 
     // 2) Consumir el asmx con fetch (POST x-www-form-urlencoded)
-    const body = new URLSearchParams({ id_emp: empresa }).toString();
+    const body = new URLSearchParams({
+        id_emp: empresa,
+        uuid: Obtener_dato_local("uid") || "",
+        versionApp: Obtener_dato_local("version_app") || ""
+    }).toString();
+
+
 
     const response = await fetch(ruta, {
         method: "POST",
@@ -47,6 +53,7 @@ async function validarVersionApp() {
         body: body
     });
 
+    console.log(response);
     if (!response.ok) {
         throw new Error("Error HTTP: " + response.status);
     }

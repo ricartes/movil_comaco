@@ -368,6 +368,7 @@ document.addEventListener("deviceready", async function () {
     }
 
     $$("#uid_movil").text("UUID: " + device.uuid);
+    Guardar_dato_local("uid", device.uuid);
 
     ls.open(false);
 

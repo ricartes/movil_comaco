@@ -129,7 +129,11 @@ function cargar_orden_compra(cod_proveedor, empresa, porcentaje_actual, callback
                 type: "POST",
                 url: ruta,
                 contetType: 'application/json; charset=utf-8',
-                data: { cod_proveedor: cod_proveedor },
+                data: {
+                    cod_proveedor: cod_proveedor,
+                    uuid: Obtener_dato_local("uid") || "",
+                    versionApp: Obtener_dato_local("version_app") || ""
+                },
                 dataType: 'xml',
                 success: function (data) {
 
@@ -188,6 +192,7 @@ function cargar_orden_compra(cod_proveedor, empresa, porcentaje_actual, callback
 
                 },
                 error: function (err) {
+                    alert(JSON.stringify(err));
                     // handle your error logic here
                     typeof callback == "function" && callback(-1);
                 }
@@ -306,7 +311,10 @@ function cargar_transporte(rut, porcentaje_actual, callback) {
                 type: "POST",
                 url: ruta,
                 contetType: 'application/json; charset=utf-8',
-                data: {},
+                data: {
+                    uuid: Obtener_dato_local("uid") || "",
+                    versionApp: Obtener_dato_local("version_app") || ""
+                },
                 dataType: 'xml',
                 success: function (data) {
 
@@ -382,7 +390,10 @@ function cargar_patente_ex(rut, empresa, porcentaje_actual, callback) {
                 type: "POST",
                 url: ruta,
                 contetType: 'application/json; charset=utf-8',
-                data: {},
+                data: {
+                    uuid: Obtener_dato_local("uid") || "",
+                    versionApp: Obtener_dato_local("version_app") || ""
+                },
                 dataType: 'xml',
                 success: function (data) {
                     var tamano = parseInt($(data).find('tam_lista').text());
@@ -595,7 +606,10 @@ function cargar_parametros_generales(rut, empresa, porcentaje_actual, callback) 
                 type: "POST",
                 url: ruta,
                 contetType: 'application/json; charset=utf-8',
-                data: { id_emp: empresa },
+                data: {
+                    id_emp: empresa, uuid: Obtener_dato_local("uid") || "",
+                    versionApp: Obtener_dato_local("version_app") || ""
+                },
                 dataType: 'xml',
                 success: function (data) {
 
@@ -1000,7 +1014,7 @@ function enviar_guias(bandera, callback) {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
         ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V2';
-        
+
         DATOS_seleccionar_gde_por_enviar("0", function (result) {
             //alert(result);
             if (result == -1) {
@@ -1882,7 +1896,10 @@ function ws_cargaGeocercas(rut, empresa, porcentaje_actual, callback) {
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
         let ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Rescate_geocerca';
-        let cadenaParam = "cod_proveedor=1";
+        let cadenaParam =
+            "cod_proveedor=1" +
+            "&uuid=" + encodeURIComponent(Obtener_dato_local("uid") || "") +
+            "&versionApp=" + encodeURIComponent(Obtener_dato_local("version_app") || "");
         axios
             .post(ruta, cadenaParam)
             .then((response) => {
