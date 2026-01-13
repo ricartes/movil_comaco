@@ -1,358 +1,372 @@
 <template>
-    <!-- Card resumen (producto/largo/precio) -->
-    <f7-card class="mr-card">
-        <f7-card-content>
-            <table class="data-table" style="width: 100%">
-                <tbody>
-                    <tr>
-                        <td class="label-cell"><b>Producto:</b></td>
-                        <td>{{ doc.producto.nombreProducto ?? "—" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Largo:</b></td>
-                        <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Precio unitario:</b></td>
-                        <td class="value-cell">
-                            <div class="price-with-badge">
-                                {{
-                                    formatMoneyCLP(
-                                        doc.precioProducto?.precio ?? 0
-                                    )
-                                }}
-                                <f7-badge
-                                    v-if="
-                                        doc.precioProducto
-                                            ?.indicadorPrecioPorDefecto
-                                    "
-                                    color="orange"
-                                    class="badge-default"
-                                >
-                                    por defecto
-                                </f7-badge>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- ancho secuencia solo si aplica -->
-                    <tr v-if="requiereAnchoSecuencia">
-                        <td class="label-cell"><b>Ancho secuencia:</b></td>
-                        <td style="padding-bottom: 10px">
-                            <template v-if="!soloLectura">
-                                <label
-                                    v-for="op in [2.3, 2.35, 2.4]"
-                                    :key="op"
-                                    class="option-row padding-top"
-                                >
-                                    <f7-radio
-                                        name="ancho-secuencia"
-                                        :checked="anchoSecuencia === op"
-                                        @change="() => setAnchoSecuencia(op)"
-                                    />
-                                    <span>{{
-                                        op.toFixed(cantidadDecimalesMr)
-                                    }}</span>
-                                </label>
-                            </template>
-                            <template v-else>
-                                <span class="mono">
-                                    {{
-                                        anchoSecuencia?.toFixed(
-                                            cantidadDecimalesMr
-                                        ) ?? "—"
-                                    }}
-                                </span>
-                            </template>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </f7-card-content>
-    </f7-card>
-
-    <!-- “Ticket” CAMIÓN -->
-    <f7-card class="ticket ticket-camion">
-        <f7-card-content>
-            <div class="ticket-header">
-                <div class="ticket-icon">🚚</div>
-                <div class="ticket-title">
-                    <div class="title">Camión</div>
-                    <div class="subtitle">
-                        {{ doc?.patenteCamion?.patCamion ?? "—" }}
-
-                        <span v-if="tieneAnchoCamionDoc" class="pill">
-                            ancho:
-                            {{
-                                Number(anchoCamionDoc).toFixed(
-                                    cantidadDecimalesMr
-                                )
-                            }}
-                            metros.
-                        </span>
-                        <span v-else class="pill pill-warn">sin ancho</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ticket-body">
-                <table class="tabla">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Ancho</th>
-                            <th>H. Izq</th>
-                            <th>H. Der</th>
-                            <th>Vol</th>
-                        </tr>
-                    </thead>
-
+    <div class="detalle-mr-root">
+        <!-- Card resumen (producto/largo/precio) -->
+        <f7-card class="mr-card">
+            <f7-card-content>
+                <table class="data-table" style="width: 100%">
                     <tbody>
-                        <tr
-                            v-for="banco in bancosCamion"
-                            :key="'C-' + banco.id"
-                        >
-                            <td class="center">
-                                {{ banco.ordenTipo ?? banco.id }}
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.ancho"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'ancho',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.alturaIzquierda"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'alturaIzquierda',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.alturaDerecha"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'alturaDerecha',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td class="right mono">
-                                {{
-                                    (Number(banco.volumen) || 0).toFixed(
-                                        cantidadDecimalesMr
-                                    )
-                                }}
+                        <tr>
+                            <td class="label-cell"><b>Producto:</b></td>
+                            <td>{{ doc.producto.nombreProducto ?? "—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Largo:</b></td>
+                            <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Precio unitario:</b></td>
+                            <td class="value-cell">
+                                <div class="price-with-badge">
+                                    {{
+                                        formatMoneyCLP(
+                                            doc.precioProducto?.precio ?? 0
+                                        )
+                                    }}
+                                    <f7-badge
+                                        v-if="
+                                            doc.precioProducto
+                                                ?.indicadorPrecioPorDefecto
+                                        "
+                                        color="orange"
+                                        class="badge-default"
+                                    >
+                                        por defecto
+                                    </f7-badge>
+                                </div>
                             </td>
                         </tr>
 
-                        <tr v-if="bancosCamion.length === 0">
-                            <td colspan="5" class="empty-row">
-                                No hay bancos de camión
+                        <!-- ancho secuencia solo si aplica -->
+                        <tr v-if="requiereAnchoSecuencia">
+                            <td class="label-cell"><b>Ancho secuencia:</b></td>
+                            <td style="padding-bottom: 10px">
+                                <template v-if="!soloLectura">
+                                    <label
+                                        v-for="op in [2.3, 2.35, 2.4]"
+                                        :key="op"
+                                        class="option-row padding-top"
+                                    >
+                                        <f7-radio
+                                            name="ancho-secuencia"
+                                            :checked="anchoSecuencia === op"
+                                            @change="
+                                                () => setAnchoSecuencia(op)
+                                            "
+                                        />
+                                        <span>{{
+                                            op.toFixed(cantidadDecimalesMr)
+                                        }}</span>
+                                    </label>
+                                </template>
+                                <template v-else>
+                                    <span class="mono">
+                                        {{
+                                            anchoSecuencia?.toFixed(
+                                                cantidadDecimalesMr
+                                            ) ?? "—"
+                                        }}
+                                    </span>
+                                </template>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </f7-card-content>
+        </f7-card>
 
-                <div class="ticket-footer">
+        <!-- “Ticket” CAMIÓN -->
+        <f7-card class="ticket ticket-camion">
+            <f7-card-content>
+                <div class="ticket-header">
+                    <div class="ticket-icon">🚚</div>
+                    <div class="ticket-title">
+                        <div class="title">Camión</div>
+                        <div class="subtitle">
+                            {{ doc?.patenteCamion?.patCamion ?? "—" }}
+
+                            <span v-if="tieneAnchoCamionDoc" class="pill">
+                                ancho:
+                                {{
+                                    Number(anchoCamionDoc).toFixed(
+                                        cantidadDecimalesMr
+                                    )
+                                }}
+                                metros.
+                            </span>
+                            <span v-else class="pill pill-warn">sin ancho</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ticket-body">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Ancho</th>
+                                <th>H. Izq</th>
+                                <th>H. Der</th>
+                                <th>Vol</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="banco in bancosCamion"
+                                :key="'C-' + banco.id"
+                            >
+                                <td class="center">
+                                    {{ banco.ordenTipo ?? banco.id }}
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.ancho"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'ancho',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.alturaIzquierda"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'alturaIzquierda',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.alturaDerecha"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'alturaDerecha',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td class="right mono">
+                                    {{
+                                        (Number(banco.volumen) || 0).toFixed(
+                                            cantidadDecimalesMr
+                                        )
+                                    }}
+                                </td>
+                            </tr>
+
+                            <tr v-if="bancosCamion.length === 0">
+                                <td colspan="5" class="empty-row">
+                                    No hay bancos de camión
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="ticket-footer">
+                        <span
+                            ><b>Vol. Camión:</b>
+                            {{ volumenCamion.toFixed(cantidadDecimalesMr) }}
+                            MR</span
+                        >
+                        <span class="sep">•</span>
+                        <span
+                            ><b>Total Camión:</b>
+                            {{ formatMoneyCLP(totalCamion) }}</span
+                        >
+                    </div>
+                </div>
+            </f7-card-content>
+        </f7-card>
+
+        <f7-card
+            v-if="tieneCarroDoc && bancosCarro.length > 0"
+            class="ticket ticket-carro"
+        >
+            <f7-card-content>
+                <div class="ticket-header">
+                    <div class="ticket-icon">🛻</div>
+                    <div class="ticket-title">
+                        <div class="title">Carro</div>
+                        <div class="subtitle">
+                            {{ patenteCarroTexto }}
+
+                            <span v-if="tieneAnchoCarroDoc" class="pill">
+                                ancho:
+                                {{
+                                    Number(anchoCarroDoc).toFixed(
+                                        cantidadDecimalesMr
+                                    )
+                                }}
+                                metros.
+                            </span>
+                            <span v-else class="pill pill-warn">sin ancho</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ticket-body">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Ancho</th>
+                                <th>H. Izq</th>
+                                <th>H. Der</th>
+                                <th>Vol</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="banco in bancosCarro"
+                                :key="'R-' + banco.id"
+                            >
+                                <td class="center">
+                                    {{ banco.ordenTipo ?? banco.id }}
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.ancho"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'ancho',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.alturaIzquierda"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'alturaIzquierda',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td>
+                                    <f7-input
+                                        type="number"
+                                        inputmode="decimal"
+                                        step="0.01"
+                                        :value="banco.alturaDerecha"
+                                        :disabled="soloLectura"
+                                        @input="
+                                            (e) =>
+                                                onNum(
+                                                    banco,
+                                                    'alturaDerecha',
+                                                    e,
+                                                    idxGlobal(banco)
+                                                )
+                                        "
+                                    />
+                                </td>
+
+                                <td class="right mono">
+                                    {{
+                                        (Number(banco.volumen) || 0).toFixed(
+                                            cantidadDecimalesMr
+                                        )
+                                    }}
+                                </td>
+                            </tr>
+
+                            <tr v-if="bancosCarro.length === 0">
+                                <td colspan="5" class="empty-row">
+                                    No hay bancos de carro
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="ticket-footer">
+                        <span
+                            ><b>Vol. Carro:</b>
+                            {{
+                                volumenCarro.toFixed(cantidadDecimalesMr)
+                            }}
+                            MR</span
+                        >
+                        <span class="sep">•</span>
+                        <span
+                            ><b>Total Carro:</b>
+                            {{ formatMoneyCLP(totalCarro) }}</span
+                        >
+                    </div>
+                </div>
+            </f7-card-content>
+        </f7-card>
+
+        <!-- Totales -->
+        <f7-card class="mr-card">
+            <f7-card-content>
+                <div class="stack-line totals">
                     <span
-                        ><b>Vol. Camión:</b>
-                        {{ volumenCamion.toFixed(cantidadDecimalesMr) }}
-                        MR</span
+                        ><b>Total Volumen MR:</b>
+                        {{ totalVolumen.toFixed(cantidadDecimalesMr) }}</span
                     >
                     <span class="sep">•</span>
                     <span
-                        ><b>Total Camión:</b>
-                        {{ formatMoneyCLP(totalCamion) }}</span
+                        ><b>Total Guía:</b>
+                        {{ formatMoneyCLP(totalGuia) }}</span
                     >
                 </div>
-            </div>
-        </f7-card-content>
-    </f7-card>
+            </f7-card-content>
+        </f7-card>
+    </div>
 
     <!-- “Ticket” CARRO -->
-    <f7-card
-        v-if="tieneCarroDoc && bancosCarro.length > 0"
-        class="ticket ticket-carro"
-    >
-        <f7-card-content>
-            <div class="ticket-header">
-                <div class="ticket-icon">🛻</div>
-                <div class="ticket-title">
-                    <div class="title">Carro</div>
-                    <div class="subtitle">
-                        {{ patenteCarroTexto }}
-
-                        <span v-if="tieneAnchoCarroDoc" class="pill">
-                            ancho:
-                            {{
-                                Number(anchoCarroDoc).toFixed(
-                                    cantidadDecimalesMr
-                                )
-                            }}
-                            metros.
-                        </span>
-                        <span v-else class="pill pill-warn">sin ancho</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ticket-body">
-                <table class="tabla">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Ancho</th>
-                            <th>H. Izq</th>
-                            <th>H. Der</th>
-                            <th>Vol</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr v-for="banco in bancosCarro" :key="'R-' + banco.id">
-                            <td class="center">
-                                {{ banco.ordenTipo ?? banco.id }}
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.ancho"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'ancho',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.alturaIzquierda"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'alturaIzquierda',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td>
-                                <f7-input
-                                    type="number"
-                                    inputmode="decimal"
-                                    step="0.01"
-                                    :value="banco.alturaDerecha"
-                                    :disabled="soloLectura"
-                                    @input="
-                                        (e) =>
-                                            onNum(
-                                                banco,
-                                                'alturaDerecha',
-                                                e,
-                                                idxGlobal(banco)
-                                            )
-                                    "
-                                />
-                            </td>
-
-                            <td class="right mono">
-                                {{
-                                    (Number(banco.volumen) || 0).toFixed(
-                                        cantidadDecimalesMr
-                                    )
-                                }}
-                            </td>
-                        </tr>
-
-                        <tr v-if="bancosCarro.length === 0">
-                            <td colspan="5" class="empty-row">
-                                No hay bancos de carro
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="ticket-footer">
-                    <span
-                        ><b>Vol. Carro:</b>
-                        {{ volumenCarro.toFixed(cantidadDecimalesMr) }} MR</span
-                    >
-                    <span class="sep">•</span>
-                    <span
-                        ><b>Total Carro:</b>
-                        {{ formatMoneyCLP(totalCarro) }}</span
-                    >
-                </div>
-            </div>
-        </f7-card-content>
-    </f7-card>
-
-    <!-- Totales -->
-    <f7-card class="mr-card">
-        <f7-card-content>
-            <div class="stack-line totals">
-                <span
-                    ><b>Total Volumen MR:</b>
-                    {{ totalVolumen.toFixed(cantidadDecimalesMr) }}</span
-                >
-                <span class="sep">•</span>
-                <span><b>Total Guía:</b> {{ formatMoneyCLP(totalGuia) }}</span>
-            </div>
-        </f7-card-content>
-    </f7-card>
 </template>
 
 

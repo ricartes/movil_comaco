@@ -512,7 +512,7 @@
             <f7-list-item
                 v-if="this.form.conductor && this.conductorValido"
                 :key="`${form.conductor.rutChofer}`"
-                :title="`Carguios (Ingrese ${maximoCarguios})`"
+                :title="`Carguios (Opcional-Ingrese ${maximoCarguios})`"
                 class="carguio-select"
                 ref="carguio"
                 smart-select
@@ -536,7 +536,7 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="this.form.carguios.length === maximoCarguios"
+                v-if="this.form.carguios.length > 0"
                 :key="`pcarg-${(form.carguios || [])
                     .map((c) => c.rutCarguio)
                     .join(',')}`"
@@ -564,7 +564,8 @@
             <f7-list-item
                 v-if="
                     this.form.predio &&
-                    this.form.patentesCarguio.length === maximoCarguios
+                    this.form.conductor &&
+                    this.conductorValido
                 "
                 :key="`rodal-${form.predio?.rolPredio || ''}-${(
                     form.patentesCarguio || []
@@ -1765,31 +1766,55 @@ export default {
         },
 
         async handleCarguioChange(e) {
-            // array de valores seleccionados
-            const values = Array.from(e.target.selectedOptions).map(
+            // valores seleccionados
+            let values = Array.from(e.target.selectedOptions).map(
                 (o) => o.value
             );
-            // buscar los objetos carguio correspondientes
+
+            // limitar a maximoCarguios (nos quedamos con los últimos seleccionados)
+            if (values.length > this.maximoCarguios) {
+                values = values.slice(values.length - this.maximoCarguios);
+
+                // reflejar límite en el DOM (desmarca lo extra)
+                const allowed = new Set(values);
+                Array.from(e.target.options).forEach((opt) => {
+                    opt.selected = allowed.has(opt.value);
+                });
+            }
+
+            // guardar objetos carguío
             this.form.carguios = values
                 .map((v) => this.carguios.find((p) => p.rutCarguio === v))
-                .filter(Boolean); // descarta nulls*/
+                .filter(Boolean);
+
+            // si cambian carguíos, las patentes ya no aplican
+            this.form.patentesCarguio = [];
 
             await this.$nextTick();
-            this.resetDesde("carguio"); // limpia dependencias
-            this.cargarPatentesCarguio();
+            this.resetDesde("carguio"); // limpia dependencias posteriores
+            await this.cargarPatentesCarguio();
         },
 
         async handlePatentesCarguioChange(e) {
-            const values = Array.from(e.target.selectedOptions).map(
+            let values = Array.from(e.target.selectedOptions).map(
                 (o) => o.value
             );
-            // buscar los objetos carguio correspondientes
-            this.form.patentesCarguio = values
-                .map((v) => this.patentesCarguio.find((p) => p === v))
-                .filter(Boolean); // descarta nulls*/
+
+            // limitar a maximoCarguios
+            if (values.length > this.maximoCarguios) {
+                values = values.slice(values.length - this.maximoCarguios);
+
+                const allowed = new Set(values);
+                Array.from(e.target.options).forEach((opt) => {
+                    opt.selected = allowed.has(opt.value);
+                });
+            }
+
+            // guardar strings (patentes)
+            this.form.patentesCarguio = values.filter(Boolean);
 
             await this.$nextTick();
-            this.resetDesde("patenteCarguio"); // limpia dependencias
+            this.resetDesde("patenteCarguio"); // limpia dependencias posteriores
         },
 
         async cargarPatentesCarguio() {
@@ -2068,10 +2093,18 @@ export default {
             }
             if (nivel === "conductor") {
                 this.form.carguios = [];
+                this.form.patentesCarguio = [];
+                this.patentesCarguio = [];
+
                 this.clearSmartSelect(".carguio-select", "Seleccione Carguíos");
+                this.clearSmartSelect(
+                    ".patente-carguio-select",
+                    "Seleccione Patentes carguío"
+                );
 
                 nivel = "carguio";
             }
+
             if (nivel === "carguio") {
                 this.patentesCarguio = [];
                 this.form.patentesCarguio = [];
@@ -2111,6 +2144,11 @@ export default {
         },
         async ingresar() {
             // Un solo preloader para todo el
+
+            if (!this.validarCarguiosYPatentes()) {
+                return false;
+            }
+
             const origenLocal = config?.parametros?.origenGde?.local ?? 1;
             f7.dialog.preloader("Guardando GDE…");
 
@@ -2179,6 +2217,21 @@ export default {
         onValidezConductor(v) {
             // v = { rut: boolean, nombre: boolean, ok: boolean }
             this.conductorValido = v;
+        },
+        validarCarguiosYPatentes() {
+            const nC = this.form.carguios?.length || 0;
+            const nP = this.form.patentesCarguio?.length || 0;
+
+            // Regla: carguíos es opcional, pero si hay N carguíos, debe haber N patentes
+            if (nC > 0 && nP !== nC) {
+                f7.dialog.alert(
+                    `Seleccionaste ${nC} carguío(s). Debes seleccionar ${nC} patente(s) de carguío para continuar.`,
+                    "Validación"
+                );
+                return false;
+            }
+
+            return true;
         },
 
         async scrollTo(opts = {}) {

@@ -1,77 +1,84 @@
 <template>
-    <f7-card>
-        <f7-card-content>
-            <table class="data-table" style="width: 100%">
-                <tbody>
-                    <tr>
-                        <td class="label-cell"><b>Producto:</b></td>
-                        <td>{{ doc.producto.nombreProducto ?? "—" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Largo:</b></td>
-                        <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Precio unitario:</b></td>
-                        <td class="value-cell">
-                            <div class="price-with-badge">
-                                {{
-                                    formatMoneyCLP(
-                                        doc.precioProducto?.precio ?? 0
-                                    )
-                                }}
-                                <f7-badge
-                                    v-if="
-                                        doc.precioProducto
-                                            ?.indicadorPrecioPorDefecto
-                                    "
-                                    color="orange"
-                                    class="badge-default"
+    <div class="detalle-ton-root">
+        <f7-card>
+            <f7-card-content>
+                <table class="data-table" style="width: 100%">
+                    <tbody>
+                        <tr>
+                            <td class="label-cell"><b>Producto:</b></td>
+                            <td>{{ doc.producto.nombreProducto ?? "—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Largo:</b></td>
+                            <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Precio unitario:</b></td>
+                            <td class="value-cell">
+                                <div class="price-with-badge">
+                                    {{
+                                        formatMoneyCLP(
+                                            doc.precioProducto?.precio ?? 0
+                                        )
+                                    }}
+                                    <f7-badge
+                                        v-if="
+                                            doc.precioProducto
+                                                ?.indicadorPrecioPorDefecto
+                                        "
+                                        color="orange"
+                                        class="badge-default"
+                                    >
+                                        por defecto
+                                    </f7-badge>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">
+                                <b
+                                    >Ingreso
+                                    {{
+                                        doc.producto?.unidadMedida ?? "TON"
+                                    }}:</b
                                 >
-                                    por defecto
-                                </f7-badge>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell">
-                            <b
-                                >Ingreso
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <f7-block strong inset class="margin-top">
+                    <f7-list no-hairlines-md>
+                        <f7-list-input
+                            label="Volumen"
+                            type="number"
+                            placeholder="Ingrese volumen"
+                            clear-button
+                            :value="volumen"
+                            :disabled="soloLectura"
+                            @input="onInputVolumen"
+                        />
+                    </f7-list>
+
+                    <div class="stack-line totals">
+                        <span
+                            ><b
+                                >Total Volumen
                                 {{ doc.producto?.unidadMedida ?? "TON" }}:</b
                             >
-                        </td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <f7-block strong inset class="margin-top">
-                <f7-list no-hairlines-md>
-                    <f7-list-input
-                        label="Volumen"
-                        type="number"
-                        placeholder="Ingrese volumen"
-                        clear-button
-                        :value="volumen"
-                        :disabled="soloLectura"
-                        @input="onInputVolumen"
-                    />
-                </f7-list>
-
-                <div class="stack-line totals">
-                    <span
-                        ><b
-                            >Total Volumen
-                            {{ doc.producto?.unidadMedida ?? "TON" }}:</b
+                            {{ volumen }}</span
                         >
-                        {{ volumen }}</span
-                    >
-                    <span class="sep">•</span>
-                    <span><b>Total Guía:</b> {{ formatMoneyCLP(valor) }}</span>
-                </div>
-            </f7-block>
-        </f7-card-content>
-    </f7-card>
+                        <span class="sep">•</span>
+                        <span
+                            ><b>Total Guía:</b>
+                            {{ formatMoneyCLP(valor) }}</span
+                        >
+                    </div>
+                </f7-block>
+            </f7-card-content>
+        </f7-card>
+    </div>
 </template>
 
 <script>

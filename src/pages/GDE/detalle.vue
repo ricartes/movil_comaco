@@ -316,58 +316,55 @@ export default {
     },
 
     methods: {
-        volverHaciaIngresoMr() {
+        async volverHaciaIngresoMr() {
+            // abre el accordion
             f7.accordion.open(".detalle-unidad");
 
-            // intenta scrollear al root del componente MR
+            // espera a que el DOM esté listo
+            await this.$nextTick();
+
             const vm = this.$refs.detalleMrRef;
-            // 1) si expone $el (componente Vue)
-            const el =
-                vm?.$el?.querySelector?.(".detalle-mr-root") || vm?.$el || null;
-            // 2) fallback por si quieres scrollear a todo el list-item
-            const fallback = document.querySelector(".detalle-unidad");
 
-            (el || fallback)?.scrollIntoView({
+            const el =
+                (vm?.$el instanceof HTMLElement &&
+                    vm.$el.querySelector(".detalle-mr-root")) ||
+                (vm?.$el instanceof HTMLElement && vm.$el) ||
+                document.querySelector(".detalle-unidad");
+
+            el?.scrollIntoView?.({
                 behavior: "smooth",
                 block: "center",
             });
         },
 
-        volverHaciaIngresoM3() {
+        async volverHaciaIngresoM3() {
             f7.accordion.open(".detalle-unidad");
+            await this.$nextTick();
 
-            // intenta scrollear al root del componente MR
             const vm = this.$refs.detalleM3Ref;
-            // 1) si expone $el (componente Vue)
             const el =
-                vm?.$el?.querySelector?.(".detalle-m3-root") || vm?.$el || null;
-            // 2) fallback por si quieres scrollear a todo el list-item
-            const fallback = document.querySelector(".detalle-unidad");
+                (vm?.$el instanceof HTMLElement &&
+                    vm.$el.querySelector(".detalle-m3-root")) ||
+                (vm?.$el instanceof HTMLElement && vm.$el) ||
+                document.querySelector(".detalle-unidad");
 
-            (el || fallback)?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
+            el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
         },
 
-        volverHaciaIngresoTon() {
+        async volverHaciaIngresoTon() {
             f7.accordion.open(".detalle-unidad");
+            await this.$nextTick();
 
-            // intenta scrollear al root del componente MR
             const vm = this.$refs.detalleTonRef;
-            // 1) si expone $el (componente Vue)
             const el =
-                vm?.$el?.querySelector?.(".detalle-ton-root") ||
-                vm?.$el ||
-                null;
-            // 2) fallback por si quieres scrollear a todo el list-item
-            const fallback = document.querySelector(".detalle-unidad");
+                (vm?.$el instanceof HTMLElement &&
+                    vm.$el.querySelector(".detalle-ton-root")) ||
+                (vm?.$el instanceof HTMLElement && vm.$el) ||
+                document.querySelector(".detalle-unidad");
 
-            (el || fallback)?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
+            el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
         },
+
         validarIngresoVolumenes() {
             if (this.requiereValidacionMR && !this.detalleValidoMR) {
                 this.volverHaciaIngresoMr();

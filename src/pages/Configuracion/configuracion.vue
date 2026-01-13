@@ -321,6 +321,11 @@ export default {
             return store.state?.printer?.paperWidth ?? null;
         },
         currentMode() {
+            // Si el usuario ya eligió modo en esta sesión, usa eso
+            if (this.selectedModeModel) {
+                return this.selectedModeModel;
+            }
+            // fallback al store (hidratar / persistencia)
             return store.state?.printer?.mode || null;
         },
 
@@ -466,7 +471,6 @@ export default {
             const mode = String(e?.target?.value || "");
             if (!["spp", "ble"].includes(mode)) return;
 
-            // 🔥 corta lo anterior
             try {
                 await disconnectPrinter();
             } catch {}
@@ -635,7 +639,7 @@ export default {
                 return;
             }
             if (!this.currentMode) {
-                f7.dialog.alert("Seleccione el modo de conexión (SPP o BLE).");
+                f7.dialog.alert("Seleccione el modo de conexión.");
                 return;
             }
 

@@ -1,148 +1,143 @@
 <template>
     <!-- Cabecera producto -->
-    <f7-card>
-        <f7-card-content>
-            <table class="data-table" style="width: 100%">
-                <tbody>
-                    <tr>
-                        <td class="label-cell"><b>Producto:</b></td>
-                        <td>{{ doc.producto?.nombreProducto ?? "—" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Largo:</b></td>
-                        <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><b>Precio unitario:</b></td>
-                        <td class="value-cell">
-                            <div class="price-with-badge">
-                                {{
-                                    formatMoneyCLP(
-                                        doc.precioProducto?.precio ?? 0
-                                    )
-                                }}
-                                <f7-badge
-                                    v-if="
-                                        doc.precioProducto
-                                            ?.indicadorPrecioPorDefecto
-                                    "
-                                    color="orange"
-                                    class="badge-default"
-                                >
-                                    por defecto
-                                </f7-badge>
+
+    <div class="detalle-m3-root">
+        <f7-card>
+            <f7-card-content>
+                <table class="data-table" style="width: 100%">
+                    <tbody>
+                        <tr>
+                            <td class="label-cell"><b>Producto:</b></td>
+                            <td>{{ doc.producto?.nombreProducto ?? "—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Largo:</b></td>
+                            <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell"><b>Precio unitario:</b></td>
+                            <td class="value-cell">
+                                <div class="price-with-badge">
+                                    {{
+                                        formatMoneyCLP(
+                                            doc.precioProducto?.precio ?? 0
+                                        )
+                                    }}
+                                    <f7-badge
+                                        v-if="
+                                            doc.precioProducto
+                                                ?.indicadorPrecioPorDefecto
+                                        "
+                                        color="orange"
+                                        class="badge-default"
+                                    >
+                                        por defecto
+                                    </f7-badge>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </f7-card-content>
+        </f7-card>
+
+        <!-- GRID responsive de diámetros (2 por fila) -->
+        <div class="m3-grid" v-if="!soloLectura">
+            <div class="grid grid-cols-2 grid-gap">
+                <f7-card
+                    v-for="(fila, i) in filasVisibles"
+                    :key="fila.diametro"
+                    class="m3-item-card"
+                >
+                    <f7-card-content class="m3-item">
+                        <!-- Arriba: Ø -->
+                        <div class="m3-item-top">Ø {{ fila.diametro }}</div>
+
+                        <!-- Medio: trozos / stepper -->
+                        <div class="m3-item-middle">
+                            <template v-if="!soloLectura">
+                                <f7-stepper
+                                    small
+                                    round
+                                    fill
+                                    :min="0"
+                                    :max="100"
+                                    :step="1"
+                                    input
+                                    :value="fila.trozos"
+                                    @change="(val) => onStepperChange(i, val)"
+                                />
+                            </template>
+                            <template v-else>
+                                <div class="trozos-readonly">
+                                    {{ fila.trozos }}
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Abajo: vol + total -->
+                        <div class="m3-item-bottom">
+                            <div class="mono">
+                                {{ fila.volumen.toFixed(cantidadDecimalesM3) }}
+                                m³
                             </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </f7-card-content>
-    </f7-card>
+                            <div class="mono">
+                                {{ formatMoneyCLP(fila.totalPrecio) }}
+                            </div>
+                        </div>
+                    </f7-card-content>
+                </f7-card>
+            </div>
+        </div>
 
-    <!-- GRID responsive de diámetros (2 por fila) -->
-    <div class="m3-grid" v-if="!soloLectura">
-        <div class="grid grid-cols-2 grid-gap">
-            <f7-card
-                v-for="(fila, i) in filasVisibles"
-                :key="fila.diametro"
-                class="m3-item-card"
-            >
-                <f7-card-content class="m3-item">
-                    <!-- Arriba: Ø -->
-                    <div class="m3-item-top">Ø {{ fila.diametro }}</div>
-
-                    <!-- Medio: trozos / stepper -->
-                    <div class="m3-item-middle">
-                        <template v-if="!soloLectura">
-                            <f7-stepper
-                                small
-                                round
-                                fill
-                                :min="0"
-                                :max="100"
-                                :step="1"
-                                input
-                                :value="fila.trozos"
-                                @change="(val) => onStepperChange(i, val)"
-                            />
-                        </template>
-                        <template v-else>
-                            <div class="trozos-readonly">
+        <div class="data-table data-table-init card" v-else>
+            <div class="card-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ø</th>
+                            <th class="numeric-cell">Trozos</th>
+                            <th class="numeric-cell">Totales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="fila in filasVisibles" :key="fila.diametro">
+                            <td class="numeric-cell">
+                                {{ fila.diametro }}
+                            </td>
+                            <td class="numeric-cell">
                                 {{ fila.trozos }}
-                            </div>
-                        </template>
-                    </div>
+                            </td>
 
-                    <!-- Abajo: vol + total -->
-                    <div class="m3-item-bottom">
-                        <div class="mono">
-                            {{ fila.volumen.toFixed(cantidadDecimalesM3) }} m³
-                        </div>
-                        <div class="mono">
-                            {{ formatMoneyCLP(fila.totalPrecio) }}
-                        </div>
-                    </div>
-                </f7-card-content>
-            </f7-card>
-        </div>
-    </div>
-
-    <div class="data-table data-table-init card" v-else>
-        <div class="card-content">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ø</th>
-                        <th class="numeric-cell">Trozos</th>
-                        <th class="numeric-cell">Totales</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="fila in filasVisibles" :key="fila.diametro">
-                        <td class="numeric-cell">
-                            {{ fila.diametro }}
-                        </td>
-                        <td class="numeric-cell">
-                            {{ fila.trozos }}
-                        </td>
-
-                        <td class="numeric-cell">
-                            {{ fila.volumen.toFixed(cantidadDecimalesM3) }}
-                            m³<br />
-                            {{ formatMoneyCLP(fila.totalPrecio) }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Totales globales -->
-
-    <f7-card>
-        <f7-card-content>
-            <div class="stack-line totals">
-                <span
-                    ><b>Total Volumen m³:</b>
-                    {{ totalVolumen.toFixed(cantidadDecimalesM3) }}</span
-                >
-                <span class="sep">•</span>
-                <span><b>Total Guía:</b> {{ formatMoneyCLP(totalValor) }}</span>
+                            <td class="numeric-cell">
+                                {{ fila.volumen.toFixed(cantidadDecimalesM3) }}
+                                m³<br />
+                                {{ formatMoneyCLP(fila.totalPrecio) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </f7-card-content>
-    </f7-card>
+        </div>
 
-    <!-- <f7-card>
-        <f7-card-content class="m3-totales-global">
-            <div class="totales-label">Totales</div>
-            <div class="totales-valores">
-                <span class="mono"
-                    >{{ totalVolumen.toFixed(cantidadDecimalesM3) }} m³</span
-                >
-                <span class="mono">{{ formatMoneyCLP(totalValor) }}</span>
-            </div>
-        </f7-card-content>
-    </f7-card> -->
+        <!-- Totales globales -->
+
+        <f7-card>
+            <f7-card-content>
+                <div class="stack-line totals">
+                    <span
+                        ><b>Total Volumen m³:</b>
+                        {{ totalVolumen.toFixed(cantidadDecimalesM3) }}</span
+                    >
+                    <span class="sep">•</span>
+                    <span
+                        ><b>Total Guía:</b>
+                        {{ formatMoneyCLP(totalValor) }}</span
+                    >
+                </div>
+            </f7-card-content>
+        </f7-card>
+    </div>
 </template>
 
 
