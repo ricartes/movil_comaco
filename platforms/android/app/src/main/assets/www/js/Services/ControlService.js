@@ -170,41 +170,43 @@ function existeEvidenciaIngresoPlantaParaGuia(idGde) {
 
 
 
-async function validarEvidenciasIngresoPlantaLocales() {
+async function validarEvidenciasIngresoPlantaLocales(gdeSeleccionada) {
+    if (!gdeSeleccionada) {
+        return { valido: false, mensaje: "Debe seleccionar una guía para confirmar ingreso planta." };
+    }
+
+    // (opcional) confirmar que hay pendientes y que la seleccionada está dentro
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
 
-
-    if (
-        gdeNoConfirmadas === "-1" ||
-        !Array.isArray(gdeNoConfirmadas) ||
-        gdeNoConfirmadas.length === 0
-    ) {
+    if (gdeNoConfirmadas === "-1" || !Array.isArray(gdeNoConfirmadas) || gdeNoConfirmadas.length === 0) {
         return {
             valido: false,
             mensaje: "No se encontraron guías pendientes de confirmar ingreso planta.",
         };
     }
 
-    const faltantes = [];
+    const rowidSel = String(gdeSeleccionada.ROWID || "");
 
-    // Recorremos todas las guías pendientes
-    for (const gde of gdeNoConfirmadas) {
-        // Ajusta el ID según tu select (ROWID o ID_GDE)
-        const tieneFoto = await existeEvidenciaIngresoPlantaParaGuia(gde.ROWID);
-        if (!tieneFoto) {
-            faltantes.push(gde.ROWID);
-        }
+    const existeEnPendientes = gdeNoConfirmadas.some(g => String(g.ROWID) === rowidSel);
+    if (!existeEnPendientes) {
+        return {
+            valido: false,
+            mensaje: "La guía seleccionada no está disponible para confirmar ingreso planta.",
+        };
     }
 
-    if (faltantes.length > 0) {
+    // ✅ Validar SOLO la seleccionada
+    const tieneFoto = await existeEvidenciaIngresoPlantaParaGuia(gdeSeleccionada.ROWID);
+
+    if (!tieneFoto) {
         return {
             valido: false,
             mensaje:
                 "No es posible confirmar el ingreso a planta.\n\n" +
-                "Hay guías NO tienen evidencia de ingreso planta."
+                "Esta guía NO tiene evidencia de ingreso planta."
         };
     }
 
-    // Todo OK
     return { valido: true };
 }
+

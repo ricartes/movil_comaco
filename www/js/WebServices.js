@@ -1009,82 +1009,6 @@ function ws_cargar_evidencia(rut, empresa, callback) {
 
 
 
-function enviar_guias(bandera, callback) {
-
-
-    DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V2';
-
-        DATOS_seleccionar_gde_por_enviar("0", function (result) {
-            //alert(result);
-            if (result == -1) {
-                typeof callback == "function" && callback(0);
-            } else {
-                var myJsonString = JSON.stringify(result);
-                //alert(myJsonString);
-                $.ajax({
-                    type: "POST",
-                    url: ruta,
-                    contetType: 'application/json; charset:ISO-8859-1',
-                    data: {
-                        guia_proveedor: myJsonString,
-                        uuid: Obtener_dato_local("uid") || "",
-                        versionApp: Obtener_dato_local("version_app") || ""
-                    },
-                    dataType: 'xml',
-                    success: function (data) {
-
-                        var conta = 0;
-                        var tamano = parseInt($(data).find('tamlist').text());
-
-                        if (tamano == 0) {
-                            typeof callback == "function" && callback(0);
-                        } else {
-                            $(data).find('CL_GDE').each(function () {
-                                var folio = parseInt($(this).find('GDE_FOLIO').text());
-                                //alert(folio);
-
-                                DATOS_cambiar_estado_envio_gde_individual(folio, function (result2) {
-                                    conta++;
-                                    if (confirma_guardado_parametro(conta, tamano) == 1) {
-                                        typeof callback == "function" && callback(1);
-                                    }
-                                });
-
-
-
-                            });
-                        }
-
-                    },
-
-                    error: function (err) {
-                        // handle your error logic here
-                        alert("ERROR " + JSON.stringify(err));
-                        typeof callback == "function" && callback(-1);
-                    }
-
-                    /*error: function (err) 
-                    {
-                          alert("error"+err);
-              // handle your error logic here
-                          
-                    }*/
-                });
-
-            }
-
-
-
-        });
-
-    });
-
-
-
-}
-
-
 
 function enviar_actualizacion_numero_guias(bandera, callback) {
 
@@ -1561,7 +1485,7 @@ function enviar_guias_proveedor(bandera, callback) {
 
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia';
+        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V2';
 
         DATOS_seleccionar_gde_proveedor_por_enviar("0", function (result) {
             if (result == -1) {
@@ -1572,7 +1496,10 @@ function enviar_guias_proveedor(bandera, callback) {
                     type: "POST",
                     url: ruta,
                     contetType: 'application/json; charset:ISO-8859-1',
-                    data: { guia_proveedor: myJsonString },
+                    data: {
+                        guia_proveedor: myJsonString, uuid: Obtener_dato_local("uid") || "",
+                        versionApp: Obtener_dato_local("version_app") || ""
+                    },
                     dataType: 'xml',
                     success: function (data) {
 
@@ -1604,7 +1531,6 @@ function enviar_guias_proveedor(bandera, callback) {
 
                     error: function (err) {
                         // handle your error logic here
-                        alert("ERROR AL ENVIAR GUIA" + JSON.stringify(err));
                         typeof callback == "function" && callback(-1);
                     }
 
@@ -1955,7 +1881,10 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
     return new Promise((resolve, reject) => {
         DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
             const ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_ConfirmacionIngresoPlanta';
-            const cadenaParam = "idUnico=" + idUnico;
+            const cadenaParam =
+                "idUnico=" + encodeURIComponent(idUnico) +
+                "&uuid=" + encodeURIComponent(Obtener_dato_local("uid") || "") +
+                "&versionApp=" + encodeURIComponent(Obtener_dato_local("version_app") || "");
             axios
                 .post(ruta, cadenaParam, {
                     timeout: 5000

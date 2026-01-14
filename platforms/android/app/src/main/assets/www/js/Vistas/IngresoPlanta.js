@@ -94,7 +94,7 @@ function deshabilitarUIIngresoPlanta() {
     $$('#combo_gde').html('<option value="">SIN GUÍAS</option>');
     $$('#combo_gde').attr('disabled', true);
 
-  
+
     // imagen por defecto
     $$('#imagen_confirma_planta').attr('src', 'imagenes/icon_foto.png');
 
@@ -645,7 +645,8 @@ function confirmarIngresoPlanta() {
                 }
 
                 // 3) Validar evidencias locales (puedes usar tu función actual)
-                const validacion = await validarEvidenciasIngresoPlantaLocales();
+                const validacion = await validarEvidenciasIngresoPlantaLocales(gdeSeleccionadaIngresoPlanta);
+
                 if (!validacion.valido) {
                     app.dialog.alert(validacion.mensaje, "GFE");
                     return;
