@@ -108,6 +108,11 @@ export default {
     methods: {
         async onCargarParametros() {
             const incluirGuias = await this.confirmarRecuperacionGuias();
+
+            if (incluirGuias === null) {
+                return false;
+            }
+
             try {
                 const {
                     ok: okValidacion,
@@ -396,6 +401,14 @@ export default {
                     title: "Confirmar",
                     text: "¿Desea recuperar el histórico de guías? La recuperación podría tardar varios minutos. Úselo solo si es una instalación nueva o desea restaurar guías ya enviadas.",
                     buttons: [
+                        {
+                            text: "Cancelar",
+                            color: "gray",
+                            onClick: () => {
+                                dialog.close();
+                                resolve(null); // cancel explícito
+                            },
+                        },
                         {
                             text: "No",
                             color: "red",
