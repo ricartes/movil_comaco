@@ -85,6 +85,39 @@
                 </div>
             </f7-block>
 
+            <f7-block strong class="alert-wrapper">
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Si conoce el Número de Orden, puede seleccionarla para
+                    autocompletar los datos relacionados.
+                </div>
+            </f7-block>
+
+            <f7-list no-hairlines-md form>
+                <f7-list-item
+                    title="Número Orden"
+                    class="select-orden-compra"
+                    smart-select
+                    :smart-select-params="ssParams"
+                >
+                    <select
+                        :value="ordenCompraSeleccionada?.numOc || ''"
+                        @change="handleOrdenCompraChange"
+                    >
+                        <option value="" disabled>
+                            Seleccione Número de Orden
+                        </option>
+                        <option
+                            v-for="z in ordenesCompra"
+                            :key="z.numOc"
+                            :value="z.numOc"
+                        >
+                            {{ z.numOc }}
+                        </option>
+                    </select>
+                </f7-list-item>
+            </f7-list>
+
             <!-- Info directorio -->
             <f7-block class="mb-0" v-if="mappingOk && comboPlan?.length">
                 <div class="text-color-gray">
@@ -199,7 +232,10 @@ import {
     buildGdeDraftFromForestruck,
     getComboPlan,
 } from "@/app/mappers/Forestruck/ForestruckMappingApplier";
-
+import {
+    listarOrdenesCaompra,
+    obtenerOrdenCompra,
+} from "@/app/services/Parametros/OrdenCompraService";
 import {
     listarParametrosGenerales,
     generarPorcentajeIva,
@@ -225,6 +261,7 @@ export default {
             form: null,
             comboPlan: [],
             importSummary: [],
+            ordenesCompra: [],
             ssParams: {
                 openIn: "popup",
                 searchbar: true,
@@ -296,6 +333,7 @@ export default {
 
             // 2) construir draft
             await this.cargarPreview();
+            await this.cargarOrdenesCompra();
             // 3) generar datos emisor
             this.generarDatosEmisor();
             this.form.empresa = await obtenerEmpresa(
@@ -309,6 +347,10 @@ export default {
             );
 
             await this.cargarCombos();
+        },
+
+        async cargarOrdenesCompra() {
+            this.ordenesCompra = await listarOrdenesCaompra();
         },
 
         generarDatosEmisor() {
@@ -409,6 +451,58 @@ export default {
 
             // UI only
             this.comboPlan = getComboPlan(this.mappingValue);
+        },
+
+        async aplicarOrdenCompra(oc) {
+            // 1) Zona
+            /*const okZona = await this.asignarZonaDesdeOc(oc);
+            if (!okZona) return;
+
+            const okProv = await this.asignarProveedorDesdeOc(oc);
+            if (!okProv) return;
+
+            // 3) Predio (depende de proveedor)
+            const okPredio = await this.asignarPredioDesdeOc(oc);
+            if (!okPredio) return;
+
+            // 4) Cliente (depende de predio)
+            const okCli = await this.asignarClienteDesdeOc(oc);
+            if (!okCli) return;
+
+            // 5) Destino (depende de cliente)
+            const okDest = await this.asignarDestinoDesdeOc(oc);
+            if (!okDest) return;*/
+
+            // 6) Producto + largo (depende de destino)
+            await this.asignarProductoYLargoDesdeOc(oc);
+        },
+
+        async asignarProductoYLargoDesdeOc(oc) {
+            // Implementación de asignarProductoYLargoDesdeOc
+        },
+
+        async handleOrdenCompraChange(e) {
+            const nuevoNumero = e.target.value;
+
+            this.ordenCompraSeleccionada =
+                this.ordenesCompra.find((o) => o.numOc === nuevoNumero) || null;
+
+            if (this.ordenCompraSeleccionada) {
+                try {
+                    this.aplicandoOc = true; // 👈 empieza modo “llenado automático”
+                    f7.dialog.preloader("Aplicando Orden de Compra...");
+                    await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
+                } catch (err) {
+                    console.error("Error aplicando OC:", err);
+                    f7.dialog.alert(
+                        "No fue posible aplicar los datos de la Orden de Compra seleccionada.",
+                        "Error"
+                    );
+                } finally {
+                    this.aplicandoOc = false; // 👈 fin modo automático
+                    f7.dialog.close();
+                }
+            }
         },
 
         async cargarCombos() {
