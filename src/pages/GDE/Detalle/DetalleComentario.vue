@@ -60,7 +60,7 @@
                     @input="onInput('guiaProveedor', $event)"
                 />
                 <f7-list-input
-                    label="Volumen proveedor (m³/ton)"
+                    :label="`Volumen proveedor (${unidadMedidaLabel})`"
                     type="number"
                     inputmode="decimal"
                     step="0.01"
@@ -232,6 +232,11 @@ export default {
         anioCosechaVisual() {
             const norm = this.normalizeYYYYMM(this.form.anioCosecha);
             return norm ? this.formatMMYYYY(norm) : "";
+        },
+        unidadMedidaLabel() {
+            const u = this.doc?.producto?.unidadMedida;
+
+            return u ? String(u) : "m³/ton";
         },
     },
     methods: {
