@@ -510,8 +510,6 @@ export default {
                 this.form.comentarios.fechaPlantacion = fechaPlantacionActual;
             }
 
-            console.log(this.form);
-
             this.ocAplicadaOk = true;
         },
 
@@ -525,14 +523,8 @@ export default {
             ) {
                 this.form.comentarios = {};
             }
-
             // asignar
             this.form.comentarios.fechaPlantacion = v;
-
-            console.log(this.form.comentarios.fechaPlantacion);
-
-            // debug rápido
-            // console.log("fechaPlantacion =>", this.form.comentarios.fechaPlantacion);
         },
 
         async asignarZonaDesdeOc(oc) {
