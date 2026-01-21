@@ -63,29 +63,7 @@
                 </div>
             </f7-block>
 
-            <f7-block strong inset v-if="mappingOk && importSummary.length">
-                <div class="text-color-gray">
-                    Campos importados desde Forestruck
-                </div>
-
-                <div
-                    v-for="g in importSummary"
-                    :key="g.group"
-                    style="margin-top: 10px"
-                >
-                    <div style="font-weight: 600; margin-bottom: 6px">
-                        {{ g.group }}
-                    </div>
-
-                    <ul style="margin: 0; padding-left: 18px">
-                        <li v-for="f in g.fields" :key="f.path">
-                            <b>{{ f.label }}:</b> {{ formatSummaryField(f) }}
-                        </li>
-                    </ul>
-                </div>
-            </f7-block>
-
-            <f7-block strong class="alert-wrapper">
+            <f7-block strong inset class="alert-wrapper">
                 <div class="alert alert-info">
                     <i class="f7-icons">info_circle</i>
                     Ingresar campos requeridos para importar Guía Forestruck.
@@ -174,6 +152,28 @@
                                 .join(", ")
                         }}
                     </b>
+                </div>
+            </f7-block>
+
+            <f7-block strong inset v-if="puedeGuardar">
+                <div class="text-color-gray">
+                    Campos importados desde Forestruck
+                </div>
+
+                <div
+                    v-for="g in importSummary"
+                    :key="g.group"
+                    style="margin-top: 10px"
+                >
+                    <div style="font-weight: 600; margin-bottom: 6px">
+                        {{ g.group }}
+                    </div>
+
+                    <ul style="margin: 0; padding-left: 18px">
+                        <li v-for="f in g.fields" :key="f.path">
+                            <b>{{ f.label }}:</b> {{ formatSummaryField(f) }}
+                        </li>
+                    </ul>
                 </div>
             </f7-block>
 
@@ -481,6 +481,7 @@ export default {
             const fechaPlantacionActual =
                 this.form?.comentarios?.fechaPlantacion ?? null;
             // 1) Zona
+
             const okZona = await this.asignarZonaDesdeOc(
                 oc,
                 this.usuarioActivo.empresa
