@@ -266,7 +266,6 @@ import { Capacitor } from "@capacitor/core";
 import store from "@/js/store";
 import {
     listPrinters,
-    printTextSafe,
     printRawText,
     disconnectPrinter,
 } from "@/app/services/Printer";

@@ -93,7 +93,7 @@
                 </div>
             </f7-block>
 
-            <f7-list no-hairlines-md form>
+            <f7-list no-hairlines-md form v-if="mappingOk">
                 <f7-list-item
                     title="Número Orden"
                     class="select-orden-compra"
@@ -117,14 +117,6 @@
                     </select>
                 </f7-list-item>
             </f7-list>
-
-            <!-- Info directorio -->
-            <f7-block class="mb-0" v-if="mappingOk && comboPlan?.length">
-                <div class="text-color-gray">
-                    Debe completar los siguientes datos para generar avanzar en
-                    la importación de la Guía:
-                </div>
-            </f7-block>
 
             <f7-list no-hairlines-md form v-if="mappingOk && comboPlan?.length">
                 <f7-list-item
@@ -247,6 +239,9 @@ import { FORESTRUCK_COMBO_REGISTRY } from "@/app/mappers/Forestruck/ForestruckCo
 import {
     registrarImportacionExitosa,
     registrarImportacionFallida,
+    asignarClienteDesdeOc,
+    asignarProductoDesdeOc,
+    asignarClienteDestinoDesdeOc,
 } from "@/app/services/ForestruckImportService";
 import { ingresarGde } from "@/app/services/GdeService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
@@ -414,8 +409,6 @@ export default {
             const origenForestruck =
                 config?.parametros?.origenGde?.forestruck ?? 2;
             this.sourceJson = preview?.json || null;
-
-            // ✅ importante: mappingValue ya está cargado y validado
             this.form = buildGdeDraftFromForestruck(
                 this.sourceJson,
                 this.mappingValue
@@ -465,20 +458,37 @@ export default {
             const okPredio = await this.asignarPredioDesdeOc(oc);
             if (!okPredio) return;
 
-            // 4) Cliente (depende de predio)
-            const okCli = await this.asignarClienteDesdeOc(oc);
+        
+            if (!okDest) return;*/
+
+            const okCli = this.asignarClienteDesdeOc(oc);
             if (!okCli) return;
 
             // 5) Destino (depende de cliente)
             const okDest = await this.asignarDestinoDesdeOc(oc);
-            if (!okDest) return;*/
+            if (!okDest) return;
 
             // 6) Producto + largo (depende de destino)
-            await this.asignarProductoYLargoDesdeOc(oc);
+            this.asignarProductoYLargoDesdeOc(oc);
         },
 
-        async asignarProductoYLargoDesdeOc(oc) {
-            // Implementación de asignarProductoYLargoDesdeOc
+        asignarProductoYLargoDesdeOc(oc) {
+            //producto
+            this.form.producto = asignarProductoDesdeOc(oc);
+            //largo
+            this.form.largoProducto = oc.largoTrozo;
+
+            return true;
+        },
+
+        asignarClienteDesdeOc(oc) {
+            this.form.cliente = asignarClienteDesdeOc(oc);
+
+            return true;
+        },
+
+        asignarDestinoDesdeOc(oc) {
+            this.form.destino = asignarClienteDestinoDesdeOc(oc);
         },
 
         async handleOrdenCompraChange(e) {
@@ -489,7 +499,7 @@ export default {
 
             if (this.ordenCompraSeleccionada) {
                 try {
-                    this.aplicandoOc = true; // 👈 empieza modo “llenado automático”
+                    this.aplicandoOc = true;
                     f7.dialog.preloader("Aplicando Orden de Compra...");
                     await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
                 } catch (err) {
@@ -499,7 +509,7 @@ export default {
                         "Error"
                     );
                 } finally {
-                    this.aplicandoOc = false; // 👈 fin modo automático
+                    this.aplicandoOc = false;
                     f7.dialog.close();
                 }
             }

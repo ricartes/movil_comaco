@@ -1,6 +1,9 @@
 // src/app/services/ForestruckImportService.js
 import { StorageAccess } from "@/app/plugins/StorageAccess";
 import { getForestruckImportLogDao } from "@/app/services/initServices";
+import ProductoDTO from '@/app/DTO/Parametros/ProductoDTO'
+import ClienteDTO from '@/app/DTO/Parametros/ClienteDTO'
+import ClienteDestinoDTO from '@/app/DTO/Parametros/ClienteDestinoDTO'
 import config from "@/Common/json/config.json";
 
 // --------------------
@@ -200,3 +203,43 @@ export async function registrarImportacionFallida({ fileKey, file, error, meta =
         );
     }
 }
+
+
+export function asignarClienteDesdeOc(oc = {}) {
+    return new ClienteDTO({
+        codCliente: oc.codCliente,
+        rutCliente: oc.rutCliente,
+        razonSocialCliente: oc.razonSocialCliente,
+        direccionCliente: oc.direccionCliente,
+        comunaCliente: oc.comunaCliente,
+        ciudadCliente: oc.ciudadCliente,
+        giroCliente: oc.giroCliente,
+        telefonoCliente: oc.telefonoCliente,
+    })
+}
+
+
+
+export function asignarProductoDesdeOc(oc = {}) {
+    return new ProductoDTO({
+        codProducto: oc.codProducto,
+        nombreProducto: oc.nombreProducto,
+        unidadMedida: oc.unidadMedida,
+        fsc: oc.fsc,
+        categoria: oc.categoria,
+        sag: oc.sag,
+        tipoCertificacion: oc.tipoCertificacion,
+        codigoCertificacion: oc.codigoCertificacion,
+    })
+}
+
+export function asignarClienteDestinoDesdeOc(oc = {}) {
+    return new ClienteDestinoDTO({
+        destinoCliente: oc.destinoCliente,
+        direccionDestinoCliente: oc.direccionDestinoCliente,
+        comunaDestinoCliente: oc.comunaDestinoCliente,
+        ciudadDestinoCliente: oc.ciudadDestinoCliente,
+    })
+}
+
+
