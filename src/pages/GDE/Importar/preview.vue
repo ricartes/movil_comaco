@@ -88,8 +88,7 @@
             <f7-block strong class="alert-wrapper">
                 <div class="alert alert-info">
                     <i class="f7-icons">info_circle</i>
-                    Si conoce el Número de Orden, puede seleccionarla para
-                    autocompletar los datos relacionados.
+                    Ingresar campos requeridos para importar Guía Forestruck.
                 </div>
             </f7-block>
 
@@ -116,6 +115,13 @@
                         </option>
                     </select>
                 </f7-list-item>
+
+                <f7-list-input
+                    label="Fecha Plantación"
+                    type="date"
+                    :value="form?.comentarios?.fechaPlantacion || ''"
+                    @change="handleFechaPlantacionChange"
+                />
             </f7-list>
 
             <f7-list no-hairlines-md form v-if="mappingOk && comboPlan?.length">
@@ -239,6 +245,9 @@ import { FORESTRUCK_COMBO_REGISTRY } from "@/app/mappers/Forestruck/ForestruckCo
 import {
     registrarImportacionExitosa,
     registrarImportacionFallida,
+    asignarZonaDesdeOc,
+    asignarProveedorDesdeOc,
+    asignarPredioDesdeOc,
     asignarClienteDesdeOc,
     asignarProductoDesdeOc,
     asignarClienteDestinoDesdeOc,
@@ -271,6 +280,9 @@ export default {
             mappingValue: null,
             combosLoading: false,
             comboOptions: {}, // { cliente: [...], transportista: [...] }
+            ordenCompraSeleccionada: null,
+            aplicandoOc: false,
+            ocAplicadaOk: false,
         };
     },
 
@@ -298,13 +310,21 @@ export default {
         },
 
         puedeGuardar() {
+            const productoOk = !!this.form?.producto?.codProducto;
+            const largoOk = !!this.form?.largoProducto;
+
             return (
                 !!this.preview &&
                 this.mappingOk &&
                 !this.mappingLoading &&
                 !this.combosLoading &&
                 !!this.form &&
-                this.faltanCombos.length === 0
+                !!this.ordenCompraSeleccionada && // ✅ OC seleccionada
+                this.ocAplicadaOk && // ✅ OC aplicada completa (PC ok)
+                !!this.form?.comentarios?.fechaPlantacion &&
+                productoOk &&
+                largoOk && // ✅ “PC” (producto + largo) asignados
+                this.faltanCombos.length === 0 // ✅ combos listos
             );
         },
     },
@@ -433,6 +453,13 @@ export default {
                         syncLegacy: true,
                     });
                 }
+                //comentarios con fecha plantacion
+                if (
+                    !this.form.comentarios ||
+                    typeof this.form.comentarios !== "object"
+                ) {
+                    this.form.comentarios = {};
+                }
             } catch (e) {
                 console.warn("No se pudo aplicar totales por UM:", e);
             }
@@ -447,29 +474,80 @@ export default {
         },
 
         async aplicarOrdenCompra(oc) {
+            this.ocAplicadaOk = false; // reset al inicio
+
+            this.form.ordenCompra = oc;
+
+            const fechaPlantacionActual =
+                this.form?.comentarios?.fechaPlantacion ?? null;
             // 1) Zona
-            /*const okZona = await this.asignarZonaDesdeOc(oc);
+            const okZona = await this.asignarZonaDesdeOc(
+                oc,
+                this.usuarioActivo.empresa
+            );
             if (!okZona) return;
 
-            const okProv = await this.asignarProveedorDesdeOc(oc);
+            // 2) Proveedor
+            const okProv = this.asignarProveedorDesdeOc(oc);
             if (!okProv) return;
 
             // 3) Predio (depende de proveedor)
-            const okPredio = await this.asignarPredioDesdeOc(oc);
+            const okPredio = this.asignarPredioDesdeOc(oc);
             if (!okPredio) return;
-
-        
-            if (!okDest) return;*/
 
             const okCli = this.asignarClienteDesdeOc(oc);
             if (!okCli) return;
 
             // 5) Destino (depende de cliente)
-            const okDest = await this.asignarDestinoDesdeOc(oc);
+            const okDest = this.asignarDestinoDesdeOc(oc);
             if (!okDest) return;
 
             // 6) Producto + largo (depende de destino)
-            this.asignarProductoYLargoDesdeOc(oc);
+            const okProd = this.asignarProductoYLargoDesdeOc(oc);
+            if (!okProd) return;
+
+            if (fechaPlantacionActual) {
+                this.form.comentarios.fechaPlantacion = fechaPlantacionActual;
+            }
+
+            console.log(this.form);
+
+            this.ocAplicadaOk = true;
+        },
+
+        handleFechaPlantacionChange(e) {
+            const v = e?.target?.value ?? "";
+
+            // asegurar estructura
+            if (
+                !this.form.comentarios ||
+                typeof this.form.comentarios !== "object"
+            ) {
+                this.form.comentarios = {};
+            }
+
+            // asignar
+            this.form.comentarios.fechaPlantacion = v;
+
+            console.log(this.form.comentarios.fechaPlantacion);
+
+            // debug rápido
+            // console.log("fechaPlantacion =>", this.form.comentarios.fechaPlantacion);
+        },
+
+        async asignarZonaDesdeOc(oc) {
+            this.form.zona = await asignarZonaDesdeOc(oc);
+            return true;
+        },
+
+        asignarPredioDesdeOc(oc) {
+            this.form.predio = asignarPredioDesdeOc(oc);
+            return true;
+        },
+
+        asignarProveedorDesdeOc(oc) {
+            this.form.proveedor = asignarProveedorDesdeOc(oc);
+            return true;
         },
 
         asignarProductoYLargoDesdeOc(oc) {
@@ -477,6 +555,14 @@ export default {
             this.form.producto = asignarProductoDesdeOc(oc);
             //largo
             this.form.largoProducto = oc.largoTrozo;
+
+            this.applyTotalesFromTotalVolumen(this.form, {
+                um: this.form.producto.unidadMedida,
+                totalVolumen: this.form?.totales?.volumen, // ← mapping: totales.volumen
+                monto: this.form?.totales?.neto ?? this.form?.totales?.total, // $ monto
+                resetBuckets: true,
+                syncLegacy: true,
+            });
 
             return true;
         },
@@ -489,9 +575,11 @@ export default {
 
         asignarDestinoDesdeOc(oc) {
             this.form.destino = asignarClienteDestinoDesdeOc(oc);
+            return true;
         },
 
         async handleOrdenCompraChange(e) {
+            this.ocAplicadaOk = false;
             const nuevoNumero = e.target.value;
 
             this.ordenCompraSeleccionada =
@@ -565,7 +653,6 @@ export default {
 
             this.form[key] = selected;
 
-            // 👇 Homologado: actualizar texto del SmartSelect como haces en Ingreso
             this.$nextTick(() => {
                 try {
                     const ss = f7.smartSelect.get(
@@ -578,9 +665,16 @@ export default {
 
         getByPath(obj, path) {
             if (!obj || !path) return undefined;
-            return String(path)
+
+            const parts = String(path)
+                .replace(/\[(\d+)\]/g, ".$1") // carguios[0] -> carguios.0
                 .split(".")
-                .reduce((acc, k) => (acc == null ? acc : acc[k]), obj);
+                .filter(Boolean);
+
+            return parts.reduce(
+                (acc, k) => (acc == null ? undefined : acc[k]),
+                obj
+            );
         },
 
         formatSummaryField(field) {

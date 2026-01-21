@@ -129,7 +129,8 @@
             "origen": {
                 "json": "json",
                 "static": "static",
-                "combobox": "combobox"
+                "combobox": "combobox",
+                "input": "input"
             }
         },
         "maximoCarguios": 1,

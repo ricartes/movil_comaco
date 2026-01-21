@@ -1,9 +1,12 @@
 // src/app/services/ForestruckImportService.js
 import { StorageAccess } from "@/app/plugins/StorageAccess";
-import { getForestruckImportLogDao } from "@/app/services/initServices";
+import { getForestruckImportLogDao, getZonaDao } from "@/app/services/initServices";
 import ProductoDTO from '@/app/DTO/Parametros/ProductoDTO'
 import ClienteDTO from '@/app/DTO/Parametros/ClienteDTO'
 import ClienteDestinoDTO from '@/app/DTO/Parametros/ClienteDestinoDTO'
+import ZonaDTO from '@/app/DTO/Parametros/ZonaDTO'
+import ProveedorDTO from '@/app/DTO/Parametros/ProveedorDTO'
+import PredioDTO from '@/app/DTO/Parametros/PredioDTO'
 import config from "@/Common/json/config.json";
 
 // --------------------
@@ -101,7 +104,7 @@ export async function leerJsonForestruckParaPreview(item) {
     if (!uri) {
         throw new ForestruckImportError("INVALID_FILE", "Archivo inválido.");
     }
-    console.log(uri);
+
 
     try {
         const r = await StorageAccess.readText({ uri }); // <-- requiere el método readText en el plugin
@@ -202,6 +205,31 @@ export async function registrarImportacionFallida({ fileKey, file, error, meta =
             e
         );
     }
+}
+
+export async function asignarZonaDesdeOc(oc = {}, empId = 1) {
+
+    return await getZonaDao().obtener(oc.codEncargado, empId);
+}
+
+
+export function asignarPredioDesdeOc(oc = {}) {
+
+    return new PredioDTO({
+        rolPredio: oc.rolPredio,
+        rolComuna: oc.rolComuna,
+        predio: oc.predio,
+        codProyecto: oc.codProyecto,
+    })
+}
+
+export function asignarProveedorDesdeOc(oc = {}) {
+
+    return new ProveedorDTO({
+        rutProveedor: oc.rutProveedor,
+        nomProveedor: oc.nomProveedor,
+        codEncargado: oc.codEncargado,
+    })
 }
 
 

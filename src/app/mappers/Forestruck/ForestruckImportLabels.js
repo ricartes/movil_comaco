@@ -84,8 +84,8 @@ export const FORESTRUCK_IMPORT_SUMMARY = [
         group: "Carguío",
         fields: [
             { path: "carguios[0].rutCarguio", label: "RUT Empresa carguío" },
-            { path: "carguios[0].nombreCarguio", label: "Empresa carguío" },
-            { path: "carguios[0].patenteCarguio", label: "Equipo / Patente carguío" },
+            { path: "carguios[0].nombreCarguio", label: "Nombre Empresa carguío" },
+            { path: "carguios[0].patenteCarguio", label: "Patente carguío" },
         ],
     },
 

@@ -46,6 +46,18 @@ export default class ZonaDAO {
     }
 
 
+    async obtener(codigo, empId) {
+
+        const res = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.zona,
+                empId: Number(empId),
+                codigo: String(codigo)
+            },
+        })
+        return zonaDocToDTO(res.docs[0] || null);
+    }
+
 
     async eliminarTodos() {
         try {
