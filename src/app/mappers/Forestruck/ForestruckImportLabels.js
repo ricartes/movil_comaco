@@ -101,7 +101,6 @@ export const FORESTRUCK_IMPORT_SUMMARY = [
     {
         group: "Rodal",
         fields: [
-            { path: "rodal.fechaPlantacion", label: "Fecha plantación" },
             { path: "rodal.planManejo", label: "Plan manejo" },
             { path: "rodal.nroaviso", label: "N° aviso" },
         ],
