@@ -376,9 +376,9 @@ function buildBoxOperacion(doc) {
             kvLine("Proveedor", `${doc?.proveedor?.nomProveedor} – ${doc?.proveedor?.rutProveedor}`),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine(
-                "Año Plantación",
+                "Fecha Plantación",
                 doc?.comentarios?.fechaPlantacion
-                    ? doc.comentarios.fechaPlantacion.substring(0, 4)
+                    ? fDate(doc.comentarios.fechaPlantacion)
                     : "—"
             ),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
