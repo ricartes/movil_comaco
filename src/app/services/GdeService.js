@@ -36,7 +36,9 @@ export async function anularGde(gde, motivoSeleccionado, glosaAdicional) {
     const gdeDao = getGdeDao();
     const estadoAnulada = config.parametros.estadosGuia.NULA
     const idempotencyKey = gde._id || `${gde.empId}-${gde.folio}`
-    const ahoraISO = new Date().toISOString()
+    const fechaIso = nowLocalIso();           // "YYYY-MM-DDTHH:mm:ss"
+    const fechaYYYYMMDD = fechaIso.slice(0, 10);
+    const tsYYYYMMDDTHHMMSS = fechaIso;
 
     const motivoTexto =
         (glosaAdicional && glosaAdicional.trim()) ||
@@ -62,7 +64,8 @@ export async function anularGde(gde, motivoSeleccionado, glosaAdicional) {
             sincronizadoAt: null,
             syncing: false,
             ultimoErrorSync: null,
-            updatedAt: ahoraISO,
+            fechaAnulacion: fechaIso,
+            updatedAt: fechaIso,
         });
 
         return actualizado

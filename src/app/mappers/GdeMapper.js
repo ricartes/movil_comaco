@@ -31,6 +31,7 @@ export async function makeGdeDoc(raw) {
         ultimoErrorSync: null,
         updatedAt: new Date().toISOString(),
         fechaEmision: null,
+        fechaAnulacion: null,
         emitiendo: false,
         informacionDispositivo: informacionDispositivo,
     }
