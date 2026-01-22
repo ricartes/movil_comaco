@@ -86,6 +86,13 @@ function getAnchoCarro(doc) {
     return Number.isFinite(n) ? n : null;
 }
 
+function getAnchoCamion(doc) {
+    const pc = doc?.patenteCamion;
+    if (!pc || typeof pc === "string") return null;
+    const n = Number(pc.anchoCamion);
+    return Number.isFinite(n) ? n : null;
+}
+
 
 function fCLP(n) {
     if (n == null) return "—";
@@ -714,12 +721,19 @@ function buildTransporteBox(doc) {
                             text: [
                                 { text: "Patente: ", bold: true },
                                 fStr(getPatCamionTexto(doc)),
+                                ...(getAnchoCamion(doc) != null
+                                    ? [
+                                        { text: " (ancho: ", bold: true },
+                                        `${String(getAnchoCamion(doc))}m.`,
+                                        { text: ")", bold: true }
+                                    ]
+                                    : []),
                                 { text: ".  Carro: ", bold: true },
                                 fStr(getPatCarroTexto(doc)),
                                 ...(getAnchoCarro(doc) != null
                                     ? [
                                         { text: " (ancho: ", bold: true },
-                                        String(getAnchoCarro(doc)),
+                                        `${String(getAnchoCarro(doc))}m.`,
                                         { text: ")", bold: true }
                                     ]
                                     : []

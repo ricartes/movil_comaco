@@ -25,7 +25,7 @@ interface GdeDoc {
     };
     largoProducto?: number | string;
     transportista?: { nomTransportista?: string };
-    patenteCamion?: { patCamion?: string };
+    patenteCamion?: { patCamion?: string; anchoCamion?: number | null };
     patenteCarro?:
         | string
         | { patCarro?: string; anchoCarro?: number | null }
@@ -148,6 +148,13 @@ const anchoCarro = computed(() => {
     const pc = props.doc?.patenteCarro as any;
     if (!pc || typeof pc === "string") return null;
     const n = Number(pc?.anchoCarro);
+    return Number.isFinite(n) ? n : null;
+});
+
+const anchoCamion = computed(() => {
+    const pc = props.doc?.patenteCamion as any;
+    if (!pc || typeof pc === "string") return null;
+    const n = Number(pc?.anchoCamion);
     return Number.isFinite(n) ? n : null;
 });
 
@@ -324,13 +331,24 @@ function formatCoord(n?: number | null) {
                         {{ props.doc?.transportista?.nomTransportista ?? "—" }}
                     </dd>
                     <dt>Camión</dt>
-                    <dd>{{ props.doc?.patenteCamion?.patCamion ?? "—" }}</dd>
-                    <dt>Carro</dt>
                     <dd>
-                        {{ patenteCarroTexto }}
-                        <template v-if="anchoCarro !== null">
-                            <span class="pill">ancho: {{ anchoCarro }}</span>
-                        </template>
+                        {{
+                            (props.doc?.patenteCamion?.patCamion ?? "—") +
+                            (anchoCamion !== null
+                                ? ` (ancho: ${anchoCamion}m.)`
+                                : "")
+                        }}
+                    </dd>
+
+                    <dt>Carro</dt>
+
+                    <dd>
+                        {{
+                            patenteCarroTexto +
+                            (anchoCarro !== null
+                                ? ` (ancho: ${anchoCarro}m.)`
+                                : "")
+                        }}
                     </dd>
 
                     <dt>Conductor</dt>
