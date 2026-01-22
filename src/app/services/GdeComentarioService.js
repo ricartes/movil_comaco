@@ -1,6 +1,8 @@
 // src/app/services/GdeComentarioService.js
 import { getGdeDao } from "@/app/services/initServices";
 import { numOrNull } from "@/app/helpers/NumHelpers";
+import { horaActual } from "@/js/Utils/formatters";
+
 
 const PATH = "comentarios";
 
@@ -27,6 +29,9 @@ export async function ensureComentariosInit(id) {
         volumenProveedor: null,
         anioCosecha: null,
         numeroGuiaAnterior: null,
+        horaAgendamiento: horaActual(),
+        numeroAgendamiento: null,
+
         // estos dos se siembran desde rodal si es posible:
         fechaPlantacion: seedFecha,
         planManejo: seedPlan,

@@ -616,6 +616,7 @@ function buildDetallePorUM(doc) {
 // =============== Comentario ===============
 function buildComentarioFull(doc) {
     return {
+
         unbreakable: true,
         margin: [PAGE_X, 3, PAGE_X, 3],
         table: {

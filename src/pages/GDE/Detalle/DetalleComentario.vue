@@ -198,10 +198,7 @@ export default {
         const base = await ensureComentariosInit(this.doc._id);
         this.form = { ...this.form, ...base };
 
-        if (!this.soloLectura && this.form.horaAgendamiento === null) {
-            this.form.horaAgendamiento = horaActual();
-        }
-
+        //esto cuando puede llegar de forestruck, ya viene con un valor
         if (!this.soloLectura && this.form.anioCosecha != null) {
             const norm = this.normalizeYYYYMM(this.form.anioCosecha);
             if (norm && norm !== this.form.anioCosecha) {
