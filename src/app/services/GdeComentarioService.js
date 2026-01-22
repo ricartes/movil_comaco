@@ -2,7 +2,7 @@
 import { getGdeDao } from "@/app/services/initServices";
 import { numOrNull } from "@/app/helpers/NumHelpers";
 import { horaActual } from "@/js/Utils/formatters";
-
+import config from "@/Common/json/config.json";
 
 const PATH = "comentarios";
 
@@ -10,10 +10,18 @@ export async function ensureComentariosInit(id) {
     const dao = getGdeDao();
     const doc = await dao.obtener(id);
 
-    // semillas desde rodal (solo si existen)
-    const seedFecha = doc?.rodal?.fechaPlantacion || null;
-    const seedPlan = doc?.rodal?.planManejo || "";
+    // semillas desde rodal (solo si existen) ()
 
+    const origenForestruck = Number(config?.parametros?.origenGde?.forestruck ?? 2);
+    const isForestruck = Number(doc?.gdeOrigen) === origenForestruck;
+
+    const seedFecha = isForestruck
+        ? (doc?.comentarios?.fechaPlantacion ?? null)
+        : (doc?.rodal?.fechaPlantacion ?? null);
+
+
+
+    const seedPlan = doc?.rodal?.planManejo || "";
     const seedX = numOrNull(doc?.ordenCompra?.coordenadaX);
     const seedY = numOrNull(doc?.ordenCompra?.coordenadaY);
 

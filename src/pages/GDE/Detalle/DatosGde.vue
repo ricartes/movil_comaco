@@ -317,8 +317,6 @@ function formatCoord(n?: number | null) {
                     <dd>{{ formatBool(props.doc?.trasvasije) }}</dd>
                     <dt>Venta en piso</dt>
                     <dd>{{ formatBool(props.doc?.ventaPiso) }}</dd>
-                    <dt>Forma de pago</dt>
-                    <dd>{{ props.doc?.ordenCompra?.glosaFormaPago ?? "—" }}</dd>
                 </dl>
             </div>
 
