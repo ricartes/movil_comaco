@@ -252,6 +252,7 @@ import {
     asignarProductoDesdeOc,
     asignarClienteDestinoDesdeOc,
 } from "@/app/services/ForestruckImportService";
+import { clienteEsEmisor } from "@/app/services/Parametros/ClienteService";
 import { ingresarGde } from "@/app/services/GdeService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 
@@ -571,6 +572,17 @@ export default {
             return true;
         },
 
+        obtenerIndicadorTraslado() {
+            if (
+                clienteEsEmisor(
+                    this.form.cliente.rutCliente,
+                    this.form.empresa.rut
+                )
+            ) {
+                this.form.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
+            }
+        },
+
         async handleOrdenCompraChange(e) {
             this.ocAplicadaOk = false;
             const nuevoNumero = e.target.value;
@@ -706,6 +718,7 @@ export default {
                         "No se pudo obtener la ubicación del dispositivo."
                     );
                 }
+                this.obtenerIndicadorTraslado();
                 this.form.ubicacion = ubicacion;
 
                 // 4) Guardar GDE

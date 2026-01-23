@@ -1563,7 +1563,7 @@ export default {
                     this.form.empresa.rut
                 )
             ) {
-                this.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
+                this.form.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
             }
         },
         async handleDestinoChange(e) {
