@@ -137,7 +137,7 @@ function mapDoc(doc) {
         rutChofer: doc?.conductor?.rutChofer || '',
         nomChofer: doc?.conductor?.nomChofer || '',
         proveedor: `${doc?.proveedor?.nomProveedor || ''} - ${doc?.proveedor?.rutProveedor || ''}`,
-        contratista: `${doc?.empresaContratista?.nombreContratista || ''} - ${doc?.empresaContratista?.rutContratista || ''}`,
+        contratista: `${doc?.empresaContratista?.nombreContratista || ''} - ${formatearRut(doc?.empresaContratista?.rutContratista) || ''}`,
     };
 
     const prod = {
@@ -285,7 +285,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             .map(c => {
                 const rut = (c?.rut || c?.rutCarguio || '').toString().trim();
                 const nom = (c?.nombre || c?.nombreCarguio || '').toString().trim().toUpperCase();
-                return [nom, rut].filter(Boolean).join(' - ');
+                return [nom, formatearRut(rut)].filter(Boolean).join(' - ');
             })
             .filter(Boolean)
             .join(', ');

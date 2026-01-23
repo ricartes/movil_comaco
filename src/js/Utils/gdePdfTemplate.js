@@ -358,7 +358,7 @@ function buildBoxOperacion(doc) {
     const left = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Contratista", `${doc?.empresaContratista?.nombreContratista} – ${doc?.empresaContratista?.rutContratista}`),
+            kvLine("Contratista", `${doc?.empresaContratista?.nombreContratista} – ${formatearRut(doc?.empresaContratista?.rutContratista)}`),
             {
                 text: [
                     { text: "CARGUIO: ", bold: true },
@@ -644,7 +644,7 @@ function formatCargadores(doc) {
 
     // Cada línea: "RUT – NOMBRE"
     return lista
-        .map(c => `${U(c?.nombreCarguio)} – ${fStr(c?.rutCarguio)}`)
+        .map(c => `${U(c?.nombreCarguio)} – ${fStr(formatearRut(c?.rutCarguio))}`)
         .join("\n");
 }
 
