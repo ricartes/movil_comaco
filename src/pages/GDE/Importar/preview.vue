@@ -680,6 +680,17 @@ export default {
             return v == null ? "—" : String(v);
         },
 
+        asignarDatosComplementarios() {
+            if (
+                !this.form.comentarios ||
+                typeof this.form.comentarios !== "object"
+            ) {
+                this.form.comentarios = {};
+            }
+            // asignar
+            this.form.comentarios.horaAgendamiento = this.horaActual();
+        },
+
         async importar() {
             if (this.preview?.imported) {
                 f7.dialog.alert("Esta guía ya fue integrada.", "Info");
@@ -706,6 +717,7 @@ export default {
                         "No se pudo obtener la ubicación del dispositivo."
                     );
                 }
+                this.asignarDatosComplementarios();
                 this.form.ubicacion = ubicacion;
 
                 // 4) Guardar GDE
