@@ -100,8 +100,7 @@
                     inputmode="decimal"
                     step="0.000001"
                     :value="form.puntoX"
-                    :disabled="soloLectura"
-                    @input="onInputNum('puntoX', $event)"
+                    disabled
                 />
                 <f7-list-input
                     label="Punto Y"
@@ -109,8 +108,7 @@
                     inputmode="decimal"
                     step="0.000001"
                     :value="form.puntoY"
-                    :disabled="soloLectura"
-                    @input="onInputNum('puntoY', $event)"
+                    disabled
                 />
 
                 <f7-list-input

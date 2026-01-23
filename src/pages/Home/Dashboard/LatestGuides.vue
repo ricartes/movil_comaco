@@ -3,7 +3,7 @@
         <f7-block-title class="!mb-2"
             >Últimas {{ cantidadUltimasGuias }} guías</f7-block-title
         >
-        <f7-list strong inset media-list class="latest-list">
+        <f7-list media-list class="latest-list">
             <GdeLatestItem
                 v-for="g in items"
                 :key="`${g.empId}-${g.folio}`"
@@ -25,7 +25,6 @@ export default {
     emits: ["open"],
     props: {
         items: { type: Array, required: true },
-        // 👇 pásame el objeto completo de estados desde config.parametros.estadosGuia
         estadosGuia: { type: Object, required: true },
     },
     computed: {

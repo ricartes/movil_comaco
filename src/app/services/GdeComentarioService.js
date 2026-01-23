@@ -15,6 +15,7 @@ export async function ensureComentariosInit(id) {
     const origenForestruck = Number(config?.parametros?.origenGde?.forestruck ?? 2);
     const isForestruck = Number(doc?.gdeOrigen) === origenForestruck;
 
+    //si viene desde forestruck se asigna
     const seedFecha = isForestruck
         ? (doc?.comentarios?.fechaPlantacion ?? null)
         : (doc?.rodal?.fechaPlantacion ?? null);
@@ -24,6 +25,8 @@ export async function ensureComentariosInit(id) {
     const seedPlan = doc?.rodal?.planManejo || "";
     const seedX = numOrNull(doc?.ordenCompra?.coordenadaX);
     const seedY = numOrNull(doc?.ordenCompra?.coordenadaY);
+    const sedHoraAgendamiento = horaActual();
+
 
     // estructura base de comentarios
     const base = {
@@ -69,6 +72,10 @@ export async function ensureComentariosInit(id) {
     }
     if (next.puntoY == null && seedY != null) {
         next.puntoY = seedY; needsWrite = true;
+    }
+
+    if (next.horaAgendamiento == null && sedHoraAgendamiento != null) {
+        next.horaAgendamiento = sedHoraAgendamiento; needsWrite = true;
     }
 
     if (needsWrite) {
