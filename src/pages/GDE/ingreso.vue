@@ -709,6 +709,8 @@ import {
     obtenerPrecioProducto,
 } from "@/app/services/Parametros/ProductoService";
 
+import { obtenerConfiguracionOrigenPorCodigo } from "@/app/services/Parametros/OrigenConfiguracionService";
+
 import {
     listarOrdenesCaompra,
     obtenerOrdenCompra,
@@ -813,6 +815,24 @@ export default {
         parametrosGenerales() {
             return config.parametros.parametrosGenerales;
         },
+        carguioEsObligatorio() {
+            return this.form?.configuracionOrigen?.carguioObligatorio === true;
+        },
+        textoCarguio() {
+            return this.carguioEsObligatorio
+                ? `Carguíos (Obligatorio - Ingrese ${this.maximoCarguios})`
+                : `Carguíos (Opcional - Ingrese ${this.maximoCarguios})`;
+        },
+        puedeContinuarDespuesDeCarguio() {
+            // Regla: si es obligatorio -> debe haber al menos 1 carguío y patentes cuadradas
+            // si es opcional -> puede pasar aunque no haya carguíos, pero si hay, deben cuadrar patentes
+            const nC = this.form.carguios?.length || 0;
+            const nP = this.form.patentesCarguio?.length || 0;
+
+            if (this.carguioEsObligatorio) return nC > 0 && nP === nC;
+            if (nC === 0) return true;
+            return nP === nC;
+        },
     },
     async created() {
         f7.dialog.preloader("Cargando...");
@@ -906,6 +926,7 @@ export default {
             this.reintentandoGeocerca = true;
             try {
                 // Reutiliza toda tu lógica actual
+                await this.obtenerConfiguracionOrigen();
                 await this.validarGeocerca();
 
                 // Si ahora quedó válida, seguimos el mismo flujo que al seleccionar predio
@@ -1152,12 +1173,20 @@ export default {
 
             // Mantener misma lógica que cuando el usuario selecciona predio
             await this.validarGeocerca();
+            await this.obtenerConfiguracionOrigen();
             if (this.form.datosGeocerca.validada === true) {
                 await this.cargarRodales();
                 await this.cargarClientes();
             }
 
             return true;
+        },
+
+        async obtenerConfiguracionOrigen() {
+            this.form.configuracionOrigen =
+                await obtenerConfiguracionOrigenPorCodigo(
+                    this.form.predio.rolPredio
+                );
         },
         async asignarClienteDesdeOc(oc) {
             if (!this.clientes?.length) return false;
@@ -1371,6 +1400,7 @@ export default {
                 if (this.predios.length === 1) {
                     this.form.predio = this.predios[0];
                     await this.$nextTick();
+                    await this.obtenerConfiguracionOrigen();
                     await this.validarGeocerca();
                     if (this.form.datosGeocerca.validada === true) {
                         this.cargarClientes();
@@ -1416,6 +1446,7 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("predio"); // limpia desde predio en adelante
+            await this.obtenerConfiguracionOrigen();
             await this.validarGeocerca();
             if (this.form.datosGeocerca.validada === true) {
                 this.cargarRodales();

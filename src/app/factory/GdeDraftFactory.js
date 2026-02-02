@@ -13,6 +13,7 @@ export function createGdeDraftDefault() {
         zona: null,
         proveedor: null,
         predio: null,
+        configuracionOrigen: null,
         cliente: null,
         destino: null,
         indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
