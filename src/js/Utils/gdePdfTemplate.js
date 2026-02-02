@@ -373,7 +373,7 @@ function buildBoxOperacion(doc) {
                 ],
                 margin: [0, 0, 0, 2]
             },
-            kvLine("Proveedor", `${doc?.proveedor?.nomProveedor} – ${doc?.proveedor?.rutProveedor}`),
+            kvLine("Proveedor", `${doc?.proveedor?.nomProveedor} – ${formatearRut(doc?.proveedor?.rutProveedor)}`),
             kvLine("Guía Proveedor", doc?.comentarios?.guiaProveedor),
             kvLine(
                 "Fecha Plantación",
@@ -714,7 +714,7 @@ function buildTransporteBox(doc) {
                         {
                             text: [
                                 { text: 'Transportista: ', bold: true },
-                                fStr(`${doc?.transportista?.nomTransportista} – ${doc?.transportista?.rutTransportista}`)
+                                fStr(`${doc?.transportista?.nomTransportista} – ${formatearRut(doc?.transportista?.rutTransportista)}`)
                             ]
                         },
                         {
@@ -745,7 +745,7 @@ function buildTransporteBox(doc) {
                                 { text: 'Nombre Chofer: ', bold: true },
                                 fStr(doc?.conductor?.nomChofer),
                                 { text: '.  RUT Chofer: ', bold: true },
-                                fStr(doc?.conductor?.rutChofer)
+                                fStr(formatearRut(doc?.conductor?.rutChofer))
                             ]
                         },
                     ]

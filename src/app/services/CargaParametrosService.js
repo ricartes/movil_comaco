@@ -6,7 +6,7 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
     getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
-    getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao
+    getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao, getOrigenHomologacionDao, getOrigenConfiguracionDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
@@ -22,6 +22,8 @@ import { mapServerRodalToDoc } from '@/app/mappers/rodalMapper'
 import { mapServerZonaToDoc } from '@/app/mappers/ZonaMapper'
 import { mapServerGeocercaToDoc } from '@/app/mappers/GeocercaMapper'
 import { mapServerMotivoAnulacionToDoc } from '@/app/mappers/MotivoAnulacionMapper'
+import { mapServerOrigenHomologacionToDoc } from '@/app/mappers/OrigenHomologacionMapper'
+import { mapServerOrigenConfiguracionToDoc } from '@/app/mappers/OrigenConfiguracionMapper'
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
     const token = store.state.token
@@ -193,6 +195,27 @@ const CargaParametrosService = {
             mapper: mapServerMotivoAnulacionToDoc,
             daoGetter: getMotivoAnulacionDao,
             nombre: 'Motivos de Anulación',
+        })
+    },
+
+    cargarOrigenHomologacion(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarOrigenHomologacion,
+            mapper: mapServerOrigenHomologacionToDoc,
+            daoGetter: getOrigenHomologacionDao,
+            nombre: 'Origen Homologación',
+        })
+    },
+    cargarOrigenConfiguracion(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarOrigenConfiguracion,
+            mapper: mapServerOrigenConfiguracionToDoc,
+            daoGetter: getOrigenConfiguracionDao,
+            nombre: 'Origen Configuración',
         })
     },
 }

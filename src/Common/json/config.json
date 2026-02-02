@@ -168,6 +168,8 @@
         "RescatarZonas": "zona",
         "RescatarGeocercas": "geocerca",
         "RescatarLargosProductos": "largo-producto",
+        "RescatarOrigenConfiguracion": "origen/configuracion",
+        "RescatarOrigenHomologacion": "origen/homologacion",
         "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
         "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar",
         "RescatarUsuarioRangoFolioLiberado": "sii-usuario-rango-folio-liberado",
@@ -198,7 +200,9 @@
             "folio": "folio",
             "largoProducto": "largo-producto",
             "motivoAnulacion": "motivo-anulacion",
-            "forestruckImportLog": "forestruck-import-log"
+            "forestruckImportLog": "forestruck-import-log",
+            "origenConfiguracion": "origen-configuracion",
+            "origenHomologacion": "origen-homologacion"
         }
     }
 }

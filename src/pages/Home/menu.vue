@@ -255,6 +255,22 @@ export default {
                             this.user.rut
                         ),
                 },
+                {
+                    key: "Orígenes de Homologación",
+                    run: () =>
+                        CargaParametrosService.cargarOrigenesHomologacion(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
+                    key: "Orígenes de Configuración",
+                    run: () =>
+                        CargaParametrosService.cargarOrigenesConfiguracion(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
             ];
 
             const tasks = [...tasksBase];

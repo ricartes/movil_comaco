@@ -22,6 +22,8 @@ import SiiFolioDAO from '@/app/DAO/SiiFolioDAO';
 import LargoProductoDAO from '@/app/DAO/Parametros/LargoProductoDAO';
 import MotivoAnulacionDAO from '@/app/DAO/Parametros/MotivoAnulacionDAO';
 import ForestruckImportLogDAO from '@/app/DAO/Parametros/ForestruckImportLogDAO';
+import OrigenHomologacionDAO from '@/app/DAO/Parametros/OrigenHomologacionDAO';
+import OrigenConfiguracionDAO from '@/app/DAO/Parametros/OrigenConfiguracionDAO';
 
 // Inicializa UsuarioDAO con la instancia de la base de datos
 // La función acepta la instancia de la base de datos como parámetro
@@ -49,6 +51,8 @@ let _siiFolioDao;
 let _largoProductoDao;
 let _motivoAnulacionDao;
 let _forestruckImportLogDao;
+let _origenHomologacionDao;
+let _origenConfiguracionDao;
 
 export function initializeServices(dbInstance) {
     // Inicialización de usuarioDao...
@@ -76,6 +80,8 @@ export function initializeServices(dbInstance) {
     _largoProductoDao = new LargoProductoDAO(dbInstance);
     _motivoAnulacionDao = new MotivoAnulacionDAO(dbInstance);
     _forestruckImportLogDao = new ForestruckImportLogDAO(dbInstance);
+    _origenHomologacionDao = new OrigenHomologacionDAO(dbInstance);
+    _origenConfiguracionDao = new OrigenConfiguracionDAO(dbInstance);
 }
 
 export function getBaseDao() {
@@ -242,4 +248,17 @@ export function getForestruckImportLogDao() {
         throw new Error("_forestruckImportLogDao no ha sido inicializado.");
     }
     return _forestruckImportLogDao;
+}
+
+export function getOrigenHomologacionDao() {
+    if (!_origenHomologacionDao) {
+        throw new Error("_origenHomologacionDao no ha sido inicializado.");
+    }
+    return _origenHomologacionDao;
+}
+export function getOrigenConfiguracionDao() {
+    if (!_origenConfiguracionDao) {
+        throw new Error("_origenConfiguracionDao no ha sido inicializado.");
+    }
+    return _origenConfiguracionDao;
 }
