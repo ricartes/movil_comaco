@@ -256,17 +256,17 @@ export default {
                         ),
                 },
                 {
-                    key: "Orígenes de Homologación",
+                    key: "Homologación de Orígenes",
                     run: () =>
-                        CargaParametrosService.cargarOrigenesHomologacion(
+                        CargaParametrosService.cargarOrigenHomologacion(
                             this.user.empresa,
                             this.user.rut
                         ),
                 },
                 {
-                    key: "Orígenes de Configuración",
+                    key: "Configuración de Orígenes",
                     run: () =>
-                        CargaParametrosService.cargarOrigenesConfiguracion(
+                        CargaParametrosService.cargarOrigenConfiguracion(
                             this.user.empresa,
                             this.user.rut
                         ),
