@@ -541,7 +541,7 @@
             >
                 <div class="alert alert-info">
                     <i class="f7-icons">info_circle</i>
-                    Este campo es obligatorio. Debes seleccionar al menos 1 carguío.
+                    Este campo es obligatorio. Debes seleccionar 1 carguío.
                 </div>
             </f7-list-item>
 
@@ -581,7 +581,8 @@
             >
                 <div class="alert alert-danger">
                     <i class="f7-icons">exclamationmark_circle</i>
-                    Debes seleccionar {{ form.carguios.length }} patente(s) de carguío para continuar.
+                    Debes seleccionar {{ form.carguios.length }} patente(s) de
+                    carguío para continuar.
                 </div>
             </f7-list-item>
 
