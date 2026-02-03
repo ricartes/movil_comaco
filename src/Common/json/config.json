@@ -31,6 +31,9 @@
             "BLOQUEADO": "3",
             "DESBLOQUEADO": "2"
         },
+        "origenExterno": {
+            "forestalLosLagos": 1
+        },
         "cantidadUltimasGuias": 5,
         "cantidadParametrosDescarga": 4,
         "cantidadMaximaRumas": 20,

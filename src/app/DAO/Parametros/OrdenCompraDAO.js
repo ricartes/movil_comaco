@@ -59,6 +59,22 @@ export default class OrdenCompraDAO {
     }
 
 
+    async obtenerPorRolPredio(rolPredio) {
+
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                rolPredio
+            },
+            limit: 1
+        });
+
+        if (docs.length === 0) {
+            return null; // No se encontró ningún precio vigente
+        }
+        return ocDocToDTO(docs[0]); // Retorna el primer documento mapeado a DTO
+    }
+
     async eliminarTodos() {
         try {
             const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra);

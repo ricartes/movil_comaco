@@ -512,7 +512,7 @@
             <f7-list-item
                 v-if="this.form.conductor && this.conductorValido"
                 :key="`${form.conductor.rutChofer}`"
-                :title="`Carguios (Opcional-Ingrese ${maximoCarguios})`"
+                :title="textoCarguio"
                 class="carguio-select"
                 ref="carguio"
                 smart-select
@@ -533,6 +533,16 @@
                         {{ p.nombreCarguio }}
                     </option>
                 </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="form.conductor && conductorValido && carguioEsObligatorio"
+                class="li-alert no-padding"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Este campo es obligatorio. Debes seleccionar al menos 1 carguío.
+                </div>
             </f7-list-item>
 
             <f7-list-item
@@ -563,9 +573,24 @@
 
             <f7-list-item
                 v-if="
+                    (form.carguios?.length || 0) > 0 &&
+                    (form.patentesCarguio?.length || 0) !==
+                        (form.carguios?.length || 0)
+                "
+                class="li-alert no-padding"
+            >
+                <div class="alert alert-danger">
+                    <i class="f7-icons">exclamationmark_circle</i>
+                    Debes seleccionar {{ form.carguios.length }} patente(s) de carguío para continuar.
+                </div>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="
                     this.form.predio &&
                     this.form.conductor &&
-                    this.conductorValido
+                    this.conductorValido &&
+                    this.puedeContinuarDespuesDeCarguio
                 "
                 :key="`rodal-${form.predio?.rolPredio || ''}-${(
                     form.patentesCarguio || []
@@ -2253,7 +2278,16 @@ export default {
             const nC = this.form.carguios?.length || 0;
             const nP = this.form.patentesCarguio?.length || 0;
 
-            // Regla: carguíos es opcional, pero si hay N carguíos, debe haber N patentes
+            // Si es obligatorio, debe existir al menos 1 carguío
+            if (this.carguioEsObligatorio && nC === 0) {
+                f7.dialog.alert(
+                    `Debes seleccionar al menos 1 carguío para continuar.`,
+                    "Validación"
+                );
+                return false;
+            }
+
+            // Si hay carguíos (obligatorio u opcional), patentes deben cuadrar
             if (nC > 0 && nP !== nC) {
                 f7.dialog.alert(
                     `Seleccionaste ${nC} carguío(s). Debes seleccionar ${nC} patente(s) de carguío para continuar.`,

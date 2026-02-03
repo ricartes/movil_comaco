@@ -39,11 +39,11 @@ export default class OrigenHomologacionDAO {
     }
 
 
-    async obtenerPorCodigoOrigenYForestalExterna(codOrigen, idForestalExterna) {
+    async obtenerPorCodigoOrigenYForestalExterna(origenExternoCodigo, idForestalExterna) {
         const { docs } = await this.db.find({
             selector: {
                 type: config.bd.tipoEntidad.origenHomologacion,
-                codOrigen,
+                origenExternoCodigo,
                 idForestalExterna
             },
             limit: 1

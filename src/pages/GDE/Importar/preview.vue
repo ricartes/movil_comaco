@@ -71,29 +71,6 @@
             </f7-block>
 
             <f7-list no-hairlines-md form v-if="mappingOk">
-                <f7-list-item
-                    title="Número Orden"
-                    class="select-orden-compra"
-                    smart-select
-                    :smart-select-params="ssParams"
-                >
-                    <select
-                        :value="ordenCompraSeleccionada?.numOc || ''"
-                        @change="handleOrdenCompraChange"
-                    >
-                        <option value="" disabled>
-                            Seleccione Número de Orden
-                        </option>
-                        <option
-                            v-for="z in ordenesCompra"
-                            :key="z.numOc"
-                            :value="z.numOc"
-                        >
-                            {{ z.numOc }}
-                        </option>
-                    </select>
-                </f7-list-item>
-
                 <f7-list-input
                     label="Fecha Plantación"
                     type="date"
@@ -178,6 +155,20 @@
             </f7-block>
 
             <f7-block
+                v-if="!ordenCompraSeleccionada"
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    No se puede importar debido a que el Código de Origen de
+                    forestal los lagos ({{ form.predio.rolPredio }}) NO está
+                    homologado a una Orden de Compra.
+                </div>
+            </f7-block>
+
+            <f7-block
                 v-if="preview?.imported"
                 strong
                 inset
@@ -230,10 +221,7 @@ import {
     buildGdeDraftFromForestruck,
     getComboPlan,
 } from "@/app/mappers/Forestruck/ForestruckMappingApplier";
-import {
-    listarOrdenesCaompra,
-    obtenerOrdenCompra,
-} from "@/app/services/Parametros/OrdenCompraService";
+
 import {
     listarParametrosGenerales,
     generarPorcentajeIva,
@@ -255,6 +243,7 @@ import {
 import { clienteEsEmisor } from "@/app/services/Parametros/ClienteService";
 import { ingresarGde } from "@/app/services/GdeService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
+import { obtenerOrdenCompraDesdeHomologacionOrigen } from "@/app/services/Parametros/OrigenHomologacionService";
 
 export default {
     name: "ImportarForestruckPreviewPage",
@@ -349,7 +338,8 @@ export default {
 
             // 2) construir draft
             await this.cargarPreview();
-            await this.cargarOrdenesCompra();
+
+            await this.homologarDatosOrigen();
             // 3) generar datos emisor
             this.generarDatosEmisor();
             this.form.empresa = await obtenerEmpresa(
@@ -365,10 +355,6 @@ export default {
             await this.cargarCombos();
         },
 
-        async cargarOrdenesCompra() {
-            this.ordenesCompra = await listarOrdenesCaompra();
-        },
-
         generarDatosEmisor() {
             this.form.emisor = {
                 rut: this.usuarioActivo.rut,
@@ -377,6 +363,18 @@ export default {
                 email: this.usuarioActivo.email,
                 rol: this.usuarioActivo.rol,
             };
+        },
+
+        async homologarDatosOrigen() {
+            const origenExternoCodigo = this.form.predio.rolPredio;
+            this.ordenCompraSeleccionada =
+                await obtenerOrdenCompraDesdeHomologacionOrigen(
+                    origenExternoCodigo
+                );
+
+            if (this.ordenCompraSeleccionada) {
+                await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
+            }
         },
 
         async cargarParametrosMapping() {
@@ -580,31 +578,6 @@ export default {
                 )
             ) {
                 this.form.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
-            }
-        },
-
-        async handleOrdenCompraChange(e) {
-            this.ocAplicadaOk = false;
-            const nuevoNumero = e.target.value;
-
-            this.ordenCompraSeleccionada =
-                this.ordenesCompra.find((o) => o.numOc === nuevoNumero) || null;
-
-            if (this.ordenCompraSeleccionada) {
-                try {
-                    this.aplicandoOc = true;
-                    f7.dialog.preloader("Aplicando Orden de Compra...");
-                    await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
-                } catch (err) {
-                    console.error("Error aplicando OC:", err);
-                    f7.dialog.alert(
-                        "No fue posible aplicar los datos de la Orden de Compra seleccionada.",
-                        "Error"
-                    );
-                } finally {
-                    this.aplicandoOc = false;
-                    f7.dialog.close();
-                }
             }
         },
 
