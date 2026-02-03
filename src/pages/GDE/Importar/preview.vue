@@ -63,21 +63,17 @@
                 </div>
             </f7-block>
 
-            <f7-block strong inset class="alert-wrapper">
+            <f7-block
+                strong
+                inset
+                class="alert-wrapper"
+                v-if="mappingOk && comboPlan?.length"
+            >
                 <div class="alert alert-info">
                     <i class="f7-icons">info_circle</i>
                     Ingresar campos requeridos para importar Guía Forestruck.
                 </div>
             </f7-block>
-
-            <f7-list no-hairlines-md form v-if="mappingOk">
-                <f7-list-input
-                    label="Fecha Plantación"
-                    type="date"
-                    :value="form?.comentarios?.fechaPlantacion || ''"
-                    @change="handleFechaPlantacionChange"
-                />
-            </f7-list>
 
             <f7-list no-hairlines-md form v-if="mappingOk && comboPlan?.length">
                 <f7-list-item
@@ -309,12 +305,11 @@ export default {
                 !this.mappingLoading &&
                 !this.combosLoading &&
                 !!this.form &&
-                !!this.ordenCompraSeleccionada && // ✅ OC seleccionada
-                this.ocAplicadaOk && // ✅ OC aplicada completa (PC ok)
-                !!this.form?.comentarios?.fechaPlantacion &&
+                !!this.ordenCompraSeleccionada &&
+                this.ocAplicadaOk &&
                 productoOk &&
-                largoOk && // ✅ “PC” (producto + largo) asignados
-                this.faltanCombos.length === 0 // ✅ combos listos
+                largoOk &&
+                this.faltanCombos.length === 0
             );
         },
     },
@@ -477,10 +472,6 @@ export default {
 
             this.form.ordenCompra = oc;
 
-            const fechaPlantacionActual =
-                this.form?.comentarios?.fechaPlantacion ?? null;
-            // 1) Zona
-
             const okZona = await this.asignarZonaDesdeOc(
                 oc,
                 this.usuarioActivo.empresa
@@ -506,25 +497,7 @@ export default {
             const okProd = this.asignarProductoYLargoDesdeOc(oc);
             if (!okProd) return;
 
-            if (fechaPlantacionActual) {
-                this.form.comentarios.fechaPlantacion = fechaPlantacionActual;
-            }
-
             this.ocAplicadaOk = true;
-        },
-
-        handleFechaPlantacionChange(e) {
-            const v = e?.target?.value ?? "";
-
-            // asegurar estructura
-            if (
-                !this.form.comentarios ||
-                typeof this.form.comentarios !== "object"
-            ) {
-                this.form.comentarios = {};
-            }
-            // asignar
-            this.form.comentarios.fechaPlantacion = v;
         },
 
         async asignarZonaDesdeOc(oc) {
