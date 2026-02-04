@@ -677,8 +677,7 @@ export default {
 
                 // 2) Datos del predio desde el doc (DETALLE)
                 const predio = this.doc?.predio;
-                const rolPredio =
-                    predio?.rolPredio || predio?.rolOrigen || predio?.rolPredio; // ajusta según tu doc real
+                const rolPredio = predio?.rolPredio;
 
                 if (!rolPredio) {
                     f7.dialog.alert(
