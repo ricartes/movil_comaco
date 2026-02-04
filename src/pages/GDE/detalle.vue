@@ -217,6 +217,9 @@ import { createPdfAndOpen } from "@/js/utils/pdfNative";
 import { renderPdf417FromTED } from "@/js/utils/pdf417";
 import { printGuiaFromDoc } from "@/js/Utils/gdePrinter";
 import HelperService from "@/app/services/HelperService.js";
+import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
+import { ensureLocationPermissionOnce } from "@/app/helpers/geo-permissions";
+import { validarGeocercaPredio } from "@/app/services/Parametros/PredioService";
 
 export default {
     name: "GdeDetalle",
@@ -296,6 +299,10 @@ export default {
                 this.unidadesMedida.M3ST,
             ].includes(u);
         },
+
+        validaGeocerca() {
+            return config?.parametros?.validaGeocerca === true;
+        },
     },
 
     async mounted() {
@@ -365,9 +372,9 @@ export default {
             el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
         },
 
-        validarIngresoVolumenes() {
+        async validarIngresoVolumenes() {
             if (this.requiereValidacionMR && !this.detalleValidoMR) {
-                this.volverHaciaIngresoMr();
+                await this.volverHaciaIngresoMr();
                 f7.dialog.alert(
                     "Debe existir al menos un banco con volumen mayor a 0 para emitir.",
                     "Validación"
@@ -376,7 +383,7 @@ export default {
             }
 
             if (this.requiereValidacionTon && !this.detalleValidoTon) {
-                this.volverHaciaIngresoTon();
+                await this.volverHaciaIngresoTon();
                 f7.dialog.alert(
                     "Debe ingresar el volumen para emitir.",
                     "Validación"
@@ -385,9 +392,9 @@ export default {
             }
 
             if (this.requiereValidacionM3 && !this.detalleValidoM3) {
-                this.volverHaciaIngresoM3();
+                await this.volverHaciaIngresoM3();
                 f7.dialog.alert(
-                    "Debe ingresar al menos un díametro para emitir.",
+                    "Debe ingresar al menos un diámetro para emitir.",
                     "Validación"
                 );
                 return false;
@@ -397,29 +404,40 @@ export default {
         },
 
         async onEmitir() {
+            let preloaderEmitirAbierto = false;
+
             try {
-                if (this.validarIngresoVolumenes()) {
-                    f7.dialog.preloader("Emitiendo guia...");
+                // 1️ Volúmenes
+                const okVol = await this.validarIngresoVolumenes();
+                if (!okVol) return false;
 
-                    const updatedDoc = await emitirGde(this.doc);
-                    this.doc = updatedDoc; // 👈 actualizas el doc en memoria
-                    f7.dialog.alert(
-                        "Guía emitida correctamente.",
-                        "Éxito",
-                        () => {
-                            this.scrollArriba();
-                            this.onEnviar(true);
-                        }
-                    );
-                }
+                // 2️ Geocerca (AQUÍ VA)
+                const okGeo = await this.validarGeocercaAntesDeEmitir();
+                if (!okGeo) return false;
+
+                // 3️ Emitir
+                f7.dialog.preloader("Emitiendo guía...");
+                preloaderEmitirAbierto = true;
+
+                const updatedDoc = await emitirGde(this.doc);
+                this.doc = updatedDoc;
+
+                f7.dialog.alert("Guía emitida correctamente.", "Éxito", () => {
+                    this.scrollArriba();
+                    this.onEnviar(true);
+                });
             } catch (e) {
-                const mensaje = e?.message
-                    ? e.message
-                    : "Ha ocurrido un error inesperado al emitir la guía.";
-
-                f7.dialog.alert(mensaje, "Error");
+                f7.dialog.alert(
+                    e?.message ||
+                        "Ha ocurrido un error inesperado al emitir la guía.",
+                    "Error"
+                );
             } finally {
-                f7.dialog.close();
+                if (preloaderEmitirAbierto) {
+                    try {
+                        f7.dialog.close();
+                    } catch {}
+                }
             }
         },
 
@@ -637,6 +655,84 @@ export default {
             if (pageEl) {
                 const content = pageEl.querySelector(".page-content");
                 if (content) content.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        },
+
+        async validarGeocercaAntesDeEmitir() {
+            // Si está desactivado por config, no bloquees
+            if (!config.parametros.validaGeocerca) return true;
+
+            f7.dialog.preloader("Validando geocerca…");
+
+            try {
+                // 1) Permiso ubicación
+                const okPermiso = await ensureLocationPermissionOnce();
+                if (!okPermiso) {
+                    f7.dialog.alert(
+                        "Debes otorgar el permiso de ubicación para validar la geocerca.",
+                        "Validación"
+                    );
+                    return false;
+                }
+
+                // 2) Datos del predio desde el doc (DETALLE)
+                const predio = this.doc?.predio;
+                const rolPredio =
+                    predio?.rolPredio || predio?.rolOrigen || predio?.rolPredio; // ajusta según tu doc real
+
+                if (!rolPredio) {
+                    f7.dialog.alert(
+                        "No se puede validar geocerca: faltan datos del predio.",
+                        "Validación"
+                    );
+                    return false;
+                }
+
+                // 3) Ubicación actual
+                let ubicacion = null;
+                try {
+                    ubicacion = await getLocationOnce();
+                    if (
+                        !ubicacion ||
+                        typeof ubicacion.lat !== "number" ||
+                        typeof ubicacion.lng !== "number"
+                    ) {
+                        throw new Error("Ubicación inválida");
+                    }
+                } catch (e) {
+                    f7.dialog.alert(
+                        "No se pudo obtener la ubicación. Verifica GPS y permisos.",
+                        "Validación"
+                    );
+                    return false;
+                }
+
+                // 4) Validación backend (APP que valida solo por rol)
+                const res = await validarGeocercaPredio(
+                    rolPredio,
+                    ubicacion.lat,
+                    ubicacion.lng
+                );
+
+                if (res?.validada === true) return true;
+
+                f7.dialog.alert(
+                    res?.mensajeValidacion ||
+                        "Ubicación fuera de la geocerca. No podrá emitir la guía.",
+                    "Validación geocerca"
+                );
+                return false;
+            } catch (e) {
+                f7.dialog.alert(
+                    e?.message ||
+                        "Ocurrió un error al validar la geocerca. No podrá emitir la guía.",
+                    "Validación"
+                );
+                return false;
+            } finally {
+                try {
+                    f7.dialog.close();
+                } catch {}
             }
         },
     },
