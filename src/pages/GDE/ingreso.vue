@@ -17,7 +17,7 @@
             </div>
         </f7-block>
 
-        <f7-list no-hairlines-md form>
+        <f7-list no-hairlines-md>
             <!-- OC -->
 
             <f7-list-item
@@ -1621,6 +1621,8 @@ export default {
                 )
             ) {
                 this.form.indicadorTraslado = this.indicadoresTraslado.TRASLADO;
+            } else {
+                this.form.indicadorTraslado = this.indicadoresTraslado.VENTA;
             }
         },
         async handleDestinoChange(e) {
