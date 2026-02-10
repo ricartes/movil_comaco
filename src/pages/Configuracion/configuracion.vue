@@ -209,7 +209,7 @@
 
             <f7-list-item
                 link
-                @click="selectGuidesFolder"
+                @click="seleccionarCarpetaGuias"
                 :title="
                     guidesConfigured ? 'Cambiar carpeta' : 'Seleccionar carpeta'
                 "
@@ -694,7 +694,7 @@ export default {
                 .open();
         },
 
-        async selectGuidesFolder() {
+        async seleccionarCarpetaGuias() {
             if (!this.isAndroid) {
                 f7.dialog.alert(
                     "Esta función está disponible solo en Android."
@@ -720,14 +720,13 @@ export default {
                     treeUri: res.treeUri,
                     displayPath: res.displayPath || "Carpeta seleccionada",
                 });
-                this.guidesTick++; // 👈 fuerza update inmediato
+                this.guidesTick++;
                 await this.$nextTick();
 
                 f7.toast
                     .create({ text: "Carpeta guardada", closeTimeout: 1200 })
                     .open();
             } catch (e) {
-                console.warn("selectGuidesFolder:", e);
                 f7.dialog.alert(
                     e?.message ||
                         "No se pudo seleccionar la carpeta. Inténtelo nuevamente."
