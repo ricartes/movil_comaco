@@ -27,7 +27,7 @@ export async function validarSesionDispositivo({ silent = false, nonIntrusive = 
 
 
 export function usuarioLogeadoNoCorresponde(rutUsuarioSesion, rutAsignadoDispositivo) {
-    if (!rutUsuarioSesion || !rutAsignadoDispositivo) return false;
+    if (!rutUsuarioSesion || !rutAsignadoDispositivo) return true;
     return String(rutUsuarioSesion) !== String(rutAsignadoDispositivo);
 }
 
