@@ -16,10 +16,11 @@ export async function ensureComentariosInit(id) {
     const isForestruck = Number(doc?.gdeOrigen) === origenForestruck;
 
     //si viene desde forestruck se asigna
-    const seedFecha = isForestruck
+    /*const seedFecha = isForestruck
         ? (doc?.comentarios?.fechaPlantacion ?? null)
-        : (doc?.rodal?.fechaPlantacion ?? null);
+        : (doc?.rodal?.fechaPlantacion ?? null);*/
 
+    const seedFecha = doc?.rodal?.fechaPlantacion ?? null;
 
 
     const seedPlan = doc?.rodal?.planManejo || "";

@@ -1,6 +1,6 @@
 // src/app/services/ForestruckImportService.js
 import { StorageAccess } from "@/app/plugins/StorageAccess";
-import { getForestruckImportLogDao, getZonaDao } from "@/app/services/initServices";
+import { getForestruckImportLogDao, getZonaDao, getRodalDao } from "@/app/services/initServices";
 import ProductoDTO from '@/app/DTO/Parametros/ProductoDTO'
 import ClienteDTO from '@/app/DTO/Parametros/ClienteDTO'
 import ClienteDestinoDTO from '@/app/DTO/Parametros/ClienteDestinoDTO'
@@ -268,6 +268,12 @@ export function asignarClienteDestinoDesdeOc(oc = {}) {
         comunaDestinoCliente: oc.comunaDestinoCliente,
         ciudadDestinoCliente: oc.ciudadDestinoCliente,
     })
+}
+
+export async function asignarRodalDesdeOc(oc = {}) {
+
+    return await getRodalDao().obtenerPorOrigen(oc.rolPredio);
+
 }
 
 

@@ -235,6 +235,7 @@ import {
     asignarClienteDesdeOc,
     asignarProductoDesdeOc,
     asignarClienteDestinoDesdeOc,
+    asignarRodalDesdeOc,
 } from "@/app/services/ForestruckImportService";
 import { clienteEsEmisor } from "@/app/services/Parametros/ClienteService";
 import { ingresarGde } from "@/app/services/GdeService";
@@ -368,7 +369,16 @@ export default {
                 );
 
             if (this.ordenCompraSeleccionada) {
-                await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
+                const ok = await this.aplicarOrdenCompra(
+                    this.ordenCompraSeleccionada
+                );
+
+                if (!ok) {
+                    f7.dialog.alert(
+                        "Ocurrió un error al aplicar la Orden de Compra asociada. Verifique la configuración.",
+                        "Error OC"
+                    );
+                }
             }
         },
 
@@ -429,6 +439,7 @@ export default {
             );
 
             this.form.gdeOrigen = origenForestruck;
+            this.form.referenciaGuiaForestruck = this.sourceJson;
 
             try {
                 if (this.form?.producto) {
@@ -476,32 +487,42 @@ export default {
                 oc,
                 this.usuarioActivo.empresa
             );
-            if (!okZona) return;
+            if (!okZona) return false;
 
             // 2) Proveedor
             const okProv = this.asignarProveedorDesdeOc(oc);
-            if (!okProv) return;
+            if (!okProv) return false;
 
             // 3) Predio (depende de proveedor)
             const okPredio = this.asignarPredioDesdeOc(oc);
-            if (!okPredio) return;
+            if (!okPredio) return false;
 
             const okCli = this.asignarClienteDesdeOc(oc);
-            if (!okCli) return;
+            if (!okCli) return false;
 
             // 5) Destino (depende de cliente)
             const okDest = this.asignarDestinoDesdeOc(oc);
-            if (!okDest) return;
+            if (!okDest) return false;
 
             // 6) Producto + largo (depende de destino)
             const okProd = this.asignarProductoYLargoDesdeOc(oc);
-            if (!okProd) return;
+            if (!okProd) return false;
+
+            const okRodal = await this.asignarRodalDesdeOc(oc);
+            if (!okRodal) return false;
 
             this.ocAplicadaOk = true;
+
+            return true;
         },
 
         async asignarZonaDesdeOc(oc) {
             this.form.zona = await asignarZonaDesdeOc(oc);
+            return true;
+        },
+
+        async asignarRodalDesdeOc(oc) {
+            this.form.rodal = await asignarRodalDesdeOc(oc);
             return true;
         },
 

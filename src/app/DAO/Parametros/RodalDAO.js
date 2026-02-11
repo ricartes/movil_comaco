@@ -39,6 +39,24 @@ export default class RodalDAO {
     }
 
 
+    async obtenerPorOrigen(codOrigen) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.rodal,
+                codOrigen
+            },
+            limit: 1
+        });
+
+        if (docs.length === 0) {
+            return null;
+        }
+
+        return rodalDocToDTO(docs[0]);
+
+    }
+
+
     async eliminarTodos() {
         try {
             const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.rodal);
