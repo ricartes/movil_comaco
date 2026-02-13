@@ -59,6 +59,99 @@ export default {
         let visibilityHandle = null;
         let accessPreloader = null;
 
+        async function forzarLogout({
+            message = "Sesión cerrada.",
+            title = "Inicio sesión",
+            rutSesion = "",
+            silent = false,
+        } = {}) {
+            const router = f7.views.main?.router;
+
+            // 1) Cerrar cosas que dependan del foco (combos/autocomplete custom)
+            try {
+                document.activeElement?.blur?.();
+            } catch (e) {}
+
+            // 2) Cerrar preloader propio si existe
+            try {
+                if (accessPreloader) {
+                    accessPreloader.close();
+                    accessPreloader = null;
+                }
+            } catch (e) {}
+
+            // 3) Cerrar overlays típicos de Framework7
+            try {
+                f7.dialog?.close?.();
+            } catch (e) {}
+            try {
+                f7.popup?.close?.();
+            } catch (e) {}
+            try {
+                f7.sheet?.close?.();
+            } catch (e) {}
+            try {
+                f7.popover?.close?.();
+            } catch (e) {}
+            try {
+                f7.actions?.close?.();
+            } catch (e) {}
+            try {
+                f7.toast?.close?.();
+            } catch (e) {}
+            try {
+                f7.panel?.close?.();
+            } catch (e) {}
+            try {
+                f7.preloader?.hide?.();
+            } catch (e) {}
+
+            // 4) “Martillo”: cerrar cualquier modal que haya quedado abierto en DOM
+            // (smartselect abierto en popup/sheet también cae aquí)
+            try {
+                f7.$$(".modal-in, .popup.modal-in, .sheet-modal.modal-in").each(
+                    (el) => {
+                        try {
+                            f7.modal?.close?.(el);
+                        } catch (e) {}
+                    }
+                );
+            } catch (e) {}
+
+            // 5) Saneo extra: preloaders “fantasma”
+            try {
+                document
+                    .querySelectorAll(
+                        ".dialog.dialog-preloader, .preloader-backdrop"
+                    )
+                    .forEach((el) => el?.parentNode?.removeChild?.(el));
+            } catch (e) {}
+
+            // 6) Alert + limpieza de sesión + redirect
+            f7.dialog.alert(message, title, async () => {
+                try {
+                    await store.dispatch("clearSession");
+                } catch (e) {}
+
+                try {
+                    localStorage.removeItem("auth_token");
+                } catch (e) {}
+
+                try {
+                    if (rutSesion) {
+                        await UsuarioService.eliminarUsuarioLocalPorRut(
+                            String(rutSesion)
+                        );
+                    }
+                } catch (e) {}
+
+                router?.navigate("/login/", {
+                    ...(silent ? { replaceState: true } : { reloadAll: true }),
+                    clearPreviousHistory: !silent,
+                });
+            });
+        }
+
         function startAutoSyncIfPossible() {
             try {
                 const user = store.state.user || {};
@@ -151,25 +244,16 @@ export default {
                         autenticado &&
                         usuarioLogeadoNoCorresponde(rutSesion, rutAsignado);
 
-                    if (autenticado && usuarioNoCorrespondido) {
+                    if (usuarioNoCorrespondido) {
                         //cerrar sesion si no corresponde
-                        f7.dialog.alert(
-                            "El usuario en sesión no corresponde al asignado al dispositivo. Favor iniciar sesión con el usuario asignado o contactar al administrador.",
-                            "Inicio sesión",
-                            async () => {
-                                await store.dispatch("clearSession");
-                                localStorage.removeItem("auth_token");
-                                await UsuarioService.eliminarUsuarioLocalPorRut(
-                                    rutSesion
-                                );
-                                router?.navigate("/login/", {
-                                    ...(silent
-                                        ? { replaceState: true }
-                                        : { reloadAll: true }),
-                                    clearPreviousHistory: !silent,
-                                });
-                            }
-                        );
+                        await forzarLogout({
+                            message:
+                                "El usuario en sesión no corresponde al asignado al dispositivo. Favor iniciar sesión con el usuario asignado o contactar al administrador.",
+                            title: "Inicio sesión",
+                            rutSesion,
+                            silent,
+                        });
+                        return { ok: false, bloquea: false };
                     } else {
                         if (!nonIntrusive) {
                             router?.navigate("/login/", {
