@@ -362,23 +362,43 @@ export default {
         },
 
         async homologarDatosOrigen() {
-            const origenExternoCodigo = this.form.predio.rolPredio;
-            this.ordenCompraSeleccionada =
-                await obtenerOrdenCompraDesdeHomologacionOrigen(
-                    origenExternoCodigo
-                );
+            this.aplicandoOc = true;
+            try {
+                const origenExternoCodigo = this.form?.predio?.rolPredio;
 
-            if (this.ordenCompraSeleccionada) {
+                this.ordenCompraSeleccionada =
+                    await obtenerOrdenCompraDesdeHomologacionOrigen(
+                        origenExternoCodigo
+                    );
+
+                if (!this.ordenCompraSeleccionada) {
+                    // No es "error" técnico: simplemente no hay homologación
+                    this.ocAplicadaOk = false;
+                    return;
+                }
+
                 const ok = await this.aplicarOrdenCompra(
                     this.ordenCompraSeleccionada
                 );
 
                 if (!ok) {
+                    this.ocAplicadaOk = false;
                     f7.dialog.alert(
                         "Ocurrió un error al aplicar la Orden de Compra asociada. Verifique la configuración.",
                         "Error OC"
                     );
                 }
+            } catch (e) {
+                console.error("homologarDatosOrigen:", e);
+                this.ocAplicadaOk = false;
+
+                f7.dialog.alert(
+                    e?.message ||
+                        "Ocurrió un error al buscar o aplicar la Orden de Compra (homologación de origen).",
+                    "Error OC"
+                );
+            } finally {
+                this.aplicandoOc = false;
             }
         },
 
@@ -487,29 +507,33 @@ export default {
                 oc,
                 this.usuarioActivo.empresa
             );
-            if (!okZona) return false;
+            if (!okZona) throw new Error("No se pudo asignar Zona desde OC.");
 
             // 2) Proveedor
             const okProv = this.asignarProveedorDesdeOc(oc);
-            if (!okProv) return false;
+            if (!okProv)
+                throw new Error("No se pudo asignar Proveedor desde OC.");
 
             // 3) Predio (depende de proveedor)
             const okPredio = this.asignarPredioDesdeOc(oc);
-            if (!okPredio) return false;
+            if (!okPredio)
+                throw new Error("No se pudo asignar Predio desde OC.");
 
             const okCli = this.asignarClienteDesdeOc(oc);
-            if (!okCli) return false;
+            if (!okCli) throw new Error("No se pudo asignar Cliente desde OC.");
 
             // 5) Destino (depende de cliente)
             const okDest = this.asignarDestinoDesdeOc(oc);
-            if (!okDest) return false;
+            if (!okDest)
+                throw new Error("No se pudo asignar Destino desde OC.");
 
             // 6) Producto + largo (depende de destino)
             const okProd = this.asignarProductoYLargoDesdeOc(oc);
-            if (!okProd) return false;
+            if (!okProd)
+                throw new Error("No se pudo asignar Producto desde OC.");
 
             const okRodal = await this.asignarRodalDesdeOc(oc);
-            if (!okRodal) return false;
+            if (!okRodal) throw new Error("No se pudo asignar Rodal desde OC.");
 
             this.ocAplicadaOk = true;
 
@@ -520,10 +544,39 @@ export default {
             this.form.zona = await asignarZonaDesdeOc(oc);
             return true;
         },
-
         async asignarRodalDesdeOc(oc) {
-            this.form.rodal = await asignarRodalDesdeOc(oc);
-            return true;
+            try {
+                const rodalAsignado = await asignarRodalDesdeOc(oc);
+
+                if (!rodalAsignado) {
+                    console.warn("No se pudo asignar rodal desde OC.");
+                    return false;
+                }
+
+                const fechaOriginal = this.form?.rodal?.fechaPlantacion ?? null;
+
+                // Año para la OC
+                const anioPlantacion = fechaOriginal
+                    ? String(fechaOriginal).slice(0, 4)
+                    : null;
+
+                if (this.form?.ordenCompra) {
+                    this.form.ordenCompra.anioPlantacion = anioPlantacion;
+                }
+
+                // Fecha completa para rodal
+                const fechaPlantacion = this.normalizeToISODate(fechaOriginal);
+
+                this.form.rodal = {
+                    ...rodalAsignado,
+                    fechaPlantacion,
+                };
+
+                return true;
+            } catch (e) {
+                console.error("Error asignando rodal desde OC:", e);
+                return false;
+            }
         },
 
         asignarPredioDesdeOc(oc) {
@@ -540,7 +593,7 @@ export default {
             //producto
             this.form.producto = asignarProductoDesdeOc(oc);
             //largo
-            this.form.largoProducto = oc.largoTrozo;
+            this.form.largoProducto = this.homologarLargoProducto();
 
             this.applyTotalesFromTotalVolumen(this.form, {
                 um: this.form.producto.unidadMedida,
@@ -551,6 +604,10 @@ export default {
             });
 
             return true;
+        },
+
+        homologarLargoProducto() {
+            return this.form.largoProducto / 100; //oc.largoTrozo viene en cm, lo pasamos a m para la GDE
         },
 
         asignarClienteDesdeOc(oc) {

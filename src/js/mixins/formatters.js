@@ -10,7 +10,8 @@ import {
     normalizeYYYYMM,
     formatMMYYYY,
     pretty,
-    horaActual
+    horaActual,
+    normalizeToISODate
 } from '@/js/Utils/formatters';
 
 export default {
@@ -25,6 +26,7 @@ export default {
         normalizeYYYYMM,
         formatMMYYYY,
         pretty,
-        horaActual
+        horaActual,
+        normalizeToISODate
     },
 };

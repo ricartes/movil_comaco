@@ -6,7 +6,12 @@
 function _parseYmd(input) {
     if (!input) return null;
     const s = String(input).trim();
-    // Toma solo la parte YYYY-MM-DD si viene con hora (ISO u otros)
+
+    // ✅ año-only: "1995" -> 1995-01-01
+    const yOnly = s.match(/^(\d{4})$/);
+    if (yOnly) return { y: +yOnly[1], m: 1, d: 1 };
+
+    // ya lo tienes:
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (m) return { y: +m[1], m: +m[2], d: +m[3] };
 
@@ -90,6 +95,27 @@ export function horaActual() {
     const mm = String(ahora.getMinutes()).padStart(2, "0");
 
     return `${hh}:${mm}`;
+}
+
+
+export function normalizeToISODate(val) {
+    if (!val) return null;
+    const s = String(val).trim();
+
+    // "1995" -> "1995-01-01"
+    if (/^\d{4}$/.test(s)) return `${s}-01-01`;
+
+    // "1995-03-10" -> "1995-03-10"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // ISO con hora u otros parseables -> "YYYY-MM-DD"
+    const d = new Date(s);
+    if (Number.isNaN(+d)) return null;
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
 }
 
 

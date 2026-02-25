@@ -97,10 +97,13 @@ export const FORESTRUCK_IMPORT_SUMMARY = [
         ],
     },
 
-    // ✅ NUEVO: Rodal
+    //  NUEVO: Rodal
     {
         group: "Rodal",
         fields: [
+            { path: "rodal.codrodal", label: "Código Rodal" },
+            { path: "rodal.nomrodal", label: "Nombre Rodal" },
+            { path: "rodal.fechaPlantacion", label: "Fecha Plantación" },
             { path: "rodal.planManejo", label: "Plan manejo" },
             { path: "rodal.nroaviso", label: "N° aviso" },
         ],
