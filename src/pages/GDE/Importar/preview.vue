@@ -190,6 +190,65 @@
                 </f7-button>
             </f7-block>
 
+            <f7-block
+                v-if="mappingOk && !ordenCompraSeleccionada && !aplicandoOc"
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    No se puede importar: el código de origen ({{
+                        form?.predio?.rolPredio
+                    }}) no está homologado a una OC.
+                </div>
+            </f7-block>
+
+            <f7-block
+                v-if="ordenCompraSeleccionada && !ocAplicadaOk && !aplicandoOc"
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-warning">
+                    <i class="f7-icons">exclamationmark_triangle</i>
+                    Se encontró OC, pero no se pudo aplicar completamente
+                    (configuración incompleta).
+                </div>
+            </f7-block>
+
+            <f7-block
+                v-if="
+                    ordenCompraSeleccionada &&
+                    ocAplicadaOk &&
+                    !form?.producto?.codProducto
+                "
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-warning">
+                    <i class="f7-icons">info_circle</i>
+                    Falta Producto (no se pudo asignar desde OC).
+                </div>
+            </f7-block>
+
+            <f7-block
+                v-if="
+                    ordenCompraSeleccionada &&
+                    ocAplicadaOk &&
+                    !form?.largoProducto
+                "
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-warning">
+                    <i class="f7-icons">info_circle</i>
+                    Falta Largo de producto.
+                </div>
+            </f7-block>
+
             <f7-block v-if="mappingLoading" strong class="alert-wrapper">
                 <div class="alert alert-info">
                     <i class="f7-icons">hourglass</i>
@@ -391,7 +450,7 @@ export default {
             } catch (e) {
                 console.error("homologarDatosOrigen:", e);
                 this.ocAplicadaOk = false;
-
+                this.ordenCompraSeleccionada = null;
                 f7.dialog.alert(
                     e?.message ||
                         "Ocurrió un error al buscar o aplicar la Orden de Compra (homologación de origen).",

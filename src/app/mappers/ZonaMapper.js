@@ -26,5 +26,6 @@ export function mapZonaArrayToDocs(rows = []) {
 
 /** Doc PouchDB → DTO de dominio */
 export function zonaDocToDTO(doc) {
+    if (!doc) return null;
     return new ZonaDTO(doc)
 }
