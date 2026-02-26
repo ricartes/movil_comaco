@@ -151,7 +151,19 @@
             </f7-block>
 
             <f7-block
-                v-if="!ordenCompraSeleccionada"
+                v-if="preview?.imported"
+                strong
+                inset
+                class="alert-wrapper"
+            >
+                <div class="alert alert-info">
+                    <i class="f7-icons">info_circle</i>
+                    Esta guía ya fue integrada. No se puede volver a importar.
+                </div>
+            </f7-block>
+
+            <f7-block
+                v-if="mappingOk && !ordenCompraSeleccionada && !aplicandoOc"
                 strong
                 inset
                 class="alert-wrapper"
@@ -165,87 +177,27 @@
             </f7-block>
 
             <f7-block
-                v-if="preview?.imported"
-                strong
-                inset
-                class="alert-wrapper"
-            >
-                <div class="alert alert-info">
-                    <i class="f7-icons">info_circle</i>
-                    Esta guía ya fue integrada. No se puede volver a importar.
-                </div>
-            </f7-block>
-
-            <f7-block v-if="mappingOk" class="text-align-center">
-                <f7-button
-                    fill
-                    large
-                    color="blue"
-                    @click="importar"
-                    :disabled="preview?.imported || !puedeGuardar"
-                >
-                    {{
-                        preview.imported ? "Ya importada" : "Importar y Guardar"
-                    }}
-                </f7-button>
-            </f7-block>
-
-            <f7-block
-                v-if="mappingOk && !ordenCompraSeleccionada && !aplicandoOc"
-                strong
-                inset
-                class="alert-wrapper"
-            >
-                <div class="alert alert-info">
-                    <i class="f7-icons">info_circle</i>
-                    No se puede importar: el código de origen ({{
-                        form?.predio?.rolPredio
-                    }}) no está homologado a una OC.
-                </div>
-            </f7-block>
-
-            <f7-block
-                v-if="ordenCompraSeleccionada && !ocAplicadaOk && !aplicandoOc"
+                v-if="
+                    mappingOk &&
+                    ordenCompraSeleccionada &&
+                    !aplicandoOc &&
+                    primerCampoOcFaltante
+                "
                 strong
                 inset
                 class="alert-wrapper"
             >
                 <div class="alert alert-warning">
                     <i class="f7-icons">exclamationmark_triangle</i>
-                    Se encontró OC, pero no se pudo aplicar completamente
-                    (configuración incompleta).
+                    No se puede importar: falta
+                    {{ primerCampoOcFaltante.label }} al aplicar la Orden de
+                    Compra.
                 </div>
-            </f7-block>
-
-            <f7-block
-                v-if="
-                    ordenCompraSeleccionada &&
-                    ocAplicadaOk &&
-                    !form?.producto?.codProducto
-                "
-                strong
-                inset
-                class="alert-wrapper"
-            >
-                <div class="alert alert-warning">
-                    <i class="f7-icons">info_circle</i>
-                    Falta Producto (no se pudo asignar desde OC).
-                </div>
-            </f7-block>
-
-            <f7-block
-                v-if="
-                    ordenCompraSeleccionada &&
-                    ocAplicadaOk &&
-                    !form?.largoProducto
-                "
-                strong
-                inset
-                class="alert-wrapper"
-            >
-                <div class="alert alert-warning">
-                    <i class="f7-icons">info_circle</i>
-                    Falta Largo de producto.
+                <div
+                    v-if="solucionCampoOcFaltante"
+                    style="margin-top: 6px; font-size: 13px; color: #555"
+                >
+                    Posible solución: {{ solucionCampoOcFaltante }}
                 </div>
             </f7-block>
 
@@ -261,6 +213,20 @@
                     <i class="f7-icons">exclamationmark_circle</i>
                     {{ mappingErrorMsg }}
                 </div>
+            </f7-block>
+
+            <f7-block v-if="mappingOk" class="text-align-center">
+                <f7-button
+                    fill
+                    large
+                    color="blue"
+                    @click="importar"
+                    :disabled="preview?.imported || !puedeGuardar"
+                >
+                    {{
+                        preview.imported ? "Ya importada" : "Importar y Guardar"
+                    }}
+                </f7-button>
             </f7-block>
         </template>
     </f7-page>
@@ -329,6 +295,7 @@ export default {
             ordenCompraSeleccionada: null,
             aplicandoOc: false,
             ocAplicadaOk: false,
+            zonaOrigenCodigo: null,
         };
     },
 
@@ -354,10 +321,40 @@ export default {
                 return !v; // vacío => falta
             });
         },
+        primerCampoOcFaltante() {
+            return this.faltanCamposOc[0] || null;
+        },
+        faltanCamposOc() {
+            if (!this.mappingOk || !this.form) return [];
+
+            const checks = [
+                { key: "zona", label: "Zona" },
+                { key: "proveedor", label: "Proveedor" },
+                { key: "predio", label: "Predio" },
+                { key: "cliente", label: "Cliente" },
+                { key: "destino", label: "Destino" },
+                { key: "rodal", label: "Rodal" },
+                // Producto y largo ya los controlas aparte, pero si quieres incluirlos aquí:
+                { key: "producto.codProducto", label: "Producto" },
+                { key: "largoProducto", label: "Largo de producto" },
+            ];
+
+            return checks.filter((c) => {
+                const v = this.getByPath(this.form, c.key);
+                if (v == null || v === "" || v === false) return true;
+                if (typeof v === "number" && (Number.isNaN(v) || v <= 0))
+                    return true;
+                return false;
+            });
+        },
 
         puedeGuardar() {
+            const ocCamposOk = this.faltanCamposOc.length === 0;
             const productoOk = !!this.form?.producto?.codProducto;
-            const largoOk = !!this.form?.largoProducto;
+            const largoOk =
+                typeof this.form?.largoProducto === "number" &&
+                Number.isFinite(this.form.largoProducto) &&
+                this.form.largoProducto > 0;
 
             return (
                 !!this.preview &&
@@ -369,8 +366,29 @@ export default {
                 this.ocAplicadaOk &&
                 productoOk &&
                 largoOk &&
+                ocCamposOk &&
                 this.faltanCombos.length === 0
             );
+        },
+        solucionCampoOcFaltante() {
+            if (!this.primerCampoOcFaltante) return "";
+            const zonaCodigo = this.zonaOrigenCodigo || "desconocido";
+            const soluciones = {
+                Zona: `La Zona con código "${zonaCodigo}" (proveniente de Forestruck) no está asignada para su usuario. 
+Debe solicitar al Administrador del Sistema que le asigne esta zona desde el listado de Usuarios.`,
+                Proveedor:
+                    "La Orden de Compra no tiene proveedor configurado correctamente.",
+                Predio: "La Orden de Compra no tiene predio configurado correctamente.",
+                Cliente:
+                    "La Orden de Compra no tiene cliente configurado correctamente.",
+                Destino:
+                    "La Orden de Compra no tiene destino configurado correctamente.",
+                Rodal: "La Orden de Compra no tiene rodal configurado o el rodal no está correctamente asociado.",
+                Producto:
+                    "La Orden de Compra no tiene producto configurado correctamente.",
+            };
+
+            return soluciones[this.primerCampoOcFaltante.label] || "";
         },
     },
 
@@ -450,7 +468,7 @@ export default {
             } catch (e) {
                 console.error("homologarDatosOrigen:", e);
                 this.ocAplicadaOk = false;
-                this.ordenCompraSeleccionada = null;
+                //this.ordenCompraSeleccionada = null;
                 f7.dialog.alert(
                     e?.message ||
                         "Ocurrió un error al buscar o aplicar la Orden de Compra (homologación de origen).",
@@ -519,6 +537,7 @@ export default {
 
             this.form.gdeOrigen = origenForestruck;
             this.form.referenciaGuiaForestruck = this.sourceJson;
+            this.zonaOrigenCodigo = this.form?.zona?.codigo || null;
 
             try {
                 if (this.form?.producto) {
@@ -601,7 +620,7 @@ export default {
 
         async asignarZonaDesdeOc(oc) {
             this.form.zona = await asignarZonaDesdeOc(oc);
-            return true;
+            return !!this.form.zona;
         },
         async asignarRodalDesdeOc(oc) {
             try {
@@ -640,44 +659,60 @@ export default {
 
         asignarPredioDesdeOc(oc) {
             this.form.predio = asignarPredioDesdeOc(oc);
-            return true;
+            return !!this.form.predio;
         },
 
         asignarProveedorDesdeOc(oc) {
             this.form.proveedor = asignarProveedorDesdeOc(oc);
-            return true;
+            return !!this.form.proveedor;
         },
 
         asignarProductoYLargoDesdeOc(oc) {
-            //producto
+            // producto
             this.form.producto = asignarProductoDesdeOc(oc);
-            //largo
+
+            // largo (si no existe, quedará null)
             this.form.largoProducto = this.homologarLargoProducto();
 
-            this.applyTotalesFromTotalVolumen(this.form, {
-                um: this.form.producto.unidadMedida,
-                totalVolumen: this.form?.totales?.volumen, // ← mapping: totales.volumen
-                monto: this.form?.totales?.neto ?? this.form?.totales?.total, // $ monto
-                resetBuckets: true,
-                syncLegacy: true,
-            });
+            // recalcular totales solo si tengo UM y volumen válido (opcional)
+            if (this.form?.producto?.unidadMedida) {
+                this.applyTotalesFromTotalVolumen(this.form, {
+                    um: this.form.producto.unidadMedida,
+                    totalVolumen: this.form?.totales?.volumen,
+                    monto:
+                        this.form?.totales?.neto ?? this.form?.totales?.total,
+                    resetBuckets: true,
+                    syncLegacy: true,
+                });
+            }
 
-            return true;
+            // ✅ éxito solo si están ambos
+            return (
+                !!this.form?.producto?.codProducto && !!this.form?.largoProducto
+            );
         },
 
         homologarLargoProducto() {
-            return this.form.largoProducto / 100; //oc.largoTrozo viene en cm, lo pasamos a m para la GDE
+            const raw = this.form?.largoProducto;
+
+            // acepta "300", 300, etc
+            const n = Number(raw);
+
+            // si no viene o es 0 o es NaN => null
+            if (!Number.isFinite(n) || n <= 0) return null;
+
+            return n / 100; // cm -> m
         },
 
         asignarClienteDesdeOc(oc) {
             this.form.cliente = asignarClienteDesdeOc(oc);
 
-            return true;
+            return !!this.form.cliente;
         },
 
         asignarDestinoDesdeOc(oc) {
             this.form.destino = asignarClienteDestinoDesdeOc(oc);
-            return true;
+            return !!this.form.destino;
         },
 
         obtenerIndicadorTraslado() {

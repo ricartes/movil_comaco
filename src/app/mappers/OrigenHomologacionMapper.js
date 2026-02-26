@@ -23,5 +23,6 @@ export function mapOrigenHomologacionArrayToDocs(rows = []) {
 
 /** Doc PouchDB → DTO */
 export function origenHomologacionDocToDTO(doc) {
+    if (!doc) return null;
     return new OrigenHomologacionDTO(doc)
 }
