@@ -31,23 +31,23 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 782
+              "count": 812
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 781
+              "count": 811
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 782
+              "count": 812
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 782
+              "count": 812
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
-              "count": 2
+              "count": 31
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -83,11 +83,11 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
-              "count": 3
+              "count": 32
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
-              "count": 3
+              "count": 32
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS\" />",
@@ -99,7 +99,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />",
-              "count": 3
+              "count": 32
             },
             {
               "xml": "<uses-permission android:name=\"android.hardware.location\" />",
@@ -107,7 +107,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />",
-              "count": 2
+              "count": 31
             }
           ],
           "/manifest/application": [
@@ -141,7 +141,7 @@
             },
             {
               "xml": "<service android:exported=\"false\" android:foregroundServiceType=\"location\" android:name=\"de.einfachhans.BackgroundMode.ForegroundService\" />",
-              "count": 213
+              "count": 232
             }
           ],
           "/*": [

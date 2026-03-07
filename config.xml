@@ -31,11 +31,7 @@
         </edit-config>
 
         <!-- Declaración del servicio en primer plano -->
-        <config-file parent="/manifest/application" target="AndroidManifest.xml">
-            <service android:name="de.einfachhans.BackgroundMode.ForegroundService"
-                android:foregroundServiceType="location"
-                android:exported="false" />
-        </config-file>
+
 
         <!-- Permisos requeridos -->
         <config-file parent="/manifest" target="AndroidManifest.xml">
@@ -43,6 +39,11 @@
             <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+            <uses-permission android:name="android.permission.WAKE_LOCK" />
         </config-file>
     </platform>
 

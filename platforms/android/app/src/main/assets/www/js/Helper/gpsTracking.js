@@ -118,41 +118,44 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
 
 // Función para iniciar el rastreo
 function startTracking() {
+
     if (isTrackingEnabled) {
-        console.log("El rastreo ya está habilitado.");
+        console.log("[TRACKING] ya está activo");
         return;
     }
 
+    BackgroundGeolocation.start();
 
-    BackgroundGeolocation.checkStatus(function (status) {
-        console.log('[INFO] BackgroundGeolocation service is running', status.isRunning);
-        console.log('[INFO] BackgroundGeolocation services enabled', status.locationServicesEnabled);
-        console.log('[INFO] BackgroundGeolocation auth status: ' + status.authorization);
+    isTrackingEnabled = true;
 
-        // you don't need to check status before start (this is just the example)
+    console.log("[TRACKING] iniciado");
 
-        if (!status.isRunning) {
-            isTrackingEnabled = true
-            BackgroundGeolocation.start(); //triggers start on start event
+    // obtener ubicación inicial inmediatamente
+    BackgroundGeolocation.getCurrentLocation(
+        function (location) {
+            console.log("[GPS] ubicación inicial:", location);
+        },
+        function (error) {
+            console.warn("[GPS] error ubicación inicial:", error);
+        },
+        {
+            maximumAge: 0,
+            timeout: 10000,
+            enableHighAccuracy: true
         }
-    });
-
-    /*BackgroundGeolocation.start(() => {
-        isTrackingEnabled = true;
-        alert("Rastreo de ubicación iniciado.");
-    });*/
+    );
 }
 
 // Función para detener el rastreo
 function stopTracking() {
     if (!isTrackingEnabled) {
-        console.log("El rastreo ya está deshabilitado.");
+        console.log("[TRACKING] El rastreo ya está deshabilitado.");
         return;
     }
 
-    BackgroundGeolocation.removeAllListeners();
     BackgroundGeolocation.stop();
     isTrackingEnabled = false;
+    console.log("[TRACKING] BackgroundGeolocation detenido.");
 }
 
 // Obtener la última ubicación registrada
@@ -344,4 +347,140 @@ function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
     });
 
     return true;
+}
+
+
+
+
+
+
+async function validarRequisitosTrackingCordova() {
+    const diagnostic = cordova.plugins?.diagnostic;
+
+    const resultado = {
+        ok: false,
+        gpsActivo: false,
+        permisoUbicacion: false,
+        permisoBackground: false,
+        permisoNotificaciones: true,
+        mensajes: [],
+    };
+
+    if (!diagnostic) {
+        resultado.mensajes.push("Plugin diagnostic no disponible.");
+        return resultado;
+    }
+
+    function getPermissionStatus(permission) {
+        return new Promise((resolve, reject) => {
+            diagnostic.getPermissionAuthorizationStatus(resolve, reject, permission);
+        });
+    }
+
+    function requestRuntimePermission(permission) {
+        return new Promise((resolve, reject) => {
+            diagnostic.requestRuntimePermission(resolve, reject, permission);
+        });
+    }
+
+    function requestLocationAuthorization(mode) {
+        return new Promise((resolve, reject) => {
+            diagnostic.requestLocationAuthorization(resolve, reject, mode);
+        });
+    }
+
+    function isLocationEnabled() {
+        return new Promise((resolve, reject) => {
+            diagnostic.isLocationEnabled(resolve, reject);
+        });
+    }
+
+    function isGpsLocationEnabled() {
+        return new Promise((resolve, reject) => {
+            diagnostic.isGpsLocationEnabled(resolve, reject);
+        });
+    }
+
+    try {
+        const locationEnabled = await isLocationEnabled();
+        const gpsEnabled = await isGpsLocationEnabled();
+
+        resultado.gpsActivo = !!(locationEnabled && gpsEnabled);
+
+        if (!resultado.gpsActivo) {
+            resultado.mensajes.push("GPS o ubicación del dispositivo desactivada.");
+        }
+
+        let statusFine = await getPermissionStatus(diagnostic.permission.ACCESS_FINE_LOCATION);
+
+        if (
+            statusFine !== diagnostic.permissionStatus.GRANTED &&
+            statusFine !== diagnostic.permissionStatus.GRANTED_WHEN_IN_USE
+        ) {
+            statusFine = await requestRuntimePermission(diagnostic.permission.ACCESS_FINE_LOCATION);
+        }
+
+        resultado.permisoUbicacion =
+            statusFine === diagnostic.permissionStatus.GRANTED ||
+            statusFine === diagnostic.permissionStatus.GRANTED_WHEN_IN_USE;
+
+        if (!resultado.permisoUbicacion) {
+            resultado.mensajes.push("Permiso de ubicación no concedido.");
+        }
+
+        let statusBackground = null;
+        try {
+            statusBackground = await getPermissionStatus(diagnostic.permission.ACCESS_BACKGROUND_LOCATION);
+        } catch (e) {
+            console.warn("[TRACKING] No se pudo consultar ACCESS_BACKGROUND_LOCATION", e);
+        }
+
+        if (statusBackground !== diagnostic.permissionStatus.GRANTED) {
+            try {
+                statusBackground = await requestLocationAuthorization(
+                    diagnostic.locationAuthorizationMode.ALWAYS
+                );
+            } catch (e) {
+                console.warn("[TRACKING] No se pudo solicitar permiso ALWAYS", e);
+            }
+        }
+
+        resultado.permisoBackground =
+            statusBackground === diagnostic.permissionStatus.GRANTED ||
+            statusBackground === diagnostic.permissionStatus.GRANTED_ALWAYS;
+
+        if (!resultado.permisoBackground) {
+            resultado.mensajes.push("Permiso de ubicación en segundo plano no concedido.");
+        }
+
+        try {
+            let statusNotif = await getPermissionStatus(diagnostic.permission.POST_NOTIFICATIONS);
+
+            if (statusNotif !== diagnostic.permissionStatus.GRANTED) {
+                statusNotif = await requestRuntimePermission(diagnostic.permission.POST_NOTIFICATIONS);
+            }
+
+            resultado.permisoNotificaciones =
+                statusNotif === diagnostic.permissionStatus.GRANTED;
+
+            if (!resultado.permisoNotificaciones) {
+                resultado.mensajes.push("Permiso de notificaciones no concedido.");
+            }
+        } catch (e) {
+            console.warn("[TRACKING] POST_NOTIFICATIONS no aplica o no se pudo consultar", e);
+            resultado.permisoNotificaciones = true;
+        }
+
+        resultado.ok =
+            resultado.gpsActivo &&
+            resultado.permisoUbicacion &&
+            resultado.permisoBackground &&
+            resultado.permisoNotificaciones;
+
+        return resultado;
+    } catch (error) {
+        console.error("[TRACKING] Error validando requisitos:", error);
+        resultado.mensajes.push("Error al validar requisitos del tracking.");
+        return resultado;
+    }
 }

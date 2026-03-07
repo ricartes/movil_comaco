@@ -55,6 +55,51 @@ var ls = app.loginScreen.create({ el: ".login-screen" });
 let trackingIntervalId = null;
 
 
+let trackingPermisosAdvertidos = {
+    gps: false,
+    ubicacion: false,
+    background: false,
+    notificaciones: false,
+};
+
+let trackingInicialValidado = false;
+
+let trackingUltimaAlerta = {
+    gps: 0,
+    ubicacion: 0,
+    background: 0,
+    notificaciones: 0
+};
+
+const TRACKING_ALERT_INTERVAL = 60000; // 1 minuto
+
+
+function resetTrackingAlertas() {
+
+    resetTrackingPermisosAdvertidos();
+
+    trackingUltimaAlerta = {
+        gps: 0,
+        ubicacion: 0,
+        background: 0,
+        notificaciones: 0
+    };
+
+    console.log("[TRACKING] Alertas de permisos reseteadas");
+}
+
+
+function puedeMostrarAlerta(tipo) {
+    const ahora = Date.now();
+
+    if (!trackingUltimaAlerta[tipo] || (ahora - trackingUltimaAlerta[tipo]) > TRACKING_ALERT_INTERVAL) {
+        trackingUltimaAlerta[tipo] = ahora;
+        return true;
+    }
+
+    return false;
+}
+
 //acelerometro
 function onSuccess(acceleration) {
     alert(
@@ -73,6 +118,123 @@ function onSuccess(acceleration) {
     );
 }
 
+function solicitarActivarGPS() {
+    const diagnostic = cordova.plugins.diagnostic;
+
+    diagnostic.switchToLocationSettings(
+        function () {
+            console.log("Configuración de ubicación abierta");
+        },
+        function (error) {
+            console.error("No se pudo abrir configuración de ubicación:", error);
+        }
+    );
+}
+
+function solicitarAbrirConfiguracionApp() {
+    const diagnostic = cordova.plugins.diagnostic;
+
+    diagnostic.switchToSettings(
+        function () {
+            console.log("Configuración de la app abierta");
+        },
+        function (error) {
+            console.error("No se pudo abrir configuración de la app:", error);
+        }
+    );
+}
+
+function solicitarAbrirNotificaciones() {
+    const diagnostic = cordova.plugins.diagnostic;
+
+    if (typeof diagnostic.switchToNotifications === "function") {
+        diagnostic.switchToNotifications(
+            function () {
+                console.log("Configuración de notificaciones abierta");
+            },
+            function (error) {
+                console.error("No se pudo abrir configuración de notificaciones:", error);
+            }
+        );
+    } else {
+        solicitarAbrirConfiguracionApp();
+    }
+}
+
+function resetTrackingPermisosAdvertidos() {
+    trackingPermisosAdvertidos.gps = false;
+    trackingPermisosAdvertidos.ubicacion = false;
+    trackingPermisosAdvertidos.background = false;
+    trackingPermisosAdvertidos.notificaciones = false;
+}
+
+function mostrarAlertasTrackingFaltantes(validacion) {
+
+    if (!validacion.gpsActivo && puedeMostrarAlerta("gps")) {
+        app.dialog.confirm(
+            "La ubicación del dispositivo está desactivada. ¿Desea activarla ahora?",
+            "GPS desactivado",
+            function () {
+                solicitarActivarGPS();
+            }
+        );
+        return;
+    }
+
+    if (!validacion.permisoUbicacion && puedeMostrarAlerta("ubicacion")) {
+        app.dialog.confirm(
+            "La aplicación no tiene permiso de ubicación (TODO EL TIEMPO). ¿Desea abrir la configuración para concederlo?",
+            "Permiso requerido",
+            function () {
+                solicitarAbrirConfiguracionApp();
+            }
+        );
+        return;
+    }
+
+    if (!validacion.permisoBackground && puedeMostrarAlerta("background")) {
+        app.dialog.confirm(
+            "La aplicación requiere permiso de ubicación en segundo plano para capturar trazabilidad continua. ¿Desea abrir la configuración?",
+            "Permiso requerido",
+            function () {
+                solicitarAbrirConfiguracionApp();
+            }
+        );
+        return;
+    }
+
+    if (!validacion.permisoNotificaciones && puedeMostrarAlerta("notificaciones")) {
+        app.dialog.confirm(
+            "La aplicación requiere permiso de notificaciones para mantener activo el servicio de rastreo. ¿Desea abrir la configuración?",
+            "Permiso requerido",
+            function () {
+                solicitarAbrirNotificaciones();
+            }
+        );
+    }
+}
+
+async function validarTrackingAlInicio() {
+    try {
+        const validacion = await validarRequisitosTrackingCordova();
+
+        console.log("[TRACKING] Validación inicial:", validacion);
+
+        trackingInicialValidado = validacion.ok;
+
+        if (!validacion.ok) {
+            mostrarAlertasTrackingFaltantes(validacion);
+            return false;
+        }
+
+        return true;
+    } catch (e) {
+        console.error("[TRACKING] Error en validación inicial:", e);
+        trackingInicialValidado = false;
+        return false;
+    }
+}
+
 //error acelerometro
 function onError() {
     alert("onError!");
@@ -89,30 +251,39 @@ function controlarTrackingDinamico() {
             const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
             const procesoActual = Obtener_dato_local("id_proceso_activo");
 
-            console.log('[TRACKING] usuarioActivo:', usuarioActivo);
-            console.log('[TRACKING] procesoActual:', procesoActual);
-            console.log('[TRACKING] gdeNoConfirmadas length:', Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas.length : 'no array');
+            const validacion = await validarRequisitosTrackingCordova();
 
-            const hayGuiasPendientes = (
-                (procesoActual && procesoActual !== "") ||
-                (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0)
-            );
+            console.log("[TRACKING] validación periódica:", validacion);
 
-            console.log('[TRACKING] hayGuiasPendientes:', hayGuiasPendientes);
-
-            if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
-                console.log('[TRACKING] -> startTracking()');
-                startTracking();
-            } else {
-                console.log('[TRACKING] -> stopTracking()');
+            if (!validacion.ok) {
                 stopTracking();
+                desactivarBackgroundModeSeguro();
+                mostrarAlertasTrackingFaltantes(validacion);
+            } else {
+                resetTrackingAlertas();
+                activarBackgroundModeSeguro();
+
+                const hayGuiasPendientes =
+                    ((procesoActual && procesoActual !== "") ||
+                        (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0));
+
+                console.log('[TRACKING] usuarioActivo:', usuarioActivo);
+                console.log('[TRACKING] hayGuiasPendientes:', hayGuiasPendientes);
+
+                if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
+                    console.log('[TRACKING] -> startTracking()');
+                    startTracking();
+                } else {
+                    console.log('[TRACKING] -> stopTracking()');
+                    stopTracking();
+                }
             }
+
         } catch (e) {
             console.error("Error en controlarTrackingDinamico:", e);
         }
     }, 10000);
 }
-
 async function cicloEnvioAutomaticoDatos() {
     const bloqueado = Obtener_dato_local("bloqueado");
 
@@ -261,6 +432,53 @@ function compruebaEnviaTrazabilidad() {
     });
 }
 
+let backgroundModeInicializado = false;
+let backgroundModeActivo = false;
+
+function inicializarBackgroundMode() {
+    if (backgroundModeInicializado) return;
+
+    cordova.plugins.backgroundMode.setDefaults({
+        title: "GFE",
+        icon: "ldpi",
+        text: "Proceso ejecutando en segundo plano...",
+    });
+
+    cordova.plugins.backgroundMode.on("activate", onActivate);
+
+    backgroundModeInicializado = true;
+    console.log("[BG-MODE] inicializado");
+}
+
+function activarBackgroundModeSeguro() {
+    try {
+        if (!backgroundModeInicializado) {
+            inicializarBackgroundMode();
+        }
+
+        if (!backgroundModeActivo) {
+            cordova.plugins.backgroundMode.enable();
+            cordova.plugins.backgroundMode.disableBatteryOptimizations();
+            backgroundModeActivo = true;
+            console.log("[BG-MODE] activado");
+        }
+    } catch (e) {
+        console.error("[BG-MODE] error al activar:", e);
+    }
+}
+
+function desactivarBackgroundModeSeguro() {
+    try {
+        if (backgroundModeActivo) {
+            cordova.plugins.backgroundMode.disable();
+            backgroundModeActivo = false;
+            console.log("[BG-MODE] desactivado");
+        }
+    } catch (e) {
+        console.error("[BG-MODE] error al desactivar:", e);
+    }
+}
+
 function onActivate() {
     cordova.plugins.backgroundMode.disableWebViewOptimizations();
 
@@ -307,20 +525,11 @@ document.addEventListener("deviceready", async function () {
     permisosCamara();
 
     //
-    cordova.plugins.backgroundMode.enable();
-
-    cordova.plugins.backgroundMode.setDefaults({
-        title: "GFE",
-        icon: "ldpi",
-        text: "Proceso ejecutando en segundo plano...",
-    });
-
-    cordova.plugins.backgroundMode.disableBatteryOptimizations();
-    cordova.plugins.backgroundMode.on("activate", onActivate);
+    inicializarBackgroundMode();
 
     Borrar_dato_local("version_app");
 
-    controlarTrackingDinamico();
+
     cordova.getAppVersion.getVersionNumber(function (version) {
         Guardar_dato_local("version_app", version);
         $$("#ver_app").text(version);
@@ -384,12 +593,46 @@ document.addEventListener("deviceready", async function () {
     document.addEventListener("backbutton", boton_atras, false);
 
     $$("#btn_login").on("click", async function () {
-        const estadoGPS = await verificarEstadoGPS();
-        if (!estadoGPS) {
-            app.dialog.alert(`Se ha detectado que el GPS se encuentra apagado. Favor habilítelo para iniciar sesión.`, "GFE");
-        } else {
-            login();
+        const validacion = await validarRequisitosTrackingCordova();
+
+        console.log("[LOGIN] validación previa:", validacion);
+
+        if (!validacion.gpsActivo) {
+            app.dialog.confirm(
+                "La ubicación del dispositivo está desactivada. ¿Desea activarla ahora?",
+                "GPS desactivado",
+                function () {
+                    solicitarActivarGPS();
+                }
+            );
+            return;
         }
+
+        if (!validacion.permisoUbicacion) {
+            app.dialog.alert(
+                "La aplicación no tiene permiso de ubicación. Debes concederlo para continuar.",
+                "Permiso requerido"
+            );
+            return;
+        }
+
+        if (!validacion.permisoBackground) {
+            app.dialog.alert(
+                "La aplicación requiere permiso de ubicación en segundo plano para capturar trazabilidad continua.",
+                "Permiso requerido"
+            );
+            return;
+        }
+
+        if (!validacion.permisoNotificaciones) {
+            app.dialog.alert(
+                "La aplicación requiere permiso de notificaciones para mantener activo el servicio de rastreo.",
+                "Permiso requerido"
+            );
+            return;
+        }
+
+        login();
     });
 
     $$(".login-screen").on("loginscreen:opened", function (e) {
@@ -462,6 +705,8 @@ document.addEventListener("deviceready", async function () {
     } else {
         console.error("configureBackgroundGeolocation no está disponible.");
     }
+
+    await validarTrackingAlInicio();
 
 
 
@@ -554,6 +799,7 @@ function boton_atras() {
                 "GFE",
                 function () {
                     stopTracking();
+                    desactivarBackgroundModeSeguro();
                     Borrar_dato_local("user_activo");
                     Borrar_dato_local("rut_activo");
                     Borrar_dato_local("nombre_activo");
@@ -806,6 +1052,7 @@ function logout() {
         "GFE",
         function () {
             stopTracking();
+            desactivarBackgroundModeSeguro();
             if (trackingIntervalId !== null) {
                 clearInterval(trackingIntervalId);
                 trackingIntervalId = null;
@@ -856,6 +1103,8 @@ function ok_login(usuario) {
 
     })();
     ls.close(false);
+    resetTrackingAlertas();
+    controlarTrackingDinamico();
 }
 
 //falta controlar otros aspectos del boton, como las barritas
