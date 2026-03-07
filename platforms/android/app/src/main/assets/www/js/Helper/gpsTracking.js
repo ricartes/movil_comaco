@@ -15,6 +15,10 @@ const UMBRAL_MS_GLOBAL = 5 * 1000;
 const DISTANCIA_MINIMA_MOVIMIENTO = 2; // puedes bajar a 5 si quieres más detalle
 
 
+let ultimaUbicacionRecibidaMs = 0;
+const UMBRAL_RESTART_SIN_UBICACION_MS = 30000; // 30 segundos
+
+
 // Configura el plugin
 function configureBackgroundGeolocation() {
 
@@ -36,6 +40,7 @@ function configureBackgroundGeolocation() {
     // Maneja actualizaciones de ubicación
     BackgroundGeolocation.on('location', async function (location) {
         try {
+            ultimaUbicacionRecibidaMs = Date.now();
             console.log('[BG] location recibida:', JSON.stringify(location));
 
             const { latitude, longitude, speed, time } = location;
@@ -118,32 +123,52 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
 
 // Función para iniciar el rastreo
 function startTracking() {
+    BackgroundGeolocation.checkStatus(function (status) {
+        console.log('[TRACKING] checkStatus isRunning:', status.isRunning);
+        console.log('[TRACKING] checkStatus locationServicesEnabled:', status.locationServicesEnabled);
+        console.log('[TRACKING] checkStatus authorization:', status.authorization);
+        console.log('[TRACKING] isTrackingEnabled local:', isTrackingEnabled);
 
-    if (isTrackingEnabled) {
-        console.log("[TRACKING] ya está activo");
-        return;
-    }
-
-    BackgroundGeolocation.start();
-
-    isTrackingEnabled = true;
-
-    console.log("[TRACKING] iniciado");
-
-    // obtener ubicación inicial inmediatamente
-    BackgroundGeolocation.getCurrentLocation(
-        function (location) {
-            console.log("[GPS] ubicación inicial:", location);
-        },
-        function (error) {
-            console.warn("[GPS] error ubicación inicial:", error);
-        },
-        {
-            maximumAge: 0,
-            timeout: 10000,
-            enableHighAccuracy: true
+        if (!status.locationServicesEnabled) {
+            console.warn("[TRACKING] Servicios de ubicación desactivados.");
+            isTrackingEnabled = false;
+            return;
         }
-    );
+
+        if (!status.isRunning) {
+            BackgroundGeolocation.start();
+            isTrackingEnabled = true;
+            console.log("[TRACKING] BackgroundGeolocation.start() ejecutado.");
+            return;
+        }
+
+        isTrackingEnabled = true;
+        console.log("[TRACKING] BackgroundGeolocation ya estaba iniciado.");
+
+        const ahoraMs = Date.now();
+        const msSinUbicacion = ultimaUbicacionRecibidaMs
+            ? (ahoraMs - ultimaUbicacionRecibidaMs)
+            : null;
+
+        console.log("[TRACKING] msSinUbicacion:", msSinUbicacion);
+
+        // Solo reiniciar si nunca ha llegado ubicación
+        // o si lleva demasiado tiempo sin recibir una nueva
+        if (
+            !ultimaUbicacionRecibidaMs ||
+            msSinUbicacion > UMBRAL_RESTART_SIN_UBICACION_MS
+        ) {
+            console.log("[TRACKING] Plugin activo pero sin ubicaciones recientes, se forzará restart");
+
+            BackgroundGeolocation.stop();
+
+            setTimeout(function () {
+                BackgroundGeolocation.start();
+                isTrackingEnabled = true;
+                console.log("[TRACKING] Restart ejecutado");
+            }, 500);
+        }
+    });
 }
 
 // Función para detener el rastreo
@@ -155,9 +180,9 @@ function stopTracking() {
 
     BackgroundGeolocation.stop();
     isTrackingEnabled = false;
+    ultimaUbicacionRecibidaMs = 0;
     console.log("[TRACKING] BackgroundGeolocation detenido.");
 }
-
 // Obtener la última ubicación registrada
 function getLastKnownLocation() {
     if (lastKnownLocation) {
@@ -232,7 +257,7 @@ async function saveLocation(location) {
 
     // 1) Guía/proceso actual
     if (procesoActual && procesoActual !== "") {
-        const gde_actual = await seleccionarGdeProveedor(id_gde_actual);
+        const gde_actual = await seleccionarGdeProveedor(procesoActual);
         const idUnicoActual = gde_actual?.ID_UNICO_MOVIL ?? null;
 
         console.log('[SAVE] GDE actual:', gde_actual);
