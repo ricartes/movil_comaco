@@ -253,7 +253,7 @@ function controlarTrackingDinamico() {
 
             const validacion = await validarRequisitosTrackingCordova();
 
-            console.log("[TRACKING] validación periódica:", validacion);
+            console.log("[TRACKING] validación periódica:", JSON.stringify(validacion));
 
             if (!validacion.ok) {
                 stopTracking();

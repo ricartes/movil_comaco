@@ -19,6 +19,19 @@ let ultimaUbicacionRecibidaMs = 0;
 const UMBRAL_RESTART_SIN_UBICACION_MS = 30000; // 30 segundos
 
 
+let appVisible = true;
+
+document.addEventListener("pause", function () {
+    appVisible = false;
+    console.log("[APP] pause -> appVisible = false");
+}, false);
+
+document.addEventListener("resume", function () {
+    appVisible = true;
+    console.log("[APP] resume -> appVisible = true");
+}, false);
+
+
 // Configura el plugin
 function configureBackgroundGeolocation() {
 
@@ -128,6 +141,7 @@ function startTracking() {
         console.log('[TRACKING] checkStatus locationServicesEnabled:', status.locationServicesEnabled);
         console.log('[TRACKING] checkStatus authorization:', status.authorization);
         console.log('[TRACKING] isTrackingEnabled local:', isTrackingEnabled);
+        console.log('[TRACKING] appVisible:', appVisible);
 
         if (!status.locationServicesEnabled) {
             console.warn("[TRACKING] Servicios de ubicación desactivados.");
@@ -152,11 +166,10 @@ function startTracking() {
 
         console.log("[TRACKING] msSinUbicacion:", msSinUbicacion);
 
-        // Solo reiniciar si nunca ha llegado ubicación
-        // o si lleva demasiado tiempo sin recibir una nueva
+        // Solo forzar restart si la app está visible
         if (
-            !ultimaUbicacionRecibidaMs ||
-            msSinUbicacion > UMBRAL_RESTART_SIN_UBICACION_MS
+            appVisible &&
+            (!ultimaUbicacionRecibidaMs || msSinUbicacion > UMBRAL_RESTART_SIN_UBICACION_MS)
         ) {
             console.log("[TRACKING] Plugin activo pero sin ubicaciones recientes, se forzará restart");
 
