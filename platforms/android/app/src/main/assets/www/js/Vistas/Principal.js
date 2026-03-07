@@ -241,6 +241,48 @@ function onError() {
 }
 
 
+async function reevaluarTrackingAhora() {
+    try {
+        const usuarioActivo = Obtener_dato_local("rut_activo");
+        const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
+        const procesoActual = Obtener_dato_local("id_proceso_activo");
+
+        const validacion = await validarRequisitosTrackingCordova();
+
+        console.log("[TRACKING] reevaluación inmediata:", JSON.stringify(validacion));
+
+        if (!validacion.ok) {
+            stopTracking();
+            desactivarBackgroundModeSeguro();
+            mostrarAlertasTrackingFaltantes(validacion);
+            return false;
+        }
+
+        resetTrackingAlertas();
+        activarBackgroundModeSeguro();
+
+        const hayGuiasPendientes =
+            ((procesoActual && procesoActual !== "") ||
+                (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0));
+
+        console.log("[TRACKING] reevaluar -> usuarioActivo:", usuarioActivo);
+        console.log("[TRACKING] reevaluar -> hayGuiasPendientes:", hayGuiasPendientes);
+
+        if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
+            console.log("[TRACKING] reevaluar -> startTracking()");
+            startTracking();
+            return true;
+        } else {
+            console.log("[TRACKING] reevaluar -> stopTracking()");
+            stopTracking();
+            return false;
+        }
+    } catch (e) {
+        console.error("[TRACKING] Error en reevaluarTrackingAhora:", e);
+        return false;
+    }
+}
+
 
 function controlarTrackingDinamico() {
     if (trackingIntervalId !== null) return;

@@ -31,23 +31,23 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 818
+              "count": 819
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 817
+              "count": 818
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 818
+              "count": 819
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 818
+              "count": 819
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
-              "count": 37
+              "count": 38
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -83,11 +83,11 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
-              "count": 38
+              "count": 39
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
-              "count": 38
+              "count": 39
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS\" />",
@@ -99,7 +99,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />",
-              "count": 38
+              "count": 39
             },
             {
               "xml": "<uses-permission android:name=\"android.hardware.location\" />",
@@ -107,7 +107,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />",
-              "count": 37
+              "count": 38
             }
           ],
           "/manifest/application": [

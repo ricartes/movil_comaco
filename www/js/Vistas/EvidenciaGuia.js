@@ -242,7 +242,13 @@ function confirmEmisionDespacho(id_gde, gde) {
     DATOS_cambiar_estado_gde_proveedores(id_gde, estado, function (result1) {
         DATOS_cambiar_estado_gde_evidencia(id_gde, estado, function (result2) {
 
-            DATOS_asigna_coordenadas(gde, function (result3) {
+            DATOS_asigna_coordenadas(gde, async function (result3) {
+
+                try {
+                    await reevaluarTrackingAhora();
+                } catch (e) {
+                    console.error("[TRACKING] Error al reevaluar después de informar despacho:", e);
+                }
 
                 app.dialog.alert("Despacho informado correctamente.", "GFE", function () {
                     mainView.router.navigate('/');
