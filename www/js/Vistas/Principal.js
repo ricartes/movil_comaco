@@ -691,7 +691,7 @@ document.addEventListener("deviceready", async function () {
     $$(".login-screen").on("loginscreen:closed", function (e, loginScreen) {
         //alert('Login screen closed')
         var fecha_hora = FechaHoraActual();
-        datos_usuario(usuario_activo, function (result) {
+        datos_usuario(usuario_activo, async function (result) {
             //alert(result);
             if (result != -1) {
                 //startTracking();
@@ -723,6 +723,16 @@ document.addEventListener("deviceready", async function () {
                 Guardar_dato_local("ultimo_activo", result.user);
                 Guardar_dato_local("ultimo_password", result.clave);
                 $$("#nombre_usuario").html(result.nombre);
+                resetTrackingAlertas();
+                try {
+                    await reevaluarTrackingAhora();
+                } catch (e) {
+                    console.error("[TRACKING] Error al evaluar tracking después del login:", e);
+                }
+
+                // 🔹 iniciar control periódico
+                controlarTrackingDinamico();
+
             }
         });
     });
@@ -749,6 +759,7 @@ document.addEventListener("deviceready", async function () {
     }
 
     await validarTrackingAlInicio();
+    await validarOptimizacionBateria();
 
 
 
@@ -1007,9 +1018,9 @@ function login() {
                                 //alert(result);
 
                                 if (result.estado == 1) {
-                                    guarda_usuario(result, function (result1) {
+                                    guarda_usuario(result, async function (result1) {
                                         logeado = 1;
-                                        ok_login(result);
+                                        await ok_login(result);
                                     });
                                 } else {
                                     (async () => {
@@ -1045,9 +1056,9 @@ function login() {
                 //alert("login movil")
                 login_movil(us, function (contador) {
                     if (contador > 0) {
-                        guarda_ultimo_login(us, function (res) {
+                        guarda_ultimo_login(us, async function (res) {
                             logeado = 1;
-                            ok_login(us);
+                            await ok_login(us);
                         });
                     } else {
                         if (contador != -1) {
@@ -1124,7 +1135,7 @@ function logout() {
     //$$('#formulario_login')[0].reset();
 }
 
-function ok_login(usuario) {
+async function ok_login(usuario) {
     usuario_activo = usuario;
     var ls = app.loginScreen.create({ el: ".login-screen" });
 
@@ -1145,8 +1156,8 @@ function ok_login(usuario) {
 
     })();
     ls.close(false);
-    resetTrackingAlertas();
-    controlarTrackingDinamico();
+
+
 }
 
 //falta controlar otros aspectos del boton, como las barritas
@@ -1220,6 +1231,93 @@ function obtener_informacion_movil() {
             function () { }
         );
     }
+}
+
+
+function verificarOptimizacionBateria() {
+    return new Promise((resolve) => {
+        try {
+            if (
+                cordova.plugins &&
+                cordova.plugins.backgroundMode &&
+                typeof cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations === "function"
+            ) {
+                cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations(function (isIgnoring) {
+                    console.log("[BATTERY] isIgnoringBatteryOptimizations:", isIgnoring);
+                    resolve({
+                        status: true,
+                        ignorandoOptimizacion: !!isIgnoring
+                    });
+                });
+            } else {
+                console.warn("[BATTERY] Plugin backgroundMode no soporta isIgnoringBatteryOptimizations");
+                resolve({
+                    status: false,
+                    ignorandoOptimizacion: false
+                });
+            }
+        } catch (e) {
+            console.error("[BATTERY] Error verificando optimización:", e);
+            resolve({
+                status: false,
+                ignorandoOptimizacion: false,
+                error: e
+            });
+        }
+    });
+}
+
+function abrirConfiguracionOptimizacionBateria() {
+    try {
+        if (
+            cordova.plugins &&
+            cordova.plugins.backgroundMode &&
+            typeof cordova.plugins.backgroundMode.openBatteryOptimizationsSettings === "function"
+        ) {
+            cordova.plugins.backgroundMode.openBatteryOptimizationsSettings();
+            console.log("[BATTERY] Abriendo configuración de optimización de batería");
+            return;
+        }
+
+        if (
+            cordova.plugins &&
+            cordova.plugins.diagnostic &&
+            typeof cordova.plugins.diagnostic.switchToSettings === "function"
+        ) {
+            cordova.plugins.diagnostic.switchToSettings(
+                function () {
+                    console.log("[BATTERY] Abriendo configuración general");
+                },
+                function (error) {
+                    console.error("[BATTERY] No se pudo abrir configuración general:", error);
+                }
+            );
+        }
+    } catch (e) {
+        console.error("[BATTERY] Error al abrir configuración de batería:", e);
+    }
+}
+
+async function validarOptimizacionBateria() {
+    const resultado = await verificarOptimizacionBateria();
+
+    // Si no se pudo consultar, no bloqueamos la app
+    if (!resultado.status) {
+        return true;
+    }
+
+    if (!resultado.ignorandoOptimizacion) {
+        app.dialog.confirm(
+            "Para mantener el rastreo continuo en segundo plano, desactive la optimización de batería para esta aplicación. ¿Desea abrir la configuración ahora?",
+            "Optimización de batería",
+            function () {
+                abrirConfiguracionOptimizacionBateria();
+            }
+        );
+        return false;
+    }
+
+    return true;
 }
 
 app.init();
