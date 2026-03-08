@@ -674,6 +674,13 @@ document.addEventListener("deviceready", async function () {
             return;
         }
 
+        const bateriaOk = await validarOptimizacionBateria();
+
+        if (!bateriaOk) {
+            return;
+        }
+
+
         login();
     });
 
@@ -1301,15 +1308,15 @@ function abrirConfiguracionOptimizacionBateria() {
 async function validarOptimizacionBateria() {
     const resultado = await verificarOptimizacionBateria();
 
-    // Si no se pudo consultar, no bloqueamos la app
     if (!resultado.status) {
+        console.log("[BATTERY] No fue posible verificar automáticamente la optimización.");
         return true;
     }
 
     if (!resultado.ignorandoOptimizacion) {
         app.dialog.confirm(
-            "Para mantener el rastreo continuo en segundo plano, desactive la optimización de batería para esta aplicación. ¿Desea abrir la configuración ahora?",
-            "Optimización de batería",
+            "Para iniciar sesión y mantener el rastreo continuo en segundo plano, debe desactivar la optimización de batería para esta aplicación. ¿Desea abrir la configuración ahora?",
+            "Optimización de batería requerida",
             function () {
                 abrirConfiguracionOptimizacionBateria();
             }
