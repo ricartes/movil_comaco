@@ -81,6 +81,9 @@
     },
     "@ccervantesb/cordova-plugin-mock-location": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-power-optimization": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {}

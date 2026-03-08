@@ -182,5 +182,13 @@
     },
     "is_top_level": true,
     "variables": {}
+  },
+  "cordova-plugin-power-optimization": {
+    "source": {
+      "type": "registry",
+      "id": "cordova-plugin-power-optimization"
+    },
+    "is_top_level": true,
+    "variables": {}
   }
 }

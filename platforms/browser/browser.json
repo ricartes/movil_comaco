@@ -92,6 +92,9 @@
     },
     "@ccervantesb/cordova-plugin-mock-location": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-power-optimization": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
   "dependent_plugins": {},
@@ -779,6 +782,14 @@
         "cordova.plugins.mockLocation",
         "mockLocation"
       ]
+    },
+    {
+      "file": "plugins/cordova-plugin-power-optimization/www/PowerOptimization.js",
+      "id": "cordova-plugin-power-optimization.PowerOptimization",
+      "pluginId": "cordova-plugin-power-optimization",
+      "clobbers": [
+        "cordova.plugins.PowerOptimization"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -803,6 +814,7 @@
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
     "cordova-background-geolocation-plugin": "2.3.1",
-    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0",
+    "cordova-plugin-power-optimization": "0.0.3"
   }
 }

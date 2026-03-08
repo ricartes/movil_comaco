@@ -62,6 +62,9 @@
     <feature name="PluginMockLocation">
         <param name="android-package" value="com.ccervantesb.mocklocation.PluginMockLocation" />
     </feature>
+    <feature name="PowerOptimization">
+        <param name="android-package" value="cordova.plugin.PowerOptimization.PowerOptimization" />
+    </feature>
     <feature name="Diagnostic">
         <param name="android-package" value="cordova.plugins.Diagnostic" />
         <param name="onload" value="true" />

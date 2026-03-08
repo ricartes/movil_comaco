@@ -477,6 +477,14 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
         "cordova.plugins.mockLocation",
         "mockLocation"
       ]
+    },
+    {
+      "id": "cordova-plugin-power-optimization.PowerOptimization",
+      "file": "plugins/cordova-plugin-power-optimization/www/PowerOptimization.js",
+      "pluginId": "cordova-plugin-power-optimization",
+      "clobbers": [
+        "cordova.plugins.PowerOptimization"
+      ]
     }
   ];
   module.exports.metadata = {
@@ -500,6 +508,7 @@ cordova.define('cordova/plugin_list', function(require, exports, module) {
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
     "cordova-background-geolocation-plugin": "2.3.1",
-    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0",
+    "cordova-plugin-power-optimization": "0.0.3"
   };
 });

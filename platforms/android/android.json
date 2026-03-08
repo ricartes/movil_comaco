@@ -31,23 +31,23 @@
           "/manifest": [
             {
               "xml": "<uses-permission android:name=\"android.permission.INTERNET\" />",
-              "count": 826
+              "count": 831
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
-              "count": 825
+              "count": 830
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-              "count": 826
+              "count": 831
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />",
-              "count": 826
+              "count": 831
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.WAKE_LOCK\" />",
-              "count": 45
+              "count": 50
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
@@ -83,11 +83,11 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
-              "count": 46
+              "count": 51
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
-              "count": 46
+              "count": 51
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS\" />",
@@ -99,7 +99,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />",
-              "count": 46
+              "count": 51
             },
             {
               "xml": "<uses-permission android:name=\"android.hardware.location\" />",
@@ -107,7 +107,7 @@
             },
             {
               "xml": "<uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />",
-              "count": 45
+              "count": 50
             }
           ],
           "/manifest/application": [
@@ -175,6 +175,14 @@
             },
             {
               "xml": "<uses-feature android:name=\"android.hardware.location.gps\" android:required=\"true\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS\" />",
+              "count": 1
+            },
+            {
+              "xml": "<uses-permission android:name=\"com.huawei.permission.external_app_settings.USE_COMPONENT\" />",
               "count": 1
             }
           ],
@@ -293,6 +301,10 @@
             },
             {
               "xml": "<feature name=\"PluginMockLocation\"><param name=\"android-package\" value=\"com.ccervantesb.mocklocation.PluginMockLocation\" /></feature>",
+              "count": 1
+            },
+            {
+              "xml": "<feature name=\"PowerOptimization\"><param name=\"android-package\" value=\"cordova.plugin.PowerOptimization.PowerOptimization\" /></feature>",
               "count": 1
             }
           ]
@@ -470,6 +482,9 @@
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     },
     "@ccervantesb/cordova-plugin-mock-location": {
+      "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
+    },
+    "cordova-plugin-power-optimization": {
       "PACKAGE_NAME": "io.gestionasi.gfe_comaco"
     }
   },
@@ -952,6 +967,14 @@
         "cordova.plugins.mockLocation",
         "mockLocation"
       ]
+    },
+    {
+      "id": "cordova-plugin-power-optimization.PowerOptimization",
+      "file": "plugins/cordova-plugin-power-optimization/www/PowerOptimization.js",
+      "pluginId": "cordova-plugin-power-optimization",
+      "clobbers": [
+        "cordova.plugins.PowerOptimization"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -975,6 +998,7 @@
     "cordova.plugins.diagnostic": "7.2.3",
     "cordova-plugin-geolocation": "5.0.0",
     "cordova-background-geolocation-plugin": "2.3.1",
-    "@ccervantesb/cordova-plugin-mock-location": "1.1.0"
+    "@ccervantesb/cordova-plugin-mock-location": "1.1.0",
+    "cordova-plugin-power-optimization": "0.0.3"
   }
 }

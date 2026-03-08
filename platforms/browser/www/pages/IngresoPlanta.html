@@ -1,0 +1,83 @@
+<div class="page" data-name="ingreso-planta">
+    <div class="navbar">
+        <div class="navbar-inner sliding">
+            <div class="left">
+                <a href="#" class="link" onclick="ir_atras_boton()">
+                    <i class="icon icon-back"></i>
+                    <span class="ios-only">Back</span>
+                </a>
+            </div>
+            <div class="title">Ingreso planta</div>
+        </div>
+    </div>
+
+
+
+    <div class="page-content" id="contenido">
+
+        <div class="block">
+            Seleccionar Guía:
+            <div class="list">
+                <ul>
+                    <!-- Smart select item -->
+                    <li>
+                        <!-- Additional "smart-select" class -->
+                        <a id="item-select-guia-confirmar" class="item-link smart-select smart-select-init"
+                            data-open-in="sheet">
+                            <select name="gde" id="combo_gde">
+                                <option value="" selected>SELECCIONAR</option>
+                            </select>
+                            <div class="item-content" style="width: 100%;">
+                                <div class="item-inner" style="width: 100%;" id="texto_gde">
+                                    <div class="item-title" style="width: 100%;">
+
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+
+
+        <div class="block-title">Evidencia ingreso planta</div>
+        <div class="block">
+            <p>Haga click en la imagen para obtener captura de la evidencia ingreso planta</p>
+        </div>
+
+        <div class="block">
+
+            <center>
+                <a href="#">
+                    <img id="imagen_confirma_planta" width="240" src="imagenes/icon_foto.png" />
+                </a>
+
+            </center>
+        </div>
+
+
+
+
+
+        <img style="display:none;width:90px;height:90px;" id="smallImage" src="" />
+
+
+        <p class="row">
+            <a id="btn_confirma_ingreso_planta" data-view=".view-main"
+                class="col button button-big button-raised button-fill">CONFIRMAR
+            </a>
+        </p>
+
+
+
+
+    </div>
+
+</div>
+
+
+
+</div>
