@@ -402,30 +402,42 @@ Debe solicitar al Administrador del Sistema que le asigne esta zona desde el lis
         },
 
         async init() {
-            // si no hay preview, no seguimos
             if (!this.preview) return;
+            const dlg = f7.dialog.preloader("Preparando datos de la guía...");
+            try {
+                // 1) cargar mapping
+                await this.cargarParametrosMapping();
+                if (!this.mappingOk) return;
 
-            // 1) cargar mapping (ID 8)
-            await this.cargarParametrosMapping();
-            if (!this.mappingOk) return;
+                // 2) construir draft
+                await this.cargarPreview();
 
-            // 2) construir draft
-            await this.cargarPreview();
+                // 3) homologar OC
+                await this.homologarDatosOrigen();
 
-            await this.homologarDatosOrigen();
-            // 3) generar datos emisor
-            this.generarDatosEmisor();
-            this.form.empresa = await obtenerEmpresa(
-                this.usuarioActivo.empresa
-            );
-            this.form.parametrosGenerales = await listarParametrosGenerales(
-                this.usuarioActivo.empresa
-            );
-            this.form.ivaPct = await generarPorcentajeIva(
-                this.usuarioActivo.empresa
-            );
+                // 4) generar datos emisor
+                this.generarDatosEmisor();
 
-            await this.cargarCombos();
+                this.form.empresa = await obtenerEmpresa(
+                    this.usuarioActivo.empresa
+                );
+
+                this.form.parametrosGenerales = await listarParametrosGenerales(
+                    this.usuarioActivo.empresa
+                );
+
+                this.form.ivaPct = await generarPorcentajeIva(
+                    this.usuarioActivo.empresa
+                );
+
+                // 5) combos
+                await this.cargarCombos();
+            } catch (e) {
+                console.error("Error cargando preview:", e);
+                f7.dialog.alert("Error al cargar el preview.");
+            } finally {
+                dlg.close();
+            }
         },
 
         generarDatosEmisor() {
