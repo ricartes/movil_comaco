@@ -5,7 +5,7 @@ import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import config from "@/Common/json/config.json";
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
 import { formatearRut } from '@/js/Utils/rut';
-import { formatMMYYYY } from "@/js/Utils/formatters";
+import { formatFechaCorta, formatFechaHoraCorta, formatMMYYYY } from "@/js/Utils/formatters";
 // =============== Helpers ===============
 const brand = { gray: "#4b4b4b", border: "#000" };
 
@@ -33,25 +33,7 @@ function bulletsColumns(bullets) {
     return 1;
 }
 
-function fDate(x) {
-    if (!x) return "—";
 
-    // Caso 1: formato simple "YYYY-MM-DD"
-    if (/^\d{4}-\d{2}-\d{2}$/.test(x)) {
-        const [y, m, d] = x.split("-").map(Number);
-        return `${String(d).padStart(2, "0")}-${String(m).padStart(2, "0")}-${y}`;
-    }
-
-    // Caso 2: formato ISO completo (con hora)
-    const d = new Date(x);
-    if (isNaN(d.getTime())) return "—";
-
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-
-    return `${day}-${month}-${year}`;
-}
 
 
 function fTime(x) {
@@ -144,7 +126,7 @@ function headerBoxRight(doc) {
     const rut = (doc?.empresa?.rut != null ? String(doc.empresa.rut) : "—") + (doc?.empresa?.dv ? "-" + doc.empresa.dv : "");
     const folio = doc?.folio != null ? String(doc.folio) : "—";
     const ciudad = U(doc?.empresa?.ciudad);
-    const fechaEmision = fDate(doc?.fechaEmision) || "—";
+    const fechaEmision = formatFechaCorta(doc?.fechaEmision) || "—";
 
     return {
         stack: [
@@ -339,7 +321,7 @@ function buildBoxClienteFechas(doc) {
     const right = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Fecha Emisión", fDate(doc?.fechaEmision) || "—"),
+            kvLine("Fecha Emisión", formatFechaCorta(doc?.fechaEmision) || "—"),
             kvLine("Ind. Traslado", doc?.indicadorTraslado?.texto),
             kvLine("Comuna", doc?.cliente?.comunaCliente),
             kvLine("Ciudad", doc?.cliente?.ciudadCliente),
@@ -378,7 +360,7 @@ function buildBoxOperacion(doc) {
             kvLine(
                 "Fecha Plantación",
                 doc?.comentarios?.fechaPlantacion
-                    ? fDate(doc.comentarios.fechaPlantacion)
+                    ? formatFechaCorta(doc.comentarios.fechaPlantacion)
                     : "—"
             ),
             kvLine("Plan Manejo", doc?.comentarios?.planManejo ?? doc?.rodal?.planManejo),
@@ -389,7 +371,7 @@ function buildBoxOperacion(doc) {
     const right = {
         fontSize: TAMANO_LETRA_ELEMENTOS,
         stack: [
-            kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${fDate(doc.comentarios.horaSalida)} ${fTime(doc.comentarios.horaSalida)}` : "—"),
+            kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${formatFechaHoraCorta(doc.comentarios.horaSalida)}` : "—"),
             kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
             kvLine("Fecha Corta", formatMMYYYY(doc?.comentarios?.anioCosecha)),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
@@ -765,7 +747,7 @@ function buildTimbreYTotalesRow(doc) {
     const timbrePng = doc?.__timbrePng;
     const tedStr = (doc?.ted || '').trim();
     const numRes = doc?.empresa?.numeroResolucion ?? '—';
-    const fechaRes = doc?.empresa?.fechaResolucion ? fDate(doc.empresa.fechaResolucion) : '—';
+    const fechaRes = doc?.empresa?.fechaResolucion ? formatFechaCorta(doc.empresa.fechaResolucion) : '—';
 
     const IMG_W = 260;
     const IMG_H = 110;
