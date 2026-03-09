@@ -374,6 +374,7 @@ function buildBoxOperacion(doc) {
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${formatFechaHoraCorta(doc.comentarios.horaSalida)}` : "—"),
             kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
             kvLine("Fecha Corta", formatMMYYYY(doc?.comentarios?.anioCosecha)),
+            kvLine("Número Aviso Ejecución", doc?.rodal?.nroaviso ?? "—"),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),
         ],

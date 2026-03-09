@@ -107,6 +107,7 @@ function mapDoc(doc) {
         horaAgendamiento: doc?.comentarios?.horaAgendamiento || '',
         numeroAgendamiento: doc?.comentarios?.numeroAgendamiento || '',
         numeroGuiaAnterior: doc?.comentarios?.numeroGuiaAnterior || '',
+        nroaviso: doc?.rodal?.nroaviso || '',
     }
 
     const patenteCamionRaw = doc?.patenteCamion;
@@ -399,6 +400,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     const anioPlantacion = (M.comentarios.fechaPlantacion || '').substring(0, 4);
     const fechaPlantacion = formatFechaCorta(M.comentarios.fechaPlantacion);
     const fechaCorta = M?.comentarios?.fechaCorta;
+    const numeroAviso = M?.comentarios?.nroaviso;
 
 
     await printRawText(wrap(`OBS: ${M.comentarios.comentarios ?? ''}`));
@@ -410,6 +412,13 @@ export async function printGuiaFromDoc(doc, opts = {}) {
             wrap(`FECHA CORTA: ${formatMMYYYY(fechaCorta)}`)
         );
     }
+
+    if (numeroAviso && String(numeroAviso).trim()) {
+        await printRawText(
+            wrap(`NUMERO AVISO EJECUCIÓN: ${numeroAviso}`)
+        );
+    }
+
     await printRawText(wrap(`NÚMERO GUÍA ANTERIOR: ${M.comentarios.numeroGuiaAnterior ?? ''}`));
     await printRawText(div());
 
