@@ -864,10 +864,6 @@ export default {
         f7.dialog.preloader("Cargando...");
         try {
             this.generarDatosEmisor();
-            await this.cargarOrdenesCompra();
-            await this.cargarZonas();
-            await this.cargarTransportistas();
-            await this.cargarCarguios();
             this.form.empresa = await obtenerEmpresa(
                 this.usuarioActivo.empresa
             );
@@ -877,6 +873,10 @@ export default {
             this.form.ivaPct = await generarPorcentajeIva(
                 this.usuarioActivo.empresa
             );
+            await this.cargarOrdenesCompra();
+            await this.cargarZonas();
+            await this.cargarTransportistas();
+            await this.cargarCarguios();
         } catch (ex) {
             alert(ex.message || "Error desconocido");
             f7.dialog.alert("Ha ocurrido un error al iniciar registro.");
