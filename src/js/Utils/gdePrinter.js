@@ -407,6 +407,8 @@ export async function printGuiaFromDoc(doc, opts = {}) {
     await printRawText(wrap(`HORA AGENDAMIENTO: ${M.comentarios.horaAgendamiento ?? ''}`));
     await printRawText(wrap(`NÚMERO AGENDAMIENTO: ${M.comentarios.numeroAgendamiento ?? ''}`));
     await printRawText(wrap(`FECHA PLANTACIÓN: ${fechaPlantacion}`));
+
+
     if (fechaCorta && String(fechaCorta).trim()) {
         await printRawText(
             wrap(`FECHA CORTA: ${formatMMYYYY(fechaCorta)}`)
