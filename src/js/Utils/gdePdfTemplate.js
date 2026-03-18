@@ -16,7 +16,7 @@ const FIRST_BLOCK_TOP_GAP = 14;
 const PAGE_BOTTOM = 44;
 const PAGE_W = 595;          // ancho A4 en pt
 const BOX_CONTENT_MIN = 71;
-const RIGHT_BOX_W = 220;
+const RIGHT_BOX_W = 170;
 const CANCHAS_INDENT = 24;
 const TAMANO_LETRA_ELEMENTOS = 8;
 const TAMANO_LETRA_SUCURSALES = 6;
@@ -185,124 +185,173 @@ function headerBoxRight(doc) {
 function buildHeaderLeft(doc) {
     const emp = doc?.empresa || {};
     const sucursales = Array.isArray(emp.sucursales) ? emp.sucursales : [];
-    const s0 = sucursales[0] || null;          // primera sucursal (la de “Sucursal:”)
-    const canchas = sucursales.slice(1);       // resto
+    const s0 = sucursales[0] || null;
+    const canchas = sucursales.slice(1);
     const logo = doc?.__logoPng;
 
-    const leftStack = [
-        // === LOGO + RAZÓN SOCIAL CENTRADOS ===
-        {
-            table: {
-                // si hay logo: [* | logo | texto | *] ; si no hay logo: [* | texto | *]
-                widths: logo ? ["*", "auto", "auto", "*"] : ["*", "auto", "*"],
-                body: [
-                    logo
-                        ? [
-                            "", // margen flexible izquierda
-                            { image: logo, width: 35, margin: [0, 2, 6, 0] }, // logo
-                            { text: U(emp.razonSocial || ""), fontSize: 12, bold: true, margin: [0, 8, 0, 0] }, // razón social
-                            "", // margen flexible derecha
-                        ]
-                        : [
-                            "",
-                            { text: U(emp.razonSocial || ""), fontSize: 12, bold: true, margin: [0, 8, 0, 0] },
-                            "",
-                        ],
-                ],
+    const bloqueEmpresa = {
+        width: 230,
+        margin: [0, 0, 8, 0],
+        stack: [
+            ...(logo
+                ? [
+                    {
+                        image: logo,
+                        width: 55,
+                        alignment: "center",
+                        margin: [0, 0, 0, 8],
+                    },
+                ]
+                : []),
+
+            {
+                text: U(emp.razonSocial || ""),
+                fontSize: 12,
+                bold: true,
+                alignment: "center",
+                lineHeight: 1.1,
+                margin: [0, 2, 0, 8],
             },
-            layout: "noBorders",
-            margin: [0, 0, 0, 8], // un poquito más de aire debajo
-        },
 
-        // GIRO / ACTIVIDAD (centrado)
-        {
-            text: U(emp.giro || emp.actividadSII || emp.actividadEconomica || ""),
-            fontSize: 9,
-            color: brand.gray,
-            alignment: "center",
-            margin: [0, 0, 0, 8],
-        },
-        // ... sigue tu stack (Casa Matriz / Sucursal / Canchas) ...
-    ];
-    // 🔴 IMPORTANTE: ESTE BLOQUE REEMPLAZA a los push antiguos de “Casa Matriz / Sucursal”
-    leftStack.push({
-        table: {
-            widths: ['*'], // fuerza que el contenido tome todo el ancho del panel izquierdo
-            body: [[{
-                stack: [
-                    { text: 'Casa Matriz:', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 2] },
-                    {
-                        text: fmtLineaDireccion(emp.direccion, emp.comuna, emp.ciudad),
-                        fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', noWrap: false
-                    },
-                    {
-                        text: U(fmtTelefono(emp.telefono)),
-                        fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', margin: [0, 0, 0, 6], noWrap: false
-                    },
+            {
+                text: `Rut: ${formatearRut(
+                    `${emp.rut ?? ""}${emp.dv ? "-" + emp.dv : ""}`
+                )}`,
+                fontSize: 9,
+                bold: true,
+                alignment: "center",
+                margin: [0, 0, 0, 8],
+            },
 
-                    // Sucursal principal (solo si existe s0)
-                    ...(s0 ? [
-                        { text: 'Sucursal:', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 2] },
-                        {
-                            text: fmtLineaDireccion(s0.direccion, s0.comuna, s0.region),
-                            fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', noWrap: false
-                        },
-                        {
-                            text: U(fmtTelefono(s0.telefono)),
-                            fontSize: TAMANO_LETRA_SUCURSALES, color: brand.gray, alignment: 'center', margin: [0, 0, 0, 2], noWrap: false
-                        },
-                    ] : []),
+            {
+                text: U(
+                    emp.giro ||
+                    emp.actividadSII ||
+                    emp.actividadEconomica ||
+                    ""
+                ),
+                fontSize: 7.5,
+                alignment: "center",
+                margin: [0, 0, 0, 10],
+            },
+
+            {
+                text: [
+                    { text: "Casa Matriz: ", bold: true },
+                    {
+                        text: `${fStr(emp.direccion)}, ${fStr(emp.comuna)} - ${fStr(emp.ciudad)} - Chile`,
+                    },
                 ],
-            }]],
-        },
-        layout: 'noBorders',
-        margin: [0, 0, 0, 4],
-    });
+                alignment: "center",
+                fontSize: 7,
+                margin: [0, 0, 0, 2],
+            },
+            {
+                text: U(fmtTelefono(emp.telefono)),
+                alignment: "center",
+                fontSize: 7,
+                margin: [0, 0, 0, 8],
+            },
 
-    // CANCHAS DE ACOPIO en 2 columnas
-    if (canchas.length > 0) {
-        leftStack.push({ text: 'CANCHAS DE ACOPIO', fontSize: TAMANO_LETRA_SUCURSALES, alignment: 'center', bold: true, margin: [0, 0, 0, 6] });
+            ...(s0
+                ? [
+                    {
+                        text: [
+                            { text: "Sucursal: ", bold: true },
+                            {
+                                text: `${fStr(s0.direccion)}, ${fStr(
+                                    s0.comuna
+                                )} - ${fStr(s0.region)} - Chile`,
+                            },
+                        ],
+                        alignment: "center",
+                        fontSize: 7,
+                        margin: [0, 0, 0, 2],
+                    },
+                    {
+                        text: U(fmtTelefono(s0.telefono)),
+                        alignment: "center",
+                        fontSize: 7,
+                        margin: [0, 0, 0, 0],
+                    },
+                ]
+                : []),
+        ],
+    };
 
-        const filas = chunk(canchas, 2);
-        filas.forEach(par => {
-            leftStack.push({
-                margin: [CANCHAS_INDENT, 0, 0, 0],   // bloque desplazado a la derecha
-                table: {
-                    widths: ['*', '*'],               // 👈 ocupa todo el ancho disponible
-                    body: [[
-                        canchaBlock(par[0]),
-                        canchaBlock(par[1]),
-                    ]]
+    const divisor = {
+        width: 10,
+        canvas: [
+            {
+                type: "line",
+                x1: 5,
+                y1: 0,
+                x2: 5,
+                y2: 165,
+                lineWidth: 1,
+                lineColor: "#000000",
+            },
+        ],
+        margin: [0, 6, 0, 0],
+    };
+
+    const bloqueCanchas = {
+        width: "*",
+        stack: [
+            {
+                text: "CANCHAS DE ACOPIO",
+                bold: true,
+                fontSize: 10,
+                margin: [0, 0, 0, 10],
+            },
+
+            ...canchas.flatMap((s) => [
+                {
+                    text: U(s.nombre || ""),
+                    bold: true,
+                    fontSize: 8,
+                    margin: [0, 0, 0, 2],
                 },
-                layout: 'noBorders'
-            });
-        });
-    }
+                {
+                    text: fStr(s.direccion),
+                    fontSize: 7,
+                    margin: [0, 0, 0, 0],
+                },
+                {
+                    text: `${fStr(s.comuna)} - ${fStr(s.region)} - Chile`,
+                    fontSize: 7,
+                    margin: [0, 0, 0, 10],
+                },
+            ]),
+        ],
+    };
 
-
-
-
-    return { width: '*', stack: leftStack };
+    return {
+        width: "*",
+        columns: [
+            bloqueEmpresa,
+            divisor,
+            { width: "*", stack: bloqueCanchas.stack }
+        ],
+        columnGap: 12,
+    };
 }
 
 
 // ========= Reemplazo de buildHeaderHero =========
 function buildHeaderHero(doc) {
-    const left = buildHeaderLeft(doc);             // ocupa el ancho restante
+    const left = buildHeaderLeft(doc);
     const right = { width: RIGHT_BOX_W, stack: [headerBoxRight(doc)] };
 
-    const band = {
-        margin: [PAGE_X, 6, PAGE_X, 4],
-        columns: [left, right],
-        columnGap: 16, // más estrecho para ganar espacio al texto
+    return {
+        stack: [
+            {
+                margin: [PAGE_X, 6, PAGE_X, 4],
+                columns: [left, right],
+                columnGap: 14,
+            },
+        ],
     };
-
-    const bottomLine = {
-        canvas: [{ type: "line", x1: PAGE_X, x2: PAGE_W - PAGE_X, y1: 0, y2: 0, lineWidth: 1, lineColor: brand.border }],
-        margin: [0, 6, 0, 0],
-    };
-
-    return { stack: [band] };
 }
 
 // =============== Box 1: Cliente vs Fechas/Traslado ===============
@@ -832,31 +881,20 @@ function fmtLineaDireccion(d, comuna, regionOCiudad) {
 
 
 
-// 👉 reemplaza toda esta función
 function estimateHeaderHeight(doc) {
     const emp = doc?.empresa || {};
     const sucursales = Array.isArray(emp.sucursales) ? emp.sucursales : [];
-    const hasSucursal0 = sucursales.length > 0;
     const canchasCount = Math.max(0, sucursales.length - 1);
-    const filasCanchas = Math.ceil(canchasCount / 2);
 
-    // líneas base (tamaños actuales: título 8, giro 9, resto 8/6)
-    let h = 88;                // título + giro + pequeños márgenes
-    h += 40;                   // "Casa Matriz" (título + dirección + fono)
-    if (hasSucursal0) h += 38; // "Sucursal" (título + dirección + fono)
+    let h = 190;
 
-    if (canchasCount > 0) {
-        h += 14;                 // "CANCHAS DE ACOPIO"
-        h += filasCanchas * 40;  // ~40 pt por FILA de 2 canchas (nombre+2 líneas)
-    }
+    if (canchasCount >= 3) h += 18;
+    if (canchasCount >= 5) h += 18;
+    if (canchasCount >= 7) h += 18;
 
-    h += 14; // padding inferior del header
-
-    // mínimos y máximos más generosos
-    const min = 140;
-    const max = 240; // si sigues corto, sube a 260
-    return Math.max(min, Math.min(Math.ceil(h), max));
+    return Math.max(190, Math.min(h, 260));
 }
+
 
 
 async function toDataUrl(src) {
@@ -933,7 +971,7 @@ export async function buildDefinition(doc, timbrePng) {
     const logoDataUrl = await toDataUrl(logoSrc);
 
     const pdfDoc = { ...doc, __logoPng: logoDataUrl, __timbrePng: timbrePng };
-    const topMargin = Math.max(80, estimateHeaderHeight(pdfDoc) - 20);
+    const topMargin = Math.max(190, estimateHeaderHeight(pdfDoc));
     const pageMarginsAll = [PAGE_X, 16, PAGE_X, PAGE_BOTTOM];
     const box1 = buildBoxClienteFechas(pdfDoc);
     const box2 = buildBoxOperacion(pdfDoc);
@@ -953,7 +991,8 @@ export async function buildDefinition(doc, timbrePng) {
     };
 
     // 2) Spacer sólo en la primera página para despegar el contenido real
-    const firstPageSpacer = { text: "", margin: [0, (topMargin - 16), 0, 0] };
+    const firstPageSpacer = { text: "", margin: [0, topMargin - 16, 0, 0] };
+
 
     return {
         pageSize: "A4",
