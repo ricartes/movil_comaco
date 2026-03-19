@@ -411,7 +411,7 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
     if (fechaCorta && String(fechaCorta).trim()) {
         await printRawText(
-            wrap(`FECHA CORTA: ${formatMMYYYY(fechaCorta)}`)
+            wrap(`FECHA CORTA: ${formatFechaCorta(fechaCorta)}`)
         );
     }
 

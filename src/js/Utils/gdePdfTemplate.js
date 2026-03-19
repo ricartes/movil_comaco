@@ -36,13 +36,7 @@ function bulletsColumns(bullets) {
 
 
 
-function fTime(x) {
-    if (!x) return "—";
-    const d = new Date(x);
-    return isNaN(d.getTime())
-        ? x
-        : d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-}
+
 function fStr(x) { return x == null ? "—" : String(x); }
 
 
@@ -422,7 +416,7 @@ function buildBoxOperacion(doc) {
         stack: [
             kvLine("Hora Salida", doc?.comentarios?.horaSalida ? `${formatFechaHoraCorta(doc.comentarios.horaSalida)}` : "—"),
             kvLine("ID", doc?.ordenCompra?.numOc ?? "—"),
-            kvLine("Fecha Corta", formatMMYYYY(doc?.comentarios?.anioCosecha)),
+            kvLine("Fecha Corta", formatFechaCorta(doc?.comentarios?.anioCosecha)),
             kvLine("Número Aviso Ejecución", doc?.rodal?.nroaviso ?? "—"),
             kvLine("Coordenada X", doc?.comentarios?.puntoX),
             kvLine("Coordenada Y", doc?.comentarios?.puntoY),

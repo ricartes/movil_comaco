@@ -98,6 +98,14 @@ export function horaActual() {
 }
 
 
+export function fechaActualYmd() {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 export function normalizeToISODate(val) {
     if (!val) return null;
     const s = String(val).trim();

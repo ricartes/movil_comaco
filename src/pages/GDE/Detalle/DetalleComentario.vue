@@ -69,16 +69,13 @@
                     @input="onInputNum('volumenProveedor', $event)"
                 />
                 <f7-list-input
-                    label="Fecha Corta (Mes/Año)"
-                    type="text"
-                    placeholder="MM/AAAA"
-                    readonly
-                    inputmode="none"
-                    id="picker-mes-anio"
+                    label="Fecha Corta"
+                    type="date"
+                    :value="form.anioCosecha"
                     :disabled="soloLectura"
-                    :value="anioCosechaVisual"
+                    :max="hoy"
+                    @input="onInput('anioCosecha', $event)"
                 />
-
                 <!-- DESDE RODAL (semilla) — bloqueados -->
                 <f7-list-input
                     label="Fecha Plantación"
@@ -158,7 +155,7 @@ import {
     updateComentarios,
     COMENTARIOS_READONLY_KEYS,
 } from "@/app/services/GdeComentarioService";
-import { horaActual } from "@/js/Utils/formatters";
+
 
 export default {
     name: "DetalleComentario",
@@ -196,20 +193,6 @@ export default {
         const base = await ensureComentariosInit(this.doc._id);
         this.form = { ...this.form, ...base };
 
-        //esto cuando puede llegar de forestruck, ya viene con un valor
-        if (!this.soloLectura && this.form.anioCosecha != null) {
-            const norm = this.normalizeYYYYMM(this.form.anioCosecha);
-            if (norm && norm !== this.form.anioCosecha) {
-                this.form.anioCosecha = norm;
-                await this._save({ anioCosecha: norm });
-            }
-        }
-
-        // Esperar a que se renderice el input real
-        this.$nextTick(() => {
-            this.initPickerMesAnio();
-        });
-
         this.$emit("doc-updated", { comentarios: { ...base } });
     },
 
@@ -233,79 +216,14 @@ export default {
 
             return u ? String(u) : "m³/ton";
         },
+        hoy() {
+            return this.fechaActualYmd();
+        },
     },
     methods: {
         openMesAnioPicker() {
             if (this.soloLectura) return;
             if (this.pickerMesAnio) this.pickerMesAnio.open();
-        },
-
-        initPickerMesAnio() {
-            if (this.soloLectura) return;
-
-            const inputEl = "#picker-mes-anio";
-            const el = document.querySelector(inputEl);
-            if (!el) {
-                console.warn("[MesAnioPicker] No existe el input:", inputEl);
-                return;
-            }
-
-            const years = [];
-            const yNow = new Date().getFullYear();
-            for (let y = 2000; y <= yNow + 5; y++) years.push(String(y));
-
-            const months = Array.from({ length: 12 }, (_, i) =>
-                String(i + 1).padStart(2, "0")
-            );
-
-            const norm = this.normalizeYYYYMM(this.form.anioCosecha); // <-- null si está vacío
-
-            if (this.pickerMesAnio) {
-                this.pickerMesAnio.destroy();
-                this.pickerMesAnio = null;
-            }
-
-            this.pickerMesAnio = f7.picker.create({
-                inputEl,
-                openIn: "sheet",
-                rotateEffect: true,
-                toolbarCloseText: "Listo",
-
-                // ✅ SOLO setear value si ya hay algo guardado
-                ...(norm
-                    ? { value: [norm.split("-")[1], norm.split("-")[0]] }
-                    : {}),
-
-                // ✅ lo que se muestra en el input
-                formatValue: () => this.anioCosechaVisual || "",
-
-                cols: [
-                    { textAlign: "center", values: months, width: 100 }, // mes
-                    { textAlign: "center", values: years, width: 120 }, // año
-                ],
-
-                on: {
-                    change: async (picker, values) => {
-                        const [m, y] = values;
-                        const yyyymm = `${y}-${m}`;
-                        if (yyyymm === this.form.anioCosecha) return;
-
-                        this.form.anioCosecha = yyyymm;
-                        await this._save({ anioCosecha: yyyymm });
-                    },
-                },
-            });
-
-            // ✅ si está vacío, F7 igual puede escribir algo: lo limpiamos sí o sí
-            if (!norm) {
-                el.value = "";
-            }
-        },
-
-        toYYYYMM(date) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, "0");
-            return `${y}-${m}`;
         },
 
         soloEntero(e) {

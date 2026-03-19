@@ -11,7 +11,8 @@ import {
     formatMMYYYY,
     pretty,
     horaActual,
-    normalizeToISODate
+    normalizeToISODate,
+    fechaActualYmd,
 } from '@/js/Utils/formatters';
 
 export default {
@@ -27,6 +28,7 @@ export default {
         formatMMYYYY,
         pretty,
         horaActual,
-        normalizeToISODate
+        normalizeToISODate,
+        fechaActualYmd,
     },
 };
