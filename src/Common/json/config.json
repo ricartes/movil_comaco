@@ -1,11 +1,11 @@
 {
     "productivo": true,
     "servidor": {
-        "urlServidorLocal": "http://gestiona-002-site20.anytempurl.com/",
-        "urlServidorLocalMovil": "http://gestiona-002-site20.anytempurl.com/",
-        "urlServidorDesarrollo": "http://gestiona-002-site20.anytempurl.com/",
-        "urlServidorDesarrolloComaco": "http://gestiona-002-site20.anytempurl.com/",
-        "urlServidorProductivo": "http://gestiona-002-site20.anytempurl.com/"
+        "urlServidorLocal": "https://gde-fds-z48om70c.on-forge.com/",
+        "urlServidorLocalMovil": "https://gde-fds-z48om70c.on-forge.com/",
+        "urlServidorDesarrollo": "https://gde-fds-z48om70c.on-forge.com/",
+        "urlServidorDesarrolloComaco": "https://gde-fds-z48om70c.on-forge.com/",
+        "urlServidorProductivo": "https://gde-fds-z48om70c.on-forge.com/"
     },
     "webServices": {
         "nombreWebService": "mapi/v1/"
