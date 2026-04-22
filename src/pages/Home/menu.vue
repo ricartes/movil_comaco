@@ -168,6 +168,14 @@ export default {
                         ),
                 },
                 {
+                    key: "Clientes",
+                    run: () =>
+                        CargaParametrosService.cargarClienteParametros(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
                     key: "Socios",
                     run: () =>
                         CargaParametrosService.cargarSocios(

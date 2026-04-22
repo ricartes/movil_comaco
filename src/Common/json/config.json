@@ -173,6 +173,7 @@
         "RescatarLargosProductos": "largo-producto",
         "RescatarOrigenConfiguracion": "origen/configuracion",
         "RescatarOrigenHomologacion": "origen/homologacion",
+        "RescatarClienteParametros": "cliente/parametros",
         "RescatarUsuarioRangoFolio": "sii-usuario-rango-folio",
         "ConfirmarUsuarioRangoFolio": "sii-usuario-rango-folio/confirmar",
         "RescatarUsuarioRangoFolioLiberado": "sii-usuario-rango-folio-liberado",
@@ -205,7 +206,10 @@
             "motivoAnulacion": "motivo-anulacion",
             "forestruckImportLog": "forestruck-import-log",
             "origenConfiguracion": "origen-configuracion",
-            "origenHomologacion": "origen-homologacion"
+            "origenHomologacion": "origen-homologacion",
+            "cliente": "cliente",
+            "clienteDestino": "cliente-destino",
+            "clienteDestinoCancha": "cliente-destino-cancha"
         }
     }
 }

@@ -5,6 +5,11 @@ export async function listarClientes() {
     return await getClienteDao().listar();
 }
 
+export async function listarParametrosCliente() {
+
+    return await getClienteDao().listarParametrosCliente();
+}
+
 
 export async function listarClientesPorPredio(codEncargado, rutProveedor, rolPredio) {
 
@@ -15,6 +20,16 @@ export async function listarClientesPorPredio(codEncargado, rutProveedor, rolPre
 export async function listarDestinosPorCliente(codEncargado, rutProveedor, rolPredio, rutCliente) {
 
     return await getClienteDao().listarDestinosPorCliente(codEncargado, rutProveedor, rolPredio, rutCliente);
+}
+
+export async function listarParametrosDestinoPorCliente(rutCliente) {
+
+    return await getClienteDao().listarParametrosDestinoPorCliente(rutCliente);
+}
+
+export async function listarParametrosCanchaPorDestino(rutCliente, destinoCliente) {
+
+    return await getClienteDao().listarParametrosCanchaPorDestino(rutCliente, destinoCliente);
 }
 
 export function clienteEsEmisor(rutCliente, rutEmpresa) {

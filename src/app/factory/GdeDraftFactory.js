@@ -16,6 +16,7 @@ export function createGdeDraftDefault() {
         configuracionOrigen: null,
         cliente: null,
         destino: null,
+        cancha: null,
         indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
         trasvasije: false,
         ventaPiso: false,
@@ -32,6 +33,8 @@ export function createGdeDraftDefault() {
         empresaContratista: null,
         linea: null,
         ordenCompra: null,
+        ingresoPorOrdenCompra: false,
+        ordenCompraReferencia: null,
         ubicacion: null,
         datosGeocerca: {
             geocerca: null,

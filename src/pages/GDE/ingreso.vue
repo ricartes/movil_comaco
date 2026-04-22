@@ -250,6 +250,40 @@
             </f7-list-item>
 
             <f7-list-item
+                v-if="ingresoPorOrdenCompra && form.destino && canchas.length"
+                :key="`${form.cliente?.rutCliente || ''}-${form.destino?.destinoCliente || ''}`"
+                title="Cancha"
+                class="select-cancha"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :key="'sel-cancha-' + (form.destino?.destinoCliente || '')"
+                    :value="form.cancha?.nombreCancha || ''"
+                    @change="handleCanchaChange"
+                >
+                    <option value="" disabled>Seleccione una Cancha</option>
+                    <option
+                        v-for="p in canchas"
+                        :key="p.nombreCancha"
+                        :value="p.nombreCancha"
+                    >
+                        {{ p.nombreCancha }}
+                    </option>
+                </select>
+            </f7-list-item>
+
+            <f7-list-item
+                v-if="ingresoPorOrdenCompra && parametrosOcModificados"
+                class="li-alert no-padding"
+            >
+                <div class="alert alert-warning">
+                    <i class="f7-icons">exclamationmark_triangle</i>
+                    {{ mensajeParametrosOcModificados }}
+                </div>
+            </f7-list-item>
+
+            <f7-list-item
                 v-if="form.destino"
                 checkbox
                 checkbox-icon="end"
@@ -751,6 +785,9 @@ import InformacionCamion from "@/pages/GDE/Ingreso/InformacionCamion.vue";
 import store from "@/js/store";
 import {
     listarDestinosPorCliente,
+    listarParametrosCliente,
+    listarParametrosDestinoPorCliente,
+    listarParametrosCanchaPorDestino,
     clienteEsEmisor,
 } from "@/app/services/Parametros/ClienteService";
 import { listarRodalesPorOrigen } from "@/app/services/Parametros/RodalService";
@@ -787,6 +824,7 @@ export default {
                 searchbarPlaceholder: "Buscar",
             },
             aplicandoOc: false,
+            ingresoPorOrdenCompra: false,
             reintentandoGeocerca: false,
             ordenesCompra: [],
             zonas: [],
@@ -794,6 +832,7 @@ export default {
             predios: [],
             clientes: [],
             destinos: [],
+            canchas: [],
             productos: [],
             largosProducto: [],
             transportistas: [],
@@ -858,6 +897,27 @@ export default {
             if (this.carguioEsObligatorio) return nC > 0 && nP === nC;
             if (nC === 0) return true;
             return nP === nC;
+        },
+        parametrosOcModificados() {
+            if (!this.ingresoPorOrdenCompra) return false;
+            const ref = this.form?.ordenCompraReferencia;
+            if (!ref) return false;
+
+            return (
+                String(this.form?.cliente?.rutCliente ?? "") !==
+                    String(ref.rutCliente ?? "") ||
+                String(this.form?.destino?.destinoCliente ?? "") !==
+                    String(ref.destinoCliente ?? "") ||
+                String(this.form?.cancha?.nombreCancha ?? "") !==
+                    String(ref.nombreCancha ?? "")
+            );
+        },
+        mensajeParametrosOcModificados() {
+            const cambios = this.obtenerCambiosParametrosOc();
+            if (!cambios.length) return "";
+            return `La Orden de Compra fue cargada, pero se modificó: ${cambios.join(
+                ", "
+            )}. Revise antes de ingresar.`;
         },
     },
     async created() {
@@ -1047,6 +1107,9 @@ export default {
             if (this.ordenCompraSeleccionada) {
                 try {
                     this.aplicandoOc = true; // 👈 empieza modo “llenado automático”
+                    this.marcarIngresoPorOrdenCompra(
+                        this.ordenCompraSeleccionada
+                    );
                     f7.dialog.preloader("Aplicando Orden de Compra...");
                     await this.aplicarOrdenCompra(this.ordenCompraSeleccionada);
                 } catch (err) {
@@ -1064,6 +1127,7 @@ export default {
 
         limpiarOrdenCompraSeleccionada() {
             this.ordenCompraSeleccionada = null;
+            this.limpiarIngresoPorOrdenCompra();
             //this.form.ordenCompra = null; // opcional pero recomendado
 
             this.$nextTick(() => {
@@ -1088,6 +1152,25 @@ export default {
                     sel.value = "";
                 }
             });
+        },
+
+        marcarIngresoPorOrdenCompra(oc) {
+            this.ingresoPorOrdenCompra = true;
+            this.form.ingresoPorOrdenCompra = true;
+            this.form.ordenCompraReferencia = {
+                numOc: oc?.numOc ?? null,
+                rutCliente: oc?.rutCliente ?? null,
+                destinoCliente: oc?.destinoCliente ?? null,
+                nombreCancha: null,
+            };
+        },
+
+        limpiarIngresoPorOrdenCompra() {
+            this.ingresoPorOrdenCompra = false;
+            this.form.ingresoPorOrdenCompra = false;
+            this.form.ordenCompraReferencia = null;
+            this.form.cancha = null;
+            this.canchas = [];
         },
 
         async asignarZonaDesdeOc(oc) {
@@ -1274,6 +1357,7 @@ export default {
 
             await this.$nextTick();
             this.cargarInformacionDestino();
+            await this.cargarCanchasDestino();
             await this.cargarProductos();
 
             try {
@@ -1533,20 +1617,24 @@ export default {
             this.form.cliente = null;
             f7.dialog.preloader("Cargando...");
             try {
-                this.clientes = this.form.predio
-                    ? await listarClientesPorPredio(
-                          this.form.zona.codigo,
-                          this.form.proveedor.rutProveedor,
-                          this.form.predio.rolPredio
-                      )
-                    : [];
+                if (this.ingresoPorOrdenCompra) {
+                    this.clientes = await listarParametrosCliente();
+                } else {
+                    this.clientes = this.form.predio
+                        ? await listarClientesPorPredio(
+                              this.form.zona.codigo,
+                              this.form.proveedor.rutProveedor,
+                              this.form.predio.rolPredio
+                          )
+                        : [];
+                }
 
                 if (this.clientes.length === 1) {
                     this.form.cliente = this.clientes[0];
                     await this.$nextTick();
                     this.mostrarInformacionCliente();
                     this.obtenerIndicadorTraslado();
-                    this.cargarDestinosCliente();
+                    await this.cargarDestinosCliente();
 
                     await this.scrollTo({
                         ref: "destinoCliente",
@@ -1575,7 +1663,7 @@ export default {
         },
 
         async handleClienteChange(e) {
-            if (!this.aplicandoOc) {
+            if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
             const nuevoCliente = e.target.value;
@@ -1587,20 +1675,28 @@ export default {
                 this.resetDesde("cliente"); // limpia desde predio en adelante
                 await this.$nextTick();
                 this.mostrarInformacionCliente();
-                this.cargarDestinosCliente();
+                await this.cargarDestinosCliente();
                 this.obtenerIndicadorTraslado();
             }
         },
 
         async cargarDestinosCliente() {
-            this.destinos = this.form.cliente
-                ? await listarDestinosPorCliente(
-                      this.form.zona.codigo,
-                      this.form.proveedor.rutProveedor,
-                      this.form.predio.rolPredio,
-                      this.form.cliente.rutCliente
-                  )
-                : [];
+            this.destinos = [];
+            this.canchas = [];
+            this.form.cancha = null;
+
+            if (this.form.cliente) {
+                this.destinos = this.ingresoPorOrdenCompra
+                    ? await listarParametrosDestinoPorCliente(
+                          this.form.cliente.rutCliente
+                      )
+                    : await listarDestinosPorCliente(
+                          this.form.zona.codigo,
+                          this.form.proveedor.rutProveedor,
+                          this.form.predio.rolPredio,
+                          this.form.cliente.rutCliente
+                      );
+            }
 
             if (this.destinos.length === 1) {
                 this.form.destino = this.destinos[0];
@@ -1609,6 +1705,7 @@ export default {
                     .get(".destino-cliente .smart-select")
                     .setValueText(this.form.destino.destinoCliente);
                 this.cargarInformacionDestino();
+                await this.cargarCanchasDestino();
                 this.cargarProductos();
             }
         },
@@ -1626,7 +1723,7 @@ export default {
             }
         },
         async handleDestinoChange(e) {
-            if (!this.aplicandoOc) {
+            if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
             const nuevoDestino = e.target.value;
@@ -1637,11 +1734,37 @@ export default {
             await this.$nextTick();
             this.resetDesde("destino"); // limpia desde destino en adelante
             this.cargarInformacionDestino();
+            await this.cargarCanchasDestino();
             this.cargarProductos();
         },
 
+        async cargarCanchasDestino() {
+            this.canchas = [];
+            this.form.cancha = null;
+
+            if (
+                !this.ingresoPorOrdenCompra ||
+                !this.form.cliente ||
+                !this.form.destino
+            ) {
+                return;
+            }
+
+            this.canchas = await listarParametrosCanchaPorDestino(
+                this.form.cliente.rutCliente,
+                this.form.destino.destinoCliente
+            );
+        },
+
+        handleCanchaChange(e) {
+            const nombreCancha = e.target.value;
+            this.form.cancha =
+                this.canchas.find((p) => p.nombreCancha === nombreCancha) ||
+                null;
+        },
+
         async handleProductoChange(e) {
-            if (!this.aplicandoOc) {
+            if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
             const nuevoProducto = Number(e.target.value);
@@ -2072,21 +2195,27 @@ export default {
             }
             if (nivel === "cliente") {
                 this.form.destino = null;
+                this.form.cancha = null;
                 this.destinos = [];
+                this.canchas = [];
                 this.clearSmartSelect(
                     ".destino-cliente",
                     "Seleccione un Destino"
                 );
+                this.clearSmartSelect(".select-cancha", "Seleccione una Cancha");
 
                 // sigue
                 nivel = "destino";
             }
             if (nivel === "destino") {
+                this.form.cancha = null;
+                this.canchas = [];
                 this.form.producto = null;
                 this.productos = [];
                 this.form.largoProducto = null;
                 this.largosProducto = [];
 
+                this.clearSmartSelect(".select-cancha", "Seleccione una Cancha");
                 this.clearSmartSelect(
                     ".select-producto",
                     "Seleccione un Producto"
@@ -2208,6 +2337,11 @@ export default {
                 return false;
             }
 
+            if (this.parametrosOcModificados) {
+                const continuar = await this.confirmarParametrosOcModificados();
+                if (!continuar) return false;
+            }
+
             const origenLocal = config?.parametros?.origenGde?.local ?? 1;
             f7.dialog.preloader("Guardando GDE…");
 
@@ -2300,6 +2434,46 @@ export default {
             }
 
             return true;
+        },
+
+        obtenerCambiosParametrosOc() {
+            const ref = this.form?.ordenCompraReferencia;
+            if (!this.ingresoPorOrdenCompra || !ref) return [];
+
+            const cambios = [];
+            if (
+                String(this.form?.cliente?.rutCliente ?? "") !==
+                String(ref.rutCliente ?? "")
+            ) {
+                cambios.push("cliente");
+            }
+
+            if (
+                String(this.form?.destino?.destinoCliente ?? "") !==
+                String(ref.destinoCliente ?? "")
+            ) {
+                cambios.push("destino");
+            }
+
+            if (
+                String(this.form?.cancha?.nombreCancha ?? "") !==
+                String(ref.nombreCancha ?? "")
+            ) {
+                cambios.push("cancha");
+            }
+
+            return cambios;
+        },
+
+        confirmarParametrosOcModificados() {
+            return new Promise((resolve) => {
+                f7.dialog.confirm(
+                    `${this.mensajeParametrosOcModificados} ¿Desea ingresar la GDE de todas formas?`,
+                    "Confirmar cambios",
+                    () => resolve(true),
+                    () => resolve(false)
+                );
+            });
         },
 
         async scrollTo(opts = {}) {
@@ -2406,5 +2580,10 @@ export default {
     border: 1px solid #ebccd1;
     background: #f2dede;
     color: #a94442;
+}
+.alert-warning {
+    border: 1px solid #faebcc;
+    background: #fcf8e3;
+    color: #8a6d3b;
 }
 </style>

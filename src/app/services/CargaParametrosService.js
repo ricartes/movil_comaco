@@ -6,7 +6,8 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
     getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
-    getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao, getOrigenHomologacionDao, getOrigenConfiguracionDao
+    getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao, getOrigenHomologacionDao, getOrigenConfiguracionDao,
+    getClienteDao
 } from '@/app/services/initServices'
 import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
@@ -24,6 +25,11 @@ import { mapServerGeocercaToDoc } from '@/app/mappers/GeocercaMapper'
 import { mapServerMotivoAnulacionToDoc } from '@/app/mappers/MotivoAnulacionMapper'
 import { mapServerOrigenHomologacionToDoc } from '@/app/mappers/OrigenHomologacionMapper'
 import { mapServerOrigenConfiguracionToDoc } from '@/app/mappers/OrigenConfiguracionMapper'
+import {
+    mapServerClienteToDoc,
+    mapServerClienteDestinoToDoc,
+    mapServerClienteDestinoCanchaToDoc,
+} from '@/app/mappers/ClienteMapper'
 // Helper genérico: pide WS, mapea y reemplaza en PouchDB
 async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
     const token = store.state.token
@@ -50,6 +56,51 @@ async function loadAndReplace({ empId, rut, ruta, mapper, daoGetter, nombre }) {
 }
 
 const CargaParametrosService = {
+    async cargarClienteParametros(empId, rut) {
+        const token = store.state.token
+        if (!token) throw new Error('Token no disponible')
+
+        const resp = await CargaParametrosWebServices.cargarParametro(
+            empId,
+            rut,
+            config.rutas.RescatarClienteParametros,
+            token
+        )
+
+        if (!resp?.status) {
+            throw new Error(resp?.message || 'Error en servicio de clientes')
+        }
+
+        const data = resp.data || {}
+        const clienteRows = Array.isArray(data.cliente)
+            ? data.cliente
+            : data.cliente
+                ? [data.cliente]
+                : []
+        const destinoRows = Array.isArray(data.clienteDestino) ? data.clienteDestino : []
+        const canchaRows = Array.isArray(data.clienteDestinoCancha) ? data.clienteDestinoCancha : []
+
+        const docs = [
+            ...clienteRows.map(mapServerClienteToDoc),
+            ...destinoRows.map(mapServerClienteDestinoToDoc),
+            ...canchaRows.map(mapServerClienteDestinoCanchaToDoc),
+        ]
+
+        const dao = getClienteDao()
+        await dao.eliminarParametrosCliente()
+        await dao.insertarMasivo(docs)
+
+        return {
+            status: true,
+            count: docs.length,
+            counts: {
+                cliente: clienteRows.length,
+                clienteDestino: destinoRows.length,
+                clienteDestinoCancha: canchaRows.length,
+            },
+        }
+    },
+
     cargarOrdenesCompra(empId, rut) {
         return loadAndReplace({
             empId,

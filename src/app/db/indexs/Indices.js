@@ -47,6 +47,10 @@ export async function crearIndicesTipo(db) {
         { ddoc: 'idx_oc_zona_prov_predio_cli', fields: ['type', 'codEncargado', 'rutProveedor', 'rolPredio', 'rutCliente'] },
         // (opcional) si consultas mucho por zona+proveedor solamente:
         { ddoc: 'idx_oc_zona_prov', fields: ['type', 'codEncargado', 'rutProveedor'] },
+        // === cliente admin ===
+        { ddoc: 'idx_cliente_rut', fields: ['type', 'rutCliente'] },
+        { ddoc: 'idx_cliente_destino_rut', fields: ['type', 'rutCliente'] },
+        { ddoc: 'idx_cliente_destino_cancha', fields: ['type', 'rutCliente', 'destinoCliente'] },
         // === error_envio (si lo usas con fechas) ===
         { ddoc: 'idx_err_fecha', fields: ['type', 'fechaHora'] },
         { ddoc: 'idx_gde_empId_rut', fields: ['type', 'rutEmisor', 'empId'] },
