@@ -256,7 +256,12 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="ingresoPorOrdenCompra && parametrosOcModificados"
+                v-if="
+                    ingresoPorOrdenCompra &&
+                    !aplicandoOc &&
+                    parametrosOcModificados &&
+                    mensajeParametrosOcModificados
+                "
                 class="li-alert no-padding"
             >
                 <div class="alert alert-warning">
@@ -344,6 +349,7 @@
                 :key="form.producto?.codProducto"
                 title="Largo (Metros)"
                 class="largo-producto"
+                :class="{ 'select-disabled': largoBloqueadoPorOc }"
                 ref="largoProducto"
                 smart-select
                 :smart-select-params="ssParams"
@@ -351,6 +357,7 @@
                 <select
                     :key="'sel-largo-' + (form.producto?.codProducto || '')"
                     :value="form.largoProducto || ''"
+                    :disabled="largoBloqueadoPorOc"
                     v-model.number="form.largoProducto"
                 >
                     <option value="" disabled>
@@ -888,6 +895,13 @@ export default {
             return (
                 this.ingresoPorOrdenCompra === true &&
                 this.form?.producto != null &&
+                this.form?.ordenCompraReferencia?.flagCambioGde !== true
+            );
+        },
+        largoBloqueadoPorOc() {
+            return (
+                this.ingresoPorOrdenCompra === true &&
+                this.form?.largoProducto != null &&
                 this.form?.ordenCompraReferencia?.flagCambioGde !== true
             );
         },
@@ -1755,18 +1769,8 @@ export default {
 
             await this.$nextTick();
             if (this.ingresoPorOrdenCompra) {
-                this.form.producto = null;
-                this.productos = [];
-                this.form.largoProducto = null;
-                this.largosProducto = [];
-                this.clearSmartSelect(
-                    ".select-producto",
-                    "Seleccione un Producto"
-                );
-                this.clearSmartSelect(
-                    ".largo-producto",
-                    "Seleccione un Largo (Metros)"
-                );
+                this.cargarInformacionDestino();
+                return;
             } else {
                 this.resetDesde("destino"); // limpia desde destino en adelante
             }
@@ -1783,13 +1787,18 @@ export default {
             if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
-            const nuevoProducto = Number(e.target.value);
+            const nuevoProducto = String(e.target.value ?? "").trim();
             this.form.producto =
-                this.productos.find((p) => p.codProducto === nuevoProducto) ||
+                this.productos.find(
+                    (p) =>
+                        String(p.codProducto ?? "").trim() === nuevoProducto
+                ) ||
                 null;
 
             await this.$nextTick();
             this.resetDesde("producto"); // limpia desde producto en adelante
+            if (!this.form.producto) return;
+
             await this.cargarPrecioProducto();
             await this.cargarLargosProducto();
             await this.obtenerOrdenCompra();
