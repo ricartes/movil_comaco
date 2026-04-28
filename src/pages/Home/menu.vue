@@ -184,6 +184,14 @@ export default {
                         ),
                 },
                 {
+                    key: "Productos",
+                    run: () =>
+                        CargaParametrosService.cargarProductos(
+                            this.user.empresa,
+                            this.user.rut
+                        ),
+                },
+                {
                     key: "Precio Producto",
                     run: () =>
                         CargaParametrosService.cargarPrecios(

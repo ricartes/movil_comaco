@@ -65,6 +65,32 @@ export default class TransportistaDAO {
         return Array.from(map.values()).map(patenteDocToDTO);
     }
 
+    async listarPatentesCamion() {
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.transportista);
+
+        const norm = v => String(v ?? '').trim().toUpperCase();
+        const map = new Map();
+
+        for (const d of docs) {
+            const key = norm(d.patCamion);
+            if (!key) continue;
+            if (!map.has(key)) map.set(key, d);
+        }
+
+        return Array.from(map.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([, doc]) => patenteDocToDTO(doc));
+    }
+
+    async obtenerTransportistaPorPatenteCamion(patCamion) {
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.transportista);
+        const norm = v => String(v ?? '').trim().toUpperCase();
+        const patIn = norm(patCamion);
+
+        const doc = docs.find(d => norm(d.patCamion) === patIn && String(d.rutTransportista ?? '').trim());
+        return doc ? transportistaSimpleDocToDTO(doc) : null;
+    }
+
 
 
 

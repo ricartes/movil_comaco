@@ -6,17 +6,14 @@
                     <tr>
                         <td class="label-cell">Indicador de traslado</td>
                         <td class="label-cell">
-                            <span
-                                class="badge"
-                                :class="{
-                                    'color-green':
-                                        indicadorTraslado.id ===
-                                        indicadoresTraslado.VENTA.id,
-                                    'color-blue':
-                                        indicadorTraslado.id ===
-                                        indicadoresTraslado.TRASLADO.id,
-                                }"
-                            >
+                            <span class="badge" :class="{
+                                'color-green':
+                                    indicadorTraslado.id ===
+                                    indicadoresTraslado.VENTA.id,
+                                'color-blue':
+                                    indicadorTraslado.id ===
+                                    indicadoresTraslado.TRASLADO.id,
+                            }">
                                 {{ indicadorTraslado.texto }}
                             </span>
                         </td>
@@ -32,18 +29,7 @@
                             {{ cliente.razonSocialCliente }}
                         </td>
                     </tr>
-                    <tr>
-                        <td class="label-cell">Dirección</td>
-                        <td class="label-cell">{{ cliente.direccionCliente }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell">Comuna</td>
-                        <td class="label-cell">{{ cliente.comunaCliente }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell">Ciudad</td>
-                        <td class="label-cell">{{ cliente.ciudadCliente }}</td>
-                    </tr>
+
                     <tr>
                         <td class="label-cell">Giro</td>
                         <td class="label-cell">{{ cliente.giroCliente }}</td>

@@ -1,5 +1,16 @@
 // @ts-nocheck
 // Mantiene exactamente los mismos nombres de atributos que vienen del backend.
+function toBoolean(value) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value === 1;
+    if (typeof value === "string") {
+        return ["1", "true", "t", "yes", "y", "si", "s"].includes(
+            value.trim().toLowerCase()
+        );
+    }
+    return false;
+}
+
 export class OrdenCompraDTO {
     constructor({
         numOc,
@@ -62,6 +73,9 @@ export class OrdenCompraDTO {
         categoria = null,
         sag = null,
         ocCliente = null,
+        flagCambioGde = false,
+        Flag_cambio_gde = undefined,
+        flag_cambio_gde = undefined,
         tipoCertificacion = null,
         codigoCertificacion = null,
         glosaFormaPago = null,
@@ -131,6 +145,9 @@ export class OrdenCompraDTO {
         this.categoria = categoria;
         this.sag = sag;
         this.ocCliente = ocCliente;
+        this.flagCambioGde = toBoolean(
+            flagCambioGde ?? Flag_cambio_gde ?? flag_cambio_gde
+        );
         this.tipoCertificacion = tipoCertificacion;
         this.codigoCertificacion = codigoCertificacion;
         this.glosaFormaPago = glosaFormaPago;

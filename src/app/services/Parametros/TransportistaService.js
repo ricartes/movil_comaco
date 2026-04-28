@@ -11,6 +11,16 @@ export async function listarPatentesPorTransportista(rutTransportista) {
     return await getTransportistaDao().listarPatentesPorTransportista(rutTransportista);
 }
 
+export async function listarPatentesCamion() {
+
+    return await getTransportistaDao().listarPatentesCamion();
+}
+
+export async function obtenerTransportistaPorPatenteCamion(patCamion) {
+
+    return await getTransportistaDao().obtenerTransportistaPorPatenteCamion(patCamion);
+}
+
 
 export async function listarPatentesCarroPorTransportistaCamion(rutTransportista, patCamion) {
 

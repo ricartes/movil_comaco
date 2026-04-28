@@ -46,11 +46,13 @@
             <f7-list-item
                 title="Zona"
                 class="select-zona"
+                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
                     :value="form.zona?.codigo || ''"
+                    :disabled="parametrosBaseBloqueadosPorOc"
                     @change="handleZonaChange"
                 >
                     <option value="" disabled>Seleccione una zona…</option>
@@ -70,12 +72,14 @@
                 :key="form.zona?.codigo"
                 title="Proveedor"
                 class="select-proveedor"
+                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
                     :key="'sel-proveedor-' + (form.zona?.codigo || '')"
                     :value="form.proveedor?.rutProveedor || ''"
+                    :disabled="parametrosBaseBloqueadosPorOc"
                     @change="handleProveedorChange"
                 >
                     <option value="" disabled>Seleccione un Proveedor…</option>
@@ -95,12 +99,14 @@
                 :key="form.proveedor?.rutProveedor"
                 title="Predio"
                 class="select-predio"
+                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
                     :key="'sel-predio-' + (form.proveedor?.rutProveedor || '')"
                     :value="form.predio?.rolPredio || ''"
+                    :disabled="parametrosBaseBloqueadosPorOc"
                     @change="handlePredioChange"
                 >
                     <option value="" disabled>Seleccione un Predio</option>
@@ -250,30 +256,6 @@
             </f7-list-item>
 
             <f7-list-item
-                v-if="ingresoPorOrdenCompra && form.destino && canchas.length"
-                :key="`${form.cliente?.rutCliente || ''}-${form.destino?.destinoCliente || ''}`"
-                title="Cancha"
-                class="select-cancha"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-cancha-' + (form.destino?.destinoCliente || '')"
-                    :value="form.cancha?.nombreCancha || ''"
-                    @change="handleCanchaChange"
-                >
-                    <option value="" disabled>Seleccione una Cancha</option>
-                    <option
-                        v-for="p in canchas"
-                        :key="p.nombreCancha"
-                        :value="p.nombreCancha"
-                    >
-                        {{ p.nombreCancha }}
-                    </option>
-                </select>
-            </f7-list-item>
-
-            <f7-list-item
                 v-if="ingresoPorOrdenCompra && parametrosOcModificados"
                 class="li-alert no-padding"
             >
@@ -316,6 +298,7 @@
                 :key="form.destino?.destinoCliente"
                 title="Producto"
                 class="select-producto"
+                :class="{ 'select-disabled': productoBloqueadoPorOc }"
                 ref="producto"
                 smart-select
                 :smart-select-params="ssParams"
@@ -325,6 +308,7 @@
                         'sel-producto-' + (form.destino?.destinoCliente || '')
                     "
                     :value="form.producto?.codProducto || ''"
+                    :disabled="productoBloqueadoPorOc"
                     @change="handleProductoChange"
                 >
                     <option value="" disabled>Seleccione un Producto</option>
@@ -381,45 +365,20 @@
             <f7-list-item
                 v-if="form.largoProducto"
                 :key="`${form.producto?.codProducto}${form.largoProducto}`"
-                title="Transportista"
-                class="transportista"
-                ref="transportista"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-transportista-${form.producto?.codProducto}-${form.largoProducto}`"
-                    :value="form.transportista?.rutTransportista || ''"
-                    @change="handleTransportistaChange"
-                >
-                    <option value="" disabled>
-                        Seleccione un Transportista
-                    </option>
-                    <option
-                        v-for="p in transportistas"
-                        :key="p.rutTransportista"
-                        :value="p.rutTransportista"
-                    >
-                        {{ p.rutTransportista }} {{ p.nomTransportista }}
-                    </option>
-                </select>
-            </f7-list-item>
-
-            <f7-list-item
-                v-if="form.transportista"
-                :key="`pc-${form.transportista?.rutTransportista}`"
-                title="Patente Camión"
+                title="Patente Camion"
                 class="patente-camion"
                 ref="patenteCamion"
                 smart-select
                 :smart-select-params="ssParams"
             >
                 <select
-                    :key="`sel-pc-${form.transportista?.rutTransportista}`"
+                    :key="`sel-pc-${form.producto?.codProducto}-${form.largoProducto}`"
                     :value="form.patenteCamion?.patCamion || ''"
                     @change="handlePatenteCamionChange"
                 >
-                    <option value="" disabled>Seleccione Patente camión</option>
+                    <option value="" disabled>
+                        Seleccione Patente camion
+                    </option>
                     <option
                         v-for="p in patentes"
                         :key="p.patCamion"
@@ -430,6 +389,30 @@
                 </select>
             </f7-list-item>
 
+            <f7-list-item
+                v-if="form.patenteCamion && form.transportista"
+                :key="`transportista-${form.patenteCamion?.patCamion}`"
+                title="Transportista"
+                class="transportista select-disabled"
+                ref="transportista"
+                smart-select
+                :smart-select-params="ssParams"
+            >
+                <select
+                    :key="`sel-transportista-${form.patenteCamion?.patCamion}`"
+                    :value="form.transportista?.rutTransportista || ''"
+                    disabled
+                >
+                    <option value="" disabled>Transportista no encontrado</option>
+                    <option
+                        :key="form.transportista.rutTransportista"
+                        :value="form.transportista.rutTransportista"
+                    >
+                        {{ form.transportista.rutTransportista }}
+                        {{ form.transportista.nomTransportista }}
+                    </option>
+                </select>
+            </f7-list-item>
             <f7-block
                 strong
                 v-if="patenteCamionNoVigente"
@@ -459,7 +442,11 @@
             </f7-block>
 
             <f7-list-item
-                v-if="this.form.patenteCamion && !patenteCamionNoVigente"
+                v-if="
+                    this.form.patenteCamion &&
+                    this.form.transportista &&
+                    !patenteCamionNoVigente
+                "
                 :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`"
                 title="Patente Carro"
                 class="patente-carro"
@@ -759,12 +746,13 @@ import {
 } from "@/app/services/Parametros/CarguioService";
 import {
     listarTransportistas,
-    listarPatentesPorTransportista,
+    listarPatentesCamion,
+    obtenerTransportistaPorPatenteCamion,
     listarPatentesCarroPorTransportistaCamion,
     listarConductoresPorCamionYCarro,
 } from "@/app/services/Parametros/TransportistaService";
 import {
-    listarProductosPorClienteDestino,
+    listarProductos,
     listarLargosPorProducto,
     obtenerPrecioProducto,
 } from "@/app/services/Parametros/ProductoService";
@@ -787,7 +775,6 @@ import {
     listarDestinosPorCliente,
     listarParametrosCliente,
     listarParametrosDestinoPorCliente,
-    listarParametrosCanchaPorDestino,
     clienteEsEmisor,
 } from "@/app/services/Parametros/ClienteService";
 import { listarRodalesPorOrigen } from "@/app/services/Parametros/RodalService";
@@ -832,7 +819,6 @@ export default {
             predios: [],
             clientes: [],
             destinos: [],
-            canchas: [],
             productos: [],
             largosProducto: [],
             transportistas: [],
@@ -898,6 +884,16 @@ export default {
             if (nC === 0) return true;
             return nP === nC;
         },
+        productoBloqueadoPorOc() {
+            return (
+                this.ingresoPorOrdenCompra === true &&
+                this.form?.producto != null &&
+                this.form?.ordenCompraReferencia?.flagCambioGde !== true
+            );
+        },
+        parametrosBaseBloqueadosPorOc() {
+            return this.ingresoPorOrdenCompra === true;
+        },
         parametrosOcModificados() {
             if (!this.ingresoPorOrdenCompra) return false;
             const ref = this.form?.ordenCompraReferencia;
@@ -908,8 +904,10 @@ export default {
                     String(ref.rutCliente ?? "") ||
                 String(this.form?.destino?.destinoCliente ?? "") !==
                     String(ref.destinoCliente ?? "") ||
-                String(this.form?.cancha?.nombreCancha ?? "") !==
-                    String(ref.nombreCancha ?? "")
+                String(this.form?.producto?.codProducto ?? "") !==
+                    String(ref.codProducto ?? "") ||
+                String(this.form?.largoProducto ?? "") !==
+                    String(ref.largoTrozo ?? "")
             );
         },
         mensajeParametrosOcModificados() {
@@ -936,6 +934,7 @@ export default {
             await this.cargarOrdenesCompra();
             await this.cargarZonas();
             await this.cargarTransportistas();
+            await this.cargarPatentesCamion();
             await this.cargarCarguios();
         } catch (ex) {
             alert(ex.message || "Error desconocido");
@@ -1161,7 +1160,9 @@ export default {
                 numOc: oc?.numOc ?? null,
                 rutCliente: oc?.rutCliente ?? null,
                 destinoCliente: oc?.destinoCliente ?? null,
-                nombreCancha: null,
+                codProducto: oc?.codProducto ?? null,
+                largoTrozo: oc?.largoTrozo ?? null,
+                flagCambioGde: oc?.flagCambioGde === true,
             };
         },
 
@@ -1169,8 +1170,6 @@ export default {
             this.ingresoPorOrdenCompra = false;
             this.form.ingresoPorOrdenCompra = false;
             this.form.ordenCompraReferencia = null;
-            this.form.cancha = null;
-            this.canchas = [];
         },
 
         async asignarZonaDesdeOc(oc) {
@@ -1357,7 +1356,6 @@ export default {
 
             await this.$nextTick();
             this.cargarInformacionDestino();
-            await this.cargarCanchasDestino();
             await this.cargarProductos();
 
             try {
@@ -1471,6 +1469,11 @@ export default {
         },
 
         async handleZonaChange(e) {
+            if (this.parametrosBaseBloqueadosPorOc) {
+                e.target.value = this.form.zona?.codigo || "";
+                return;
+            }
+
             const nuevoCodigo = e.target.value;
             const nuevaZona =
                 this.zonas.find((z) => z.codigo === nuevoCodigo) || null;
@@ -1531,6 +1534,11 @@ export default {
         },
 
         async handleProveedorChange(e) {
+            if (this.parametrosBaseBloqueadosPorOc) {
+                e.target.value = this.form.proveedor?.rutProveedor || "";
+                return;
+            }
+
             if (!this.aplicandoOc) {
                 this.limpiarOrdenCompraSeleccionada();
             }
@@ -1547,6 +1555,11 @@ export default {
         },
 
         async handlePredioChange(e) {
+            if (this.parametrosBaseBloqueadosPorOc) {
+                e.target.value = this.form.predio?.rolPredio || "";
+                return;
+            }
+
             if (!this.aplicandoOc) {
                 this.limpiarOrdenCompraSeleccionada();
             }
@@ -1672,7 +1685,17 @@ export default {
                     this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
                     null;
 
-                this.resetDesde("cliente"); // limpia desde predio en adelante
+                if (this.ingresoPorOrdenCompra) {
+                    this.form.destino = null;
+                    this.destinos = [];
+                    this.clearSmartSelect(
+                        ".destino-cliente",
+                        "Seleccione un Destino"
+                    );
+                } else {
+                    this.resetDesde("cliente"); // limpia desde cliente en adelante
+                }
+
                 await this.$nextTick();
                 this.mostrarInformacionCliente();
                 await this.cargarDestinosCliente();
@@ -1682,8 +1705,6 @@ export default {
 
         async cargarDestinosCliente() {
             this.destinos = [];
-            this.canchas = [];
-            this.form.cancha = null;
 
             if (this.form.cliente) {
                 this.destinos = this.ingresoPorOrdenCompra
@@ -1705,8 +1726,9 @@ export default {
                     .get(".destino-cliente .smart-select")
                     .setValueText(this.form.destino.destinoCliente);
                 this.cargarInformacionDestino();
-                await this.cargarCanchasDestino();
-                this.cargarProductos();
+                if (!this.ingresoPorOrdenCompra) {
+                    this.cargarProductos();
+                }
             }
         },
 
@@ -1732,38 +1754,32 @@ export default {
                 null;
 
             await this.$nextTick();
-            this.resetDesde("destino"); // limpia desde destino en adelante
-            this.cargarInformacionDestino();
-            await this.cargarCanchasDestino();
-            this.cargarProductos();
-        },
-
-        async cargarCanchasDestino() {
-            this.canchas = [];
-            this.form.cancha = null;
-
-            if (
-                !this.ingresoPorOrdenCompra ||
-                !this.form.cliente ||
-                !this.form.destino
-            ) {
-                return;
+            if (this.ingresoPorOrdenCompra) {
+                this.form.producto = null;
+                this.productos = [];
+                this.form.largoProducto = null;
+                this.largosProducto = [];
+                this.clearSmartSelect(
+                    ".select-producto",
+                    "Seleccione un Producto"
+                );
+                this.clearSmartSelect(
+                    ".largo-producto",
+                    "Seleccione un Largo (Metros)"
+                );
+            } else {
+                this.resetDesde("destino"); // limpia desde destino en adelante
             }
-
-            this.canchas = await listarParametrosCanchaPorDestino(
-                this.form.cliente.rutCliente,
-                this.form.destino.destinoCliente
-            );
-        },
-
-        handleCanchaChange(e) {
-            const nombreCancha = e.target.value;
-            this.form.cancha =
-                this.canchas.find((p) => p.nombreCancha === nombreCancha) ||
-                null;
+            this.cargarInformacionDestino();
+            await this.cargarProductos();
         },
 
         async handleProductoChange(e) {
+            if (this.productoBloqueadoPorOc) {
+                e.target.value = this.form.producto?.codProducto || "";
+                return;
+            }
+
             if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
@@ -1827,14 +1843,14 @@ export default {
         },
 
         async cargarPatentesCamion() {
-            this.patentes = this.form.transportista
-                ? await listarPatentesPorTransportista(
-                      this.form.transportista.rutTransportista
-                  )
-                : [];
+            this.patentes = await listarPatentesCamion();
 
             if (this.patentes.length === 1) {
                 this.form.patenteCamion = this.patentes[0];
+                this.form.transportista =
+                    await obtenerTransportistaPorPatenteCamion(
+                        this.form.patenteCamion.patCamion
+                    );
 
                 await this.$nextTick();
                 if (!this.patenteCamionNoVigente) {
@@ -1847,7 +1863,8 @@ export default {
         },
 
         async cargarPatentesCarro() {
-            this.patentesCarro = this.form.patenteCamion
+            this.patentesCarro =
+                this.form.patenteCamion && this.form.transportista
                 ? await listarPatentesCarroPorTransportistaCamion(
                       this.form.transportista.rutTransportista,
                       this.form.patenteCamion.patCamion
@@ -1884,6 +1901,20 @@ export default {
 
             await this.$nextTick();
             this.resetDesde("patCamion"); // limpia desde patente camion en adelante
+            this.form.transportista = this.form.patenteCamion
+                ? await obtenerTransportistaPorPatenteCamion(
+                      this.form.patenteCamion.patCamion
+                  )
+                : null;
+
+            await this.$nextTick();
+            if (this.form.transportista) {
+                f7.smartSelect
+                    .get(".transportista .smart-select")
+                    ?.setValueText(
+                        `${this.form.transportista.rutTransportista} ${this.form.transportista.nomTransportista}`
+                    );
+            }
 
             if (!this.patenteCamionNoVigente) {
                 await this.cargarPatentesCarro();
@@ -1919,7 +1950,10 @@ export default {
         },
 
         async cargarConductores() {
-            this.conductores = this.form.patenteCarro
+            this.conductores =
+                this.form.patenteCarro &&
+                this.form.patenteCamion &&
+                this.form.transportista
                 ? await listarConductoresPorCamionYCarro(
                       this.form.transportista.rutTransportista,
                       this.form.patenteCamion.patCamion,
@@ -2088,15 +2122,7 @@ export default {
                 : [];
         },
         async cargarProductos() {
-            this.productos = this.form.destino
-                ? await listarProductosPorClienteDestino(
-                      this.form.zona.codigo,
-                      this.form.proveedor.rutProveedor,
-                      this.form.predio.rolPredio,
-                      this.form.cliente.rutCliente,
-                      this.form.destino.destinoCliente
-                  )
-                : [];
+            this.productos = this.form.destino ? await listarProductos() : [];
 
             if (this.productos.length === 1) {
                 this.form.producto = this.productos[0];
@@ -2195,27 +2221,21 @@ export default {
             }
             if (nivel === "cliente") {
                 this.form.destino = null;
-                this.form.cancha = null;
                 this.destinos = [];
-                this.canchas = [];
                 this.clearSmartSelect(
                     ".destino-cliente",
                     "Seleccione un Destino"
                 );
-                this.clearSmartSelect(".select-cancha", "Seleccione una Cancha");
 
                 // sigue
                 nivel = "destino";
             }
             if (nivel === "destino") {
-                this.form.cancha = null;
-                this.canchas = [];
                 this.form.producto = null;
                 this.productos = [];
                 this.form.largoProducto = null;
                 this.largosProducto = [];
 
-                this.clearSmartSelect(".select-cancha", "Seleccione una Cancha");
                 this.clearSmartSelect(
                     ".select-producto",
                     "Seleccione un Producto"
@@ -2238,19 +2258,22 @@ export default {
                 nivel = "largo";
             }
             if (nivel === "largo") {
-                this.form.transportista = null; // puedes mantener transportistas globales si quieres
-                this.patentes = [];
+                this.form.patenteCamion = null;
+                this.form.transportista = null;
+                this.clearSmartSelect(
+                    ".patente-camion",
+                    "Seleccione Patente camion"
+                );
                 this.clearSmartSelect(
                     ".transportista",
-                    "Seleccione un Transportista"
+                    "Transportista no encontrado"
                 );
 
                 // sigue
-                nivel = "transportista";
+                nivel = "patCamion";
             }
             if (nivel === "transportista") {
                 this.form.patenteCamion = null;
-                this.patentes = [];
                 this.clearSmartSelect(
                     ".patente-camion",
                     "Seleccione Patente camión"
@@ -2456,10 +2479,17 @@ export default {
             }
 
             if (
-                String(this.form?.cancha?.nombreCancha ?? "") !==
-                String(ref.nombreCancha ?? "")
+                String(this.form?.producto?.codProducto ?? "") !==
+                String(ref.codProducto ?? "")
             ) {
-                cambios.push("cancha");
+                cambios.push("producto");
+            }
+
+            if (
+                String(this.form?.largoProducto ?? "") !==
+                String(ref.largoTrozo ?? "")
+            ) {
+                cambios.push("largo");
             }
 
             return cambios;
@@ -2585,5 +2615,10 @@ export default {
     border: 1px solid #faebcc;
     background: #fcf8e3;
     color: #8a6d3b;
+}
+
+.select-disabled {
+    opacity: 0.65;
+    pointer-events: none;
 }
 </style>

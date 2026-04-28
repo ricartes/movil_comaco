@@ -5,7 +5,7 @@ import CargaParametrosWebServices from '@/app/webservices/CargaParametrosWebServ
 
 import {
     getOrdenCompraDao, getOrdenVentaDao, getTransportistaDao, getSocioDao,
-    getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
+    getProductoDao, getPrecioProductoDao, getEmpresaDao, getParametroGeneralDao, getCarguioDao, getEmpresaContratistaDao, getRodalDao,
     getZonaDao, getGeocercaDao, getLargoProductoDao, getMotivoAnulacionDao, getOrigenHomologacionDao, getOrigenConfiguracionDao,
     getClienteDao
 } from '@/app/services/initServices'
@@ -13,6 +13,7 @@ import { mapServerOrdenCompraToDoc } from '@/app/mappers/ordenCompraMapper'
 import { mapServerOvToDoc } from '@/app/mappers/ordenVentaMapper'
 import { mapServerTransportistaToDoc } from '@/app/mappers/transportistaMapper'
 import { mapServerSocioToDoc } from '@/app/mappers/SocioMapper'
+import { mapServerProductoToDoc } from '@/app/mappers/ProductoMapper'
 import { mapServerPrecioToDoc } from '@/app/mappers/PrecioProductoMapper'
 import { mapServerLargoProductoToDoc } from '@/app/mappers/LargoProductoMapper'
 import { mapServerEmpresaToDoc } from '@/app/mappers/empresaMapper'
@@ -142,6 +143,16 @@ const CargaParametrosService = {
             mapper: mapServerSocioToDoc,
             daoGetter: getSocioDao,
             nombre: 'socios',
+        })
+    },
+    cargarProductos(empId, rut) {
+        return loadAndReplace({
+            empId,
+            rut,
+            ruta: config.rutas.RescatarProductos,
+            mapper: mapServerProductoToDoc,
+            daoGetter: getProductoDao,
+            nombre: 'Producto',
         })
     },
     cargarPrecios(empId, rut) {

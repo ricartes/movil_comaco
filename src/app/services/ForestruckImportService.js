@@ -256,6 +256,7 @@ export function asignarProductoDesdeOc(oc = {}) {
         fsc: oc.fsc,
         categoria: oc.categoria,
         sag: oc.sag,
+        flagCambioGde: oc.flagCambioGde,
         tipoCertificacion: oc.tipoCertificacion,
         codigoCertificacion: oc.codigoCertificacion,
     })

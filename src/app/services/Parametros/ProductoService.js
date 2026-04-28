@@ -2,6 +2,11 @@ import { getProductoDao, getPrecioProductoDao, getParametroGeneralDao } from "@/
 import PrecioPorductoGdeDTO from "@/app/DTO/Parametros/PrecioPorductoGdeDTO";
 import config from "@/Common/json/config.json";
 
+export async function listarProductos() {
+
+    return await getProductoDao().listar();
+}
+
 
 /**
  * Lista productos asociados a un cliente destino

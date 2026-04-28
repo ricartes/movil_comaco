@@ -4,7 +4,7 @@ import { productoDocToDTO } from '@/app/mappers/ProductoMapper'
 
 let instance = null;
 
-export default class PredioDAO {
+export default class ProductoDAO {
     constructor(db) {
         if (!instance) {
             this.db = db;
@@ -15,8 +15,14 @@ export default class PredioDAO {
 
 
     async listar() {
-        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.ordenCompra)
-        return docs.map(predioDocToDTO)
+        const docs = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.producto)
+        return docs
+            .sort((a, b) => {
+                const nA = (a.nombreProducto || '').toLowerCase();
+                const nB = (b.nombreProducto || '').toLowerCase();
+                return nA.localeCompare(nB, 'es', { sensitivity: 'base' });
+            })
+            .map(productoDocToDTO)
     }
 
 
@@ -112,6 +118,27 @@ export default class PredioDAO {
         largos.sort((a, b) => (a == null) - (b == null) || (a - b));
 
         return largos;
+    }
+
+    async eliminarTodos() {
+        try {
+            const data = await getBaseDao().listarPorTipo(config.bd.tipoEntidad.producto);
+            for (const item of data) {
+                await getBaseDao().eliminar(item);
+            }
+        } catch (error) {
+            console.error("Error al eliminar todos los productos:", error);
+            throw error;
+        }
+    }
+
+    async insertar(producto) {
+        try {
+            return await getBaseDao().insertar(producto);
+        } catch (error) {
+            console.error("Error al insertar producto:", error);
+            throw error;
+        }
     }
 
 

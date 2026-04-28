@@ -16,7 +16,6 @@ export function createGdeDraftDefault() {
         configuracionOrigen: null,
         cliente: null,
         destino: null,
-        cancha: null,
         indicadorTraslado: config.parametros.indicadoresTraslado.VENTA,
         trasvasije: false,
         ventaPiso: false,
