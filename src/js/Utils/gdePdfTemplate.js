@@ -356,9 +356,9 @@ function buildBoxClienteFechas(doc) {
             kvLine("Nombre", doc?.cliente?.razonSocialCliente),
             kvLine("R.U.T", doc?.cliente?.rutCliente),
             kvLine("Giro", doc?.cliente?.giroCliente),
-            kvLine("Dirección", doc?.cliente?.direccionCliente),
+            kvLine("Dirección", doc?.destino?.direccionDestinoCliente),
             kvLine("Origen", `${U(doc?.predio?.predio)}${doc?.predio?.rolPredio ? `, ROL: ${U(doc.predio.rolPredio)}` : ""}${doc?.predio?.rolComuna ? `, COMUNA: ${U(doc.predio.rolComuna)}` : ""}`),
-            kvLine("Destino", `${U(doc?.destino?.direccionDestinoCliente)}`),
+            kvLine("Destino", `${U(doc?.destino?.destinoCliente)}`),
         ],
     };
     const right = {
@@ -366,8 +366,8 @@ function buildBoxClienteFechas(doc) {
         stack: [
             kvLine("Fecha Emisión", formatFechaCorta(doc?.fechaEmision) || "—"),
             kvLine("Ind. Traslado", doc?.indicadorTraslado?.texto),
-            kvLine("Comuna", doc?.cliente?.comunaCliente),
-            kvLine("Ciudad", doc?.cliente?.ciudadCliente),
+            kvLine("Comuna", doc?.destino?.comunaDestinoCliente),
+            kvLine("Ciudad", doc?.destino?.ciudadDestinoCliente),
         ],
     };
 

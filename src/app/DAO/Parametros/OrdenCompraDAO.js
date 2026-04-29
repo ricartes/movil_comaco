@@ -58,6 +58,57 @@ export default class OrdenCompraDAO {
         return ocDocToDTO(docs[0]); // Retorna el primer documento mapeado a DTO
     }
 
+    async obtenerPorRutCliente(rutCliente) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                rutCliente,
+            },
+            limit: 1
+        });
+
+        return docs.length ? ocDocToDTO(docs[0]) : null;
+    }
+
+    async obtenerPorDestinoCliente(destinoCliente) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                destinoCliente,
+            },
+            limit: 1
+        });
+
+        return docs.length ? ocDocToDTO(docs[0]) : null;
+    }
+
+    async obtenerPorCodProducto(codProducto) {
+        const { docs } = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                codProducto,
+            },
+            limit: 1
+        });
+
+        if (docs.length) return ocDocToDTO(docs[0]);
+
+        const altCodProducto =
+            typeof codProducto === 'number' ? String(codProducto) : Number(codProducto);
+
+        if (Number.isNaN(altCodProducto)) return null;
+
+        const alt = await this.db.find({
+            selector: {
+                type: config.bd.tipoEntidad.ordenCompra,
+                codProducto: altCodProducto,
+            },
+            limit: 1
+        });
+
+        return alt.docs.length ? ocDocToDTO(alt.docs[0]) : null;
+    }
+
 
     async obtenerPorRolPredio(rolPredio) {
 

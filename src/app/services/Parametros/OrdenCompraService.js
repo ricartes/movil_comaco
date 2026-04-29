@@ -14,3 +14,18 @@ export async function obtenerOrdenCompra(codEncargado, rutProveedor, rolPredio, 
     return await getOrdenCompraDao().obtenerPorDatos(codEncargado, rutProveedor, rolPredio, rutCliente, destinoCliente, codProducto);
 }
 
+export async function obtenerOrdenCompraPorCliente(rutCliente) {
+
+    return await getOrdenCompraDao().obtenerPorRutCliente(rutCliente);
+}
+
+export async function obtenerOrdenCompraPorDestino(destinoCliente) {
+
+    return await getOrdenCompraDao().obtenerPorDestinoCliente(destinoCliente);
+}
+
+export async function obtenerOrdenCompraPorProducto(codProducto) {
+
+    return await getOrdenCompraDao().obtenerPorCodProducto(codProducto);
+}
+

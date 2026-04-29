@@ -20,101 +20,50 @@
         <f7-list no-hairlines-md>
             <!-- OC -->
 
-            <f7-list-item
-                title="Número Orden"
-                class="select-orden-compra"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :value="ordenCompraSeleccionada?.numOc || ''"
-                    @change="handleOrdenCompraChange"
-                >
+            <f7-list-item title="Número Orden" class="select-orden-compra" smart-select :smart-select-params="ssParams">
+                <select :value="ordenCompraSeleccionada?.numOc || ''" @change="handleOrdenCompraChange">
                     <option value="" disabled>
                         Seleccione Número de Orden
                     </option>
-                    <option
-                        v-for="z in ordenesCompra"
-                        :key="z.numOc"
-                        :value="z.numOc"
-                    >
+                    <option v-for="z in ordenesCompra" :key="z.numOc" :value="z.numOc">
                         {{ z.numOc }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                title="Zona"
-                class="select-zona"
-                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :value="form.zona?.codigo || ''"
-                    :disabled="parametrosBaseBloqueadosPorOc"
-                    @change="handleZonaChange"
-                >
+            <f7-list-item title="Zona" class="select-zona" :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
+                smart-select :smart-select-params="ssParams">
+                <select :value="form.zona?.codigo || ''" :disabled="parametrosBaseBloqueadosPorOc"
+                    @change="handleZonaChange">
                     <option value="" disabled>Seleccione una zona…</option>
-                    <option
-                        v-for="z in zonas"
-                        :key="z.codigo"
-                        :value="z.codigo"
-                    >
+                    <option v-for="z in zonas" :key="z.codigo" :value="z.codigo">
                         {{ z.descripcion }}
                     </option>
                 </select>
             </f7-list-item>
 
             <!-- PROVEEDOR: depende de zona -->
-            <f7-list-item
-                v-if="form.zona"
-                :key="form.zona?.codigo"
-                title="Proveedor"
-                class="select-proveedor"
-                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-proveedor-' + (form.zona?.codigo || '')"
-                    :value="form.proveedor?.rutProveedor || ''"
-                    :disabled="parametrosBaseBloqueadosPorOc"
-                    @change="handleProveedorChange"
-                >
+            <f7-list-item v-if="form.zona" :key="form.zona?.codigo" title="Proveedor" class="select-proveedor"
+                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }" smart-select
+                :smart-select-params="ssParams">
+                <select :key="'sel-proveedor-' + (form.zona?.codigo || '')" :value="form.proveedor?.rutProveedor || ''"
+                    :disabled="parametrosBaseBloqueadosPorOc" @change="handleProveedorChange">
                     <option value="" disabled>Seleccione un Proveedor…</option>
-                    <option
-                        v-for="p in proveedores"
-                        :key="p.rutProveedor"
-                        :value="p.rutProveedor"
-                    >
+                    <option v-for="p in proveedores" :key="p.rutProveedor" :value="p.rutProveedor">
                         {{ p.rutProveedor }} {{ p.nomProveedor }}
                     </option>
                 </select>
             </f7-list-item>
 
             <!-- PREDIO: depende de proveedor -->
-            <f7-list-item
-                v-if="form.proveedor"
-                :key="form.proveedor?.rutProveedor"
-                title="Predio"
-                class="select-predio"
-                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-predio-' + (form.proveedor?.rutProveedor || '')"
-                    :value="form.predio?.rolPredio || ''"
-                    :disabled="parametrosBaseBloqueadosPorOc"
-                    @change="handlePredioChange"
-                >
+            <f7-list-item v-if="form.proveedor" :key="form.proveedor?.rutProveedor" title="Predio" class="select-predio"
+                :class="{ 'select-disabled': parametrosBaseBloqueadosPorOc }" smart-select
+                :smart-select-params="ssParams">
+                <select :key="'sel-predio-' + (form.proveedor?.rutProveedor || '')"
+                    :value="form.predio?.rolPredio || ''" :disabled="parametrosBaseBloqueadosPorOc"
+                    @change="handlePredioChange">
                     <option value="" disabled>Seleccione un Predio</option>
-                    <option
-                        v-for="p in predios"
-                        :key="p.rolPredio"
-                        :value="p.rolPredio"
-                    >
+                    <option v-for="p in predios" :key="p.rolPredio" :value="p.rolPredio">
                         {{ p.rolPredio }} {{ p.predio }}
                     </option>
                 </select>
@@ -127,168 +76,88 @@
                 </div>
             </f7-list-item>
 
-            <f7-block
-                strong
-                v-if="this.form.predio && form.datosGeocerca.validada === false"
-                class="alert-wrapper"
-            >
-                <div
-                    class="alert alert-danger"
-                    style="
+            <f7-block strong v-if="this.form.predio && form.datosGeocerca.validada === false" class="alert-wrapper">
+                <div class="alert alert-danger" style="
                         border: 1px solid #ebccd1;
                         background-color: #f2dede;
                         color: #a94442;
                         border-radius: 6px;
                         padding: 10px 15px;
                         font-size: 14px;
-                    "
-                >
-                    <i
-                        class="f7-icons"
-                        style="font-size: 16px; margin-right: 6px"
-                    >
+                    ">
+                    <i class="f7-icons" style="font-size: 16px; margin-right: 6px">
                         exclamationmark_circle
                     </i>
                     {{ form.datosGeocerca.mensajeValidacion }}
                 </div>
 
                 <div class="text-align-right" style="margin-top: 8px">
-                    <f7-button
-                        small
-                        outline
-                        color="red"
-                        :disabled="reintentandoGeocerca"
-                        @click="reintentarGeocerca"
-                    >
-                        <span v-if="!reintentandoGeocerca"
-                            >Reintentar validación de geocerca</span
-                        >
+                    <f7-button small outline color="red" :disabled="reintentandoGeocerca" @click="reintentarGeocerca">
+                        <span v-if="!reintentandoGeocerca">Reintentar validación de geocerca</span>
                         <span v-else>Reintentando…</span>
                     </f7-button>
                 </div>
             </f7-block>
 
             <!-- CLIENTE: depende de predio -->
-            <f7-list-item
-                v-if="
-                    this.form.predio &&
-                    this.form.datosGeocerca.validada === true
-                "
-                :key="form.predio?.rolPredio"
-                title="Cliente"
-                class="select-cliente"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-cliente-' + (form.predio?.rolPredio || '')"
-                    :value="form.cliente?.rutCliente || ''"
-                    @change="handleClienteChange"
-                >
+            <f7-list-item v-if="
+                this.form.predio &&
+                this.form.datosGeocerca.validada === true
+            " :key="form.predio?.rolPredio" title="Cliente" class="select-cliente" smart-select
+                :smart-select-params="ssParams">
+                <select :key="'sel-cliente-' + (form.predio?.rolPredio || '')" :value="form.cliente?.rutCliente || ''"
+                    @change="handleClienteChange">
                     <option value="" disabled>Seleccione un Cliente</option>
-                    <option
-                        v-for="p in clientes"
-                        :key="p.rutCliente"
-                        :value="p.rutCliente"
-                    >
+                    <option v-for="p in clientes" :key="p.rutCliente" :value="p.rutCliente">
                         {{ p.rutCliente }} {{ p.razonSocialCliente }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del cliente"
-                class="cliente-info"
-                ref="clienteAccordion"
-                v-if="form.cliente"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del cliente" class="cliente-info"
+                ref="clienteAccordion" v-if="form.cliente">
                 <f7-accordion-content>
-                    <informacion-cliente
-                        v-if="form.cliente"
-                        :cliente="form.cliente"
-                        :indicador-traslado="form.indicadorTraslado"
-                    >
+                    <informacion-cliente v-if="form.cliente" :cliente="form.cliente"
+                        :indicador-traslado="form.indicadorTraslado">
                     </informacion-cliente>
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.cliente"
-                :key="form.cliente?.rutCliente"
-                title="Destino"
-                class="destino-cliente"
-                ref="destinoCliente"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-destino-' + (form.cliente?.rutCliente || '')"
-                    :value="form.destino?.destinoCliente || ''"
-                    @change="handleDestinoChange"
-                >
+            <f7-list-item v-if="form.cliente" :key="form.cliente?.rutCliente" title="Destino" class="destino-cliente"
+                ref="destinoCliente" smart-select :smart-select-params="ssParams">
+                <select :key="'sel-destino-' + (form.cliente?.rutCliente || '')"
+                    :value="form.destino?.destinoCliente || ''" @change="handleDestinoChange">
                     <option value="" disabled>Seleccione un Destino</option>
-                    <option
-                        v-for="p in destinos"
-                        :key="p.destinoCliente"
-                        :value="p.destinoCliente"
-                    >
+                    <option v-for="p in destinos" :key="p.destinoCliente" :value="p.destinoCliente">
                         {{ p.destinoCliente }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del destino"
-                class="destino-info"
-                ref="destinoAccordion"
-                v-if="form.destino"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del destino" class="destino-info"
+                ref="destinoAccordion" v-if="form.destino">
                 <f7-accordion-content>
-                    <InformacionDestino
-                        v-if="form.destino"
-                        :destino="form.destino"
-                    />
+                    <InformacionDestino v-if="form.destino" :destino="form.destino" />
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="
-                    ingresoPorOrdenCompra &&
-                    !aplicandoOc &&
-                    parametrosOcModificados &&
-                    mensajeParametrosOcModificados
-                "
-                class="li-alert no-padding"
-            >
+            <f7-list-item v-if="
+                ingresoPorOrdenCompra &&
+                !aplicandoOc &&
+                parametrosOcModificados &&
+                mensajeParametrosOcModificados
+            " class="li-alert no-padding">
                 <div class="alert alert-warning">
                     <i class="f7-icons">exclamationmark_triangle</i>
                     {{ mensajeParametrosOcModificados }}
                 </div>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.destino"
-                checkbox
-                checkbox-icon="end"
-                title="Trasvasije"
-                v-model:checked="form.trasvasije"
-                :disabled="form.ventaPiso"
-                @change="handleTrasvasijeChange"
-            />
+            <f7-list-item v-if="form.destino" checkbox checkbox-icon="end" title="Trasvasije"
+                v-model:checked="form.trasvasije" :disabled="form.ventaPiso" @change="handleTrasvasijeChange" />
 
-            <f7-list-item
-                v-if="form.destino"
-                checkbox
-                checkbox-icon="end"
-                title="Venta en piso"
-                v-model:checked="form.ventaPiso"
-                :disabled="form.trasvasije"
-                @change="handleVentaPisoChange"
-            />
+            <f7-list-item v-if="form.destino" checkbox checkbox-icon="end" title="Venta en piso"
+                v-model:checked="form.ventaPiso" :disabled="form.trasvasije" @change="handleVentaPisoChange" />
 
             <f7-list-item v-if="form.destino" class="li-alert no-padding">
                 <div class="alert alert-info">
@@ -298,68 +167,32 @@
                 </div>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.destino"
-                :key="form.destino?.destinoCliente"
-                title="Producto"
-                class="select-producto"
-                :class="{ 'select-disabled': productoBloqueadoPorOc }"
-                ref="producto"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="
-                        'sel-producto-' + (form.destino?.destinoCliente || '')
-                    "
-                    :value="form.producto?.codProducto || ''"
-                    :disabled="productoBloqueadoPorOc"
-                    @change="handleProductoChange"
-                >
+            <f7-list-item v-if="form.destino" :key="form.destino?.destinoCliente" title="Producto"
+                class="select-producto" :class="{ 'select-disabled': productoBloqueadoPorOc }" ref="producto"
+                smart-select :smart-select-params="ssParams">
+                <select :key="'sel-producto-' + (form.destino?.destinoCliente || '')
+                    " :value="form.producto?.codProducto || ''" :disabled="productoBloqueadoPorOc"
+                    @change="handleProductoChange">
                     <option value="" disabled>Seleccione un Producto</option>
-                    <option
-                        v-for="p in productos"
-                        :key="p.codProducto"
-                        :value="p.codProducto"
-                    >
+                    <option v-for="p in productos" :key="p.codProducto" :value="p.codProducto">
                         {{ p.nombreProducto }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del producto"
-                class="producto-info"
-                ref="productoAccordion"
-                v-if="form.producto && form.precioProducto"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del producto" class="producto-info"
+                ref="productoAccordion" v-if="form.producto && form.precioProducto">
                 <f7-accordion-content>
-                    <InformacionProducto
-                        v-if="form.producto && form.precioProducto"
-                        :producto="form.producto"
-                        :precioProducto="form.precioProducto"
-                    />
+                    <InformacionProducto v-if="form.producto && form.precioProducto" :producto="form.producto"
+                        :precioProducto="form.precioProducto" />
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.producto"
-                :key="form.producto?.codProducto"
-                title="Largo (Metros)"
-                class="largo-producto"
-                :class="{ 'select-disabled': largoBloqueadoPorOc }"
-                ref="largoProducto"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="'sel-largo-' + (form.producto?.codProducto || '')"
-                    :value="form.largoProducto || ''"
-                    :disabled="largoBloqueadoPorOc"
-                    v-model.number="form.largoProducto"
-                >
+            <f7-list-item v-if="form.producto" :key="form.producto?.codProducto" title="Largo (Metros)"
+                class="largo-producto" :class="{ 'select-disabled': largoBloqueadoPorOc }" ref="largoProducto"
+                smart-select :smart-select-params="ssParams">
+                <select :key="'sel-largo-' + (form.producto?.codProducto || '')" :value="form.largoProducto || ''"
+                    :disabled="largoBloqueadoPorOc" v-model.number="form.largoProducto">
                     <option value="" disabled>
                         Seleccione un Largo (Metros)
                     </option>
@@ -369,77 +202,42 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.largoProducto"
-                :key="`${form.producto?.codProducto}${form.largoProducto}`"
-                title="Patente Camion"
-                class="patente-camion"
-                ref="patenteCamion"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-pc-${form.producto?.codProducto}-${form.largoProducto}`"
-                    :value="form.patenteCamion?.patCamion || ''"
-                    @change="handlePatenteCamionChange"
-                >
+            <f7-list-item v-if="form.largoProducto" :key="`${form.producto?.codProducto}${form.largoProducto}`"
+                title="Patente Camion" class="patente-camion" ref="patenteCamion" smart-select
+                :smart-select-params="ssParams">
+                <select :key="`sel-pc-${form.producto?.codProducto}-${form.largoProducto}`"
+                    :value="form.patenteCamion?.patCamion || ''" @change="handlePatenteCamionChange">
                     <option value="" disabled>
                         Seleccione Patente camion
                     </option>
-                    <option
-                        v-for="p in patentes"
-                        :key="p.patCamion"
-                        :value="p.patCamion"
-                    >
+                    <option v-for="p in patentes" :key="p.patCamion" :value="p.patCamion">
                         {{ p.patCamion }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.patenteCamion && form.transportista"
-                :key="`transportista-${form.patenteCamion?.patCamion}`"
-                title="Transportista"
-                class="transportista select-disabled"
-                ref="transportista"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-transportista-${form.patenteCamion?.patCamion}`"
-                    :value="form.transportista?.rutTransportista || ''"
-                    disabled
-                >
+            <f7-list-item v-if="form.patenteCamion && form.transportista"
+                :key="`transportista-${form.patenteCamion?.patCamion}`" title="Transportista"
+                class="transportista select-disabled" ref="transportista" smart-select :smart-select-params="ssParams">
+                <select :key="`sel-transportista-${form.patenteCamion?.patCamion}`"
+                    :value="form.transportista?.rutTransportista || ''" disabled>
                     <option value="" disabled>Transportista no encontrado</option>
-                    <option
-                        :key="form.transportista.rutTransportista"
-                        :value="form.transportista.rutTransportista"
-                    >
+                    <option :key="form.transportista.rutTransportista" :value="form.transportista.rutTransportista">
                         {{ form.transportista.rutTransportista }}
                         {{ form.transportista.nomTransportista }}
                     </option>
                 </select>
             </f7-list-item>
-            <f7-block
-                strong
-                v-if="patenteCamionNoVigente"
-                class="alert-wrapper"
-            >
-                <div
-                    class="alert alert-danger"
-                    style="
+            <f7-block strong v-if="patenteCamionNoVigente" class="alert-wrapper">
+                <div class="alert alert-danger" style="
                         border: 1px solid #ebccd1;
                         background-color: #f2dede;
                         color: #a94442;
                         border-radius: 6px;
                         padding: 10px 15px;
                         font-size: 14px;
-                    "
-                >
-                    <i
-                        class="f7-icons"
-                        style="font-size: 16px; margin-right: 6px"
-                    >
+                    ">
+                    <i class="f7-icons" style="font-size: 16px; margin-right: 6px">
                         exclamationmark_circle
                     </i>
                     La <strong>patente del camión</strong> no se encuentra
@@ -448,165 +246,85 @@
                 </div>
             </f7-block>
 
-            <f7-list-item
-                v-if="
-                    this.form.patenteCamion &&
-                    this.form.transportista &&
-                    !patenteCamionNoVigente
-                "
-                :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`"
-                title="Patente Carro"
-                class="patente-carro"
-                ref="patenteCarro"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-pcarro-${form.transportista?.rutTransportista}-${form.patenteCamion?.patCamion}`"
-                    :value="form.patenteCarro?.patCarro || ''"
-                    @change="handlePatenteCarroChange"
-                >
+            <f7-list-item v-if="
+                this.form.patenteCamion &&
+                this.form.transportista &&
+                !patenteCamionNoVigente
+            " :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`"
+                title="Patente Carro" class="patente-carro" ref="patenteCarro" smart-select
+                :smart-select-params="ssParams">
+                <select :key="`sel-pcarro-${form.transportista?.rutTransportista}-${form.patenteCamion?.patCamion}`"
+                    :value="form.patenteCarro?.patCarro || ''" @change="handlePatenteCarroChange">
                     <option value="" disabled>Seleccione Patente carro</option>
-                    <option
-                        v-for="p in patentesCarro"
-                        :key="p.patCarro"
-                        :value="p.patCarro"
-                    >
+                    <option v-for="p in patentesCarro" :key="p.patCarro" :value="p.patCarro">
                         {{ p.patCarro }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del Camión/Carro"
-                class="camion-info"
-                ref="camionAccordion"
-                v-if="form.patenteCarro"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del Camión/Carro" class="camion-info"
+                ref="camionAccordion" v-if="form.patenteCarro">
                 <f7-accordion-content>
-                    <InformacionCamion
-                        v-if="form.patenteCarro"
-                        :camion="form.patenteCamion"
-                        :carro="form.patenteCarro"
-                    />
+                    <InformacionCamion v-if="form.patenteCarro" :camion="form.patenteCamion"
+                        :carro="form.patenteCarro" />
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="this.form.patenteCarro"
-                :key="`${form.patenteCarro}`"
-                title="Conductor"
-                class="conductor-select"
-                ref="conductor"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-conductor-${form.patenteCarro || ''}`"
-                    :value="form.conductor?.rutChofer || ''"
-                    @change="handleConductorChange"
-                >
+            <f7-list-item v-if="this.form.patenteCarro" :key="`${form.patenteCarro}`" title="Conductor"
+                class="conductor-select" ref="conductor" smart-select :smart-select-params="ssParams">
+                <select :key="`sel-conductor-${form.patenteCarro || ''}`" :value="form.conductor?.rutChofer || ''"
+                    @change="handleConductorChange">
                     <option value="" disabled>Seleccione Conductor</option>
-                    <option
-                        v-for="p in conductores"
-                        :key="p.rutChofer"
-                        :value="p.rutChofer"
-                    >
+                    <option v-for="p in conductores" :key="p.rutChofer" :value="p.rutChofer">
                         {{ p.nomChofer }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del Conductor"
-                class="conductor-info"
-                ref="conductorAccordion"
-                v-if="form.conductor"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del Conductor" class="conductor-info"
+                ref="conductorAccordion" v-if="form.conductor">
                 <f7-accordion-content>
-                    <InformacionConductor
-                        v-if="form.conductor"
-                        :conductor="form.conductor"
-                        @validez="onValidezConductor"
-                        @update:conductor="onUpdateConductor"
-                    />
+                    <InformacionConductor v-if="form.conductor" :conductor="form.conductor"
+                        @validez="onValidezConductor" @update:conductor="onUpdateConductor" />
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="this.form.conductor && this.conductorValido"
-                :key="`${form.conductor.rutChofer}`"
-                :title="textoCarguio"
-                class="carguio-select"
-                ref="carguio"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-carguio-${form.conductor?.rutChofer || ''}`"
-                    name="carguios"
-                    multiple
-                    :maxlength="maximoCarguios"
-                    @change="handleCarguioChange"
-                >
-                    <option
-                        v-for="p in carguios"
-                        :key="p.rutCarguio"
-                        :value="p.rutCarguio"
-                    >
+            <f7-list-item v-if="this.form.conductor && this.conductorValido" :key="`${form.conductor.rutChofer}`"
+                :title="textoCarguio" class="carguio-select" ref="carguio" smart-select :smart-select-params="ssParams">
+                <select :key="`sel-carguio-${form.conductor?.rutChofer || ''}`" name="carguios" multiple
+                    :maxlength="maximoCarguios" @change="handleCarguioChange">
+                    <option v-for="p in carguios" :key="p.rutCarguio" :value="p.rutCarguio">
                         {{ p.nombreCarguio }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="form.conductor && conductorValido && carguioEsObligatorio"
-                class="li-alert no-padding"
-            >
+            <f7-list-item v-if="form.conductor && conductorValido && carguioEsObligatorio" class="li-alert no-padding">
                 <div class="alert alert-info">
                     <i class="f7-icons">info_circle</i>
                     Este campo es obligatorio. Debes seleccionar 1 carguío.
                 </div>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="this.form.carguios.length > 0"
-                :key="`pcarg-${(form.carguios || [])
+            <f7-list-item v-if="this.form.carguios.length > 0" :key="`pcarg-${(form.carguios || [])
+                .map((c) => c.rutCarguio)
+                .join(',')}`" :title="`Patentes carguios (Ingrese ${maximoCarguios})`"
+                class="patente-carguio-select" ref="patenteCarguio" smart-select :smart-select-params="ssParams">
+                <select :key="`sel-pcarg-${(form.carguios || [])
                     .map((c) => c.rutCarguio)
-                    .join(',')}`"
-                :title="`Patentes carguios (Ingrese ${maximoCarguios})`"
-                class="patente-carguio-select"
-                ref="patenteCarguio"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-pcarg-${(form.carguios || [])
-                        .map((c) => c.rutCarguio)
-                        .join(',')}`"
-                    name="patentes-carguios"
-                    multiple
-                    :maxlength="maximoCarguios"
-                    @change="handlePatentesCarguioChange"
-                >
+                    .join(',')}`" name="patentes-carguios" multiple :maxlength="maximoCarguios"
+                    @change="handlePatentesCarguioChange">
                     <option v-for="p in patentesCarguio" :key="p" :value="p">
                         {{ p }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="
-                    (form.carguios?.length || 0) > 0 &&
-                    (form.patentesCarguio?.length || 0) !==
-                        (form.carguios?.length || 0)
-                "
-                class="li-alert no-padding"
-            >
+            <f7-list-item v-if="
+                (form.carguios?.length || 0) > 0 &&
+                (form.patentesCarguio?.length || 0) !==
+                (form.carguios?.length || 0)
+            " class="li-alert no-padding">
                 <div class="alert alert-danger">
                     <i class="f7-icons">exclamationmark_circle</i>
                     Debes seleccionar {{ form.carguios.length }} patente(s) de
@@ -614,112 +332,60 @@
                 </div>
             </f7-list-item>
 
-            <f7-list-item
-                v-if="
-                    this.form.predio &&
-                    this.form.conductor &&
-                    this.conductorValido &&
-                    this.puedeContinuarDespuesDeCarguio
-                "
-                :key="`rodal-${form.predio?.rolPredio || ''}-${(
+            <f7-list-item v-if="
+                this.form.predio &&
+                this.form.conductor &&
+                this.conductorValido &&
+                this.puedeContinuarDespuesDeCarguio
+            " :key="`rodal-${form.predio?.rolPredio || ''}-${(
                     form.patentesCarguio || []
-                ).join(',')}`"
-                :title="`Rodal`"
-                class="rodal-select"
-                ref="rodal"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-rodal-${form.predio?.rolPredio || ''}-${(
-                        form.patentesCarguio || []
-                    ).join(',')}`"
-                    :value="form.rodal?.codrodal || ''"
-                    @change="handleRodalChange"
-                >
+                ).join(',')}`" :title="`Rodal`" class="rodal-select" ref="rodal" smart-select
+                :smart-select-params="ssParams">
+                <select :key="`sel-rodal-${form.predio?.rolPredio || ''}-${(
+                    form.patentesCarguio || []
+                ).join(',')}`" :value="form.rodal?.codrodal || ''" @change="handleRodalChange">
                     <option value="" disabled>Seleccione Rodal</option>
-                    <option
-                        v-for="p in rodales"
-                        :key="p.codrodal"
-                        :value="p.codrodal"
-                    >
+                    <option v-for="p in rodales" :key="p.codrodal" :value="p.codrodal">
                         {{ p.nomrodal }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                accordion-item
-                accordion-opened
-                title="Información del rodal"
-                class="rodal-info"
-                ref="rodalAccordion"
-                v-if="form.rodal"
-            >
+            <f7-list-item accordion-item accordion-opened title="Información del rodal" class="rodal-info"
+                ref="rodalAccordion" v-if="form.rodal">
                 <f7-accordion-content>
                     <InformacionRodal v-if="form.rodal" :rodal="form.rodal" />
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item
-                :key="`empcont-${form.rodal?.codrodal || ''}`"
-                v-if="this.form.rodal"
-                :title="`Empresa contratista`"
-                class="empresa-contratista-select"
-                ref="empresaContratista"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-empcont-${form.rodal?.codrodal || ''}`"
-                    :value="form.empresaContratista?.rutContratista || ''"
-                    @change="handleEmpresacontratistaChange"
-                >
+            <f7-list-item :key="`empcont-${form.rodal?.codrodal || ''}`" v-if="this.form.rodal"
+                :title="`Empresa contratista`" class="empresa-contratista-select" ref="empresaContratista" smart-select
+                :smart-select-params="ssParams">
+                <select :key="`sel-empcont-${form.rodal?.codrodal || ''}`"
+                    :value="form.empresaContratista?.rutContratista || ''" @change="handleEmpresacontratistaChange">
                     <option value="" disabled>
                         Seleccione Empresa contratista
                     </option>
-                    <option
-                        v-for="p in empresasContratista"
-                        :key="p.rutContratista"
-                        :value="p.rutContratista"
-                    >
+                    <option v-for="p in empresasContratista" :key="p.rutContratista" :value="p.rutContratista">
                         {{ p.nombreContratista }}
                     </option>
                 </select>
             </f7-list-item>
 
-            <f7-list-item
-                :key="`linea-${form.empresaContratista?.rutContratista || ''}`"
-                v-if="this.form.empresaContratista"
-                :title="`Línea`"
-                class="linea-contratista-select"
-                ref="lineaContratista"
-                smart-select
-                :smart-select-params="ssParams"
-            >
-                <select
-                    :key="`sel-linea-${
-                        form.empresaContratista?.rutContratista || ''
-                    }`"
-                    :value="form.linea?.codLinea || ''"
-                    @change="handleLineacontratistaChange"
-                >
+            <f7-list-item :key="`linea-${form.empresaContratista?.rutContratista || ''}`"
+                v-if="this.form.empresaContratista" :title="`Línea`" class="linea-contratista-select"
+                ref="lineaContratista" smart-select :smart-select-params="ssParams">
+                <select :key="`sel-linea-${form.empresaContratista?.rutContratista || ''
+                    }`" :value="form.linea?.codLinea || ''" @change="handleLineacontratistaChange">
                     <option value="" disabled>Seleccione Línea</option>
-                    <option
-                        v-for="p in lineasContratista"
-                        :key="p.codLinea"
-                        :value="p.codLinea"
-                    >
+                    <option v-for="p in lineasContratista" :key="p.codLinea" :value="p.codLinea">
                         {{ p.nombreLinea }}
                     </option>
                 </select>
             </f7-list-item>
         </f7-list>
 
-        <f7-block
-            v-if="form.linea && form.datosGeocerca.validada === true"
-            class="text-align-center"
-        >
+        <f7-block v-if="form.linea && form.datosGeocerca.validada === true" class="text-align-center">
             <f7-button fill large color="blue" @click="ingresar">
                 Ingresar
             </f7-button>
@@ -769,6 +435,9 @@ import { obtenerConfiguracionOrigenPorCodigo } from "@/app/services/Parametros/O
 import {
     listarOrdenesCaompra,
     obtenerOrdenCompra,
+    obtenerOrdenCompraPorCliente,
+    obtenerOrdenCompraPorDestino,
+    obtenerOrdenCompraPorProducto,
 } from "@/app/services/Parametros/OrdenCompraService";
 
 import InformacionCliente from "@/pages/GDE/Ingreso/InformacionCliente.vue";
@@ -915,13 +584,13 @@ export default {
 
             return (
                 String(this.form?.cliente?.rutCliente ?? "") !==
-                    String(ref.rutCliente ?? "") ||
+                String(ref.rutCliente ?? "") ||
                 String(this.form?.destino?.destinoCliente ?? "") !==
-                    String(ref.destinoCliente ?? "") ||
+                String(ref.destinoCliente ?? "") ||
                 String(this.form?.producto?.codProducto ?? "") !==
-                    String(ref.codProducto ?? "") ||
+                String(ref.codProducto ?? "") ||
                 String(this.form?.largoProducto ?? "") !==
-                    String(ref.largoTrozo ?? "")
+                String(ref.largoTrozo ?? "")
             );
         },
         mensajeParametrosOcModificados() {
@@ -1176,6 +845,11 @@ export default {
                 destinoCliente: oc?.destinoCliente ?? null,
                 codProducto: oc?.codProducto ?? null,
                 largoTrozo: oc?.largoTrozo ?? null,
+                categoria: oc?.categoria ?? null,
+                fsc: oc?.fsc ?? null,
+                sag: oc?.sag ?? null,
+                tipoCertificacion: oc?.tipoCertificacion ?? null,
+                codigoCertificacion: oc?.codigoCertificacion ?? null,
                 flagCambioGde: oc?.flagCambioGde === true,
             };
         },
@@ -1184,6 +858,103 @@ export default {
             this.ingresoPorOrdenCompra = false;
             this.form.ingresoPorOrdenCompra = false;
             this.form.ordenCompraReferencia = null;
+        },
+
+        estaVacio(valor) {
+            return valor == null || String(valor).trim() === "";
+        },
+
+        completarSiFalta(obj, campo, valor) {
+            if (!obj || this.estaVacio(valor) || !this.estaVacio(obj[campo])) {
+                return;
+            }
+            obj[campo] = valor;
+        },
+
+        hidratarClienteDesdeOc(oc) {
+            if (!this.form.cliente || !oc) return;
+            this.completarSiFalta(
+                this.form.cliente,
+                "direccionCliente",
+                oc.direccionCliente
+            );
+            this.completarSiFalta(
+                this.form.cliente,
+                "comunaCliente",
+                oc.comunaCliente
+            );
+            this.completarSiFalta(
+                this.form.cliente,
+                "ciudadCliente",
+                oc.ciudadCliente
+            );
+        },
+
+        hidratarDestinoDesdeOc(oc) {
+            if (!this.form.destino || !oc) return;
+            if (!this.estaVacio(oc.direccionCliente)) {
+                this.form.destino.direccionDestinoCliente =
+                    oc.direccionCliente;
+            }
+        },
+
+        hidratarProductoDesdeOc(oc) {
+            if (!this.form.producto || !oc) return;
+            if (this.ingresoPorOrdenCompra && this.form?.ordenCompraReferencia) {
+                const ref = this.form.ordenCompraReferencia;
+                this.form.producto.categoria = ref.categoria ?? null;
+                this.form.producto.fsc = ref.fsc ?? null;
+                this.form.producto.sag = ref.sag ?? null;
+                this.form.producto.tipoCertificacion =
+                    ref.tipoCertificacion ?? null;
+                this.form.producto.codigoCertificacion =
+                    ref.codigoCertificacion ?? null;
+                return;
+            }
+
+            this.completarSiFalta(this.form.producto, "categoria", oc.categoria);
+            this.completarSiFalta(this.form.producto, "fsc", oc.fsc);
+            this.completarSiFalta(this.form.producto, "sag", oc.sag);
+            this.completarSiFalta(
+                this.form.producto,
+                "tipoCertificacion",
+                oc.tipoCertificacion
+            );
+            this.completarSiFalta(
+                this.form.producto,
+                "codigoCertificacion",
+                oc.codigoCertificacion
+            );
+        },
+
+        async hidratarClienteDesdeOrdenesCompra() {
+            if (!this.form.cliente?.rutCliente) return;
+            const oc = await obtenerOrdenCompraPorCliente(
+                this.form.cliente.rutCliente
+            );
+            this.hidratarClienteDesdeOc(oc);
+        },
+
+        async hidratarDestinoDesdeOrdenesCompra() {
+            if (!this.form.destino?.destinoCliente) return;
+            const oc = await obtenerOrdenCompraPorDestino(
+                this.form.destino.destinoCliente
+            );
+            this.hidratarDestinoDesdeOc(oc);
+        },
+
+        async hidratarProductoDesdeOrdenesCompra() {
+            if (!this.form.producto?.codProducto) return;
+
+            if (this.ingresoPorOrdenCompra && this.form?.ordenCompraReferencia) {
+                this.hidratarProductoDesdeOc(this.form.ordenCompraReferencia);
+                return;
+            }
+
+            const oc = await obtenerOrdenCompraPorProducto(
+                this.form.producto.codProducto
+            );
+            this.hidratarProductoDesdeOc(oc);
         },
 
         async asignarZonaDesdeOc(oc) {
@@ -1328,6 +1099,7 @@ export default {
 
             this.resetDesde("cliente");
             this.form.cliente = nuevoCliente;
+            this.hidratarClienteDesdeOc(oc);
 
             await this.$nextTick();
             this.mostrarInformacionCliente();
@@ -1367,6 +1139,7 @@ export default {
 
             this.resetDesde("destino");
             this.form.destino = nuevoDestino;
+            this.hidratarDestinoDesdeOc(oc);
 
             await this.$nextTick();
             this.cargarInformacionDestino();
@@ -1404,6 +1177,7 @@ export default {
 
             this.resetDesde("producto");
             this.form.producto = nuevoProd;
+            this.hidratarProductoDesdeOc(oc);
 
             await this.$nextTick();
 
@@ -1519,9 +1293,9 @@ export default {
             try {
                 this.predios = this.form.proveedor
                     ? await listarPrediosPorProveedor(
-                          this.form.zona.codigo,
-                          this.form.proveedor.rutProveedor
-                      )
+                        this.form.zona.codigo,
+                        this.form.proveedor.rutProveedor
+                    )
                     : [];
 
                 if (this.predios.length === 1) {
@@ -1649,15 +1423,18 @@ export default {
                 } else {
                     this.clientes = this.form.predio
                         ? await listarClientesPorPredio(
-                              this.form.zona.codigo,
-                              this.form.proveedor.rutProveedor,
-                              this.form.predio.rolPredio
-                          )
+                            this.form.zona.codigo,
+                            this.form.proveedor.rutProveedor,
+                            this.form.predio.rolPredio
+                        )
                         : [];
                 }
 
                 if (this.clientes.length === 1) {
                     this.form.cliente = this.clientes[0];
+                    if (!this.aplicandoOc) {
+                        await this.hidratarClienteDesdeOrdenesCompra();
+                    }
                     await this.$nextTick();
                     this.mostrarInformacionCliente();
                     this.obtenerIndicadorTraslado();
@@ -1710,6 +1487,7 @@ export default {
                     this.resetDesde("cliente"); // limpia desde cliente en adelante
                 }
 
+                await this.hidratarClienteDesdeOrdenesCompra();
                 await this.$nextTick();
                 this.mostrarInformacionCliente();
                 await this.cargarDestinosCliente();
@@ -1723,18 +1501,21 @@ export default {
             if (this.form.cliente) {
                 this.destinos = this.ingresoPorOrdenCompra
                     ? await listarParametrosDestinoPorCliente(
-                          this.form.cliente.rutCliente
-                      )
+                        this.form.cliente.rutCliente
+                    )
                     : await listarDestinosPorCliente(
-                          this.form.zona.codigo,
-                          this.form.proveedor.rutProveedor,
-                          this.form.predio.rolPredio,
-                          this.form.cliente.rutCliente
-                      );
+                        this.form.zona.codigo,
+                        this.form.proveedor.rutProveedor,
+                        this.form.predio.rolPredio,
+                        this.form.cliente.rutCliente
+                    );
             }
 
             if (this.destinos.length === 1) {
                 this.form.destino = this.destinos[0];
+                if (!this.aplicandoOc) {
+                    await this.hidratarDestinoDesdeOrdenesCompra();
+                }
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".destino-cliente .smart-select")
@@ -1769,11 +1550,13 @@ export default {
 
             await this.$nextTick();
             if (this.ingresoPorOrdenCompra) {
+                await this.hidratarDestinoDesdeOrdenesCompra();
                 this.cargarInformacionDestino();
                 return;
             } else {
                 this.resetDesde("destino"); // limpia desde destino en adelante
             }
+            await this.hidratarDestinoDesdeOrdenesCompra();
             this.cargarInformacionDestino();
             await this.cargarProductos();
         },
@@ -1799,6 +1582,7 @@ export default {
             this.resetDesde("producto"); // limpia desde producto en adelante
             if (!this.form.producto) return;
 
+            await this.hidratarProductoDesdeOrdenesCompra();
             await this.cargarPrecioProducto();
             await this.cargarLargosProducto();
             await this.obtenerOrdenCompra();
@@ -1832,13 +1616,13 @@ export default {
         async cargarLargosProducto() {
             this.largosProducto = this.form.producto
                 ? await listarLargosPorProducto(
-                      this.form.zona.codigo,
-                      this.form.proveedor.rutProveedor,
-                      this.form.predio.rolPredio,
-                      this.form.cliente.rutCliente,
-                      this.form.destino.destinoCliente,
-                      this.form.producto.codProducto
-                  )
+                    this.form.zona.codigo,
+                    this.form.proveedor.rutProveedor,
+                    this.form.predio.rolPredio,
+                    this.form.cliente.rutCliente,
+                    this.form.destino.destinoCliente,
+                    this.form.producto.codProducto
+                )
                 : [];
 
             if (this.largosProducto.length === 1) {
@@ -1874,11 +1658,11 @@ export default {
         async cargarPatentesCarro() {
             this.patentesCarro =
                 this.form.patenteCamion && this.form.transportista
-                ? await listarPatentesCarroPorTransportistaCamion(
-                      this.form.transportista.rutTransportista,
-                      this.form.patenteCamion.patCamion
-                  )
-                : [];
+                    ? await listarPatentesCarroPorTransportistaCamion(
+                        this.form.transportista.rutTransportista,
+                        this.form.patenteCamion.patCamion
+                    )
+                    : [];
 
             if (this.patentesCarro.length === 1) {
                 this.form.patenteCarro = this.patentesCarro[0];
@@ -1912,8 +1696,8 @@ export default {
             this.resetDesde("patCamion"); // limpia desde patente camion en adelante
             this.form.transportista = this.form.patenteCamion
                 ? await obtenerTransportistaPorPatenteCamion(
-                      this.form.patenteCamion.patCamion
-                  )
+                    this.form.patenteCamion.patCamion
+                )
                 : null;
 
             await this.$nextTick();
@@ -1961,14 +1745,14 @@ export default {
         async cargarConductores() {
             this.conductores =
                 this.form.patenteCarro &&
-                this.form.patenteCamion &&
-                this.form.transportista
-                ? await listarConductoresPorCamionYCarro(
-                      this.form.transportista.rutTransportista,
-                      this.form.patenteCamion.patCamion,
-                      this.form.patenteCarro.patCarro
-                  )
-                : [];
+                    this.form.patenteCamion &&
+                    this.form.transportista
+                    ? await listarConductoresPorCamionYCarro(
+                        this.form.transportista.rutTransportista,
+                        this.form.patenteCamion.patCamion,
+                        this.form.patenteCarro.patCarro
+                    )
+                    : [];
 
             if (this.conductores.length === 1) {
                 this.form.conductor = this.conductores[0];
@@ -2117,17 +1901,17 @@ export default {
         async cargarEmpresasContratistas() {
             this.empresasContratista = this.form.predio
                 ? await listarEmpresasContratistasPorOrigen(
-                      this.form.predio.rolPredio
-                  )
+                    this.form.predio.rolPredio
+                )
                 : [];
         },
 
         async cargarLineasContratistas() {
             this.lineasContratista = this.form.empresaContratista
                 ? await listarLineasPorOrigenYEmpresaContratista(
-                      this.form.predio.rolPredio,
-                      this.form.empresaContratista.rutContratista
-                  )
+                    this.form.predio.rolPredio,
+                    this.form.empresaContratista.rutContratista
+                )
                 : [];
         },
         async cargarProductos() {
@@ -2135,6 +1919,9 @@ export default {
 
             if (this.productos.length === 1) {
                 this.form.producto = this.productos[0];
+                if (!this.aplicandoOc) {
+                    await this.hidratarProductoDesdeOrdenesCompra();
+                }
                 await this.$nextTick();
                 f7.smartSelect
                     .get(".select-producto .smart-select")
@@ -2397,7 +2184,7 @@ export default {
                     // Mensaje específico por ubicación
                     f7.dialog.alert(
                         "No se pudo obtener la ubicación del dispositivo. " +
-                            "Verifica que el GPS esté encendido y que la app tenga permisos de ubicación.",
+                        "Verifica que el GPS esté encendido y que la app tenga permisos de ubicación.",
                         "No se puede ingresar la GDE"
                     );
 
@@ -2428,7 +2215,7 @@ export default {
                 // Se ejecuta SIEMPRE, incluso si hubo `return` arriba
                 try {
                     f7.dialog.close();
-                } catch {}
+                } catch { }
             }
         },
 
@@ -2531,12 +2318,12 @@ export default {
             const openList = Array.isArray(openAccordions)
                 ? openAccordions
                 : openAccordions
-                ? [openAccordions]
-                : [];
+                    ? [openAccordions]
+                    : [];
             for (const sel of openList) {
                 try {
                     f7.accordion.open(sel);
-                } catch (_) {}
+                } catch (_) { }
             }
 
             await this.$nextTick();
@@ -2604,6 +2391,7 @@ export default {
     display: flex;
     align-items: center;
 }
+
 .alert i {
     font-size: 16px;
     margin-right: 6px;
@@ -2615,11 +2403,13 @@ export default {
     background: #d9edf7;
     color: #31708f;
 }
+
 .alert-danger {
     border: 1px solid #ebccd1;
     background: #f2dede;
     color: #a94442;
 }
+
 .alert-warning {
     border: 1px solid #faebcc;
     background: #fcf8e3;
