@@ -6,7 +6,7 @@
                     <tr>
                         <td class="label-cell">Dirección</td>
                         <td class="label-cell">
-                            {{ destino.direccionDestinoCliente }}
+                            {{ destino.direccionCliente }}
                         </td>
                     </tr>
 

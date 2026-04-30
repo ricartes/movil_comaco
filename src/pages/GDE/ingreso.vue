@@ -839,6 +839,7 @@ export default {
         marcarIngresoPorOrdenCompra(oc) {
             this.ingresoPorOrdenCompra = true;
             this.form.ingresoPorOrdenCompra = true;
+            this.form.ordenCompra = oc || null;
             this.form.ordenCompraReferencia = {
                 numOc: oc?.numOc ?? null,
                 rutCliente: oc?.rutCliente ?? null,
@@ -858,6 +859,7 @@ export default {
             this.ingresoPorOrdenCompra = false;
             this.form.ingresoPorOrdenCompra = false;
             this.form.ordenCompraReferencia = null;
+            this.form.ordenCompra = null;
         },
 
         estaVacio(valor) {
@@ -1098,7 +1100,7 @@ export default {
             }
 
             this.resetDesde("cliente");
-            this.form.cliente = nuevoCliente;
+            this.form.cliente = { ...nuevoCliente };
             this.hidratarClienteDesdeOc(oc);
 
             await this.$nextTick();
@@ -1138,7 +1140,7 @@ export default {
             }
 
             this.resetDesde("destino");
-            this.form.destino = nuevoDestino;
+            this.form.destino = { ...nuevoDestino };
             this.hidratarDestinoDesdeOc(oc);
 
             await this.$nextTick();
@@ -1472,9 +1474,12 @@ export default {
             }
             const nuevoCliente = e.target.value;
             if (nuevoCliente) {
-                this.form.cliente =
+                const clienteSeleccionado =
                     this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
                     null;
+                this.form.cliente = clienteSeleccionado
+                    ? { ...clienteSeleccionado }
+                    : null;
 
                 if (this.ingresoPorOrdenCompra) {
                     this.form.destino = null;
@@ -1487,7 +1492,9 @@ export default {
                     this.resetDesde("cliente"); // limpia desde cliente en adelante
                 }
 
-                await this.hidratarClienteDesdeOrdenesCompra();
+                if (!this.ingresoPorOrdenCompra) {
+                    await this.hidratarClienteDesdeOrdenesCompra();
+                }
                 await this.$nextTick();
                 this.mostrarInformacionCliente();
                 await this.cargarDestinosCliente();
@@ -1512,8 +1519,8 @@ export default {
             }
 
             if (this.destinos.length === 1) {
-                this.form.destino = this.destinos[0];
-                if (!this.aplicandoOc) {
+                this.form.destino = { ...this.destinos[0] };
+                if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                     await this.hidratarDestinoDesdeOrdenesCompra();
                 }
                 await this.$nextTick();
@@ -1544,13 +1551,15 @@ export default {
                 this.limpiarOrdenCompraSeleccionada();
             }
             const nuevoDestino = e.target.value;
-            this.form.destino =
+            const destinoSeleccionado =
                 this.destinos.find((p) => p.destinoCliente === nuevoDestino) ||
                 null;
+            this.form.destino = destinoSeleccionado
+                ? { ...destinoSeleccionado }
+                : null;
 
             await this.$nextTick();
             if (this.ingresoPorOrdenCompra) {
-                await this.hidratarDestinoDesdeOrdenesCompra();
                 this.cargarInformacionDestino();
                 return;
             } else {
@@ -1591,6 +1600,13 @@ export default {
         },
 
         async obtenerOrdenCompra() {
+            if (this.ingresoPorOrdenCompra) {
+                if (!this.form.ordenCompra && this.ordenCompraSeleccionada) {
+                    this.form.ordenCompra = this.ordenCompraSeleccionada;
+                }
+                return;
+            }
+
             this.form.ordenCompra = await obtenerOrdenCompra(
                 this.form.zona.codigo,
                 this.form.proveedor.rutProveedor,
@@ -1979,7 +1995,10 @@ export default {
                 "destino",
                 "producto",
             ];
-            if (nivelesQueRompenOc.includes(nivel)) {
+            if (
+                nivelesQueRompenOc.includes(nivel) &&
+                !this.ingresoPorOrdenCompra
+            ) {
                 this.form.ordenCompra = null;
             }
 
@@ -2195,7 +2214,8 @@ export default {
                 this.form.gdeOrigen = origenLocal;
                 this.form.ubicacion = ubicacion;
 
-                const gdeInsertada = await ingresarGde(this.form);
+                const { ordenCompraReferencia, ...gdeParaGuardar } = this.form;
+                const gdeInsertada = await ingresarGde(gdeParaGuardar);
 
                 f7.dialog.alert("GDE ingresada correctamente.", "Éxito", () => {
                     f7.views.main?.router?.navigate(
