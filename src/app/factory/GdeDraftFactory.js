@@ -33,6 +33,7 @@ export function createGdeDraftDefault() {
         linea: null,
         ordenCompra: null,
         ingresoPorOrdenCompra: false,
+        parametrosOcModificados: false,
         ordenCompraReferencia: null,
         ubicacion: null,
         datosGeocerca: {

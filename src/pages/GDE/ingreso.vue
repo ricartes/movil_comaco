@@ -601,6 +601,11 @@ export default {
             )}. Revise antes de ingresar.`;
         },
     },
+    watch: {
+        parametrosOcModificados(nuevoValor) {
+            this.form.parametrosOcModificados = nuevoValor;
+        },
+    },
     async created() {
         f7.dialog.preloader("Cargando...");
         try {
@@ -858,6 +863,7 @@ export default {
         limpiarIngresoPorOrdenCompra() {
             this.ingresoPorOrdenCompra = false;
             this.form.ingresoPorOrdenCompra = false;
+            this.form.parametrosOcModificados = false;
             this.form.ordenCompraReferencia = null;
             this.form.ordenCompra = null;
         },
@@ -2179,6 +2185,7 @@ export default {
                 const continuar = await this.confirmarParametrosOcModificados();
                 if (!continuar) return false;
             }
+            this.form.parametrosOcModificados = this.parametrosOcModificados;
 
             const origenLocal = config?.parametros?.origenGde?.local ?? 1;
             f7.dialog.preloader("Guardando GDE…");

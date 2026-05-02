@@ -86,9 +86,9 @@ function mapDoc(doc) {
         rut: doc?.cliente?.rutCliente || '',
         rs: doc?.cliente?.razonSocialCliente || '',
         giro: doc?.cliente?.giroCliente || '',
-        dir: doc?.cliente?.direccionCliente || '',
-        comuna: doc?.cliente?.comunaCliente || '',
-        ciudad: doc?.cliente?.ciudadCliente || '',
+        dir: doc?.destino?.direccionDestinoCliente || '',
+        comuna: doc?.destino?.comunaDestinoCliente || '',
+        ciudad: doc?.destino?.ciudadDestinoCliente || '',
     };
 
     const traslado = {
@@ -96,7 +96,7 @@ function mapDoc(doc) {
         origen: doc?.predio?.predio || '',
         rol: doc?.predio?.rolPredio || '',
         comunaOrigen: doc?.predio?.rolComuna || '',
-        direccionDestinoCliente: doc?.destino?.direccionDestinoCliente || '',
+        direccionDestinoCliente: doc?.destino?.destinoCliente || '',
     };
 
     const comentarios = {
