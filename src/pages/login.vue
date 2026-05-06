@@ -184,6 +184,11 @@
                     </div>
                 </f7-card-content>
             </f7-card>
+            <f7-card v-if="deviceUuid" class="uuid-card">
+                <f7-card-content class="device-uuid">
+                    UUID: {{ deviceUuid }}
+                </f7-card-content>
+            </f7-card>
         </div>
     </f7-page>
 </template>
@@ -195,6 +200,7 @@ import logoSrc from "@/assets/img/logo-fds-transparente.png";
 import UsuarioService from "@/app/services/UsuarioService";
 import { getLocationOnce } from "@/app/helpers/GeolocationHelpers";
 import { validarSesionDispositivo } from "@/js/Utils/Seguridad";
+import Utilidades from "@/app/Utilidades";
 export default {
     name: "LoginPage",
     props: { f7router: Object },
@@ -216,6 +222,7 @@ export default {
             pin2: "",
             pinError: "",
             pendingLogin: null, // { user, session } luego del login web OK
+            deviceUuid: "",
         };
     },
     created() {},
@@ -238,7 +245,8 @@ export default {
         },
     },
     methods: {
-        onPageInit() {
+        async onPageInit() {
+            await this.cargarDeviceUuid();
             this.resetLoginStateAfterPinRemoval();
             const autenticado = !!localStorage.getItem("auth_token");
             if (autenticado) {
@@ -250,6 +258,14 @@ export default {
                     // replaceState: true,        // (opcional) alternativa a reloadAll
                     // animate: false,            // (opcional) sin animación
                 });
+            }
+        },
+        async cargarDeviceUuid() {
+            try {
+                this.deviceUuid = await Utilidades.getUIDevice();
+            } catch (e) {
+                this.deviceUuid = "";
+                console.warn("No se pudo obtener el UUID del dispositivo", e);
             }
         },
         onPinInput(e) {
@@ -513,6 +529,18 @@ export default {
     background: #f5f7fb;
     display: grid;
     place-items: center;
+}
+
+.uuid-card {
+    margin: 8px 16px 12px;
+}
+
+.device-uuid {
+    color: #6b7280;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
 /* Marca */
