@@ -268,6 +268,11 @@ export function asignarClienteDestinoDesdeOc(oc = {}) {
         direccionDestinoCliente: oc.direccionDestinoCliente,
         comunaDestinoCliente: oc.comunaDestinoCliente,
         ciudadDestinoCliente: oc.ciudadDestinoCliente,
+        nombreDestino: oc.nombreDestino,
+        rolDestino: oc.rolDestino,
+        coordenadasDestino: oc.coordenadasDestino,
+        latitudDestino: oc.latitudDestino,
+        longitudDestino: oc.longitudDestino,
     })
 }
 

@@ -9,10 +9,7 @@
                     <div class="sub">RUT: {{ user?.rut ?? "-" }}</div>
                     <div class="sub ellipsis">{{ user?.email || "" }}</div>
                     <div class="status">
-                        <span
-                            class="dot"
-                            :class="offline ? 'bg-orange' : 'bg-green'"
-                        ></span>
+                        <span class="dot" :class="offline ? 'bg-orange' : 'bg-green'"></span>
                         {{ offline ? "Offline" : "Online" }}
                     </div>
                 </div>
@@ -32,8 +29,7 @@
 
         <f7-list-item title="Listado Folios" @click="onListadoFolios">
             <template #media>
-                <f7-icon ios="f7:doc_on_doc" md="material:confirmation_number"
-            /></template>
+                <f7-icon ios="f7:doc_on_doc" md="material:confirmation_number" /></template>
         </f7-list-item>
 
         <f7-list-item title="Configuración general" @click="onConfig">
@@ -45,10 +41,7 @@
         <f7-button fill color="red" @click="logout">Cerrar sesión</f7-button>
     </f7-block>
 
-    <f7-block
-        strong
-        class="text-align-center text-color-gray padding-vertical app-version-block"
-    >
+    <f7-block strong class="text-align-center text-color-gray padding-vertical app-version-block">
         <div class="text-small">
             {{ info.nombreApp }} v{{ info.versionApp }}
             <span v-if="info.build"> ({{ info.build }})</span> —
@@ -171,14 +164,6 @@ export default {
                     key: "Clientes",
                     run: () =>
                         CargaParametrosService.cargarClienteParametros(
-                            this.user.empresa,
-                            this.user.rut
-                        ),
-                },
-                {
-                    key: "Socios",
-                    run: () =>
-                        CargaParametrosService.cargarSocios(
                             this.user.empresa,
                             this.user.rut
                         ),
@@ -330,8 +315,7 @@ export default {
                     )
                     .join("<br>");
                 f7.dialog.alert(
-                    `<div style="text-align:left">${
-                        html || "Sin resultados"
+                    `<div style="text-align:left">${html || "Sin resultados"
                     }</div>`,
                     "Resultado de carga"
                 );
@@ -382,12 +366,11 @@ export default {
                     `• Folios: ${resumen.carga.ok ? "OK" : "<b>ERROR</b>"}`
                 );
                 lines.push(
-                    `• Liberaciones: ${
-                        resumen.liberado.ok ? "OK" : "<b>ERROR</b>"
+                    `• Liberaciones: ${resumen.liberado.ok ? "OK" : "<b>ERROR</b>"
                     }` +
-                        (resumen.liberado.ok
-                            ? ` (actualizados: ${resumen.liberado.updated}, confirmados: ${resumen.liberado.confirmed.length})`
-                            : "")
+                    (resumen.liberado.ok
+                        ? ` (actualizados: ${resumen.liberado.updated}, confirmados: ${resumen.liberado.confirmed.length})`
+                        : "")
                 );
 
                 f7.dialog.alert(
@@ -396,8 +379,7 @@ export default {
                 );
             } catch (ex) {
                 f7.dialog.alert(
-                    `Ha ocurrido un error:<br><small>${
-                        ex?.message || ex
+                    `Ha ocurrido un error:<br><small>${ex?.message || ex
                     }</small>`,
                     "Error"
                 );
@@ -472,11 +454,13 @@ export default {
     margin-top: 12px;
     border-radius: 14px;
 }
+
 .user-row {
     display: flex;
     align-items: center;
     gap: 14px;
 }
+
 .avatar {
     width: 56px;
     height: 56px;
@@ -489,20 +473,24 @@ export default {
     font-size: 18px;
     flex: 0 0 auto;
 }
+
 .meta .name {
     font-weight: 600;
     font-size: 16px;
 }
+
 .meta .sub {
     font-size: 13px;
     color: #6b7280;
     line-height: 1.2;
 }
+
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .status {
     margin-top: 6px;
     font-size: 12px;
@@ -511,15 +499,18 @@ export default {
     align-items: center;
     gap: 6px;
 }
+
 .dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     display: inline-block;
 }
+
 .bg-green {
     background: #10b981;
 }
+
 .bg-orange {
     background: #f59e0b;
 }
@@ -527,10 +518,12 @@ export default {
 .menu-list :deep(.item-media) {
     align-self: center;
 }
+
 .app-version-block {
     text-align: center;
     font-size: 12px;
-    color: #9ca3af; /* gris suave */
+    color: #9ca3af;
+    /* gris suave */
     margin-top: 8px;
     margin-bottom: 0;
     padding-top: 0;
