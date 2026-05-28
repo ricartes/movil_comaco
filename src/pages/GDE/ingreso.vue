@@ -188,7 +188,7 @@
                 </f7-accordion-content>
             </f7-list-item>
 
-            <f7-list-item v-if="form.producto" :key="form.producto?.codProducto" title="Largo (Metros)"
+            <f7-list-item v-if="mostrarInputLargo" :key="form.producto?.codProducto" title="Largo (Metros)"
                 class="largo-producto" :class="{ 'select-disabled': largoBloqueadoPorOc }" ref="largoProducto"
                 smart-select :smart-select-params="ssParams">
                 <select :key="'sel-largo-' + (form.producto?.codProducto || '')" :value="form.largoProducto || ''"
@@ -202,7 +202,7 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item v-if="form.largoProducto" :key="`${form.producto?.codProducto}${form.largoProducto}`"
+            <f7-list-item v-if="puedeSeleccionarPatenteCamion" :key="`${form.producto?.codProducto}${form.largoProducto ?? 'sin-largo'}`"
                 title="Patente Camion" class="patente-camion" ref="patenteCamion" smart-select
                 :smart-select-params="ssParams">
                 <select :key="`sel-pc-${form.producto?.codProducto}-${form.largoProducto}`"
@@ -542,6 +542,27 @@ export default {
         parametrosGenerales() {
             return config.parametros.parametrosGenerales;
         },
+        unidadesMedida() {
+            return config.parametros.unidadesMedida;
+        },
+        unidadesSinInputLargo() {
+            const { TON, BDMT, M3ST } = this.unidadesMedida;
+            return [TON, BDMT, M3ST].map((u) => String(u).toUpperCase());
+        },
+        productoSinInputLargo() {
+            const unidad = String(
+                this.form?.producto?.unidadMedida ?? ""
+            ).toUpperCase();
+            return this.unidadesSinInputLargo.includes(unidad);
+        },
+        mostrarInputLargo() {
+            return !!this.form?.producto && !this.productoSinInputLargo;
+        },
+        puedeSeleccionarPatenteCamion() {
+            return this.productoSinInputLargo
+                ? !!this.form?.producto
+                : !!this.form?.largoProducto;
+        },
         carguioEsObligatorio() {
             return this.form?.configuracionOrigen?.carguioObligatorio === true;
         },
@@ -589,8 +610,9 @@ export default {
                 String(ref.destinoCliente ?? "") ||
                 String(this.form?.producto?.codProducto ?? "") !==
                 String(ref.codProducto ?? "") ||
-                String(this.form?.largoProducto ?? "") !==
-                String(ref.largoTrozo ?? "")
+                (!this.productoSinInputLargo &&
+                    String(this.form?.largoProducto ?? "") !==
+                    String(ref.largoTrozo ?? ""))
             );
         },
         mensajeParametrosOcModificados() {
@@ -1636,6 +1658,12 @@ export default {
         },
 
         async cargarLargosProducto() {
+            if (this.productoSinInputLargo) {
+                this.form.largoProducto = 0;
+                this.largosProducto = [];
+                return;
+            }
+
             this.largosProducto = this.form.producto
                 ? await listarLargosPorProducto(
                     this.form.zona.codigo,
@@ -2309,6 +2337,7 @@ export default {
             }
 
             if (
+                !this.productoSinInputLargo &&
                 String(this.form?.largoProducto ?? "") !==
                 String(ref.largoTrozo ?? "")
             ) {

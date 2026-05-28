@@ -77,6 +77,17 @@ function fCLP(n) {
 const U = (s) => (s == null ? "—" : String(s).toUpperCase());
 
 // línea clave/valor en una sola línea
+function unidadSinLargo(doc) {
+    const unidades = config.parametros.unidadesMedida;
+    return [unidades.TON, unidades.BDMT, unidades.M3ST].includes(getUM(doc));
+}
+
+function getLargoTexto(doc) {
+    if (unidadSinLargo(doc)) return "";
+    const largo = doc?.largoProducto ?? doc?.ordenCompra?.largoTrozo ?? "";
+    return largo !== "" && largo != null ? `Largo: ${largo} m.` : "";
+}
+
 function kvLine(label, value) {
     return { text: [{ text: `${U(label)}: `, bold: true }, { text: U(value) }], margin: [0, 0, 0, 2] };
 }
@@ -469,7 +480,7 @@ function buildDetalleM3(doc) {
     const producto = doc?.producto ?? {};
     const categoria = producto.categoria ? `(${producto.categoria})` : "";
     const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
-    const largo = doc?.largoProducto ? `Largo: ${doc.largoProducto} m.` : ""; ''
+    const largo = getLargoTexto(doc);
     // Solo filas con trozos > 0
     const filas = (doc?.detalleM3 ?? []).filter(f => Number(f.trozos) > 0);
     const bullets = filas.map(f => `• ${f.diametro}: ${f.trozos}`);
@@ -578,7 +589,7 @@ function buildDetalleMR(doc) {
     const producto = doc?.producto ?? {};
     const categoria = producto.categoria ? `(${producto.categoria})` : "";
     const sagInfo = producto.sag ? `SAG: ${producto.sag}` : "";
-    const largo = doc?.largoProducto ? `Largo: ${doc.largoProducto} m.` : ""; ''
+    const largo = getLargoTexto(doc);
 
     const um = getUM(doc);
     const descCell = {

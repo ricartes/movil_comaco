@@ -7,6 +7,7 @@ import { refreshPrinterLayout } from '@/js/Utils/PapelSize';
 import { formatearRut } from '@/js/Utils/rut';
 import { getUM, getVolumenByUM } from '@/js/Utils/volumen';
 import { formatFechaCorta, formatMMYYYY } from '@/js/Utils/formatters';
+import config from '@/Common/json/config.json';
 
 
 // ===== Ajustes de ticket =====
@@ -36,6 +37,11 @@ const DECIMALS_BY_UM = {
     BDMT: 3,
     M3ST: 3,
     M3: 3, // fallback para m³ “normal”
+};
+
+const unidadesSinLargoEnTitulo = () => {
+    const { TON, BDMT, M3ST } = config.parametros.unidadesMedida;
+    return [TON, BDMT, M3ST].map((u) => String(u).toUpperCase());
 };
 
 // arriba, junto a helpers:
@@ -144,7 +150,7 @@ function mapDoc(doc) {
     const prod = {
         nombre: doc?.producto?.nombreProducto || '',
         unidad: getUM(doc),
-        largo: doc?.largoProducto || doc?.ordenCompra?.largoTrozo || '',
+        largo: doc?.largoProducto ?? doc?.ordenCompra?.largoTrozo ?? '',
 
         fsc: doc?.producto?.fsc ? doc?.producto?.categoria || 'CON CERTIFICACIÓN' : 'SIN CERTIFICACIÓN',
         sag: doc?.producto?.sag || '',
@@ -326,7 +332,11 @@ export async function printGuiaFromDoc(doc, opts = {}) {
 
     await printRawText(div());
     // Producto / Detalle
-    const tituloProd = M.prod.largo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
+    const mostrarLargoEnTitulo =
+        !unidadesSinLargoEnTitulo().includes(String(M.prod.unidad).toUpperCase()) &&
+        M.prod.largo !== '' &&
+        M.prod.largo != null;
+    const tituloProd = mostrarLargoEnTitulo ? `${M.prod.nombre.toUpperCase()} (${M.prod.largo} MTS)` : M.prod.nombre.toUpperCase();
     await printRawText(wrap(`DESC: ${tituloProd}`));
     await printRawText(wrap(`PRECIO UNITARIO: $${fmt(M.prod.precioUnit)}`));
     await printRawText(div());

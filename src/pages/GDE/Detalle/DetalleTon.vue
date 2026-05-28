@@ -9,10 +9,6 @@
                             <td>{{ doc.producto.nombreProducto ?? "—" }}</td>
                         </tr>
                         <tr>
-                            <td class="label-cell"><b>Largo:</b></td>
-                            <td>{{ doc.largoProducto ?? "—" }} Metro(s)</td>
-                        </tr>
-                        <tr>
                             <td class="label-cell"><b>Precio unitario:</b></td>
                             <td class="value-cell">
                                 <div class="price-with-badge">
@@ -21,14 +17,10 @@
                                             doc.precioProducto?.precio ?? 0
                                         )
                                     }}
-                                    <f7-badge
-                                        v-if="
-                                            doc.precioProducto
-                                                ?.indicadorPrecioPorDefecto
-                                        "
-                                        color="orange"
-                                        class="badge-default"
-                                    >
+                                    <f7-badge v-if="
+                                        doc.precioProducto
+                                            ?.indicadorPrecioPorDefecto
+                                    " color="orange" class="badge-default">
                                         por defecto
                                     </f7-badge>
                                 </div>
@@ -36,12 +28,10 @@
                         </tr>
                         <tr>
                             <td class="label-cell">
-                                <b
-                                    >Ingreso
+                                <b>Ingreso
                                     {{
                                         doc.producto?.unidadMedida ?? "TON"
-                                    }}:</b
-                                >
+                                    }}:</b>
                             </td>
                             <td></td>
                         </tr>
@@ -50,30 +40,17 @@
 
                 <f7-block strong inset class="margin-top">
                     <f7-list no-hairlines-md>
-                        <f7-list-input
-                            label="Volumen"
-                            type="number"
-                            placeholder="Ingrese volumen"
-                            clear-button
-                            :value="volumen"
-                            :disabled="soloLectura"
-                            @input="onInputVolumen"
-                        />
+                        <f7-list-input label="Volumen" type="number" placeholder="Ingrese volumen" clear-button
+                            :value="volumen" :disabled="soloLectura" @input="onInputVolumen" />
                     </f7-list>
 
                     <div class="stack-line totals">
-                        <span
-                            ><b
-                                >Total Volumen
-                                {{ doc.producto?.unidadMedida ?? "TON" }}:</b
-                            >
-                            {{ volumen }}</span
-                        >
+                        <span><b>Total Volumen
+                                {{ doc.producto?.unidadMedida ?? "TON" }}:</b>
+                            {{ volumen }}</span>
                         <span class="sep">•</span>
-                        <span
-                            ><b>Total Guía:</b>
-                            {{ formatMoneyCLP(valor) }}</span
-                        >
+                        <span><b>Total Guía:</b>
+                            {{ formatMoneyCLP(valor) }}</span>
                     </div>
                 </f7-block>
             </f7-card-content>
@@ -149,9 +126,11 @@ export default {
     font-size: 14px;
     margin-bottom: 8px;
 }
+
 .totales {
     font-size: 14px;
 }
+
 .mt-2 {
     margin-top: 8px;
 }
@@ -164,6 +143,7 @@ export default {
     font-size: 14px;
     padding: 4px 0;
 }
+
 .sep {
     opacity: 0.6;
 }
@@ -172,13 +152,16 @@ export default {
 .price-with-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px; /* igual que tu margin-left */
-    flex-wrap: wrap; /* permite bajar el badge a la línea siguiente si no cabe */
+    gap: 8px;
+    /* igual que tu margin-left */
+    flex-wrap: wrap;
+    /* permite bajar el badge a la línea siguiente si no cabe */
 }
 
 /* Ajustes del badge para móviles */
 .badge-default {
-    white-space: nowrap; /* no se parte dentro del badge */
+    white-space: nowrap;
+    /* no se parte dentro del badge */
     line-height: 18px;
     padding: 2px 8px;
     font-size: 12px;
