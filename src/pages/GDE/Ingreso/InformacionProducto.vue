@@ -13,11 +13,8 @@
                         <td class="label-cell">Precio</td>
                         <td class="label-cell">
                             ${{ precioProducto.precio }}
-                            <f7-badge
-                                v-if="precioProducto.indicadorPrecioPorDefecto"
-                                color="orange"
-                                style="margin-left: 8px"
-                            >
+                            <f7-badge v-if="precioProducto.indicadorPrecioPorDefecto" color="orange"
+                                style="margin-left: 8px">
                                 por defecto
                             </f7-badge>
                         </td>
@@ -32,7 +29,7 @@
                     <tr>
                         <td class="label-cell">Resolución SAG</td>
                         <td class="label-cell">
-                            {{ producto.sag }}
+                            {{ producto.sag ?? "" }}
                         </td>
                     </tr>
                     <tr>

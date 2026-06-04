@@ -180,7 +180,8 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item accordion-item accordion-opened title="Información del producto" class="producto-info"
+            <f7-list-item :key="`producto-info-${form.producto?.codProducto || 'sin-producto'}-${form.precioProducto?.precio ?? 'sin-precio'}`"
+                accordion-item accordion-opened title="Información del producto" class="producto-info"
                 ref="productoAccordion" v-if="form.producto && form.precioProducto">
                 <f7-accordion-content>
                     <InformacionProducto v-if="form.producto && form.precioProducto" :producto="form.producto"
@@ -1608,15 +1609,16 @@ export default {
                 this.limpiarOrdenCompraSeleccionada();
             }
             const nuevoProducto = String(e.target.value ?? "").trim();
-            this.form.producto =
+            const productoSeleccionado =
                 this.productos.find(
                     (p) =>
                         String(p.codProducto ?? "").trim() === nuevoProducto
                 ) ||
                 null;
 
-            await this.$nextTick();
             this.resetDesde("producto"); // limpia desde producto en adelante
+            this.form.producto = productoSeleccionado;
+
             if (!this.form.producto) return;
 
             await this.hidratarProductoDesdeOrdenesCompra();
@@ -2081,6 +2083,7 @@ export default {
             }
             if (nivel === "destino") {
                 this.form.producto = null;
+                this.form.precioProducto = null;
                 this.productos = [];
                 this.form.largoProducto = null;
                 this.largosProducto = [];
@@ -2097,6 +2100,7 @@ export default {
                 nivel = "producto";
             }
             if (nivel === "producto") {
+                this.form.precioProducto = null;
                 this.form.largoProducto = null;
                 this.largosProducto = [];
                 this.clearSmartSelect(
