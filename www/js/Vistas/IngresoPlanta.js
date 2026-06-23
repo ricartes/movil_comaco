@@ -387,7 +387,7 @@ async function guardarEvidenciaIngresoPlanta(latitud, longitud) {
             Obtener_dato_local("user_activo"),
             {
                 foto: fotoUrl,
-                rol: gde?.GDE_CCOD_ORIGEN ?? null,
+                rol: gde?.GDE_COD_ORIGEN ?? null,
                 destino: gde?.GDE_COD_DESTINO ?? null,
                 despacho: gde,
                 id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,

@@ -821,8 +821,7 @@ function mostarOcultarMenuPrincipal(visible) {
         $$('#btn_consultaGuiaIndex').removeClass("disabled");
         $$('#btn_login').removeClass("disabled");
         $$('#item_zonas').removeClass("disabled");
-        $$('#item_cargar_folios').removeClass("disabled");
-        $$('#item_liberar_folios').removeClass("disabled");
+ 
         $$('#item_enviar_guias').removeClass("disabled");
         $$('#item_enviar_cfaena').removeClass("disabled");
         $$("#item_configuracion").removeClass("disabled");
@@ -832,8 +831,7 @@ function mostarOcultarMenuPrincipal(visible) {
         $$('#btnControlFaenas').addClass("disabled");
         $$('#btn_consultaGuiaIndex').addClass("disabled");
         $$('#item_zonas').addClass("disabled");
-        $$('#item_cargar_folios').addClass("disabled");
-        $$('#item_liberar_folios').addClass("disabled");
+   
         $$('#item_enviar_guias').addClass("disabled");
         $$('#item_enviar_cfaena').addClass("disabled");
         $$("#item_configuracion").addClass("disabled");
@@ -871,12 +869,6 @@ function boton_atras() {
                     navigator.app.exitApp();
                 }
             );
-            break;
-
-        case "carga-folios":
-            //seleccion_zonas();
-            mainView.router.navigate("/");
-            //seleccion_zonas();
             break;
 
         case "carga-parametros":

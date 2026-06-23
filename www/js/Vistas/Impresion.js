@@ -115,7 +115,7 @@ function vista_preliminar(origen) {
 }
 
 function vista_preliminar_cedible(origen) {
-    mainView.router.navigate('/VistaPreliminarCedibe/' + zona_activa + '/' + id_gde + '/' + tipo_volumen + '/' + tipo_emision + '/' + origen);
+    mainView.router.navigate('/VistaPreliminarCedible/' + zona_activa + '/' + id_gde + '/' + tipo_volumen + '/' + tipo_emision + '/' + origen);
 }
 
 
