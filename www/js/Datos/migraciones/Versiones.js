@@ -53,6 +53,26 @@ var version7Esquema = {
     ]
 }
 
+var version8Esquema = {
+    versionNumber: 8,
+    queries: [
+        `CREATE TABLE IF NOT EXISTS QR_TRAZABILIDAD_ORIGEN (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            QR_ID TEXT NOT NULL UNIQUE,
+            ID_UNICO_MOVIL_GDE TEXT NOT NULL UNIQUE,
+            FECHA_GENERACION TEXT NOT NULL,
+            FECHA_EXPIRACION TEXT NOT NULL,
+            ESTADO TEXT NOT NULL,
+            PAYLOAD_ENCRIPTADO TEXT NOT NULL,
+            PAYLOAD_HASH TEXT,
+            FECHA_VALIDACION_GDE TEXT,
+            QR_RETORNO_ENCRIPTADO TEXT,
+            DATOS_RETORNO TEXT,
+            ENVIADO INTEGER DEFAULT 0
+        )`
+    ]
+}
+
 
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
@@ -62,7 +82,8 @@ var versionesEsquema = [
     version4Esquema,
     version5Esquema,
     version6Esquema,
-    version7Esquema
+    version7Esquema,
+    version8Esquema
 ];
 
 

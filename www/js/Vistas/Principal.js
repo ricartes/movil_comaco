@@ -816,26 +816,26 @@ document.addEventListener("deviceready", async function () {
 function mostarOcultarMenuPrincipal(visible) {
     if (visible) {
         $$('#page_guias').removeClass("disabled");
+        $$('#page_qr_trazabilidad').removeClass("disabled");
         $$('#btn_canchaGuiaIndex').removeClass("disabled");
         $$('#btnControlFaenas').removeClass("disabled");
         $$('#btn_consultaGuiaIndex').removeClass("disabled");
         $$('#btn_login').removeClass("disabled");
         $$('#item_zonas').removeClass("disabled");
- 
         $$('#item_enviar_guias').removeClass("disabled");
         $$('#item_enviar_cfaena').removeClass("disabled");
         $$("#item_configuracion").removeClass("disabled");
     } else {
         $$('#page_guias').addClass("disabled");
+        $$('#page_qr_trazabilidad').addClass("disabled");
         $$('#btn_canchaGuiaIndex').addClass("disabled");
         $$('#btnControlFaenas').addClass("disabled");
         $$('#btn_consultaGuiaIndex').addClass("disabled");
         $$('#item_zonas').addClass("disabled");
-   
         $$('#item_enviar_guias').addClass("disabled");
         $$('#item_enviar_cfaena').addClass("disabled");
         $$("#item_configuracion").addClass("disabled");
-        //$$('#btn_login').addClass("disabled");
+
     }
 
 }
@@ -897,6 +897,10 @@ function boton_atras() {
             mainView.router.navigate("/");
             //seleccion_zonas();
 
+            break;
+
+        case "qr-trazabilidad":
+            mainView.router.navigate("/");
             break;
         case "detalle-aserrable":
             mainView.router.navigate("/");

@@ -76,24 +76,21 @@ routes = [
         url: './pages/Configuracion.html',
     },
 
-    {
-        path: '/CargaFolios/',
-        url: './pages/CargaFolios.html',
-    },
+
 
     {
         path: '/ListaGuias/',
         url: './pages/ListaGuias.html',
     },
     {
+        path: '/QrTrazabilidad/',
+        url: './pages/QrTrazabilidad.html',
+    },
+    {
         path: '/EnviarDatos/',
         url: './pages/EnviarDatos.html',
     },
 
-    {
-        path: '/LiberaFolios/',
-        url: './pages/LiberaFolios.html',
-    },
 
 
     {

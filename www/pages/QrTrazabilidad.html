@@ -1,0 +1,62 @@
+<div class="page" data-name="qr-trazabilidad">
+    <div class="navbar">
+        <div class="navbar-inner sliding">
+            <div class="left">
+                <a href="#" class="link back">
+                    <i class="icon icon-back"></i>
+                    <span class="ios-only">Atrás</span>
+                </a>
+            </div>
+            <div class="title">QR Trazabilidad</div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <div class="block-title">
+            Seleccionar guía
+        </div>
+
+        <div class="list">
+            <ul>
+                <li id="item-select-qr-trazabilidad">
+                    <a href="#" class="item-link smart-select" data-open-in="sheet">
+                        <select id="combo_qr_trazabilidad" name="combo_qr_trazabilidad">
+                            <option value="">Cargando guías...</option>
+                        </select>
+
+                        <div class="item-content">
+                            <div class="item-inner">
+                                <div class="item-title">Guía</div>
+                                <div class="item-after" id="texto_qr_trazabilidad">
+                                    SELECCIONAR
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="block">
+            <p id="qr_trazabilidad_info" style="color: black;">
+                Seleccione una guía para generar el QR.
+            </p>
+
+            <p class="row">
+                <a href="#" id="btn_generar_qr_trazabilidad"
+                    class="col button button-big button-raised button-fill disabled">
+                    GENERAR QR TRAZABILIDAD
+                </a>
+            </p>
+        </div>
+
+        <div class="block" style="text-align: center;">
+            <div id="qrcode_trazabilidad" style="display: inline-block;"></div>
+        </div>
+
+        <div class="block">
+            <p id="qr_trazabilidad_estado" style="color: black;"></p>
+            <p id="qr_trazabilidad_expira" style="color: black;"></p>
+        </div>
+    </div>
+</div>
