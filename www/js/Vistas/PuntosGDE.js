@@ -57,7 +57,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
 
                     // Actualiza el texto del botón inmediatamente
                     if (tiempoRestante <= 0) {
-                        $("#btn_punto_final").text("OBTENER PUNTO FINAL").removeClass("disabled").removeAttr("disabled");
+                        $("#btn_punto_final").text("CAPTURAR PUNTO CARGA MADERA").removeClass("disabled").removeAttr("disabled");
                     }
 
                 });
@@ -107,7 +107,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                     return false;
                 } else {
                     if (gde_result.GDE_HORA_PUNTO_FINAL == null || gde_result.GDE_HORA_PUNTO_FINAL == undefined || gde_result.GDE_HORA_PUNTO_FINAL == "") {
-                        app.dialog.alert("Primero debe obtener el punto final", "GFE");
+                        app.dialog.alert("Primero debe capturar el punto carga madera", "GFE");
                         return false;
                     } else {
 
@@ -264,7 +264,7 @@ $$(document).on('page:init', '.page[data-name="puntos-gde"]', async function (e,
                                         mainView.router.navigate('/CamionCargado/' + 0 + '/' + id_gde_actual + '/' + 0);
                                     }
                                 } else {
-                                    app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara obtener el punto final, debe esperar " + tiempo + " minutos...", "GFE");
+                                    app.dialog.alert("Actualmente lleva " + minutes + " minutos desde que obtuvo el punto inicial. \nPara capturar el punto carga madera, debe esperar " + tiempo + " minutos...", "GFE");
                                     return false;
                                 }
 
@@ -315,7 +315,7 @@ function obtenerDiferenciaCamionCargadoPuntoInicial() {
 
                     if (tiempoRestante <= 0) {
                         // El tiempo ha llegado a 0, habilitar el botón
-                        btnPuntoFinal.text("OBTENER PUNTO FINAL"); // Actualiza el texto del botón
+                        btnPuntoFinal.text("CAPTURAR PUNTO CARGA MADERA"); // Actualiza el texto del botón
                         btnPuntoFinal.removeClass("disabled");
                         btnPuntoFinal.removeAttr("disabled");
 
@@ -327,7 +327,7 @@ function obtenerDiferenciaCamionCargadoPuntoInicial() {
                         const segundos = tiempoRestante % 60;
 
                         // Actualiza el texto del botón con el tiempo restante
-                        btnPuntoFinal.text(`Debe esperar ${minutos}:${segundos < 10 ? "0" : ""}${segundos} para obtener el punto final`);
+                        btnPuntoFinal.text(`Debe esperar ${minutos}:${segundos < 10 ? "0" : ""}${segundos} para capturar el punto carga madera`);
                     }
                 }, 1000);
 
@@ -358,21 +358,88 @@ function volver_camion_vacio() {
 
 function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca = 0, proyecto = 0) {
 
-    //punto inicial
+    // punto inicial
     if (argumento == 1) {
-
         asignar_puntos_inicio(latitud, longitud);
     }
 
+    // punto carga madera, antes punto final
     if (argumento == 2) {
         DATOS_Actualiza_PuntoFinal(id_gde_actual, latitud, longitud, function (result) {
             $$("#tx_latitud_final").val(latitud);
             $$("#tx_longitud_final").val(longitud);
-            $$("#btn_camion_cargado").css('display', 'block');
+
+            (async function () {
+                try {
+                    const resultadoQr = await generarQrTrazabilidadPorPuntoCarga(
+                        gde_actual_puntos_gde,
+                        {
+                            latitud: latitud,
+                            longitud: longitud,
+                            accuracy: null
+                        }
+                    );
+
+                    if (resultadoQr && resultadoQr.ok) {
+                        let datos = await generarDataTrazabilidad(
+                            TipoAccionTypes.GENERA_QR_TRAZABILIDAD_ORIGEN,
+                            Obtener_dato_local('user_activo'),
+                            {
+                                rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
+                                despacho: gde_actual_puntos_gde,
+                                id_unico_movil_gde: gde_actual_puntos_gde?.ID_UNICO_MOVIL ?? null,
+                                qr: {
+                                    qrId: resultadoQr.qr?.QR_ID ?? null,
+                                    estado: resultadoQr.qr?.ESTADO ?? null,
+                                    yaExistia: resultadoQr.yaExistia === true
+                                },
+                                coordenadaCarga: {
+                                    latitud: latitud,
+                                    longitud: longitud
+                                }
+                            }
+                        );
+
+                        await obtenerUbicacionEInsertarLog(
+                            Obtener_dato_local('user_activo'),
+                            datos
+                        );
+
+                        if (resultadoQr.yaExistia) {
+                            app.dialog.alert(
+                                "Punto carga madera registrado. Esta guía ya tenía QR de trazabilidad generado.",
+                                "GFE"
+                            );
+                        } else {
+                            app.dialog.alert(
+                                "Punto carga madera registrado y QR de trazabilidad generado correctamente.",
+                                "GFE"
+                            );
+                        }
+                    } else {
+                        app.dialog.alert(
+                            (resultadoQr && resultadoQr.mensaje)
+                                ? "Punto carga madera registrado, pero no fue posible generar el QR de trazabilidad: " + resultadoQr.mensaje
+                                : "Punto carga madera registrado, pero no fue posible generar el QR de trazabilidad.",
+                            "GFE"
+                        );
+                    }
+
+                } catch (ex) {
+                    console.error("[QR TRAZABILIDAD] Error generando QR desde punto carga:", ex);
+
+                    app.dialog.alert(
+                        "El punto carga madera fue registrado, pero no fue posible generar el QR de trazabilidad. Revise el módulo QR Trazabilidad.",
+                        "GFE"
+                    );
+                } finally {
+                    $$("#btn_camion_cargado").css('display', 'block');
+                }
+            })();
         });
     }
 }
-
 
 
 /**
@@ -418,7 +485,7 @@ async function obtener_punto_final() {
                     } else {
                         app.dialog.progress("Cargando...")
                         const mensaje = `Actualmente lleva ${minutes} minutos desde que obtuvo el punto inicial. 
-                        Para obtener el punto final, debe esperar ${tiempo} minutos...`;
+                        Para capturar el punto carga madera, debe esperar ${tiempo} minutos...`;
 
                         let datos = await generarDataTrazabilidad(
                             TipoAccionTypes.ALERTA_ESPERA_PUNTO_FINAL,
@@ -556,7 +623,7 @@ async function getLocation(argumento, valida_geocerca = 0, proyecto = 0) {
 
                     //si debe cerrar control
                     if (resultado.cierra) {
-                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (OBTENER PUNTO FINAL)`).then((anula) => {
+                        ControlServiceAnular(id_gde_actual, resultadoGeocerca.latitud, resultadoGeocerca.longitud, "", `${constantes.mensajeGeocercaNoValida} (CAPTURAR PUNTO CARGA MADERA)`).then((anula) => {
                             if (anula) {
                                 (async () => {
                                     let datos = await generarDataTrazabilidad(

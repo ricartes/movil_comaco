@@ -2,13 +2,6 @@
 
 var guiasQrTrazabilidad = [];
 var guiaQrTrazabilidadSeleccionada = null;
-var generandoQrTrazabilidad = false;
-
-// IMPORTANTE:
-// Estas claves son de desarrollo para levantar el flujo.
-// Para producción deben definirse formalmente y deben coincidir con la app GDE.
-var QR_TRAZABILIDAD_AES_KEY_HEX = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
-var QR_TRAZABILIDAD_HMAC_KEY_HEX = "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100";
 
 $$(document).on('page:init', '.page[data-name="qr-trazabilidad"]', function () {
     inicializarQrTrazabilidad();
@@ -19,25 +12,15 @@ $$(document).on('page:init', '.page[data-name="qr-trazabilidad"]', function () {
     $page.on('change', '#combo_qr_trazabilidad', function () {
         seleccionarGuiaQrTrazabilidad(this.value);
     });
-
-    $page.off('click', '#btn_generar_qr_trazabilidad');
-    $page.on('click', '#btn_generar_qr_trazabilidad', function () {
-        generarQrTrazabilidad();
-    });
 });
 
 function inicializarQrTrazabilidad() {
     guiasQrTrazabilidad = [];
     guiaQrTrazabilidadSeleccionada = null;
-    generandoQrTrazabilidad = false;
 
-    $$('#qrcode_trazabilidad').html('');
-    $$('#qr_trazabilidad_estado').text('');
-    $$('#qr_trazabilidad_expira').text('');
-    $$('#qr_trazabilidad_info').text('Seleccione una guía para generar el QR.');
+    limpiarDetalleQrTrazabilidad();
+    $$('#qr_trazabilidad_info').text('Seleccione una guía para visualizar su QR.');
     setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
-
-    setBotonGenerarQrTrazabilidadHabilitado(false);
 
     cargarGuiasQrTrazabilidad();
 }
@@ -64,8 +47,7 @@ function cargarGuiasQrTrazabilidad() {
                 $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
                 setTextoSmartSelectQrTrazabilidad("SIN GUÍAS");
-
-                $$('#qr_trazabilidad_info').text('No existen guías disponibles para generar QR.');
+                $$('#qr_trazabilidad_info').text('No existen guías disponibles para visualizar QR.');
                 return;
             }
 
@@ -79,9 +61,7 @@ function cargarGuiasQrTrazabilidad() {
                 $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS VÁLIDAS</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
                 setTextoSmartSelectQrTrazabilidad("SIN GUÍAS VÁLIDAS");
-
-                $$('#qr_trazabilidad_info').text('No existen guías válidas para generar QR.');
-                setBotonGenerarQrTrazabilidadHabilitado(false);
+                $$('#qr_trazabilidad_info').text('No existen guías válidas para visualizar QR.');
                 return;
             }
 
@@ -108,19 +88,13 @@ function poblarComboQrTrazabilidad(guias) {
     setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
 }
 
-function seleccionarGuiaQrTrazabilidad(rowid) {
-    $$('#qrcode_trazabilidad').html('');
-    $$('#qr_trazabilidad_estado').text('');
-    $$('#qr_trazabilidad_expira').text('');
+async function seleccionarGuiaQrTrazabilidad(rowid) {
+    limpiarDetalleQrTrazabilidad();
 
     if (!rowid) {
         guiaQrTrazabilidadSeleccionada = null;
-
         setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
-
-        $$('#qr_trazabilidad_info').text('Seleccione una guía para generar el QR.');
-        setBotonGenerarQrTrazabilidadHabilitado(false);
-
+        $$('#qr_trazabilidad_info').text('Seleccione una guía para visualizar su QR.');
         return;
     }
 
@@ -131,197 +105,39 @@ function seleccionarGuiaQrTrazabilidad(rowid) {
 
     if (!guiaQrTrazabilidadSeleccionada) {
         guiaQrTrazabilidadSeleccionada = null;
-
         setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
-
         $$('#qr_trazabilidad_info').text('No fue posible obtener la guía seleccionada.');
-        setBotonGenerarQrTrazabilidadHabilitado(false);
-
         return;
     }
 
     var textoGuia = construirTextoGuiaQrTrazabilidad(guiaQrTrazabilidadSeleccionada);
-
     setTextoSmartSelectQrTrazabilidad(textoGuia);
+    $$('#qr_trazabilidad_info').text('Buscando QR de trazabilidad...');
 
-    $$('#qr_trazabilidad_info').text(textoGuia);
+    try {
+        var qr = await DATOS_obtenerQrTrazabilidadPorGde(guiaQrTrazabilidadSeleccionada.ID_UNICO_MOVIL);
 
-    setBotonGenerarQrTrazabilidadHabilitado(true);
-}
-
-function generarQrTrazabilidad() {
-    if (generandoQrTrazabilidad) {
-        return;
-    }
-
-    if (!guiaQrTrazabilidadSeleccionada) {
-        app.dialog.alert("Debe seleccionar una guía.", "GFE");
-        return;
-    }
-
-    app.dialog.confirm(
-        "¿Desea generar el QR de trazabilidad para la guía seleccionada?",
-        "GFE",
-        async function () {
-            generandoQrTrazabilidad = true;
-            setBotonGenerarQrTrazabilidadHabilitado(false);
-
-            app.dialog.preloader("Generando QR...");
-
-            try {
-                var gde = await obtenerGdeQrTrazabilidadAsync(
-                    guiaQrTrazabilidadSeleccionada.ROWID
-                );
-
-                if (!gde || gde === -1 || gde === "-1") {
-                    app.dialog.alert("No fue posible recargar la guía seleccionada.", "GFE");
-                    return;
-                }
-
-                if (!gde.ID_UNICO_MOVIL) {
-                    app.dialog.alert("La guía no tiene ID_UNICO_MOVIL.", "GFE");
-                    return;
-                }
-
-                var resultado = generarPayloadEncriptadoQrTrazabilidad(gde);
-
-                pintarQrTrazabilidad(resultado.textoQr);
-
-                $$('#qr_trazabilidad_estado').text("QR generado correctamente.");
-                $$('#qr_trazabilidad_expira').text(
-                    "Vigente hasta: " + resultado.fechaExpiracionTexto
-                );
-
-                app.dialog.alert("QR de trazabilidad generado correctamente.", "GFE");
-
-            } catch (ex) {
-                console.error("[QR TRAZABILIDAD] Error:", ex);
-
-                app.dialog.alert(
-                    ex && ex.message
-                        ? ex.message
-                        : "Ocurrió un error al generar el QR.",
-                    "GFE"
-                );
-
-            } finally {
-                try {
-                    app.dialog.close();
-                } catch (e) { }
-
-                generandoQrTrazabilidad = false;
-                refrescarBotonQrTrazabilidad();
-            }
+        if (!qr) {
+            $$('#qr_trazabilidad_info').text('Esta guía aún no tiene QR. Debe capturar el punto carga madera en el flujo de trazabilidad.');
+            return;
         }
-    );
-}
 
-function obtenerGdeQrTrazabilidadAsync(rowid) {
-    return new Promise(function (resolve) {
-        DATOS_seleccionar_gde_proveedor(rowid, function (result) {
-            resolve(result);
-        });
-    });
-}
-
-function generarPayloadEncriptadoQrTrazabilidad(gde) {
-    var ahora = new Date();
-    var expiracion = new Date(ahora.getTime() + (24 * 60 * 60 * 1000));
-
-    var payload = {
-        v: 1,
-        tipo: "QR_TRAZABILIDAD_ORIGEN",
-        idUnicoMovil: gde.ID_UNICO_MOVIL,
-        fechaGeneracion: ahora.toISOString(),
-        fechaExpiracion: expiracion.toISOString()
-    };
-
-    var textoQr = encriptarPayloadQrTrazabilidad(payload);
-
-    return {
-        payload: payload,
-        textoQr: textoQr,
-        fechaExpiracionTexto: formatearFechaQrTrazabilidad(expiracion)
-    };
-}
-
-function encriptarPayloadQrTrazabilidad(payload) {
-    if (typeof CryptoJS === "undefined") {
-        throw new Error("CryptoJS no está disponible. Verifique jsrsasign-all-min.js en index.html.");
+        pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO);
+        $$('#qr_trazabilidad_info').text(textoGuia);
+        $$('#qr_trazabilidad_estado').text("Estado: " + (qr.ESTADO || ""));
+        $$('#qr_trazabilidad_fecha').text("Fecha generación: " + formatearFechaQrTrazabilidad(qr.FECHA_GENERACION));
+    } catch (ex) {
+        console.error("[QR TRAZABILIDAD] Error obteniendo QR:", ex);
+        $$('#qr_trazabilidad_info').text('No fue posible consultar el QR de trazabilidad.');
     }
-
-    var key = CryptoJS.enc.Hex.parse(QR_TRAZABILIDAD_AES_KEY_HEX);
-    var hmacKey = CryptoJS.enc.Hex.parse(QR_TRAZABILIDAD_HMAC_KEY_HEX);
-    var iv = CryptoJS.lib.WordArray.random(16);
-
-    var json = JSON.stringify(payload);
-
-    var encrypted = CryptoJS.AES.encrypt(json, key, {
-        iv: iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
-    });
-
-    var ivBase64 = iv.toString(CryptoJS.enc.Base64);
-    var ctBase64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
-
-    var dataToSign = ivBase64 + "." + ctBase64;
-    var mac = CryptoJS.HmacSHA256(dataToSign, hmacKey).toString(CryptoJS.enc.Hex);
-
-    var envelope = {
-        v: 1,
-        alg: "AES-256-CBC-HS256",
-        iv: ivBase64,
-        ct: ctBase64,
-        mac: mac
-    };
-
-    return "GFEQR1:" + base64Utf8QrTrazabilidad(JSON.stringify(envelope));
-}
-
-// Función útil para que luego la app GDE pueda implementar lo inverso.
-// No se usa todavía en esta pantalla, pero sirve para pruebas locales.
-function desencriptarPayloadQrTrazabilidad(textoQr) {
-    if (!textoQr || textoQr.indexOf("GFEQR1:") !== 0) {
-        throw new Error("Formato QR no válido.");
-    }
-
-    var envelopeJson = utf8Base64QrTrazabilidad(textoQr.replace("GFEQR1:", ""));
-    var envelope = JSON.parse(envelopeJson);
-
-    var key = CryptoJS.enc.Hex.parse(QR_TRAZABILIDAD_AES_KEY_HEX);
-    var hmacKey = CryptoJS.enc.Hex.parse(QR_TRAZABILIDAD_HMAC_KEY_HEX);
-
-    var dataToSign = envelope.iv + "." + envelope.ct;
-    var macCalculado = CryptoJS.HmacSHA256(dataToSign, hmacKey).toString(CryptoJS.enc.Hex);
-
-    if (macCalculado !== envelope.mac) {
-        throw new Error("QR alterado o clave incorrecta.");
-    }
-
-    var decrypted = CryptoJS.AES.decrypt(
-        {
-            ciphertext: CryptoJS.enc.Base64.parse(envelope.ct)
-        },
-        key,
-        {
-            iv: CryptoJS.enc.Base64.parse(envelope.iv),
-            mode: CryptoJS.mode.CBC,
-            padding: CryptoJS.pad.Pkcs7
-        }
-    );
-
-    var json = decrypted.toString(CryptoJS.enc.Utf8);
-
-    if (!json) {
-        throw new Error("No fue posible desencriptar el QR.");
-    }
-
-    return JSON.parse(json);
 }
 
 function pintarQrTrazabilidad(textoQr) {
     $$('#qrcode_trazabilidad').html('');
+
+    if (!textoQr) {
+        return;
+    }
 
     new QRCode("qrcode_trazabilidad", {
         text: textoQr,
@@ -331,24 +147,6 @@ function pintarQrTrazabilidad(textoQr) {
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
     });
-}
-
-function refrescarBotonQrTrazabilidad() {
-    setBotonGenerarQrTrazabilidadHabilitado(
-        !!guiaQrTrazabilidadSeleccionada && generandoQrTrazabilidad === false
-    );
-}
-
-function setBotonGenerarQrTrazabilidadHabilitado(habilitar) {
-    var $btn = $$('#btn_generar_qr_trazabilidad');
-
-    if (habilitar) {
-        $btn.removeClass('disabled color-gray');
-        $btn.removeAttr('disabled');
-    } else {
-        $btn.addClass('disabled color-gray');
-        $btn.attr('disabled', 'disabled');
-    }
 }
 
 function construirTextoGuiaQrTrazabilidad(gde) {
@@ -380,7 +178,17 @@ function obtenerTextoEstadoQrTrazabilidad(gde) {
     return gde.GDE_ESTADO_MOVIL || "";
 }
 
-function formatearFechaQrTrazabilidad(fecha) {
+function formatearFechaQrTrazabilidad(fechaTexto) {
+    if (!fechaTexto) {
+        return "";
+    }
+
+    var fecha = new Date(fechaTexto);
+
+    if (isNaN(fecha.getTime())) {
+        return fechaTexto;
+    }
+
     var dia = String(fecha.getDate()).padStart(2, "0");
     var mes = String(fecha.getMonth() + 1).padStart(2, "0");
     var anio = fecha.getFullYear();
@@ -391,12 +199,10 @@ function formatearFechaQrTrazabilidad(fecha) {
     return dia + "-" + mes + "-" + anio + " " + hora + ":" + minuto;
 }
 
-function base64Utf8QrTrazabilidad(texto) {
-    return btoa(unescape(encodeURIComponent(texto)));
-}
-
-function utf8Base64QrTrazabilidad(textoBase64) {
-    return decodeURIComponent(escape(atob(textoBase64)));
+function limpiarDetalleQrTrazabilidad() {
+    $$('#qrcode_trazabilidad').html('');
+    $$('#qr_trazabilidad_estado').text('');
+    $$('#qr_trazabilidad_fecha').text('');
 }
 
 function escapeHtmlQrTrazabilidad(valor) {
