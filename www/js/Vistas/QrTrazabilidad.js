@@ -94,8 +94,10 @@ function esGuiaEmitidaParaQrTrazabilidad(gde) {
     }
 
     return gde.GDE_ESTADO_MOVIL === "M" ||
+        gde.GDE_ESTADO_MOVIL === "I" ||
         gde.GDE_ESTADO_MOVIL === "E" ||
-        gde.ENVIADO === 1;
+        gde.ENVIADO === 1 ||
+        gde.ENVIADO === "1";
 }
 
 async function seleccionarGuiaQrTrazabilidad(rowid) {
@@ -181,8 +183,8 @@ function obtenerTextoEstadoQrTrazabilidad(gde) {
     if (gde.GDE_ESTADO_MOVIL === "B") return "BORRADOR";
     if (gde.GDE_ESTADO_MOVIL === "M") return "EMITIDA";
     if (gde.GDE_ESTADO_MOVIL === "P") return "PROVISORIA";
-    if (gde.GDE_ESTADO_MOVIL === "I") return "IMPRESA";
-    if (gde.GDE_ESTADO_MOVIL === "E" || gde.ENVIADO === 1) return "ENVIADA";
+    if (gde.GDE_ESTADO_MOVIL === "I") return "INFORMADA LOCALMENTE";
+    if (gde.GDE_ESTADO_MOVIL === "E" || gde.ENVIADO === 1 || gde.ENVIADO === "1") return "ENVIADA";
     if (gde.GDE_ESTADO_MOVIL === "N") return "ANULADA";
 
     return gde.GDE_ESTADO_MOVIL || "";
