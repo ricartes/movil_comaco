@@ -44,24 +44,20 @@ function cargarGuiasQrTrazabilidad() {
 
             if (result === -1 || result === "-1" || !Array.isArray(result) || result.length === 0) {
                 guiasQrTrazabilidad = [];
-                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS</option>');
+                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS EMITIDAS</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
-                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS");
-                $$('#qr_trazabilidad_info').text('No existen guías disponibles para visualizar QR.');
+                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS EMITIDAS");
+                $$('#qr_trazabilidad_info').text('No existen guías emitidas disponibles para visualizar QR.');
                 return;
             }
 
-            guiasQrTrazabilidad = result.filter(function (gde) {
-                return gde &&
-                    gde.ID_UNICO_MOVIL &&
-                    gde.GDE_ESTADO_MOVIL !== "N";
-            });
+            guiasQrTrazabilidad = result.filter(esGuiaEmitidaParaQrTrazabilidad);
 
             if (guiasQrTrazabilidad.length === 0) {
-                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS VÁLIDAS</option>');
+                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS EMITIDAS</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
-                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS VÁLIDAS");
-                $$('#qr_trazabilidad_info').text('No existen guías válidas para visualizar QR.');
+                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS EMITIDAS");
+                $$('#qr_trazabilidad_info').text('No existen guías emitidas disponibles para visualizar QR.');
                 return;
             }
 
@@ -86,6 +82,20 @@ function poblarComboQrTrazabilidad(guias) {
     $$('#item-select-qr-trazabilidad').removeClass("disabled");
 
     setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
+}
+
+function esGuiaEmitidaParaQrTrazabilidad(gde) {
+    if (!gde || !gde.ID_UNICO_MOVIL) {
+        return false;
+    }
+
+    if (gde.GDE_ESTADO_MOVIL === "N") {
+        return false;
+    }
+
+    return gde.GDE_ESTADO_MOVIL === "M" ||
+        gde.GDE_ESTADO_MOVIL === "E" ||
+        gde.ENVIADO === 1;
 }
 
 async function seleccionarGuiaQrTrazabilidad(rowid) {
