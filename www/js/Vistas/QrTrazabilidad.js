@@ -26,7 +26,11 @@ function inicializarQrTrazabilidad() {
 }
 
 function setTextoSmartSelectQrTrazabilidad(texto) {
-    $$("#texto_qr_trazabilidad").text(texto || "SELECCIONAR");
+    var textoSeguro = texto || "SELECCIONAR";
+
+    $$("#texto_qr_trazabilidad")
+        .text(textoSeguro)
+        .attr("title", textoSeguro);
 }
 
 function cargarGuiasQrTrazabilidad() {
@@ -44,20 +48,20 @@ function cargarGuiasQrTrazabilidad() {
 
             if (result === -1 || result === "-1" || !Array.isArray(result) || result.length === 0) {
                 guiasQrTrazabilidad = [];
-                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS EMITIDAS</option>');
+                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS DISPONIBLES</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
-                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS EMITIDAS");
-                $$('#qr_trazabilidad_info').text('No existen guías emitidas disponibles para visualizar QR.');
+                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS DISPONIBLES");
+                $$('#qr_trazabilidad_info').text('No existen guías disponibles para visualizar QR.');
                 return;
             }
 
-            guiasQrTrazabilidad = result.filter(esGuiaEmitidaParaQrTrazabilidad);
+            guiasQrTrazabilidad = result.filter(esGuiaDisponibleParaQrTrazabilidad);
 
             if (guiasQrTrazabilidad.length === 0) {
-                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS EMITIDAS</option>');
+                $$('#combo_qr_trazabilidad').html('<option value="">SIN GUÍAS DISPONIBLES</option>');
                 $$('#item-select-qr-trazabilidad').addClass("disabled");
-                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS EMITIDAS");
-                $$('#qr_trazabilidad_info').text('No existen guías emitidas disponibles para visualizar QR.');
+                setTextoSmartSelectQrTrazabilidad("SIN GUÍAS DISPONIBLES");
+                $$('#qr_trazabilidad_info').text('No existen guías disponibles para visualizar QR.');
                 return;
             }
 
@@ -70,11 +74,12 @@ function poblarComboQrTrazabilidad(guias) {
     var html = '<option value="">SELECCIONAR</option>';
 
     guias.forEach(function (gde) {
-        var texto = construirTextoGuiaQrTrazabilidad(gde);
+        var textoOpcion = construirTextoOpcionGuiaQrTrazabilidad(gde);
 
         html +=
-            '<option value="' + escapeHtmlQrTrazabilidad(gde.ROWID) + '">' +
-            escapeHtmlQrTrazabilidad(texto) +
+            '<option value="' + escapeHtmlQrTrazabilidad(gde.ROWID) + '"' +
+            ' data-display-as="' + escapeHtmlQrTrazabilidad(textoOpcion) + '">' +
+            escapeHtmlQrTrazabilidad(textoOpcion) +
             '</option>';
     });
 
@@ -84,7 +89,7 @@ function poblarComboQrTrazabilidad(guias) {
     setTextoSmartSelectQrTrazabilidad("SELECCIONAR");
 }
 
-function esGuiaEmitidaParaQrTrazabilidad(gde) {
+function esGuiaDisponibleParaQrTrazabilidad(gde) {
     if (!gde || !gde.ID_UNICO_MOVIL) {
         return false;
     }
@@ -93,11 +98,7 @@ function esGuiaEmitidaParaQrTrazabilidad(gde) {
         return false;
     }
 
-    return gde.GDE_ESTADO_MOVIL === "M" ||
-        gde.GDE_ESTADO_MOVIL === "I" ||
-        gde.GDE_ESTADO_MOVIL === "E" ||
-        gde.ENVIADO === 1 ||
-        gde.ENVIADO === "1";
+    return true;
 }
 
 async function seleccionarGuiaQrTrazabilidad(rowid) {
@@ -122,19 +123,27 @@ async function seleccionarGuiaQrTrazabilidad(rowid) {
         return;
     }
 
+    var textoOpcionGuia = construirTextoOpcionGuiaQrTrazabilidad(guiaQrTrazabilidadSeleccionada);
     var textoGuia = construirTextoGuiaQrTrazabilidad(guiaQrTrazabilidadSeleccionada);
-    setTextoSmartSelectQrTrazabilidad(textoGuia);
+
+    setTextoSmartSelectQrTrazabilidad(textoOpcionGuia);
     $$('#qr_trazabilidad_info').text('Buscando QR de trazabilidad...');
 
     try {
         var qr = await DATOS_obtenerQrTrazabilidadPorGde(guiaQrTrazabilidadSeleccionada.ID_UNICO_MOVIL);
 
         if (!qr) {
-            $$('#qr_trazabilidad_info').text('Esta guía aún no tiene QR. Debe capturar el punto carga madera en el flujo de trazabilidad.');
+            $$('#qr_trazabilidad_info').text('Esta guía aún no tiene QR. Debe capturar el punto carga madera.');
             return;
         }
 
-        pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO);
+        if (qr.ESTADO === "ANULADO") {
+            $$('#qr_trazabilidad_info').text('El QR de esta guía está anulado.');
+            $$('#qr_trazabilidad_estado').text("Estado: " + qr.ESTADO);
+            return;
+        }
+
+        pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO, "real-bd");
         $$('#qr_trazabilidad_info').text(textoGuia);
         $$('#qr_trazabilidad_estado').text("Estado: " + (qr.ESTADO || ""));
         $$('#qr_trazabilidad_fecha').text("Fecha generación: " + formatearFechaQrTrazabilidad(qr.FECHA_GENERACION));
@@ -144,35 +153,147 @@ async function seleccionarGuiaQrTrazabilidad(rowid) {
     }
 }
 
-function pintarQrTrazabilidad(textoQr) {
-    $$('#qrcode_trazabilidad').html('');
+function pintarQrTrazabilidad(textoQr, etiquetaDiagnostico) {
+    var $contenedorQr = $$('#qrcode_trazabilidad');
+    var configuracion = obtenerConfiguracionRenderQrTrazabilidad();
+
+    $contenedorQr.html('');
+    $contenedorQr.css({
+        "display": "inline-block",
+        "background-color": "#ffffff",
+        "padding": configuracion.quietZone + "px",
+        "line-height": "0",
+        "box-sizing": "content-box"
+    });
 
     if (!textoQr) {
         return;
     }
 
-    new QRCode("qrcode_trazabilidad", {
+    textoQr = String(textoQr);
+    registrarDiagnosticoTextoQrTrazabilidad(textoQr, etiquetaDiagnostico || "real");
+
+    var qrGenerado = new QRCode("qrcode_trazabilidad", {
         text: textoQr,
-        width: 220,
-        height: 220,
+        width: configuracion.tamano,
+        height: configuracion.tamano,
         colorDark: "#000000",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
     });
+
+    ajustarElementosRenderQrTrazabilidad(configuracion.tamano);
+
+    var modulos = qrGenerado && qrGenerado._oQRCode ? qrGenerado._oQRCode.getModuleCount() : null;
+
+    console.log("[QR TRAZABILIDAD] Render", {
+        etiqueta: etiquetaDiagnostico || "real",
+        tamanoPx: configuracion.tamano,
+        quietZonePx: configuracion.quietZone,
+        correccion: "M",
+        modulos: modulos,
+        pxPorModulo: modulos ? configuracion.tamano / modulos : null
+    });
+}
+
+function obtenerConfiguracionRenderQrTrazabilidad() {
+    var anchoVentana = window.innerWidth || document.documentElement.clientWidth || 360;
+
+    if (anchoVentana >= 500) {
+        return {
+            tamano: 420,
+            quietZone: 24
+        };
+    }
+
+    if (anchoVentana >= 432) {
+        return {
+            tamano: 384,
+            quietZone: 20
+        };
+    }
+
+    return {
+        tamano: 320,
+        quietZone: 16
+    };
+}
+
+function ajustarElementosRenderQrTrazabilidad(tamano) {
+    var contenedor = document.getElementById("qrcode_trazabilidad");
+
+    if (!contenedor) {
+        return;
+    }
+
+    var elementos = contenedor.querySelectorAll("canvas, img, table");
+
+    for (var i = 0; i < elementos.length; i++) {
+        elementos[i].style.width = tamano + "px";
+        elementos[i].style.height = tamano + "px";
+        elementos[i].style.maxWidth = "none";
+        elementos[i].style.maxHeight = "none";
+        elementos[i].style.backgroundColor = "#ffffff";
+    }
+}
+
+function registrarDiagnosticoTextoQrTrazabilidad(textoQr, origen) {
+    console.log("[QR TRAZABILIDAD] Texto QR", {
+        origen: origen,
+        caracteres: textoQr.length,
+        prefijo: textoQr.substring(0, 7),
+        empiezaConGFEQR1: textoQr.indexOf("GFEQR1:") === 0
+    });
+}
+
+function construirTextoOpcionGuiaQrTrazabilidad(gde) {
+    if (!gde) {
+        return "";
+    }
+
+    var guiaProveedor = normalizarTextoQrTrazabilidad(gde.GDE_GUIA_PROVEEDOR) || "S/F";
+    var estado = obtenerTextoEstadoQrTrazabilidad(gde);
+    var origen = normalizarTextoQrTrazabilidad(gde.GDE_NOMBRE_PREDIO);
+
+    return [
+        "Guia " + guiaProveedor,
+        estado,
+        abreviarTextoQrTrazabilidad(origen, 28)
+    ].filter(function (valor) {
+        return !!valor;
+    }).join(" - ");
 }
 
 function construirTextoGuiaQrTrazabilidad(gde) {
     var estado = obtenerTextoEstadoQrTrazabilidad(gde);
-    var destino = gde.GDE_DESTINO || gde.GDE_NOMBRE_CLIENTE || '';
-    var origen = gde.GDE_NOMBRE_PREDIO || '';
-    var guiaProveedor = gde.GDE_GUIA_PROVEEDOR || 'S/F';
-    var patente = gde.GDE_PATENTE_CAMION || '';
+    var destino = normalizarTextoQrTrazabilidad(gde.GDE_DESTINO || gde.GDE_NOMBRE_CLIENTE);
+    var origen = normalizarTextoQrTrazabilidad(gde.GDE_NOMBRE_PREDIO);
+    var guiaProveedor = normalizarTextoQrTrazabilidad(gde.GDE_GUIA_PROVEEDOR) || 'S/F';
+    var patente = normalizarTextoQrTrazabilidad(gde.GDE_PATENTE_CAMION);
 
-    return "Guía: " + guiaProveedor +
+    return "Guia: " + guiaProveedor +
         " | Estado: " + estado +
         " | Origen: " + origen +
         " | Destino: " + destino +
-        " | Camión: " + patente;
+        " | Camion: " + patente;
+}
+
+function normalizarTextoQrTrazabilidad(valor) {
+    if (valor === null || valor === undefined) {
+        return "";
+    }
+
+    return String(valor).replace(/\s+/g, " ").trim();
+}
+
+function abreviarTextoQrTrazabilidad(texto, largoMaximo) {
+    texto = normalizarTextoQrTrazabilidad(texto);
+
+    if (!texto || texto.length <= largoMaximo) {
+        return texto;
+    }
+
+    return texto.substring(0, largoMaximo - 3).trim() + "...";
 }
 
 function obtenerTextoEstadoQrTrazabilidad(gde) {

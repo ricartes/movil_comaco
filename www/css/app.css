@@ -75,3 +75,47 @@
   border-color: black;
   border-style: solid;
 }
+
+.qr-trazabilidad-block {
+  text-align: center;
+  overflow-x: auto;
+}
+
+.qr-trazabilidad-select-inner {
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+#item-select-qr-trazabilidad .item-title {
+  width: 100%;
+}
+
+#item-select-qr-trazabilidad .item-after {
+  display: none;
+}
+
+#texto_qr_trazabilidad {
+  color: #6d6d72;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+#qrcode_trazabilidad {
+  display: inline-block;
+  background: #ffffff;
+}
+
+#qrcode_trazabilidad canvas,
+#qrcode_trazabilidad img,
+#qrcode_trazabilidad table {
+  display: block;
+  margin: 0;
+  border: 0;
+  background: #ffffff;
+}

@@ -61,6 +61,17 @@ async function generarQrTrazabilidadPorPuntoCarga(gde, coordenadaCarga) {
 
     const qrGuardado = await DATOS_obtenerQrTrazabilidadPorGde(gde.ID_UNICO_MOVIL);
 
+    if (qrGuardado) {
+        console.log("[QR TRAZABILIDAD] Verificacion BD", {
+            qrId: resultado.qrId,
+            textoFinalIgualPayloadEncriptado: qrGuardado.PAYLOAD_ENCRIPTADO === resultado.textoQr,
+            caracteresGenerados: resultado.textoQr.length,
+            caracteresBd: qrGuardado.PAYLOAD_ENCRIPTADO ? String(qrGuardado.PAYLOAD_ENCRIPTADO).length : 0,
+            prefijoBd: qrGuardado.PAYLOAD_ENCRIPTADO ? String(qrGuardado.PAYLOAD_ENCRIPTADO).substring(0, 7) : "",
+            bdEmpiezaConGFEQR1: qrGuardado.PAYLOAD_ENCRIPTADO ? String(qrGuardado.PAYLOAD_ENCRIPTADO).indexOf("GFEQR1:") === 0 : false
+        });
+    }
+
     return {
         ok: true,
         yaExistia: false,
@@ -106,6 +117,8 @@ function generarPayloadEncriptadoQrTrazabilidad(gde, coordenadaCarga) {
 
     const textoQr = encriptarPayloadQrTrazabilidad(payload);
     const payloadHash = CryptoJS.SHA256(textoQr).toString(CryptoJS.enc.Hex);
+
+    registrarDiagnosticoPayloadQrTrazabilidad(payload, textoQr);
 
     return {
         qrId: qrId,
@@ -157,6 +170,18 @@ function encriptarPayloadQrTrazabilidad(payload) {
     };
 
     return "GFEQR1:" + base64Utf8QrTrazabilidad(JSON.stringify(envelope));
+}
+
+function registrarDiagnosticoPayloadQrTrazabilidad(payload, textoQr) {
+    const payloadJson = JSON.stringify(payload);
+
+    console.log("[QR TRAZABILIDAD] Texto QR generado", {
+        caracteresTextoQr: textoQr.length,
+        prefijo: textoQr.substring(0, 7),
+        empiezaConGFEQR1: textoQr.indexOf("GFEQR1:") === 0,
+        caracteresPayloadJson: payloadJson.length,
+        camposPayload: Object.keys(payload).length
+    });
 }
 
 function desencriptarPayloadQrTrazabilidad(textoQr) {

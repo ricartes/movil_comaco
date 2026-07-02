@@ -630,8 +630,8 @@ function tabla_proveedores(id_gde) {
                 "</td><td class='label-cell'>" +
                 result[i].SN_Nombre +
                 "-" +
-                result[i].SN_Destino +
-                "</td> </tr>";
+                result[i].SN_Destino + "->" + result[i].project + "->" + result[i].NumAtCard
+            "</td> </tr>";
         }
 
         $$("#tbody_tabla_proveedores").html(htmls);

@@ -382,7 +382,7 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
 
                     if (resultadoQr && resultadoQr.ok) {
                         let datos = await generarDataTrazabilidad(
-                            TipoAccionTypes.GENERA_QR_TRAZABILIDAD_ORIGEN,
+                            TipoAccionTypes.INGRESA_PUNTO_FINAL,
                             Obtener_dato_local('user_activo'),
                             {
                                 rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,

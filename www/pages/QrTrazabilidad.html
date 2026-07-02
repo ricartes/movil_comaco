@@ -19,15 +19,16 @@
         <div class="list">
             <ul>
                 <li id="item-select-qr-trazabilidad">
-                    <a href="#" class="item-link smart-select" data-open-in="sheet">
+                    <a href="#" class="item-link smart-select" data-open-in="sheet"
+                        data-value-el="#texto_qr_trazabilidad">
                         <select id="combo_qr_trazabilidad" name="combo_qr_trazabilidad">
                             <option value="">Cargando guías...</option>
                         </select>
 
                         <div class="item-content">
-                            <div class="item-inner">
+                            <div class="item-inner qr-trazabilidad-select-inner">
                                 <div class="item-title">Guía</div>
-                                <div class="item-after" id="texto_qr_trazabilidad">
+                                <div class="item-subtitle" id="texto_qr_trazabilidad">
                                     SELECCIONAR
                                 </div>
                             </div>
@@ -43,8 +44,8 @@
             </p>
         </div>
 
-        <div class="block" style="text-align: center;">
-            <div id="qrcode_trazabilidad" style="display: inline-block;"></div>
+        <div class="block qr-trazabilidad-block">
+            <div id="qrcode_trazabilidad"></div>
         </div>
 
         <div class="block">
