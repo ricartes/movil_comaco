@@ -93,7 +93,6 @@ function generarPayloadEncriptadoQrTrazabilidad(gde, coordenadaCarga) {
     const payload = {
         v: 1,
         tipo: "QR_TRAZABILIDAD_ORIGEN",
-        vigenciaTipo: VigenciaQrTrazabilidad.POR_VIAJE,
 
         qrId: qrId,
         idUnicoMovil: gde.ID_UNICO_MOVIL,
@@ -106,13 +105,7 @@ function generarPayloadEncriptadoQrTrazabilidad(gde, coordenadaCarga) {
 
         codOrigen: gde.GDE_COD_ORIGEN || null,
         rolOrigen: gde.GDE_ROL || null,
-        rolComunaOrigen: gde.GDE_ROL_COMUNA || null,
-
-        codDestino: gde.GDE_COD_DESTINO || null,
-        guiaProveedor: gde.GDE_GUIA_PROVEEDOR || null,
-
-        uuid: typeof device !== "undefined" ? device.uuid : null,
-        usuario: Obtener_dato_local("user_activo") || null
+        rolComunaOrigen: gde.GDE_ROL_COMUNA || null
     };
 
     const textoQr = encriptarPayloadQrTrazabilidad(payload);
@@ -176,11 +169,12 @@ function registrarDiagnosticoPayloadQrTrazabilidad(payload, textoQr) {
     const payloadJson = JSON.stringify(payload);
 
     console.log("[QR TRAZABILIDAD] Texto QR generado", {
-        caracteresTextoQr: textoQr.length,
+        caracteresPayloadJsonAntesEncriptar: payloadJson.length,
+        caracteresTextoQrFinal: textoQr.length,
         prefijo: textoQr.substring(0, 7),
         empiezaConGFEQR1: textoQr.indexOf("GFEQR1:") === 0,
-        caracteresPayloadJson: payloadJson.length,
-        camposPayload: Object.keys(payload).length
+        camposPayload: Object.keys(payload).length,
+        camposIncluidos: Object.keys(payload)
     });
 }
 
