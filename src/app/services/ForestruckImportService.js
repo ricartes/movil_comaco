@@ -265,6 +265,7 @@ export function asignarProductoDesdeOc(oc = {}) {
 export function asignarClienteDestinoDesdeOc(oc = {}) {
     return new ClienteDestinoDTO({
         destinoCliente: oc.destinoCliente,
+        direccionCliente: oc.direccionCliente,
         direccionDestinoCliente: oc.direccionDestinoCliente,
         comunaDestinoCliente: oc.comunaDestinoCliente,
         ciudadDestinoCliente: oc.ciudadDestinoCliente,
