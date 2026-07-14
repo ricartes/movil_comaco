@@ -2,16 +2,25 @@
 import store from '@/js/store';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 
-const SCAN_MS = 4500;
+const SCAN_MS = 8000;
 const CONNECT_TIMEOUT_MS = 8000;
 
-// ✅ Si te “pegaba” con imágenes, baja a 90 (tu prueba buena). Si no, 120 ok.
 const WRITE_CHUNK = 120;
-// ✅ 0 = más fluido. Si alguna impresora se pega, sube a 2..8ms.
 const WRITE_DELAY_MS = 0;
 
+// Las imágenes son mucho más grandes que el texto. Se envían con un perfil
+// conservador para no llenar el pequeño buffer de las impresoras térmicas BLE.
+const IMAGE_WRITE_PROFILE = Object.freeze({
+    chunkSize: 90,
+    delayMs: 6,
+});
+const IMAGE_BAND_HEIGHT = 24;
+const IMAGE_BAND_PAUSE_MS = 100;
+const IMAGE_FINAL_DRAIN_MS = 800;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const norm = (u) => String(u || '').toLowerCase();
+const norm = (u) => String(u || '').trim().toLowerCase();
+const normDeviceId = (u) => String(u || '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
 
 const FFE0 = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const FFE1 = '0000ffe1-0000-1000-8000-00805f9b34fb';
@@ -68,6 +77,7 @@ const RESET_TO_TEXT = new Uint8Array([
 let _initialized = false;
 let _connectedDeviceId = null;
 let _cachedPick = null;
+let _connectingPromise = null;
 
 // =========================
 // ENCODER (tu tabla CP850)
@@ -110,47 +120,187 @@ function normalizeEsText(str) {
 // =========================
 async function initOnce() {
     if (_initialized) return;
-    await BleClient.initialize();
+    await BleClient.initialize({ androidNeverForLocation: true });
     _initialized = true;
-    try { await BleClient.requestLEScanPermissions(); } catch { }
 }
 
 function getPreferredName() {
     return store?.state?.printer?.name || null;
 }
 
-async function scanFindDeviceIdByName(targetName) {
-    let found = null;
-
-    await BleClient.requestLEScan({ allowDuplicates: false }, (result) => {
-        const dev = result?.device;
-        if (!dev) return;
-        if (dev.name === targetName) found = dev.deviceId;
-    });
-
-    await sleep(SCAN_MS);
-    await BleClient.stopLEScan().catch(() => { });
-    return found;
+function getPreferredAddress() {
+    return store?.state?.printer?.address || null;
 }
 
-async function withTimeout(promise, ms, tag) {
-    let t;
-    const timeout = new Promise((_, rej) => {
-        t = setTimeout(() => rej(new Error(`${tag} timeout`)), ms);
-    });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+function bleLog(level, message, details = null) {
+    const suffix = details ? ` ${JSON.stringify(details)}` : '';
+    const fn = console[level] || console.log;
+    fn.call(console, `[BLE] ${message}${suffix}`);
 }
 
-async function connectByScanName(targetName) {
-    await initOnce();
+function matchesPrinter(device, targetName, targetAddress) {
+    if (!device?.deviceId) return false;
+    const wantedAddress = normDeviceId(targetAddress);
+    const matchesAddress = !!wantedAddress && normDeviceId(device.deviceId) === wantedAddress;
+    const matchesName = !!targetName && norm(device.name) === norm(targetName);
+    return matchesAddress || matchesName;
+}
 
-    const deviceId = await scanFindDeviceIdByName(targetName);
-    if (!deviceId) throw new Error(`No se encontró por BLE: ${targetName}`);
+async function scanFindDeviceId({ targetName, targetAddress }) {
+    const wantedName = norm(targetName);
+    const wantedAddress = normDeviceId(targetAddress);
+    const seen = new Map();
+    let finish;
+    let timer;
 
-    await withTimeout(BleClient.connect(deviceId), CONNECT_TIMEOUT_MS, 'BLE connect');
+    const matchPromise = new Promise((resolve) => {
+        finish = resolve;
+        timer = setTimeout(() => resolve(null), SCAN_MS);
+    });
+
+    bleLog('info', 'Iniciando escaneo.', {
+        targetName,
+        hasTargetAddress: !!wantedAddress,
+        scanMs: SCAN_MS,
+    });
+
+    try {
+        await BleClient.requestLEScan({ allowDuplicates: false }, (result) => {
+            const dev = result?.device;
+            if (!dev?.deviceId) return;
+
+            const advertisedName = dev.name || result?.localName || '';
+            const deviceId = dev.deviceId;
+            const key = normDeviceId(deviceId) || String(deviceId);
+
+            if (!seen.has(key)) {
+                seen.set(key, advertisedName || '(sin nombre)');
+                bleLog('info', 'Dispositivo detectado.', {
+                    name: advertisedName || null,
+                    deviceId,
+                    rssi: result?.rssi ?? null,
+                });
+            }
+
+            const matchesAddress = !!wantedAddress && normDeviceId(deviceId) === wantedAddress;
+            const matchesName = !!wantedName && norm(advertisedName) === wantedName;
+
+            if (matchesAddress || matchesName) {
+                bleLog('info', 'Impresora encontrada.', {
+                    name: advertisedName || null,
+                    deviceId,
+                    matchedBy: matchesAddress ? 'address' : 'name',
+                });
+                finish(deviceId);
+            }
+        });
+
+        const deviceId = await matchPromise;
+        if (!deviceId) {
+            bleLog('warn', 'Escaneo finalizado sin coincidencia.', {
+                targetName,
+                devicesSeen: seen.size,
+                namesSeen: [...new Set(seen.values())],
+            });
+        }
+        return deviceId;
+    } finally {
+        clearTimeout(timer);
+        await BleClient.stopLEScan().catch((e) => {
+            bleLog('warn', 'No fue posible detener el escaneo.', {
+                error: String(e?.message || e),
+            });
+        });
+    }
+}
+
+async function connectDevice(deviceId, source) {
+    bleLog('info', 'Conectando impresora.', { deviceId, source });
+    await BleClient.connect(
+        deviceId,
+        (disconnectedDeviceId) => {
+            if (normDeviceId(disconnectedDeviceId) !== normDeviceId(_connectedDeviceId)) return;
+            bleLog('warn', 'Impresora desconectada.', { deviceId: disconnectedDeviceId });
+            _connectedDeviceId = null;
+            _cachedPick = null;
+        },
+        { timeout: CONNECT_TIMEOUT_MS }
+    );
     _connectedDeviceId = deviceId;
     _cachedPick = null;
+    bleLog('info', 'Impresora conectada.', { deviceId, source });
     return deviceId;
+}
+
+async function tryConnectDevice(deviceId, source) {
+    if (!deviceId) return false;
+    try {
+        await connectDevice(deviceId, source);
+        return true;
+    } catch (e) {
+        bleLog('warn', 'Falló intento de conexión.', {
+            deviceId,
+            source,
+            error: String(e?.message || e),
+        });
+        await BleClient.disconnect(deviceId).catch(() => { });
+        return false;
+    }
+}
+
+async function findBondedPrinter(targetName, targetAddress) {
+    try {
+        const devices = await BleClient.getBondedDevices();
+        const bonded = Array.isArray(devices) ? devices : [];
+        bleLog('info', 'Dispositivos vinculados consultados.', {
+            count: bonded.length,
+            devices: bonded.map((device) => ({
+                name: device?.name || null,
+                deviceId: device?.deviceId || null,
+            })),
+        });
+        return bonded.find((device) => matchesPrinter(device, targetName, targetAddress)) || null;
+    } catch (e) {
+        bleLog('warn', 'No fue posible consultar dispositivos vinculados.', {
+            error: String(e?.message || e),
+        });
+        return null;
+    }
+}
+
+async function connectPreferredPrinter(targetName, targetAddress = null) {
+    await initOnce();
+
+    const attemptedDeviceIds = new Set();
+    const tryOnce = async (deviceId, source) => {
+        const key = normDeviceId(deviceId) || String(deviceId || '');
+        if (!key || attemptedDeviceIds.has(key)) return false;
+        attemptedDeviceIds.add(key);
+        return tryConnectDevice(deviceId, source);
+    };
+
+    const bonded = await findBondedPrinter(targetName, targetAddress);
+    if (bonded?.deviceId) {
+        const connected = await tryOnce(bonded.deviceId, 'bonded-device');
+        if (connected) return _connectedDeviceId;
+    }
+
+    const normalizedAddress = normDeviceId(targetAddress);
+    if (normalizedAddress.length === 12) {
+        const connected = await tryOnce(targetAddress, 'saved-address');
+        if (connected) return _connectedDeviceId;
+    }
+
+    const scannedDeviceId = await scanFindDeviceId({ targetName, targetAddress });
+    if (!scannedDeviceId) {
+        throw new Error(`No se encontró por BLE: ${targetName}. Verifica que esté encendida y en modo BLE.`);
+    }
+
+    const connected = await tryOnce(scannedDeviceId, 'scan');
+    if (!connected) {
+        throw new Error(`Se encontró ${targetName}, pero no fue posible conectar por BLE.`);
+    }
+    return _connectedDeviceId;
 }
 
 async function pickWriteCharacteristic(deviceId) {
@@ -185,15 +335,20 @@ async function pickWriteCharacteristic(deviceId) {
     throw new Error('No encontré ninguna characteristic con WRITE.');
 }
 
-async function writeBytes(deviceId, svc, chr, bytes) {
-    for (let i = 0; i < bytes.length; i += WRITE_CHUNK) {
-        const chunk = bytes.slice(i, i + WRITE_CHUNK);
+async function writeBytes(deviceId, svc, chr, bytes, options = {}) {
+    const chunkSize = Math.max(20, Number(options.chunkSize) || WRITE_CHUNK);
+    const delayMs = Math.max(0, Number(options.delayMs) || WRITE_DELAY_MS);
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
         try {
             await BleClient.writeWithoutResponse(deviceId, svc, chr, chunk);
         } catch {
             await BleClient.write(deviceId, svc, chr, chunk);
         }
-        if (WRITE_DELAY_MS) await sleep(WRITE_DELAY_MS);
+
+        const hasMore = i + chunk.length < bytes.length;
+        if (hasMore && delayMs) await sleep(delayMs);
     }
 }
 
@@ -221,14 +376,15 @@ async function loadImageFromBase64(base64String) {
     return img;
 }
 
-function buildEscPosRasterFromImageData(imageData, width, height, threshold = 180) {
+function buildEscPosRasterBand(imageData, width, startY, bandHeight, threshold = 180) {
     const bytesPerRow = Math.ceil(width / 8);
-    const data = new Uint8Array(bytesPerRow * height);
+    const data = new Uint8Array(bytesPerRow * bandHeight);
 
     const d = imageData.data;
     let di = 0;
 
-    for (let y = 0; y < height; y++) {
+    for (let y = 0; y < bandHeight; y++) {
+        const sourceY = startY + y;
         for (let xByte = 0; xByte < bytesPerRow; xByte++) {
             let byte = 0;
             for (let bit = 0; bit < 8; bit++) {
@@ -236,7 +392,7 @@ function buildEscPosRasterFromImageData(imageData, width, height, threshold = 18
                 byte <<= 1;
 
                 if (x < width) {
-                    const idx = (y * width + x) * 4;
+                    const idx = (sourceY * width + x) * 4;
                     const r = d[idx], g = d[idx + 1], b = d[idx + 2], a = d[idx + 3];
 
                     if (a >= 32) {
@@ -251,8 +407,8 @@ function buildEscPosRasterFromImageData(imageData, width, height, threshold = 18
 
     const xL = bytesPerRow & 0xff;
     const xH = (bytesPerRow >> 8) & 0xff;
-    const yL = height & 0xff;
-    const yH = (height >> 8) & 0xff;
+    const yL = bandHeight & 0xff;
+    const yH = (bandHeight >> 8) & 0xff;
 
     const header = new Uint8Array([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
     const out = new Uint8Array(header.length + data.length);
@@ -261,7 +417,7 @@ function buildEscPosRasterFromImageData(imageData, width, height, threshold = 18
     return out;
 }
 
-async function rasterizeBase64ToEscPos(base64String, targetWidthPx) {
+async function rasterizeBase64ToEscPosBands(base64String, targetWidthPx) {
     const img = await loadImageFromBase64(base64String);
     const w0 = img.naturalWidth || img.width;
     const h0 = img.naturalHeight || img.height;
@@ -282,7 +438,17 @@ async function rasterizeBase64ToEscPos(base64String, targetWidthPx) {
     ctx.drawImage(img, 0, 0, w, h);
 
     const imageData = ctx.getImageData(0, 0, w, h);
-    return buildEscPosRasterFromImageData(imageData, w, h, 180);
+    const bands = [];
+    let totalBytes = 0;
+
+    for (let startY = 0; startY < h; startY += IMAGE_BAND_HEIGHT) {
+        const bandHeight = Math.min(IMAGE_BAND_HEIGHT, h - startY);
+        const band = buildEscPosRasterBand(imageData, w, startY, bandHeight, 180);
+        bands.push(band);
+        totalBytes += band.length;
+    }
+
+    return { bands, width: w, height: h, totalBytes };
 }
 
 // =========================
@@ -300,8 +466,14 @@ export async function ensureConnected() {
     const name = getPreferredName();
     if (!name) return false;
     if (_connectedDeviceId) return true;
-    await connectByScanName(name);
-    return true;
+    if (!_connectingPromise) {
+        _connectingPromise = connectPreferredPrinter(name, getPreferredAddress())
+            .finally(() => {
+                _connectingPromise = null;
+            });
+    }
+    await _connectingPromise;
+    return !!_connectedDeviceId;
 }
 
 export async function isConnected() {
@@ -310,7 +482,7 @@ export async function isConnected() {
 
 export async function connectByName(name) {
     if (!name) throw new Error('Nombre de impresora vacío');
-    await connectByScanName(name);
+    await connectPreferredPrinter(name, getPreferredAddress());
     return true;
 }
 
@@ -373,7 +545,7 @@ export async function printTextSizeAlignSafe(text, size = '0', align = '0') {
     await writeBytes(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
 }
 
-// ---------- IMAGEN BASE64 (SIN “PAUSAS ARTIFICIALES”) ----------
+// ---------- IMAGEN BASE64 ----------
 export async function printBase64Safe(base64String, align = '1', paperWidth = '48') {
     const ok = await ensureConnected();
     if (!ok) throw new Error('No hay impresora BLE configurada.');
@@ -382,15 +554,55 @@ export async function printBase64Safe(base64String, align = '1', paperWidth = '4
     const { serviceUuid, charUuid } = await pickWriteCharacteristic(deviceId);
 
     const targetWidthPx = (String(paperWidth) === '32') ? 384 : 576;
-    const raster = await rasterizeBase64ToEscPos(base64String, targetWidthPx);
+    const raster = await rasterizeBase64ToEscPosBands(base64String, targetWidthPx);
+    const startedAt = Date.now();
 
-    // ✅ setup con align en 1 solo envío
+    bleLog('info', 'Enviando imagen por bandas.', {
+        bytes: raster.totalBytes,
+        width: raster.width,
+        height: raster.height,
+        bands: raster.bands.length,
+        bandHeight: IMAGE_BAND_HEIGHT,
+        bandPauseMs: IMAGE_BAND_PAUSE_MS,
+        finalDrainMs: IMAGE_FINAL_DRAIN_MS,
+        ...IMAGE_WRITE_PROFILE,
+    });
+
+    // El setup y los comandos pequeños siguen saliendo sin pausas.
     await writeBytes(deviceId, serviceUuid, charUuid, setupWithAlign(align));
-    await writeBytes(deviceId, serviceUuid, charUuid, raster);
 
-    // feed final (sin sleeps grandes)
+    for (let index = 0; index < raster.bands.length; index++) {
+        try {
+            await writeBytes(
+                deviceId,
+                serviceUuid,
+                charUuid,
+                raster.bands[index],
+                IMAGE_WRITE_PROFILE
+            );
+        } catch (e) {
+            bleLog('error', 'Falló el envío de una banda de imagen.', {
+                band: index + 1,
+                bands: raster.bands.length,
+                error: String(e?.message || e),
+            });
+            throw e;
+        }
+
+        if (index + 1 < raster.bands.length) await sleep(IMAGE_BAND_PAUSE_MS);
+    }
+
+    // Da tiempo al cabezal para terminar la última banda antes del feed,
+    // reset y texto que continúan después de la imagen.
+    await sleep(IMAGE_FINAL_DRAIN_MS);
+
+    bleLog('info', 'Imagen enviada completamente.', {
+        bytes: raster.totalBytes,
+        bands: raster.bands.length,
+        durationMs: Date.now() - startedAt,
+    });
+
     await writeBytes(deviceId, serviceUuid, charUuid, new Uint8Array([0x0A, 0x0A, 0x0A]));
 
-    // deja la impresora lista para texto CP850 (sin sleeps)
     await writeBytes(deviceId, serviceUuid, charUuid, RESET_TO_TEXT);
 }
