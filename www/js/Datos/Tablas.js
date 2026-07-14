@@ -1,7 +1,7 @@
 /*funcion que crea las tablas al iniciar la app*/
 function Tablas_crear_tablas(valor) {
     return new Promise((resolve, reject) => {
-        this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 'system' });
+        var db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 'system' });
 
         const createTableQueries = [
             'CREATE TABLE IF NOT EXISTS USUARIO (USU_RUT INTEGER primary key, USU_ROL_ID INTEGER, USU_EMP_ID INTEGER, USU_NOMBRE TEXT, USU_APELLIDO TEXT, USU_USUARIO_SISTEMA TEXT, USU_PASSWORD TEXT, USU_ULTIMO_LOGIN TEXT)',
@@ -18,24 +18,20 @@ function Tablas_crear_tablas(valor) {
             'CREATE TABLE IF NOT EXISTS GEOCERCA_PREDETERMINADA (LATITUD_GEOCERCA REAL, LONGITUD_GEOCERCA REAL, RADIO_GEOCERCA REAL, ACTIVO INTEGER)'
         ];
 
-        this.db.transaction(function (tx) {
-            const promises = createTableQueries.map(query => {
-                return new Promise((resolveQuery, rejectQuery) => {
-                    tx.executeSql(query, [], () => {
-                        resolveQuery();
-                    }, (error) => {
-                        rejectQuery(error);
-                    });
-                });
-            });
+        db.transaction(function (tx) {
+            function crearSiguiente(indice) {
+                if (indice >= createTableQueries.length) {
+                    return;
+                }
 
-            Promise.all(promises)
-                .then(() => {
-                    resolve();
-                })
-                .catch((error) => {
-                    reject(error);
+                tx.executeSql(createTableQueries[indice], [], function () {
+                    crearSiguiente(indice + 1);
                 });
+            }
+
+            crearSiguiente(0);
+        }, reject, function () {
+            DATOS_inicializarSeguimientoSqlite().then(resolve).catch(reject);
         });
     });
 }

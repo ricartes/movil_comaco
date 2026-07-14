@@ -1329,6 +1329,58 @@ function comparar_fecha_hora_ws(fecha_hora, callback) {
 
 
 
+function extraerSeguimientosRecibeGuiaV2(data) {
+    var contenedor = $(data).find('SEGUIMIENTOS').first();
+    if (contenedor.length === 0) {
+        return null;
+    }
+
+    var seguimientos = [];
+    contenedor.find('CL_SeguimientoGuiaRespuesta').each(function () {
+        seguimientos.push({
+            ID_UNICO_MOVIL_GDE: $(this).find('ID_UNICO_MOVIL_GDE').first().text(),
+            ID_UNICO_SEGUIMIENTO: $(this).find('ID_UNICO_SEGUIMIENTO').first().text()
+        });
+    });
+
+    return seguimientos;
+}
+
+function procesarGuiasAceptadasRecibeGuiaV2(data, callback) {
+    var conta = 0;
+    var tamano = parseInt($(data).find('tam_list').text());
+    var seguimientos;
+
+    try {
+        seguimientos = extraerSeguimientosRecibeGuiaV2(data);
+    } catch (error) {
+        console.error("Respuesta inválida de Recibe_Guia_V2:", error);
+        typeof callback == "function" && callback(-1);
+        return;
+    }
+
+    procesarSeguimientosRecibeGuiaV2(seguimientos).then(function () {
+        if (tamano == 0) {
+            typeof callback == "function" && callback(0);
+            return;
+        }
+
+        $(data).find('CL_GDE_Proveedor').each(function () {
+            var ID_UNICO_MOVIL = $(this).find('ID_UNICO_MOVIL').text();
+
+            DATOS_cambiar_estado_envio_gde_individual(ID_UNICO_MOVIL, function (result2) {
+                conta++;
+                if (confirma_guardado_parametro(conta, tamano) == 1) {
+                    typeof callback == "function" && callback(1);
+                }
+            });
+        });
+    }).catch(function (error) {
+        console.error("No fue posible guardar SEGUIMIENTOS de Recibe_Guia_V2:", error);
+        typeof callback == "function" && callback(-1);
+    });
+}
+
 function enviar_guias_proveedor(bandera, callback) {
 
 
@@ -1350,31 +1402,7 @@ function enviar_guias_proveedor(bandera, callback) {
                     },
                     dataType: 'xml',
                     success: function (data) {
-
-                        var conta = 0;
-                        var tamano = parseInt($(data).find('tam_list').text());
-
-                        if (tamano == 0) {
-                            typeof callback == "function" && callback(0);
-                        } else {
-
-
-                            $(data).find('CL_GDE_Proveedor').each(function () {
-                                var ID_UNICO_MOVIL = $(this).find('ID_UNICO_MOVIL').text();
-
-
-                                DATOS_cambiar_estado_envio_gde_individual(ID_UNICO_MOVIL, function (result2) {
-                                    conta++;
-                                    if (confirma_guardado_parametro(conta, tamano) == 1) {
-                                        typeof callback == "function" && callback(1);
-                                    }
-                                });
-
-
-
-                            });
-                        }
-
+                        procesarGuiasAceptadasRecibeGuiaV2(data, callback);
                     },
 
                     error: function (err) {
