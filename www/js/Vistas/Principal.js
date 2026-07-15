@@ -251,32 +251,20 @@ async function reevaluarTrackingAhora() {
 
         console.log("[TRACKING] reevaluación inmediata:", JSON.stringify(validacion));
 
+        const reconciliacion = await reconciliarEstadoGpsNativo({
+            usuarioActivo: usuarioActivo,
+            procesoActual: procesoActual,
+            guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+            validacion: validacion
+        });
+
         if (!validacion.ok) {
-            stopTracking();
-            desactivarBackgroundModeSeguro();
             mostrarAlertasTrackingFaltantes(validacion);
-            return false;
-        }
-
-        resetTrackingAlertas();
-        activarBackgroundModeSeguro();
-
-        const hayGuiasPendientes =
-            ((procesoActual && procesoActual !== "") ||
-                (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0));
-
-        console.log("[TRACKING] reevaluar -> usuarioActivo:", usuarioActivo);
-        console.log("[TRACKING] reevaluar -> hayGuiasPendientes:", hayGuiasPendientes);
-
-        if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
-            console.log("[TRACKING] reevaluar -> startTracking()");
-            startTracking();
-            return true;
         } else {
-            console.log("[TRACKING] reevaluar -> stopTracking()");
-            stopTracking();
-            return false;
+            resetTrackingAlertas();
         }
+
+        return reconciliacion.debeEstarActivo;
     } catch (e) {
         console.error("[TRACKING] Error en reevaluarTrackingAhora:", e);
         return false;
@@ -297,28 +285,17 @@ function controlarTrackingDinamico() {
 
             console.log("[TRACKING] validación periódica:", JSON.stringify(validacion));
 
+            await reconciliarEstadoGpsNativo({
+                usuarioActivo: usuarioActivo,
+                procesoActual: procesoActual,
+                guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+                validacion: validacion
+            });
+
             if (!validacion.ok) {
-                stopTracking();
-                desactivarBackgroundModeSeguro();
                 mostrarAlertasTrackingFaltantes(validacion);
             } else {
                 resetTrackingAlertas();
-                activarBackgroundModeSeguro();
-
-                const hayGuiasPendientes =
-                    ((procesoActual && procesoActual !== "") ||
-                        (Array.isArray(gdeNoConfirmadas) && gdeNoConfirmadas.length > 0));
-
-                console.log('[TRACKING] usuarioActivo:', usuarioActivo);
-                console.log('[TRACKING] hayGuiasPendientes:', hayGuiasPendientes);
-
-                if (usuarioActivo && usuarioActivo !== "" && hayGuiasPendientes) {
-                    console.log('[TRACKING] -> startTracking()');
-                    startTracking();
-                } else {
-                    console.log('[TRACKING] -> stopTracking()');
-                    stopTracking();
-                }
             }
 
         } catch (e) {
@@ -494,6 +471,7 @@ function inicializarBackgroundMode() {
     });
 
     cordova.plugins.backgroundMode.on("activate", onActivate);
+    cordova.plugins.backgroundMode.on("deactivate", onDeactivate);
 
     backgroundModeInicializado = true;
     console.log("[BG-MODE] inicializado");
@@ -518,6 +496,7 @@ function activarBackgroundModeSeguro() {
 
 function desactivarBackgroundModeSeguro() {
     try {
+        onDeactivate();
         if (backgroundModeActivo) {
             cordova.plugins.backgroundMode.disable();
             backgroundModeActivo = false;

@@ -5,6 +5,17 @@ let ultimoTimestamp = null;
 let ultimoGuardadoMs = 0;
 
 const ultimaUbicacionPorGuia = new Map();
+const ultimaUbicacionLegacyPorGuia = new Map();
+
+let lastKnownLocationLegacy = null;
+let ultimoTimestampLegacy = null;
+let ultimoGuardadoLegacyMs = 0;
+let colaCapturasGps = Promise.resolve();
+let colaOperacionesGps = Promise.resolve();
+let temporizadorInicioGps = null;
+let inicioTrackingMs = 0;
+let ultimoDiagnosticoGps = null;
+let configuracionGpsEfectiva = null;
 
 // Umbrales de tiempo (en ms)
 const UMBRAL_MS_GDE_ACTUAL = 5 * 1000;        // 10 segundos
@@ -36,7 +47,7 @@ document.addEventListener("resume", function () {
 function configureBackgroundGeolocation() {
 
 
-    BackgroundGeolocation.configure({
+    Promise.resolve(BackgroundGeolocation.configure({
         locationProvider: BackgroundGeolocation.RAW_PROVIDER, // O RAW_PROVIDER si quieres full precisión
         desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Máxima precisión GPS
         stationaryRadius: 5,      // 10 metros: si se mueve menos, se considera quieto
@@ -47,58 +58,16 @@ function configureBackgroundGeolocation() {
         debug: false,
         stopOnTerminate: false,
         startOnBoot: true
+    })).then(function () {
+        return registrarDiagnosticoGps();
+    }).catch(function (error) {
+        console.error("[TRACKING][DIAGNOSTICO] No fue posible obtener la configuración efectiva:", error);
     });
 
 
     // Maneja actualizaciones de ubicación
-    BackgroundGeolocation.on('location', async function (location) {
-        try {
-            ultimaUbicacionRecibidaMs = Date.now();
-            console.log('[BG] location recibida:', JSON.stringify(location));
-
-            const { latitude, longitude, speed, time } = location;
-            const ahoraMs = Date.now();
-
-            console.log('[BG] ultimoTimestamp:', ultimoTimestamp, 'time actual:', time);
-            if (ultimoTimestamp && time === ultimoTimestamp) {
-                console.log('[BG] DESCARTA -> mismo timestamp que el anterior');
-                return;
-            }
-
-            // Filtro por tiempo: mínimo 10s entre registros guardados
-            if (ultimoGuardadoMs && (ahoraMs - ultimoGuardadoMs) < UMBRAL_MS_GLOBAL) {
-                console.log('[BG] DESCARTA -> menos de 10s desde el último guardado');
-                return;
-            }
-
-            if (lastKnownLocation) {
-                const distancia = calcularDistanciaMetros(
-                    latitude,
-                    longitude,
-                    lastKnownLocation.latitude,
-                    lastKnownLocation.longitude
-                );
-                console.log('[BG] distancia respecto al último punto:', distancia, 'm, speed:', speed);
-
-                if (speed <= 0 && distancia < 1) {
-                    console.log('[BG] DESCARTA -> quieto y distancia < 1m');
-                    return;
-                }
-            }
-
-            console.log('[BG] ACEPTA -> actualiza lastKnownLocation y guarda');
-            lastKnownLocation = location;
-            ultimoTimestamp = time;
-            ultimoGuardadoMs = ahoraMs;
-
-            await saveLocation(location);
-
-            console.log('[BG] saveLocation() completó OK');
-            return;
-        } catch (error) {
-            console.error("Error al procesar la ubicación:", error);
-            return;
-        }
+    BackgroundGeolocation.on('location', function (location) {
+        return encolarCapturaGps(location, new Date());
     });
 
     BackgroundGeolocation.on('stationary', function (stationaryLocation) {
@@ -118,6 +87,102 @@ function configureBackgroundGeolocation() {
 }
 
 
+function normalizarCapturaGps(location, fechaRecepcion) {
+    if (!location || typeof location !== "object") {
+        throw new Error("CAPTURA_NULA");
+    }
+
+    if (!SEGUIMIENTO_numeroFinito(location.latitude) || location.latitude < -90 || location.latitude > 90) {
+        throw new Error("LATITUD_INVALIDA");
+    }
+
+    if (!SEGUIMIENTO_numeroFinito(location.longitude) || location.longitude < -180 || location.longitude > 180) {
+        throw new Error("LONGITUD_INVALIDA");
+    }
+
+    if (location.time === undefined || location.time === null || location.time === "") {
+        throw new Error("FECHA_CAPTURA_AUSENTE");
+    }
+
+    if (typeof location.time === "string") {
+        const timeTexto = location.time.trim();
+        if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(timeTexto)) {
+            throw new Error("FECHA_CAPTURA_SIN_ZONA");
+        }
+    }
+
+    const fechaCaptura = new Date(location.time);
+    if (!Number.isFinite(fechaCaptura.getTime())) {
+        throw new Error("FECHA_CAPTURA_INVALIDA");
+    }
+
+    const fechaUtc = fechaCaptura.toISOString();
+    if (!fechaUtc.endsWith("Z")) {
+        throw new Error("FECHA_CAPTURA_NO_UTC");
+    }
+
+    if (!SEGUIMIENTO_numeroFinito(location.accuracy) || location.accuracy < 0) {
+        throw new Error("PRECISION_INVALIDA");
+    }
+
+    const fechaRecepcionMs = new Date(fechaRecepcion).getTime();
+    if (!Number.isFinite(fechaRecepcionMs)) {
+        throw new Error("FECHA_RECEPCION_INVALIDA");
+    }
+
+    const speed = SEGUIMIENTO_numeroFinito(location.speed) && location.speed >= 0
+        ? location.speed
+        : null;
+    const bearing = SEGUIMIENTO_numeroFinito(location.bearing) && location.bearing >= 0 && location.bearing < 360
+        ? location.bearing
+        : null;
+    const altitude = SEGUIMIENTO_numeroFinito(location.altitude)
+        ? location.altitude
+        : null;
+    const mockProvider = location.isFromMockProvider === true ||
+        location.isFromMockProvider === 1 ||
+        location.isFromMockProvider === "1" ||
+        (typeof location.isFromMockProvider === "string" && location.isFromMockProvider.toLowerCase() === "true");
+
+    return {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+        speed: speed,
+        bearing: bearing,
+        altitude: altitude,
+        isFromMockProvider: mockProvider,
+        time: fechaUtc,
+        fechaRecepcionMs: fechaRecepcionMs
+    };
+}
+
+function encolarCapturaGps(location, fechaRecepcion) {
+    ultimaUbicacionRecibidaMs = new Date(fechaRecepcion).getTime();
+
+    const tarea = colaCapturasGps.then(function () {
+        return procesarCapturaGps(location, fechaRecepcion);
+    });
+
+    colaCapturasGps = tarea.catch(function (error) {
+        console.error("[GPS] Error controlado procesando captura:", error);
+    });
+
+    return tarea;
+}
+
+async function procesarCapturaGps(location, fechaRecepcion) {
+    let captura;
+    try {
+        captura = normalizarCapturaGps(location, fechaRecepcion);
+    } catch (error) {
+        console.warn("[GPS][RECHAZO]", error && error.message ? error.message : "CAPTURA_INVALIDA");
+        return { capturaValida: false, nuevoPersistido: false, legacyPersistido: false };
+    }
+
+    return await saveLocation(captura);
+}
+
 function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
     const R = 6371000; // Radio de la Tierra en metros
     const toRad = (x) => x * Math.PI / 180;
@@ -136,83 +201,239 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
 
 // Función para iniciar el rastreo
 function startTracking() {
-    BackgroundGeolocation.checkStatus(function (status) {
-        console.log('[TRACKING] checkStatus isRunning:', status.isRunning);
-        console.log('[TRACKING] checkStatus locationServicesEnabled:', status.locationServicesEnabled);
-        console.log('[TRACKING] checkStatus authorization:', status.authorization);
-        console.log('[TRACKING] isTrackingEnabled local:', isTrackingEnabled);
-        console.log('[TRACKING] appVisible:', appVisible);
-
-        if (!status.locationServicesEnabled) {
-            console.warn("[TRACKING] Servicios de ubicación desactivados.");
-            isTrackingEnabled = false;
-            return;
-        }
-
-        if (!status.isRunning) {
-            BackgroundGeolocation.start();
-            isTrackingEnabled = true;
-            console.log("[TRACKING] BackgroundGeolocation.start() ejecutado.");
-            return;
-        }
-
-        isTrackingEnabled = true;
-        console.log("[TRACKING] BackgroundGeolocation ya estaba iniciado.");
-
-        const ahoraMs = Date.now();
-        const msSinUbicacion = ultimaUbicacionRecibidaMs
-            ? (ahoraMs - ultimaUbicacionRecibidaMs)
-            : null;
-
-        console.log("[TRACKING] msSinUbicacion:", msSinUbicacion);
-
-        // Solo forzar restart si la app está visible
-        if (
-            appVisible &&
-            (!ultimaUbicacionRecibidaMs || msSinUbicacion > UMBRAL_RESTART_SIN_UBICACION_MS)
-        ) {
-            console.log("[TRACKING] Plugin activo pero sin ubicaciones recientes, se forzará restart");
-
-            BackgroundGeolocation.stop();
-
-            setTimeout(function () {
-                BackgroundGeolocation.start();
-                isTrackingEnabled = true;
-                console.log("[TRACKING] Restart ejecutado");
-            }, 500);
-        }
-    });
+    return reconciliarEstadoGpsNativo();
 }
 
 // Función para detener el rastreo
 function stopTracking() {
-    if (!isTrackingEnabled) {
-        console.log("[TRACKING] El rastreo ya está deshabilitado.");
+    cancelarInicioGpsDiferido();
+    return serializarOperacionGps(async function () {
+        const status = await consultarStatusGps();
+        await detenerGpsSiCorresponde(status);
+        return status;
+    });
+}
+
+function serializarOperacionGps(operacion) {
+    const tarea = colaOperacionesGps.then(operacion, operacion);
+    colaOperacionesGps = tarea.catch(function (error) {
+        console.error("[TRACKING] Operación GPS fallida:", error);
+    });
+    return tarea;
+}
+
+function consultarStatusGps() {
+    return new Promise(function (resolve, reject) {
+        BackgroundGeolocation.checkStatus(resolve, reject);
+    });
+}
+
+function consultarConfigGps() {
+    return new Promise(function (resolve, reject) {
+        BackgroundGeolocation.getConfig(resolve, reject);
+    });
+}
+
+function cancelarInicioGpsDiferido() {
+    if (temporizadorInicioGps !== null) {
+        clearTimeout(temporizadorInicioGps);
+        temporizadorInicioGps = null;
+        console.log("[TRACKING] Inicio GPS diferido cancelado.");
+    }
+}
+
+function programarInicioGpsDiferido() {
+    cancelarInicioGpsDiferido();
+    temporizadorInicioGps = setTimeout(function () {
+        temporizadorInicioGps = null;
+        reconciliarEstadoGpsNativo().catch(function (error) {
+            console.error("[TRACKING] No fue posible reconciliar el inicio GPS diferido:", error);
+        });
+    }, 500);
+}
+
+async function iniciarGpsSiCorresponde(status) {
+    if (status.isRunning) {
+        if (!isTrackingEnabled) {
+            inicioTrackingMs = Date.now();
+        }
+        isTrackingEnabled = true;
+
+        const referenciaActividadMs = ultimaUbicacionRecibidaMs || inicioTrackingMs;
+        const sinUbicacionReciente = referenciaActividadMs &&
+            (Date.now() - referenciaActividadMs) > UMBRAL_RESTART_SIN_UBICACION_MS;
+
+        if (appVisible && sinUbicacionReciente && temporizadorInicioGps === null) {
+            console.warn("[TRACKING] Servicio activo sin ubicaciones recientes; se programará una reconciliación.");
+            await Promise.resolve(BackgroundGeolocation.stop());
+            isTrackingEnabled = false;
+            inicioTrackingMs = 0;
+            programarInicioGpsDiferido();
+        }
         return;
     }
 
-    BackgroundGeolocation.stop();
+    cancelarInicioGpsDiferido();
+    await Promise.resolve(BackgroundGeolocation.start());
+    isTrackingEnabled = true;
+    inicioTrackingMs = Date.now();
+    console.log("[TRACKING] BackgroundGeolocation iniciado por diferencia de estado.");
+}
+
+async function detenerGpsSiCorresponde(status) {
+    cancelarInicioGpsDiferido();
+
+    if (status.isRunning) {
+        await Promise.resolve(BackgroundGeolocation.stop());
+        console.log("[TRACKING] BackgroundGeolocation detenido por diferencia de estado.");
+    }
+
     isTrackingEnabled = false;
+    inicioTrackingMs = 0;
     ultimaUbicacionRecibidaMs = 0;
-    console.log("[TRACKING] BackgroundGeolocation detenido.");
+}
+
+function extraerIdGuiaActiva(guia) {
+    return SEGUIMIENTO_textoCapturaDisponible(guia && (
+        guia.ID_UNICO_MOVIL || guia.ID_UNICO_MOVIL_GDE
+    ));
+}
+
+function limpiarUltimaUbicacionGuiasInactivas(guiasActivas, limpiarTodas) {
+    const idsActivos = new Set();
+    (Array.isArray(guiasActivas) ? guiasActivas : []).forEach(function (guia) {
+        const idGuia = extraerIdGuiaActiva(guia);
+        if (idGuia) {
+            idsActivos.add(idGuia.toUpperCase());
+        }
+    });
+
+    [ultimaUbicacionPorGuia, ultimaUbicacionLegacyPorGuia].forEach(function (mapa) {
+        limpiarMapaUltimaUbicacionGuias(mapa, idsActivos, limpiarTodas);
+    });
+}
+
+function limpiarMapaUltimaUbicacionGuias(mapa, guiasActivas, limpiarTodas) {
+    const idsActivos = guiasActivas instanceof Set
+        ? guiasActivas
+        : new Set((Array.isArray(guiasActivas) ? guiasActivas : []).map(function (guia) {
+            const idGuia = extraerIdGuiaActiva(guia);
+            return idGuia ? idGuia.toUpperCase() : null;
+        }).filter(Boolean));
+
+    Array.from(mapa.keys()).forEach(function (idGuia) {
+        const clave = String(idGuia).trim().toUpperCase();
+        if (limpiarTodas || (idsActivos.size > 0 && !idsActivos.has(clave))) {
+            mapa.delete(idGuia);
+        }
+    });
+}
+
+async function obtenerContextoReconciliacionGps(contexto) {
+    if (contexto) {
+        return contexto;
+    }
+
+    const usuarioActivo = Obtener_dato_local("rut_activo");
+    const procesoActual = Obtener_dato_local("id_proceso_activo");
+    const guiasActivas = typeof DATOS_seleccionarGdeProveedorConfirmadas === "function"
+        ? await DATOS_seleccionarGdeProveedorConfirmadas()
+        : await listarGdeProveedorNoConfirmadas();
+    const validacion = await validarRequisitosTrackingCordova();
+
+    return {
+        usuarioActivo: usuarioActivo,
+        procesoActual: procesoActual,
+        guiasActivas: Array.isArray(guiasActivas) ? guiasActivas : [],
+        validacion: validacion
+    };
+}
+
+async function registrarDiagnosticoGps(config, status) {
+    const configEfectiva = config || configuracionGpsEfectiva || await consultarConfigGps();
+    const statusEfectivo = status || await consultarStatusGps();
+    configuracionGpsEfectiva = configEfectiva;
+
+    const diagnostico = {
+        locationProvider: configEfectiva.locationProvider,
+        desiredAccuracy: configEfectiva.desiredAccuracy,
+        distanceFilter: configEfectiva.distanceFilter,
+        interval: configEfectiva.interval,
+        fastestInterval: configEfectiva.fastestInterval,
+        startForeground: configEfectiva.startForeground,
+        stopOnTerminate: configEfectiva.stopOnTerminate,
+        startOnBoot: configEfectiva.startOnBoot,
+        notificationsEnabled: configEfectiva.notificationsEnabled,
+        isRunning: statusEfectivo.isRunning,
+        authorization: statusEfectivo.authorization,
+        locationServicesEnabled: statusEfectivo.locationServicesEnabled
+    };
+
+    const diagnosticoSerializado = JSON.stringify(diagnostico);
+    if (diagnosticoSerializado !== ultimoDiagnosticoGps) {
+        ultimoDiagnosticoGps = diagnosticoSerializado;
+        console.log("[TRACKING][DIAGNOSTICO]", diagnosticoSerializado);
+    }
+
+    return diagnostico;
+}
+
+function reconciliarEstadoGpsNativo(contexto) {
+    return serializarOperacionGps(async function () {
+        const estado = await obtenerContextoReconciliacionGps(contexto);
+        const guiasActivas = Array.isArray(estado.guiasActivas) ? estado.guiasActivas : [];
+        const haySesion = !!SEGUIMIENTO_textoCapturaDisponible(estado.usuarioActivo);
+        const hayGuiasActivas = !!SEGUIMIENTO_textoCapturaDisponible(estado.procesoActual) || guiasActivas.length > 0;
+        const permisosValidos = !!(estado.validacion && estado.validacion.ok);
+        const debeEstarActivo = haySesion && hayGuiasActivas && permisosValidos;
+        const status = await consultarStatusGps();
+
+        limpiarUltimaUbicacionGuiasInactivas(guiasActivas, !hayGuiasActivas);
+        try {
+            await registrarDiagnosticoGps(null, status);
+        } catch (error) {
+            console.error("[TRACKING][DIAGNOSTICO] Error controlado:", error);
+        }
+
+        if (debeEstarActivo) {
+            if (typeof activarBackgroundModeSeguro === "function") {
+                activarBackgroundModeSeguro();
+            }
+            await iniciarGpsSiCorresponde(status);
+        } else {
+            await detenerGpsSiCorresponde(status);
+            if (typeof desactivarBackgroundModeSeguro === "function") {
+                desactivarBackgroundModeSeguro();
+            }
+        }
+
+        return {
+            debeEstarActivo: debeEstarActivo,
+            haySesion: haySesion,
+            hayGuiasActivas: hayGuiasActivas,
+            permisosValidos: permisosValidos,
+            isRunning: isTrackingEnabled,
+            isTrackingEnabled: isTrackingEnabled
+        };
+    });
 }
 // Obtener la última ubicación registrada
 function getLastKnownLocation() {
     if (lastKnownLocation) {
         // Usar esUbicacionAntigua para validar la antigüedad
-        if (esUbicacionAntigua(lastKnownLocation.timestamp)) {
+        if (esUbicacionAntigua(lastKnownLocation.time)) {
             console.warn("La última ubicación conocida es antigua. Obteniendo una nueva ubicación...");
 
             // Solicitar una nueva ubicación y actualizar lastKnownLocation
             return new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        lastKnownLocation = {
+                        const ubicacionActual = {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude,
-                            timestamp: position.timestamp
+                            time: new Date(position.timestamp).toISOString()
                         };
-                        resolve(lastKnownLocation); // Retorna la nueva ubicación
+                        resolve(ubicacionActual); // No avanza el filtro sin persistencia
                     },
                     (error) => {
                         console.error("Error al obtener la nueva ubicación:", error.message);
@@ -236,12 +457,12 @@ function getLastKnownLocation() {
         return new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    lastKnownLocation = {
+                    const ubicacionActual = {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
-                        timestamp: position.timestamp
+                        time: new Date(position.timestamp).toISOString()
                     };
-                    resolve(lastKnownLocation); // Retorna la nueva ubicación
+                    resolve(ubicacionActual); // No avanza el filtro sin persistencia
                 },
                 (error) => {
                     console.error("Error al obtener la nueva ubicación:", error.message);
@@ -258,83 +479,166 @@ function getLastKnownLocation() {
 }
 
 
-async function saveLocation(location) {
-    const usuarioActivo = Obtener_dato_local('user_activo');
+async function obtenerGuiasCandidatasCaptura() {
     const procesoActual = Obtener_dato_local("id_proceso_activo");
     const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
-    const guiasQueSuperaronFiltros = [];
+    const guias = [];
+    const idsAgregados = new Set();
 
-    console.log('[SAVE] usuarioActivo:', usuarioActivo);
-    console.log('[SAVE] procesoActual:', procesoActual);
-    console.log('[SAVE] guiasNoConfirmadas length:', Array.isArray(guiasNoConfirmadas) ? guiasNoConfirmadas.length : 'NO ARRAY');
-    console.log('[SAVE] location usada:', location);
+    async function agregarGuia(guia, umbralMs) {
+        const idGuia = extraerIdGuiaActiva(guia);
+        if (!idGuia) {
+            return;
+        }
 
-    // 1) Guía/proceso actual
+        const clave = idGuia.toUpperCase();
+        if (!idsAgregados.has(clave)) {
+            idsAgregados.add(clave);
+            guias.push({ guia: guia, idGuia: idGuia, umbralMs: umbralMs });
+        }
+    }
+
     if (procesoActual && procesoActual !== "") {
-        const gde_actual = await seleccionarGdeProveedor(procesoActual);
-        const idUnicoActual = gde_actual?.ID_UNICO_MOVIL ?? null;
+        await agregarGuia(await seleccionarGdeProveedor(procesoActual), UMBRAL_MS_GDE_ACTUAL);
+    }
 
-        console.log('[SAVE] GDE actual:', gde_actual);
-        console.log('[SAVE] idUnicoActual:', idUnicoActual);
+    for (const guia of (Array.isArray(guiasNoConfirmadas) ? guiasNoConfirmadas : [])) {
+        await agregarGuia(guia, UMBRAL_MS_GUIA_NO_CONFIRMADA);
+    }
 
-        if (idUnicoActual && puedeRegistrarParaGuia(idUnicoActual, location, UMBRAL_MS_GDE_ACTUAL)) {
-            console.log('[SAVE] -> REGISTRA para guía ACTUAL', idUnicoActual);
-            const datos = await generarDataTrazabilidad(
-                TipoAccionTypes.CAPTURA_UBICACION,
-                usuarioActivo,
-                {
-                    rol: gde_actual?.GDE_COD_ORIGEN ?? null,
-                    despacho: gde_actual,
-                    id_unico_movil_gde: idUnicoActual
-                }
-            );
+    return guias;
+}
 
-            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
-            guiasQueSuperaronFiltros.push(gde_actual);
-            console.log('[SAVE] Insert trazabilidad guía ACTUAL OK');
-        } else {
-            console.log('[SAVE] NO registra para guía ACTUAL (puedeRegistrarParaGuia = false)');
+function capturaSuperaFiltroGlobal(captura, ultimaLocation, ultimoTime, ultimoGuardado) {
+    if (ultimoTime && captura.time === ultimoTime) {
+        return false;
+    }
+
+    if (ultimoGuardado && (captura.fechaRecepcionMs - ultimoGuardado) < UMBRAL_MS_GLOBAL) {
+        return false;
+    }
+
+    if (ultimaLocation) {
+        const distancia = calcularDistanciaMetros(
+            captura.latitude,
+            captura.longitude,
+            ultimaLocation.latitude,
+            ultimaLocation.longitude
+        );
+        if ((captura.speed === null || captura.speed <= 0) && distancia < 1) {
+            return false;
         }
     }
 
-    // 2) Guías no confirmadas
-    if (Array.isArray(guiasNoConfirmadas) && guiasNoConfirmadas.length > 0) {
-        for (const guia of guiasNoConfirmadas) {
-            const idUnicoGuia = guia?.ID_UNICO_MOVIL ?? null;
-            if (!idUnicoGuia) continue;
+    return true;
+}
 
-            console.log('[SAVE] Evaluando guía NO CONFIRMADA:', idUnicoGuia);
+function confirmarFiltroGlobalNuevo(captura) {
+    lastKnownLocation = captura;
+    ultimoTimestamp = captura.time;
+    ultimoGuardadoMs = captura.fechaRecepcionMs;
+}
 
-            if (!puedeRegistrarParaGuia(idUnicoGuia, location, UMBRAL_MS_GUIA_NO_CONFIRMADA)) {
-                console.log('[SAVE] NO registra para guía', idUnicoGuia, '(puedeRegistrarParaGuia = false)');
-                continue;
-            }
+function confirmarFiltroGlobalLegacy(captura) {
+    lastKnownLocationLegacy = captura;
+    ultimoTimestampLegacy = captura.time;
+    ultimoGuardadoLegacyMs = captura.fechaRecepcionMs;
+}
 
-            console.log('[SAVE] -> REGISTRA para guía NO CONFIRMADA', idUnicoGuia);
-
-            const datos = await generarDataTrazabilidad(
-                TipoAccionTypes.CAPTURA_UBICACION,
-                usuarioActivo,
-                {
-                    rol: guia?.GDE_COD_ORIGEN ?? null,
-                    despacho: guia,
-                    id_unico_movil_gde: idUnicoGuia
-                }
-            );
-
-            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
-            guiasQueSuperaronFiltros.push(guia);
-            console.log('[SAVE] Insert trazabilidad guía', idUnicoGuia, 'OK');
-        }
+async function registrarCapturaTrazabilidadLegacy(captura, usuarioActivo, guiasCandidatas) {
+    if (typeof HABILITAR_UBICACION_TRAZABILIDAD_LEGACY !== "undefined" && !HABILITAR_UBICACION_TRAZABILIDAD_LEGACY) {
+        return 0;
     }
 
-    if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO !== "undefined" && HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
+    if (!capturaSuperaFiltroGlobal(captura, lastKnownLocationLegacy, ultimoTimestampLegacy, ultimoGuardadoLegacyMs)) {
+        return 0;
+    }
+
+    let cantidadPersistida = 0;
+    for (const candidato of guiasCandidatas) {
+        if (!puedeRegistrarParaGuiaEnMapa(
+            ultimaUbicacionLegacyPorGuia,
+            candidato.idGuia,
+            captura,
+            candidato.umbralMs
+        )) {
+            continue;
+        }
+
         try {
-            await registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltros);
+            const datos = await generarDataTrazabilidad(
+                TipoAccionTypes.CAPTURA_UBICACION,
+                usuarioActivo,
+                {
+                    rol: candidato.guia && candidato.guia.GDE_COD_ORIGEN,
+                    despacho: candidato.guia,
+                    id_unico_movil_gde: candidato.idGuia
+                }
+            );
+
+            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, captura);
+            confirmarRegistroParaGuia(ultimaUbicacionLegacyPorGuia, candidato.idGuia, captura);
+            cantidadPersistida++;
         } catch (error) {
-            console.error("[SAVE] Error controlado guardando captura de seguimiento nueva:", error);
+            console.error("[SAVE][LEGACY] Error controlado para una guía:", error);
         }
     }
+
+    if (cantidadPersistida > 0) {
+        confirmarFiltroGlobalLegacy(captura);
+    }
+    return cantidadPersistida;
+}
+
+async function saveLocation(location) {
+    let captura = location;
+    if (!captura || !Number.isFinite(captura.fechaRecepcionMs)) {
+        captura = normalizarCapturaGps(location, new Date());
+    }
+
+    const usuarioActivo = Obtener_dato_local('user_activo');
+    const guiasCandidatas = await obtenerGuiasCandidatasCaptura();
+    const guias = guiasCandidatas.map(function (candidato) { return candidato.guia; });
+    const guiasCapturables = SEGUIMIENTO_guiasCapturables(guias);
+    limpiarMapaUltimaUbicacionGuias(
+        ultimaUbicacionPorGuia,
+        guiasCapturables,
+        guiasCapturables.length === 0
+    );
+    limpiarMapaUltimaUbicacionGuias(
+        ultimaUbicacionLegacyPorGuia,
+        guias,
+        guias.length === 0
+    );
+
+    let nuevoPersistido = false;
+    let legacyPersistido = false;
+
+    if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO === "undefined" || HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
+        try {
+            if (capturaSuperaFiltroGlobal(captura, lastKnownLocation, ultimoTimestamp, ultimoGuardadoMs)) {
+                const insertadas = await registrarCapturaSeguimientoNueva(captura, guias);
+                nuevoPersistido = Array.isArray(insertadas) && insertadas.length > 0;
+                if (nuevoPersistido) {
+                    confirmarFiltroGlobalNuevo(captura);
+                }
+            }
+        } catch (error) {
+            console.error("[SAVE][SEGUIMIENTO] Error controlado guardando captura nueva:", error);
+        }
+    }
+
+    try {
+        legacyPersistido = (await registrarCapturaTrazabilidadLegacy(captura, usuarioActivo, guiasCandidatas)) > 0;
+    } catch (error) {
+        console.error("[SAVE][LEGACY] Error controlado guardando acción 33:", error);
+    }
+
+    return {
+        capturaValida: true,
+        nuevoPersistido: nuevoPersistido,
+        legacyPersistido: legacyPersistido
+    };
 }
 
 function SEGUIMIENTO_numeroFinito(valor) {
@@ -356,13 +660,15 @@ function SEGUIMIENTO_textoCapturaDisponible(valor) {
 }
 
 function SEGUIMIENTO_fechaCapturaUtc(location) {
-    if (location && location.time !== undefined && location.time !== null) {
-        var fechaCaptura = new Date(location.time);
-        if (!isNaN(fechaCaptura.getTime())) {
-            return fechaCaptura.toISOString();
-        }
+    if (!location || location.time === undefined || location.time === null || location.time === "") {
+        throw new Error("FECHA_CAPTURA_AUSENTE");
     }
-    return new Date().toISOString();
+
+    var fechaCaptura = new Date(location.time);
+    if (isNaN(fechaCaptura.getTime())) {
+        throw new Error("FECHA_CAPTURA_INVALIDA");
+    }
+    return fechaCaptura.toISOString();
 }
 
 function SEGUIMIENTO_guiaNoAnulada(guia) {
@@ -418,26 +724,36 @@ async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltr
         return [];
     }
 
-    if (!location ||
-        !SEGUIMIENTO_numeroFinito(location.latitude) || location.latitude < -90 || location.latitude > 90 ||
-        !SEGUIMIENTO_numeroFinito(location.longitude) || location.longitude < -180 || location.longitude > 180) {
-        console.warn("[SAVE] Captura GPS sin coordenadas válidas para seguimiento nuevo.");
+    var captura = location;
+    try {
+        if (!captura || !Number.isFinite(captura.fechaRecepcionMs)) {
+            captura = normalizarCapturaGps(location, new Date());
+        }
+    } catch (error) {
+        console.warn("[SAVE][SEGUIMIENTO] Captura rechazada:", error && error.message ? error.message : "CAPTURA_INVALIDA");
         return [];
     }
 
-    var guias = SEGUIMIENTO_guiasCapturables(guiasQueSuperaronFiltros);
+    var guias = SEGUIMIENTO_guiasCapturables(guiasQueSuperaronFiltros).filter(function (guia) {
+        return puedeRegistrarParaGuiaEnMapa(
+            ultimaUbicacionPorGuia,
+            guia.ID_UNICO_MOVIL_GDE,
+            captura,
+            UMBRAL_MS_GUIA_NO_CONFIRMADA
+        );
+    });
     if (guias.length === 0) {
         return [];
     }
 
-    var fechaDispositivoUtc = SEGUIMIENTO_fechaCapturaUtc(location);
-    var precision = SEGUIMIENTO_valorFinitoNullable(location.accuracy, function (valor) { return valor >= 0; });
-    var velocidad = SEGUIMIENTO_valorFinitoNullable(location.speed, function (valor) { return valor >= 0; });
-    var rumbo = SEGUIMIENTO_valorFinitoNullable(location.bearing, function (valor) {
+    var fechaDispositivoUtc = SEGUIMIENTO_fechaCapturaUtc(captura);
+    var precision = captura.accuracy;
+    var velocidad = captura.speed;
+    var rumbo = SEGUIMIENTO_valorFinitoNullable(captura.bearing, function (valor) {
         return valor >= 0 && valor < 360;
     });
-    var altitud = SEGUIMIENTO_valorFinitoNullable(location.altitude, function () { return true; });
-    var esSimulada = location.isFromMockProvider === true;
+    var altitud = SEGUIMIENTO_valorFinitoNullable(captura.altitude, function () { return true; });
+    var esSimulada = captura.isFromMockProvider === true;
 
     var posiciones = guias.map(function (guia) {
         return {
@@ -445,8 +761,8 @@ async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltr
             ID_UNICO_SEGUIMIENTO: guia.ID_UNICO_SEGUIMIENTO,
             SECUENCIA_LOCAL: null,
             FECHA_DISPOSITIVO_UTC: fechaDispositivoUtc,
-            LATITUD: location.latitude,
-            LONGITUD: location.longitude,
+            LATITUD: captura.latitude,
+            LONGITUD: captura.longitude,
             PRECISION_METROS: precision,
             VELOCIDAD_MPS: velocidad,
             RUMBO_GRADOS: rumbo,
@@ -456,7 +772,11 @@ async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltr
         };
     });
 
-    return await insertarPosicionesSeguimientoPendientes(posiciones);
+    var insertadas = await insertarPosicionesSeguimientoPendientes(posiciones);
+    guias.forEach(function (guia) {
+        confirmarRegistroParaGuia(ultimaUbicacionPorGuia, guia.ID_UNICO_MOVIL_GDE, captura);
+    });
+    return insertadas;
 }
 
 
@@ -470,30 +790,18 @@ function esUbicacionAntigua(timestamp) {
 
 
 
-function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
+function puedeRegistrarParaGuiaEnMapa(mapa, idUnicoMovilGde, location, umbralMs) {
     if (!idUnicoMovilGde) {
-        console.log('[FILTRO] SIN idUnicoMovilGde -> false');
         return false;
     }
 
-    const ahoraMs = Date.now();
-    const registroPrevio = ultimaUbicacionPorGuia.get(idUnicoMovilGde);
-
+    const registroPrevio = mapa.get(idUnicoMovilGde);
     if (!registroPrevio) {
-        console.log('[FILTRO] Primera vez para', idUnicoMovilGde, '-> true');
-        ultimaUbicacionPorGuia.set(idUnicoMovilGde, {
-            lat: location.latitude,
-            lon: location.longitude,
-            tsMs: ahoraMs,
-        });
         return true;
     }
 
-    const diffMs = ahoraMs - registroPrevio.tsMs;
-    console.log('[FILTRO] diffMs:', diffMs, 'umbralMs:', umbralMs);
-
+    const diffMs = location.fechaRecepcionMs - registroPrevio.tsMs;
     if (diffMs < umbralMs) {
-        console.log('[FILTRO] Rechazado por tiempo (< umbralMs)');
         return false;
     }
 
@@ -503,21 +811,24 @@ function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
         registroPrevio.lat,
         registroPrevio.lon
     );
-    console.log('[FILTRO] distancia:', distancia, 'm');
+    return distancia >= DISTANCIA_MINIMA_MOVIMIENTO;
+}
 
-    if (distancia < DISTANCIA_MINIMA_MOVIMIENTO) {
-        console.log('[FILTRO] Rechazado por poca distancia (<', DISTANCIA_MINIMA_MOVIMIENTO, 'm)');
-        return false;
-    }
-
-    console.log('[FILTRO] ACEPTA -> actualiza último punto de', idUnicoMovilGde);
-    ultimaUbicacionPorGuia.set(idUnicoMovilGde, {
+function confirmarRegistroParaGuia(mapa, idUnicoMovilGde, location) {
+    mapa.set(idUnicoMovilGde, {
         lat: location.latitude,
         lon: location.longitude,
-        tsMs: ahoraMs,
+        tsMs: location.fechaRecepcionMs
     });
+}
 
-    return true;
+function puedeRegistrarParaGuia(idUnicoMovilGde, location, umbralMs) {
+    return puedeRegistrarParaGuiaEnMapa(
+        ultimaUbicacionPorGuia,
+        idUnicoMovilGde,
+        location,
+        umbralMs
+    );
 }
 
 
