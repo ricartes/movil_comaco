@@ -310,52 +310,91 @@ function SEGUIMIENTO_normalizarPosicion(posicion) {
     };
 }
 
-function insertarPosicionSeguimientoPendiente(posicion) {
+function SEGUIMIENTO_insertarPosicionEnTransaccion(tr, posicionNormalizada, alInsertar) {
+    tr.executeSql(
+        `INSERT INTO SEGUIMIENTO_POSICION_PENDIENTE (
+            UUID_POSICION, ID_UNICO_MOVIL_GDE, ID_UNICO_SEGUIMIENTO,
+            SECUENCIA_LOCAL, FECHA_DISPOSITIVO_UTC, LATITUD, LONGITUD,
+            PRECISION_METROS, VELOCIDAD_MPS, RUMBO_GRADOS, ALTITUD_METROS,
+            ES_UBICACION_SIMULADA, ORIGEN_CAPTURA, FECHA_CREACION_UTC
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            posicionNormalizada.UUID_POSICION,
+            posicionNormalizada.ID_UNICO_MOVIL_GDE,
+            posicionNormalizada.ID_UNICO_SEGUIMIENTO,
+            posicionNormalizada.SECUENCIA_LOCAL,
+            posicionNormalizada.FECHA_DISPOSITIVO_UTC,
+            posicionNormalizada.LATITUD,
+            posicionNormalizada.LONGITUD,
+            posicionNormalizada.PRECISION_METROS,
+            posicionNormalizada.VELOCIDAD_MPS,
+            posicionNormalizada.RUMBO_GRADOS,
+            posicionNormalizada.ALTITUD_METROS,
+            posicionNormalizada.ES_UBICACION_SIMULADA,
+            posicionNormalizada.ORIGEN_CAPTURA,
+            posicionNormalizada.FECHA_CREACION_UTC
+        ],
+        function (tr, rs) {
+            alInsertar({
+                ID: rs.insertId,
+                UUID_POSICION: posicionNormalizada.UUID_POSICION
+            });
+        }
+    );
+}
+
+function insertarPosicionesSeguimientoPendientes(posiciones) {
     return new Promise(function (resolve, reject) {
-        var posicionNormalizada;
+        var posicionesNormalizadas;
         try {
-            posicionNormalizada = SEGUIMIENTO_normalizarPosicion(posicion);
+            if (!Array.isArray(posiciones)) {
+                throw new Error("Las posiciones son obligatorias.");
+            }
+
+            var uuidVistos = {};
+            posicionesNormalizadas = posiciones.map(function (posicion) {
+                var normalizada = SEGUIMIENTO_normalizarPosicion(posicion);
+                var claveUuid = normalizada.UUID_POSICION.toUpperCase();
+                if (uuidVistos[claveUuid]) {
+                    throw new Error("Las posiciones contienen UUID_POSICION duplicados.");
+                }
+                uuidVistos[claveUuid] = true;
+                return normalizada;
+            });
         } catch (error) {
             reject(error);
             return;
         }
 
+        if (posicionesNormalizadas.length === 0) {
+            resolve([]);
+            return;
+        }
+
         var db = SEGUIMIENTO_abrirBaseDatos();
-        var resultado;
+        var resultados = [];
         db.transaction(function (tr) {
-            tr.executeSql(
-                `INSERT INTO SEGUIMIENTO_POSICION_PENDIENTE (
-                    UUID_POSICION, ID_UNICO_MOVIL_GDE, ID_UNICO_SEGUIMIENTO,
-                    SECUENCIA_LOCAL, FECHA_DISPOSITIVO_UTC, LATITUD, LONGITUD,
-                    PRECISION_METROS, VELOCIDAD_MPS, RUMBO_GRADOS, ALTITUD_METROS,
-                    ES_UBICACION_SIMULADA, ORIGEN_CAPTURA, FECHA_CREACION_UTC
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    posicionNormalizada.UUID_POSICION,
-                    posicionNormalizada.ID_UNICO_MOVIL_GDE,
-                    posicionNormalizada.ID_UNICO_SEGUIMIENTO,
-                    posicionNormalizada.SECUENCIA_LOCAL,
-                    posicionNormalizada.FECHA_DISPOSITIVO_UTC,
-                    posicionNormalizada.LATITUD,
-                    posicionNormalizada.LONGITUD,
-                    posicionNormalizada.PRECISION_METROS,
-                    posicionNormalizada.VELOCIDAD_MPS,
-                    posicionNormalizada.RUMBO_GRADOS,
-                    posicionNormalizada.ALTITUD_METROS,
-                    posicionNormalizada.ES_UBICACION_SIMULADA,
-                    posicionNormalizada.ORIGEN_CAPTURA,
-                    posicionNormalizada.FECHA_CREACION_UTC
-                ],
-                function (tr, rs) {
-                    resultado = {
-                        ID: rs.insertId,
-                        UUID_POSICION: posicionNormalizada.UUID_POSICION
-                    };
+            function insertarSiguiente(indice) {
+                if (indice >= posicionesNormalizadas.length) {
+                    return;
                 }
-            );
+
+                SEGUIMIENTO_insertarPosicionEnTransaccion(tr, posicionesNormalizadas[indice], function (resultado) {
+                    resultados.push(resultado);
+                    insertarSiguiente(indice + 1);
+                });
+            }
+
+            insertarSiguiente(0);
         }, reject, function () {
-            resolve(resultado);
+            resolve(resultados);
         });
+    });
+}
+
+function insertarPosicionSeguimientoPendiente(posicion) {
+    return insertarPosicionesSeguimientoPendientes([posicion]).then(function (resultados) {
+        return resultados[0];
     });
 }
 

@@ -679,7 +679,10 @@ function DATOS_seleccionar_gde_proveedor(id_gde, callback) {
                 gde.GDE_COD_PRODUCTO = rs_datos.GDE_COD_PRODUCTO;
                 gde.GDE_NOMBRE_PRODUCTO = rs_datos.GDE_NOMBRE_PRODUCTO;
                 gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                gde.ID_UNICO_SEGUIMIENTO = rs_datos.ID_UNICO_SEGUIMIENTO;
                 gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
+                gde.FECHA_ANULACION = rs_datos.FECHA_ANULACION;
+                gde.GDE_ANULADA = rs_datos.GDE_ANULADA;
                 gde.DocEntry = rs_datos.DocEntry;
                 gde.GDE_ANO_COSECHA = rs_datos.GDE_ANO_COSECHA;
                 gde.GDE_COORDENADA_INICIAL_X = rs_datos.GDE_COORDENADA_INICIAL_X;
@@ -869,7 +872,10 @@ async function DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas() {
                             gde.GDE_ANO_COSECHA = rs_datos.GDE_ANO_COSECHA;
                             gde.GDE_NOMBRE_PRODUCTO = rs_datos.GDE_NOMBRE_PRODUCTO;
                             gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                            gde.ID_UNICO_SEGUIMIENTO = rs_datos.ID_UNICO_SEGUIMIENTO;
                             gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
+                            gde.FECHA_ANULACION = rs_datos.FECHA_ANULACION;
+                            gde.GDE_ANULADA = rs_datos.GDE_ANULADA;
                             gde.DocEntry = rs_datos.DocEntry;
                             gde.GDE_COORDENADA_INICIAL_X = rs_datos.GDE_COORDENADA_INICIAL_X;
                             gde.GDE_COORDENADA_INICIAL_Y = rs_datos.GDE_COORDENADA_INICIAL_Y;
@@ -949,7 +955,10 @@ async function DATOS_seleccionarGdeProveedorConfirmadas() {
                             gde.GDE_ANO_COSECHA = rs_datos.GDE_ANO_COSECHA;
                             gde.GDE_NOMBRE_PRODUCTO = rs_datos.GDE_NOMBRE_PRODUCTO;
                             gde.ID_UNICO_MOVIL = rs_datos.ID_UNICO_MOVIL;
+                            gde.ID_UNICO_SEGUIMIENTO = rs_datos.ID_UNICO_SEGUIMIENTO;
                             gde.GDE_ESTADO_MOVIL = rs_datos.GDE_ESTADO_MOVIL;
+                            gde.FECHA_ANULACION = rs_datos.FECHA_ANULACION;
+                            gde.GDE_ANULADA = rs_datos.GDE_ANULADA;
                             gde.DocEntry = rs_datos.DocEntry;
                             gde.GDE_COORDENADA_INICIAL_X = rs_datos.GDE_COORDENADA_INICIAL_X;
                             gde.GDE_COORDENADA_INICIAL_Y = rs_datos.GDE_COORDENADA_INICIAL_Y;

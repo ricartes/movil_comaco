@@ -5,7 +5,7 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js"
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/seguimiento-envio.test.js tests/seguimiento-captura.test.js"
     },
     "author": "Apache Cordova Team",
     "license": "Apache-2.0",

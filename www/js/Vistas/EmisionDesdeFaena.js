@@ -630,7 +630,7 @@ function tabla_proveedores(id_gde) {
                 "</td><td class='label-cell'>" +
                 result[i].SN_Nombre +
                 "-" +
-                result[i].SN_Destino + "->" + result[i].project + "->" + result[i].NumAtCard
+                result[i].SN_Destino + 
             "</td> </tr>";
         }
 

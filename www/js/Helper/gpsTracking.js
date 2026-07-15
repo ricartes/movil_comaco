@@ -262,6 +262,7 @@ async function saveLocation(location) {
     const usuarioActivo = Obtener_dato_local('user_activo');
     const procesoActual = Obtener_dato_local("id_proceso_activo");
     const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
+    const guiasQueSuperaronFiltros = [];
 
     console.log('[SAVE] usuarioActivo:', usuarioActivo);
     console.log('[SAVE] procesoActual:', procesoActual);
@@ -289,6 +290,7 @@ async function saveLocation(location) {
             );
 
             await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
+            guiasQueSuperaronFiltros.push(gde_actual);
             console.log('[SAVE] Insert trazabilidad guía ACTUAL OK');
         } else {
             console.log('[SAVE] NO registra para guía ACTUAL (puedeRegistrarParaGuia = false)');
@@ -321,9 +323,140 @@ async function saveLocation(location) {
             );
 
             await obtenerUbicacionEInsertarLog(usuarioActivo, datos, location);
+            guiasQueSuperaronFiltros.push(guia);
             console.log('[SAVE] Insert trazabilidad guía', idUnicoGuia, 'OK');
         }
     }
+
+    if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO !== "undefined" && HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
+        try {
+            await registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltros);
+        } catch (error) {
+            console.error("[SAVE] Error controlado guardando captura de seguimiento nueva:", error);
+        }
+    }
+}
+
+function SEGUIMIENTO_numeroFinito(valor) {
+    return typeof valor === "number" && Number.isFinite(valor);
+}
+
+function SEGUIMIENTO_valorFinitoNullable(valor, validar) {
+    return SEGUIMIENTO_numeroFinito(valor) && validar(valor) ? valor : null;
+}
+
+function SEGUIMIENTO_textoCapturaDisponible(valor) {
+    if (typeof valor !== "string") {
+        return null;
+    }
+
+    var texto = valor.trim();
+    var minuscula = texto.toLowerCase();
+    return texto !== "" && minuscula !== "undefined" && minuscula !== "null" ? texto : null;
+}
+
+function SEGUIMIENTO_fechaCapturaUtc(location) {
+    if (location && location.time !== undefined && location.time !== null) {
+        var fechaCaptura = new Date(location.time);
+        if (!isNaN(fechaCaptura.getTime())) {
+            return fechaCaptura.toISOString();
+        }
+    }
+    return new Date().toISOString();
+}
+
+function SEGUIMIENTO_guiaNoAnulada(guia) {
+    var anulada = guia.GDE_ANULADA === 1 || guia.GDE_ANULADA === "1";
+    var fechaAnulacion = SEGUIMIENTO_textoCapturaDisponible(guia.FECHA_ANULACION);
+    var motivoAnulacion = SEGUIMIENTO_textoCapturaDisponible(guia.GDE_MOTIVO_ANULACION);
+    return !anulada && !fechaAnulacion && !motivoAnulacion;
+}
+
+function SEGUIMIENTO_guiasCapturables(guias) {
+    var guiasPorId = {};
+
+    (Array.isArray(guias) ? guias : []).forEach(function (guia) {
+        if (!guia) {
+            return;
+        }
+
+        var idGuia = SEGUIMIENTO_textoCapturaDisponible(guia.ID_UNICO_MOVIL);
+        if (!idGuia) {
+            return;
+        }
+
+        var estado = SEGUIMIENTO_textoCapturaDisponible(guia.GDE_ESTADO_MOVIL);
+        var ingresoPendiente = guia.GDE_CONFIRMA_INGRESO_PLANTA === 0 || guia.GDE_CONFIRMA_INGRESO_PLANTA === "0";
+        if ((estado !== "I" && estado !== "E") || !ingresoPendiente || !SEGUIMIENTO_guiaNoAnulada(guia)) {
+            return;
+        }
+
+        var idSeguimiento;
+        try {
+            idSeguimiento = SEGUIMIENTO_uuidObligatorio(guia.ID_UNICO_SEGUIMIENTO, "ID_UNICO_SEGUIMIENTO");
+        } catch (error) {
+            console.warn("[SAVE] Guía activa sin ID_UNICO_SEGUIMIENTO válido:", idGuia);
+            return;
+        }
+
+        var claveGuia = idGuia.toUpperCase();
+        if (!guiasPorId[claveGuia]) {
+            guiasPorId[claveGuia] = {
+                ID_UNICO_MOVIL_GDE: idGuia,
+                ID_UNICO_SEGUIMIENTO: idSeguimiento
+            };
+        }
+    });
+
+    return Object.keys(guiasPorId).map(function (clave) {
+        return guiasPorId[clave];
+    });
+}
+
+async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltros) {
+    if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO !== "undefined" && !HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
+        return [];
+    }
+
+    if (!location ||
+        !SEGUIMIENTO_numeroFinito(location.latitude) || location.latitude < -90 || location.latitude > 90 ||
+        !SEGUIMIENTO_numeroFinito(location.longitude) || location.longitude < -180 || location.longitude > 180) {
+        console.warn("[SAVE] Captura GPS sin coordenadas válidas para seguimiento nuevo.");
+        return [];
+    }
+
+    var guias = SEGUIMIENTO_guiasCapturables(guiasQueSuperaronFiltros);
+    if (guias.length === 0) {
+        return [];
+    }
+
+    var fechaDispositivoUtc = SEGUIMIENTO_fechaCapturaUtc(location);
+    var precision = SEGUIMIENTO_valorFinitoNullable(location.accuracy, function (valor) { return valor >= 0; });
+    var velocidad = SEGUIMIENTO_valorFinitoNullable(location.speed, function (valor) { return valor >= 0; });
+    var rumbo = SEGUIMIENTO_valorFinitoNullable(location.bearing, function (valor) {
+        return valor >= 0 && valor < 360;
+    });
+    var altitud = SEGUIMIENTO_valorFinitoNullable(location.altitude, function () { return true; });
+    var esSimulada = location.isFromMockProvider === true;
+
+    var posiciones = guias.map(function (guia) {
+        return {
+            ID_UNICO_MOVIL_GDE: guia.ID_UNICO_MOVIL_GDE,
+            ID_UNICO_SEGUIMIENTO: guia.ID_UNICO_SEGUIMIENTO,
+            SECUENCIA_LOCAL: null,
+            FECHA_DISPOSITIVO_UTC: fechaDispositivoUtc,
+            LATITUD: location.latitude,
+            LONGITUD: location.longitude,
+            PRECISION_METROS: precision,
+            VELOCIDAD_MPS: velocidad,
+            RUMBO_GRADOS: rumbo,
+            ALTITUD_METROS: altitud,
+            ES_UBICACION_SIMULADA: esSimulada,
+            ORIGEN_CAPTURA: "GPS"
+        };
+    });
+
+    return await insertarPosicionesSeguimientoPendientes(posiciones);
 }
 
 

@@ -256,6 +256,70 @@ test('UUID_POSICION se crea una vez y el duplicado no genera otra fila', async (
     db.close();
 });
 
+test('inserción múltiple genera UUID distintos y revierte todo ante un fallo intermedio', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+
+    const base = {
+        ID_UNICO_MOVIL_GDE: 'GUIA-BASE',
+        ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+        FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:00Z',
+        LATITUD: -33.45,
+        LONGITUD: -70.66
+    };
+    await contexto.insertarPosicionSeguimientoPendiente({ ...base, UUID_POSICION });
+
+    const primera = { ...base, ID_UNICO_MOVIL_GDE: 'GUIA-1' };
+    const segunda = { ...base, ID_UNICO_MOVIL_GDE: 'GUIA-2', UUID_POSICION };
+    await assert.rejects(
+        contexto.insertarPosicionesSeguimientoPendientes([primera, segunda]),
+        /UNIQUE/i
+    );
+
+    assert.ok(primera.UUID_POSICION);
+    assert.notEqual(primera.UUID_POSICION, UUID_POSICION);
+    assert.equal(db.prepare('SELECT COUNT(*) cantidad FROM SEGUIMIENTO_POSICION_PENDIENTE').get().cantidad, 1);
+    db.close();
+});
+
+test('posiciones pendientes permanecen disponibles tras reiniciar el contexto de la app', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const primerContexto = cargarContexto(db);
+    await primerContexto.DATOS_inicializarSeguimientoSqlite();
+
+    const posiciones = [
+        {
+            ID_UNICO_MOVIL_GDE: 'GUIA-1',
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+            FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:00Z',
+            LATITUD: -33.45,
+            LONGITUD: -70.66
+        },
+        {
+            ID_UNICO_MOVIL_GDE: 'GUIA-2',
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+            FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:01Z',
+            LATITUD: -33.46,
+            LONGITUD: -70.67
+        }
+    ];
+    const insertadas = await primerContexto.insertarPosicionesSeguimientoPendientes(posiciones);
+    assert.equal(insertadas.length, 2);
+    assert.notEqual(insertadas[0].UUID_POSICION, insertadas[1].UUID_POSICION);
+
+    const contextoReiniciado = cargarContexto(db);
+    const recuperadas = await contextoReiniciado.listarPosicionesSeguimientoPendientes(UUID_SEGUIMIENTO_1, 100);
+    assert.equal(recuperadas.length, 2);
+    assert.deepEqual(
+        Array.from(recuperadas, posicion => posicion.UUID_POSICION),
+        Array.from(insertadas, posicion => posicion.UUID_POSICION)
+    );
+    db.close();
+});
+
 test('repositorio lista, registra intentos y elimina posiciones por UUID en lote', async () => {
     const db = new DatabaseSync(':memory:');
     crearGdeMinima(db);

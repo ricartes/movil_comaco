@@ -10,7 +10,7 @@ var usuario_activo;
 
 
 //var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-var url_server_nuevo = "https://araucaria.mcondor.cl:5901/trazabilidad";
+var url_server_nuevo = "https://f1da-2800-300-6231-74f0-bc23-fe8a-be24-828c.ngrok-free.app";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
@@ -400,14 +400,21 @@ async function cicloEnvioAutomaticoDatos() {
 
 async function cicloEnvioTrazabilidad() {
     const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
+    const tareasEnvio = [];
 
     if (bloqueadoTraza === 0) {
-        try {
-            await compruebaEnviaTrazabilidad();
-        } catch (e) {
+        tareasEnvio.push(compruebaEnviaTrazabilidad().catch(function (e) {
             console.warn("Error enviando trazabilidad:", e);
-        }
+        }));
     }
+
+    if (typeof HABILITAR_ENVIO_SEGUIMIENTO_NUEVO !== "undefined" && HABILITAR_ENVIO_SEGUIMIENTO_NUEVO) {
+        tareasEnvio.push(enviarPosicionesSeguimientoPendientes().catch(function (e) {
+            console.warn("Error controlado enviando seguimiento GPS:", e);
+        }));
+    }
+
+    await Promise.all(tareasEnvio);
 }
 
 
