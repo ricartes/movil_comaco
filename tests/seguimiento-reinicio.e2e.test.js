@@ -8,6 +8,10 @@ const {
     ejecutarProceso,
     limpiarSqliteTemporal
 } = require('./helpers/seguimiento-procesos');
+const {
+    crearGpsTrackingRuntime,
+    crearGuiaGps
+} = require('./helpers/gps-tracking-runtime');
 
 const HABILITADO = process.env.RUN_E2E_SEGUIMIENTO === '1';
 
@@ -179,6 +183,104 @@ test('E2E opt-in: reinicio, cierre antes del DELETE y reenvío idempotente', { s
             'ORDER BY ID_POSICION;'
         ].join('\n'));
     } finally {
+        limpiarSqliteTemporal(temporal);
+    }
+});
+
+test('E2E opt-in: callbacks GPS reales del pipeline llegan a HTTPS y vacían SQLite', { skip: !HABILITADO }, async function (t) {
+    const configuracion = validarConfiguracion();
+    const temporal = crearSqliteTemporal('gfe-seguimiento-e2e-gps-');
+    const ahora = Date.now();
+    const fechas = [
+        new Date(ahora - 12000).toISOString(),
+        new Date(ahora - 6000).toISOString(),
+        new Date(ahora).toISOString()
+    ];
+    const guia = crearGuiaGps(
+        `GUIA-E2E-GPS-${ahora}`,
+        configuracion.idSeguimiento
+    );
+    const runtime = crearGpsTrackingRuntime({
+        rutaDb: temporal.rutaDb,
+        guiasPendientes: [guia],
+        demoraInsercionMs: 5,
+        fechasRecepcion: fechas
+    });
+    let runtimeCerrado = false;
+
+    t.diagnostic('ADVERTENCIA: esta variante crea tres posiciones sintéticas reales en SQL Server de desarrollo.');
+    t.diagnostic(`SQLite temporal GPS: ${temporal.rutaDb}`);
+
+    try {
+        await runtime.inicializar();
+        runtime.contexto.configureBackgroundGeolocation();
+        assert.equal(typeof runtime.eventosGps.location, 'function');
+        await Promise.all(fechas.map(function (fecha, indice) {
+            return runtime.eventosGps.location({
+                time: fecha,
+                latitude: configuracion.latitud + (indice * 0.0001),
+                longitude: configuracion.longitud + (indice * 0.0001),
+                accuracy: 4.5 + indice,
+                speed: 8 + indice,
+                bearing: 120 + indice,
+                altitude: 500 + indice,
+                isFromMockProvider: false
+            });
+        }));
+
+        const posicionesLocales = await runtime.posiciones(configuracion.idSeguimiento);
+        assert.equal(posicionesLocales.length, 3);
+        assert.equal(runtime.maximoInsercionesActivas(), 1);
+        assert.equal(runtime.accionesLegacy(), 3);
+        assert.deepEqual(posicionesLocales.map(function (posicion) {
+            return posicion.FECHA_DISPOSITIVO_UTC;
+        }), fechas);
+        const uuidPosiciones = posicionesLocales.map(function (posicion) {
+            return posicion.UUID_POSICION;
+        });
+        assert.equal(new Set(uuidPosiciones).size, 3);
+        t.diagnostic(`UUID_POSICION GPS: ${uuidPosiciones.join(', ')}`);
+
+        runtime.cerrar();
+        runtimeCerrado = true;
+
+        const envio = ejecutarProceso({
+            accion: 'E2E_REENVIO',
+            conectado: true,
+            rutaDb: temporal.rutaDb,
+            idSeguimiento: configuracion.idSeguimiento,
+            uuidDispositivo: configuracion.uuidDispositivo,
+            versionApp: configuracion.versionApp,
+            endpoint: configuracion.endpoint,
+            timeoutMs: configuracion.timeoutMs
+        }, configuracion.timeoutMs + 5000);
+
+        assert.equal(envio.resumen.ERRORES, 0);
+        assert.equal(envio.resumen.POSICIONES_CONFIRMADAS, 3);
+        assert.equal(envio.despues.length, 0);
+        const resultado = desempaquetarRespuesta(envio.respuestas[0]);
+        assert.equal(resultado.EXITO, true);
+        assert.deepEqual(uuidNormalizados(resultado.POSICIONES), uuidPosiciones.map(function (uuid) {
+            return uuid.toUpperCase();
+        }).sort());
+        assert.ok(resultado.POSICIONES.every(function (posicion) {
+            return posicion.ESTADO === 'INSERTADA' || posicion.ESTADO === 'YA_EXISTIA';
+        }));
+
+        t.diagnostic(`Estados HTTPS GPS: ${JSON.stringify(estados(resultado))}`);
+        t.diagnostic('SQLite terminó vacía tras confirmación: sí');
+        t.diagnostic([
+            'Consulta SQL para verificación GPS:',
+            'SELECT ID_POSICION, UUID_POSICION, ID_SEGUIMIENTO,',
+            '       FECHA_DISPOSITIVO_UTC, LATITUD, LONGITUD, ORIGEN_CAPTURA',
+            'FROM dbo.GFE_SEGUIMIENTO_POSICION',
+            'WHERE UUID_POSICION IN (',
+            uuidPosiciones.map(function (uuid) { return `    '${uuid}'`; }).join(',\n'),
+            ')',
+            'ORDER BY ID_POSICION;'
+        ].join('\n'));
+    } finally {
+        if (!runtimeCerrado) runtime.cerrar();
         limpiarSqliteTemporal(temporal);
     }
 });
