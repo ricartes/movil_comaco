@@ -10,7 +10,7 @@ var usuario_activo;
 
 
 //var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-var url_server_nuevo = "https://f1da-2800-300-6231-74f0-bc23-fe8a-be24-828c.ngrok-free.app";
+var url_server_nuevo = "https://bcdf-2800-300-6231-bc0-6dac-1590-5aa7-9ac8.ngrok-free.app";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
