@@ -776,6 +776,13 @@ async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltr
     guias.forEach(function (guia) {
         confirmarRegistroParaGuia(ultimaUbicacionPorGuia, guia.ID_UNICO_MOVIL_GDE, captura);
     });
+    if (insertadas.length > 0 && typeof solicitarEnvioSeguimiento === "function") {
+        try {
+            solicitarEnvioSeguimiento("nueva_captura", false);
+        } catch (error) {
+            console.warn("No fue posible solicitar el envío del seguimiento GPS.");
+        }
+    }
     return insertadas;
 }
 

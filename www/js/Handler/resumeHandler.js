@@ -7,6 +7,11 @@ function initializeResumeHandler() {
 
         const usuarioActivo = Obtener_dato_local("user_activo");
         if (usuarioActivo && usuarioActivo != "") {
+            if (typeof seguimientoSqliteLista !== "undefined" && seguimientoSqliteLista &&
+                typeof inicializarProgramadorEnvioSeguimiento === "function") {
+                inicializarProgramadorEnvioSeguimiento();
+                solicitarEnvioSeguimiento("inicio_o_resume", true);
+            }
 
 
             let intentos = 0;

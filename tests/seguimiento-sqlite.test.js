@@ -350,3 +350,59 @@ test('repositorio lista, registra intentos y elimina posiciones por UUID en lote
     assert.equal(db.prepare('SELECT COUNT(*) cantidad FROM SEGUIMIENTO_POSICION_PENDIENTE').get().cantidad, 0);
     db.close();
 });
+
+test('resumen de pendientes agrega cantidades y ordena por la creación más antigua', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+
+    await contexto.insertarPosicionesSeguimientoPendientes([
+        {
+            UUID_POSICION: crypto.randomUUID(),
+            ID_UNICO_MOVIL_GDE: 'GUIA-A-1',
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+            FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:02Z',
+            FECHA_CREACION_UTC: '2026-07-14T12:00:02Z',
+            LATITUD: -33.45,
+            LONGITUD: -70.66
+        },
+        {
+            UUID_POSICION: crypto.randomUUID(),
+            ID_UNICO_MOVIL_GDE: 'GUIA-B-1',
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_2,
+            FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:00Z',
+            FECHA_CREACION_UTC: '2026-07-14T12:00:00Z',
+            LATITUD: -33.46,
+            LONGITUD: -70.67
+        },
+        {
+            UUID_POSICION: crypto.randomUUID(),
+            ID_UNICO_MOVIL_GDE: 'GUIA-A-2',
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+            FECHA_DISPOSITIVO_UTC: '2026-07-14T12:00:03Z',
+            FECHA_CREACION_UTC: '2026-07-14T12:00:03Z',
+            LATITUD: -33.47,
+            LONGITUD: -70.68
+        }
+    ]);
+
+    const resumen = Array.from(await contexto.listarResumenSeguimientosConPosicionesPendientes(), item => ({
+        ID_UNICO_SEGUIMIENTO: item.ID_UNICO_SEGUIMIENTO,
+        CANTIDAD_PENDIENTE: item.CANTIDAD_PENDIENTE,
+        FECHA_CREACION_UTC_MAS_ANTIGUA: item.FECHA_CREACION_UTC_MAS_ANTIGUA
+    }));
+    assert.deepEqual(resumen, [
+        {
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_2,
+            CANTIDAD_PENDIENTE: 1,
+            FECHA_CREACION_UTC_MAS_ANTIGUA: '2026-07-14T12:00:00Z'
+        },
+        {
+            ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1,
+            CANTIDAD_PENDIENTE: 2,
+            FECHA_CREACION_UTC_MAS_ANTIGUA: '2026-07-14T12:00:02Z'
+        }
+    ]);
+    db.close();
+});

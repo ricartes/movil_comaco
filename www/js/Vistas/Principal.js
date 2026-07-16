@@ -41,6 +41,7 @@ var timmerTrazabilidad = null;   // solo trazabilidad
 var versionAppCheckHecho = false;
 var versionAppValida = true;   // por defecto asumimos válida hasta comprobar
 var versionAppAlertMostrado = false;
+var seguimientoSqliteLista = false;
 
 
 // Init/Create left panel view
@@ -377,21 +378,16 @@ async function cicloEnvioAutomaticoDatos() {
 
 async function cicloEnvioTrazabilidad() {
     const bloqueadoTraza = parseInt(Obtener_dato_local("bloqueado-traza"));
-    const tareasEnvio = [];
 
     if (bloqueadoTraza === 0) {
-        tareasEnvio.push(compruebaEnviaTrazabilidad().catch(function (e) {
+        await compruebaEnviaTrazabilidad().catch(function (e) {
             console.warn("Error enviando trazabilidad:", e);
-        }));
+        });
     }
 
-    if (typeof HABILITAR_ENVIO_SEGUIMIENTO_NUEVO !== "undefined" && HABILITAR_ENVIO_SEGUIMIENTO_NUEVO) {
-        tareasEnvio.push(enviarPosicionesSeguimientoPendientes().catch(function (e) {
-            console.warn("Error controlado enviando seguimiento GPS:", e);
-        }));
+    if (typeof solicitarEnvioSeguimiento === "function") {
+        solicitarEnvioSeguimiento("legacy", true);
     }
-
-    await Promise.all(tareasEnvio);
 }
 
 
@@ -572,6 +568,7 @@ document.addEventListener("deviceready", async function () {
     try {
         await Tablas_crear_tablas(); //ok
         await comprobarActualizarEsquema();
+        seguimientoSqliteLista = true;
 
     } catch (error) {
         app.dialog.alert("Error al crear las tablas:", JSON.stringify(error), "GFE");
@@ -606,6 +603,10 @@ document.addEventListener("deviceready", async function () {
 
     $$("#uid_movil").text("UUID: " + device.uuid);
     Guardar_dato_local("uid", device.uuid);
+    if (seguimientoSqliteLista && typeof inicializarProgramadorEnvioSeguimiento === "function") {
+        inicializarProgramadorEnvioSeguimiento();
+        solicitarEnvioSeguimiento("inicio_o_resume", true);
+    }
 
     ls.open(false);
 
@@ -701,6 +702,10 @@ document.addEventListener("deviceready", async function () {
                 Guardar_dato_local("user_activo", result.user);
                 Guardar_dato_local("rut_activo", result.rut);
                 Guardar_dato_local("empresa_activo", result.id_emp);
+                if (seguimientoSqliteLista && typeof inicializarProgramadorEnvioSeguimiento === "function") {
+                    inicializarProgramadorEnvioSeguimiento();
+                    solicitarEnvioSeguimiento("inicio_o_resume", true);
+                }
 
                 if (Obtener_dato_local("ultimo_activo") != result.user) {
                     borra_orden_compra(function (result) {
@@ -1097,6 +1102,9 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
+            if (typeof detenerProgramadorEnvioSeguimiento === "function") {
+                detenerProgramadorEnvioSeguimiento();
+            }
             stopTracking();
             desactivarBackgroundModeSeguro();
             if (trackingIntervalId !== null) {

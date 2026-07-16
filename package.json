@@ -5,7 +5,7 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/seguimiento-envio.test.js tests/seguimiento-captura.test.js tests/gps-tracking-regresion.test.js tests/seguimiento-reinicio.integration.test.js",
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/seguimiento-envio.test.js tests/seguimiento-programador.test.js tests/seguimiento-captura.test.js tests/gps-tracking-regresion.test.js tests/seguimiento-reinicio.integration.test.js",
         "test:e2e-seguimiento": "node --test --experimental-test-isolation=none tests/seguimiento-reinicio.e2e.test.js"
     },
     "author": "Apache Cordova Team",

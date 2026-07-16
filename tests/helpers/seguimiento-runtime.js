@@ -88,6 +88,7 @@ function crearRuntime(opciones) {
     const post = opciones.post || (async function () {
         throw new Error('La prueba no configuró el transporte HTTP.');
     });
+    const listeners = new Map();
 
     const contexto = {
         AbortController,
@@ -101,10 +102,18 @@ function crearRuntime(opciones) {
         Object,
         Promise,
         SEGUIMIENTO_MAX_LOTES_POR_CICLO: 5,
-        SEGUIMIENTO_POSICIONES_POR_LOTE: 100,
+        SEGUIMIENTO_TAMANO_LOTE: 100,
+        SEGUIMIENTO_DEBOUNCE_ENVIO_MS: 3000,
+        SEGUIMIENTO_INTERVALO_RESPALDO_MS: 15000,
+        SEGUIMIENTO_PAUSA_ENTRE_CICLOS_MS: 1500,
+        SEGUIMIENTO_BACKOFF_INICIAL_MS: 5000,
+        SEGUIMIENTO_BACKOFF_MAXIMO_MS: 60000,
+        HABILITAR_DIAGNOSTICO_ENVIO_SEGUIMIENTO: true,
         SEGUIMIENTO_TIMEOUT_HTTP_MS: opciones.timeoutMs || 15000,
         String,
         Uint8Array,
+        clearTimeout,
+        setTimeout,
         console: {
             log(...argumentos) { mensajes.push({ nivel: 'log', argumentos }); },
             warn(...argumentos) { mensajes.push({ nivel: 'warn', argumentos }); },
@@ -113,6 +122,12 @@ function crearRuntime(opciones) {
         window: {
             crypto: crypto.webcrypto,
             sqlitePlugin: crearAdaptadorCordova(db)
+        },
+        document: {
+            addEventListener(nombre, callback) { listeners.set(nombre, callback); },
+            removeEventListener(nombre, callback) {
+                if (listeners.get(nombre) === callback) listeners.delete(nombre);
+            }
         },
         checkConnection() {
             return opciones.conectado === false ? 'No network connection' : 'WiFi connection';
@@ -124,6 +139,9 @@ function crearRuntime(opciones) {
             if (clave === 'version_app') {
                 return opciones.versionApp || '5.0.3-TEST';
             }
+            if (clave === 'user_activo') {
+                return opciones.userActivo === undefined ? 'usuario-prueba' : opciones.userActivo;
+            }
             return null;
         },
         DATOS_seleccionar_Parametro_movil_por_nombre(empresa, nombre, callback) {
@@ -131,12 +149,16 @@ function crearRuntime(opciones) {
         },
         axios: {
             async post(url, cuerpo, configuracion) {
-                solicitudes.push({
+                const solicitud = {
                     url,
                     cuerpo: JSON.parse(JSON.stringify(cuerpo)),
-                    configuracion: JSON.parse(JSON.stringify(configuracion || {}))
-                });
+                    configuracion: JSON.parse(JSON.stringify(configuracion || {})),
+                    fechaInicioMs: Date.now(),
+                    fechaFinMs: null
+                };
+                solicitudes.push(solicitud);
                 const data = await post(url, cuerpo, configuracion || {});
+                solicitud.fechaFinMs = Date.now();
                 respuestas.push(JSON.parse(JSON.stringify(data)));
                 return { data };
             }

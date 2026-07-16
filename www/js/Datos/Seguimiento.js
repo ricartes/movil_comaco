@@ -422,6 +422,37 @@ function listarSeguimientosConPosicionesPendientes() {
     });
 }
 
+function listarResumenSeguimientosConPosicionesPendientes() {
+    return new Promise(function (resolve, reject) {
+        var db = SEGUIMIENTO_abrirBaseDatos();
+        var seguimientos = [];
+
+        db.transaction(function (tr) {
+            tr.executeSql(
+                `SELECT ID_UNICO_SEGUIMIENTO,
+                        COUNT(*) AS CANTIDAD_PENDIENTE,
+                        MIN(FECHA_CREACION_UTC) AS FECHA_CREACION_UTC_MAS_ANTIGUA,
+                        MIN(ID) AS PRIMER_ID
+                 FROM SEGUIMIENTO_POSICION_PENDIENTE
+                 GROUP BY ID_UNICO_SEGUIMIENTO
+                 ORDER BY MIN(FECHA_CREACION_UTC), MIN(ID)`,
+                [],
+                function (tr, rs) {
+                    seguimientos = SEGUIMIENTO_filas(rs).map(function (fila) {
+                        return {
+                            ID_UNICO_SEGUIMIENTO: fila.ID_UNICO_SEGUIMIENTO,
+                            CANTIDAD_PENDIENTE: Number(fila.CANTIDAD_PENDIENTE) || 0,
+                            FECHA_CREACION_UTC_MAS_ANTIGUA: fila.FECHA_CREACION_UTC_MAS_ANTIGUA || null
+                        };
+                    });
+                }
+            );
+        }, reject, function () {
+            resolve(seguimientos);
+        });
+    });
+}
+
 function listarPosicionesSeguimientoPendientes(idUnicoSeguimiento, limite) {
     return new Promise(function (resolve, reject) {
         var idSeguimiento;

@@ -12,6 +12,7 @@ const {
     crearGpsTrackingRuntime,
     crearGuiaGps
 } = require('./helpers/gps-tracking-runtime');
+const { crearRuntime } = require('./helpers/seguimiento-runtime');
 
 const HABILITADO = process.env.RUN_E2E_SEGUIMIENTO === '1';
 
@@ -57,6 +58,8 @@ function validarConfiguracion() {
     const latitud = Number(process.env.E2E_LATITUD || '-36.748134');
     const longitud = Number(process.env.E2E_LONGITUD || '-72.998278');
     const timeoutMs = Number(process.env.E2E_TIMEOUT_MS || '30000');
+    const latenciaMaxInicioMs = Number(process.env.E2E_LATENCIA_MAX_INICIO_MS || '8000');
+    const latenciaMaxTotalMs = Number(process.env.E2E_LATENCIA_MAX_TOTAL_MS || '20000');
     if (!Number.isFinite(latitud) || latitud < -90 || latitud > 90) {
         throw new Error('E2E_LATITUD no es válida.');
     }
@@ -66,16 +69,58 @@ function validarConfiguracion() {
     if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 120000) {
         throw new Error('E2E_TIMEOUT_MS debe ser un entero entre 1 y 120000.');
     }
+    if (!Number.isInteger(latenciaMaxInicioMs) || latenciaMaxInicioMs < 3000) {
+        throw new Error('E2E_LATENCIA_MAX_INICIO_MS debe ser un entero de al menos 3000.');
+    }
+    if (!Number.isInteger(latenciaMaxTotalMs) || latenciaMaxTotalMs < latenciaMaxInicioMs) {
+        throw new Error('E2E_LATENCIA_MAX_TOTAL_MS debe ser mayor o igual al límite de inicio.');
+    }
 
     return {
         endpoint: endpoint.toString(),
         idSeguimiento,
         latitud,
         longitud,
+        latenciaMaxInicioMs,
+        latenciaMaxTotalMs,
         timeoutMs,
         uuidDispositivo,
         versionApp: String(process.env.E2E_VERSION_APP || '5.0.3-E2E').trim()
     };
+}
+
+function urlBaseDesdeEndpoint(endpoint) {
+    return endpoint.replace(/\/WebServiceProveedor\.asmx\/Recibe_Posiciones_Seguimiento\/?$/i, '');
+}
+
+async function postHttpE2e(url, cuerpo, timeoutMs) {
+    const controlador = new AbortController();
+    const temporizador = setTimeout(function () { controlador.abort(); }, timeoutMs);
+    try {
+        const respuesta = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(cuerpo),
+            signal: controlador.signal
+        });
+        const texto = await respuesta.text();
+        if (!respuesta.ok) {
+            throw new Error(`HTTP ${respuesta.status} en la prueba de latencia.`);
+        }
+        return JSON.parse(texto);
+    } finally {
+        clearTimeout(temporizador);
+    }
+}
+
+async function esperarColaVacia(runtime, idSeguimiento, limiteMs) {
+    const inicio = Date.now();
+    while (Date.now() - inicio <= limiteMs) {
+        const pendientes = await runtime.contexto.listarPosicionesSeguimientoPendientes(idSeguimiento, 200);
+        if (pendientes.length === 0) return;
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error(`La cola local no se vació dentro de ${limiteMs} ms.`);
 }
 
 function enmascarar(valor) {
@@ -281,6 +326,83 @@ test('E2E opt-in: callbacks GPS reales del pipeline llegan a HTTPS y vacían SQL
         ].join('\n'));
     } finally {
         if (!runtimeCerrado) runtime.cerrar();
+        limpiarSqliteTemporal(temporal);
+    }
+});
+
+test('E2E opt-in: commit SQLite, debounce y confirmación cumplen límites de latencia', { skip: !HABILITADO }, async function (t) {
+    const configuracion = validarConfiguracion();
+    const temporal = crearSqliteTemporal('gfe-seguimiento-e2e-latencia-');
+    const uuidPosicion = crypto.randomUUID();
+    const runtime = crearRuntime({
+        rutaDb: temporal.rutaDb,
+        cargarEnvio: true,
+        conectado: true,
+        uuidDispositivo: configuracion.uuidDispositivo,
+        versionApp: configuracion.versionApp,
+        timeoutMs: configuracion.timeoutMs,
+        urlBase: urlBaseDesdeEndpoint(configuracion.endpoint),
+        post(url, cuerpo) {
+            return postHttpE2e(url, cuerpo, configuracion.timeoutMs);
+        }
+    });
+
+    t.diagnostic('ADVERTENCIA: esta prueba crea una posición real en SQL Server de desarrollo.');
+    t.diagnostic(`UUID_POSICION latencia: ${uuidPosicion}`);
+    try {
+        runtime.db.exec('CREATE TABLE IF NOT EXISTS GDE (ID_UNICO_MOVIL TEXT)');
+        await runtime.contexto.DATOS_inicializarSeguimientoSqlite();
+        await runtime.contexto.insertarPosicionSeguimientoPendiente({
+            UUID_POSICION: uuidPosicion,
+            ID_UNICO_MOVIL_GDE: `GUIA-E2E-LATENCIA-${Date.now()}`,
+            ID_UNICO_SEGUIMIENTO: configuracion.idSeguimiento,
+            SECUENCIA_LOCAL: 1,
+            FECHA_DISPOSITIVO_UTC: new Date().toISOString(),
+            LATITUD: configuracion.latitud,
+            LONGITUD: configuracion.longitud,
+            PRECISION_METROS: 5,
+            VELOCIDAD_MPS: null,
+            RUMBO_GRADOS: null,
+            ALTITUD_METROS: null,
+            ES_UBICACION_SIMULADA: false,
+            ORIGEN_CAPTURA: 'GPS'
+        });
+        const fechaCommitMs = Date.now();
+
+        runtime.contexto.inicializarProgramadorEnvioSeguimiento();
+        runtime.contexto.solicitarEnvioSeguimiento('e2e_latencia', false);
+        await esperarColaVacia(runtime, configuracion.idSeguimiento, configuracion.latenciaMaxTotalMs + 5000);
+        const fechaConfirmacionMs = Date.now();
+
+        assert.equal(runtime.solicitudes.length, 1);
+        assert.equal(runtime.respuestas.length, 1);
+        const solicitud = runtime.solicitudes[0];
+        const resultado = desempaquetarRespuesta(runtime.respuestas[0]);
+        const posicionResultado = resultado.POSICIONES.find(function (item) {
+            return String(item.UUID_POSICION).toUpperCase() === uuidPosicion.toUpperCase();
+        });
+        assert.ok(posicionResultado);
+        assert.ok(posicionResultado.ESTADO === 'INSERTADA' || posicionResultado.ESTADO === 'YA_EXISTIA');
+
+        const commitAInicioPostMs = solicitud.fechaInicioMs - fechaCommitMs;
+        const duracionHttpMs = solicitud.fechaFinMs - solicitud.fechaInicioMs;
+        const commitAConfirmacionMs = fechaConfirmacionMs - fechaCommitMs;
+        assert.ok(commitAInicioPostMs <= configuracion.latenciaMaxInicioMs,
+            `Inicio POST ${commitAInicioPostMs} ms supera ${configuracion.latenciaMaxInicioMs} ms.`);
+        assert.ok(commitAConfirmacionMs <= configuracion.latenciaMaxTotalMs,
+            `Confirmación ${commitAConfirmacionMs} ms supera ${configuracion.latenciaMaxTotalMs} ms.`);
+
+        const pendientes = await runtime.contexto.listarPosicionesSeguimientoPendientes(configuracion.idSeguimiento, 200);
+        assert.equal(pendientes.length, 0);
+        t.diagnostic(`Latencia commit -> inicio POST: ${commitAInicioPostMs} ms`);
+        t.diagnostic(`Duración HTTP: ${duracionHttpMs} ms`);
+        t.diagnostic(`Latencia commit -> confirmación local: ${commitAConfirmacionMs} ms`);
+        t.diagnostic('SQLite terminó vacía tras confirmación: sí');
+    } finally {
+        if (typeof runtime.contexto.detenerProgramadorEnvioSeguimiento === 'function') {
+            runtime.contexto.detenerProgramadorEnvioSeguimiento();
+        }
+        runtime.cerrar();
         limpiarSqliteTemporal(temporal);
     }
 });

@@ -61,7 +61,13 @@ function crearEscenario(opciones = {}) {
         Object,
         Promise,
         SEGUIMIENTO_MAX_LOTES_POR_CICLO: opciones.maxLotes || 5,
-        SEGUIMIENTO_POSICIONES_POR_LOTE: 100,
+        SEGUIMIENTO_TAMANO_LOTE: 100,
+        SEGUIMIENTO_DEBOUNCE_ENVIO_MS: 3000,
+        SEGUIMIENTO_INTERVALO_RESPALDO_MS: 15000,
+        SEGUIMIENTO_PAUSA_ENTRE_CICLOS_MS: 1500,
+        SEGUIMIENTO_BACKOFF_INICIAL_MS: 5000,
+        SEGUIMIENTO_BACKOFF_MAXIMO_MS: 60000,
+        HABILITAR_DIAGNOSTICO_ENVIO_SEGUIMIENTO: true,
         String,
         Uint8Array,
         console: consola,
@@ -80,6 +86,13 @@ function crearEscenario(opciones = {}) {
         },
         async listarSeguimientosConPosicionesPendientes() {
             return Object.keys(colas).filter(id => colas[id].length > 0);
+        },
+        async listarResumenSeguimientosConPosicionesPendientes() {
+            return Object.keys(colas).filter(id => colas[id].length > 0).map(id => ({
+                ID_UNICO_SEGUIMIENTO: id,
+                CANTIDAD_PENDIENTE: colas[id].length,
+                FECHA_CREACION_UTC_MAS_ANTIGUA: colas[id][0].FECHA_CREACION_UTC || null
+            }));
         },
         async listarPosicionesSeguimientoPendientes(idSeguimiento, limite) {
             return (colas[idSeguimiento] || []).slice(0, limite);
@@ -125,6 +138,7 @@ function crearEscenario(opciones = {}) {
     };
     const repositorioSimulado = {
         listarSeguimientosConPosicionesPendientes: contexto.listarSeguimientosConPosicionesPendientes,
+        listarResumenSeguimientosConPosicionesPendientes: contexto.listarResumenSeguimientosConPosicionesPendientes,
         listarPosicionesSeguimientoPendientes: contexto.listarPosicionesSeguimientoPendientes,
         eliminarPosicionesSeguimientoPorUuid: contexto.eliminarPosicionesSeguimientoPorUuid,
         registrarIntentoEnvioPosiciones: contexto.registrarIntentoEnvioPosiciones
