@@ -23,7 +23,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ContextCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
 

@@ -1,0 +1,25 @@
+def comacoKotlinVersion = "1.8.22"
+
+dependencies {
+    implementation(enforcedPlatform(
+        "org.jetbrains.kotlin:kotlin-bom:${comacoKotlinVersion}"
+    ))
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        if (
+            details.requested.group == "org.jetbrains.kotlin" &&
+            [
+                "kotlin-stdlib",
+                "kotlin-stdlib-jdk7",
+                "kotlin-stdlib-jdk8"
+            ].contains(details.requested.name)
+        ) {
+            details.useVersion(comacoKotlinVersion)
+            details.because(
+                "Alinear Kotlin stdlib para evitar clases duplicadas entre 1.6.21 y 1.8.22"
+            )
+        }
+    }
+}

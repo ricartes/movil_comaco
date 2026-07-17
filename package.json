@@ -35,7 +35,6 @@
             "cordova-plugin-device-motion": {},
             "cordova-pdf-generator": {},
             "cordova-plugin-androidx": {},
-            "cordova-plugin-comaco-tracking": {},
             "cordova-sqlite-spatialite-evplus-ext-common-free": {},
             "cordova-plugin-android-permissions": {},
             "cordova-plugin-camera": {
@@ -51,7 +50,8 @@
                 "GPS_REQUIRED": "true"
             },
             "@ccervantesb/cordova-plugin-mock-location": {},
-            "cordova-plugin-power-optimization": {}
+            "cordova-plugin-power-optimization": {},
+            "cordova-plugin-comaco-tracking": {}
         },
         "platforms": [
             "browser",
@@ -66,12 +66,12 @@
         "cordova-plugin-androidx": "^3.0.0",
         "cordova-plugin-btprinter": "github:CesarBalzer/Cordova-Plugin-BTPrinter",
         "cordova-plugin-camera": "^7.0.0",
+        "cordova-plugin-comaco-tracking": "file:plugins-local/cordova-plugin-comaco-tracking",
         "cordova-plugin-file": "^8.0.0",
         "cordova-plugin-file-transfer": "^2.0.0",
         "cordova-plugin-geolocation": "^5.0.0",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
         "cordova-plugin-power-optimization": "^0.0.4",
-        "cordova-plugin-comaco-tracking": "file:plugins-local/cordova-plugin-comaco-tracking",
         "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
         "cordova.plugins.diagnostic": "^7.2.3",
         "verify-automatic-date-time-zone": "^1.0.3-dev"
