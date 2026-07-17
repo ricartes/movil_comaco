@@ -508,6 +508,27 @@ function anular_guia() {
 
 }
 
+function despertarEnvioGuiaPersistida() {
+    if (!gde_actual || (gde_actual.ENVIADO != 0 && gde_actual.ENVIADO !== "0")) {
+        return;
+    }
+
+    // DATOS_asigna_coordenadas invoca este flujo sólo después del COMMIT.
+    // El diferimiento evita reentrancia; no se usa como confirmación de commit.
+    setTimeout(function () {
+        if (typeof solicitarEnvioAutomaticoDatos === "function") {
+            solicitarEnvioAutomaticoDatos("guia_emitida", true);
+        }
+    }, 0);
+}
+
+function finalizarEmisionGuiaPersistida() {
+    despertarEnvioGuiaPersistida();
+    app.dialog.alert("Guia emitida correctamente. Folio corresponder al N° " + folio_asignado.NUM_FOLIO + " ", "GFE", function () {
+        mainView.router.navigate('/VistaPreliminar/' + zona_activa + '/' + id_gde + '/' + tipo_volumen + '/' + tipo_emision + '/' + origen);
+    });
+}
+
 
 function generar_guia_imprimible() {
     var rut = Obtener_dato_local("rut_activo");
@@ -531,7 +552,6 @@ function generar_guia_imprimible() {
 
 
 function imprimir_guia() {
-    envio_automatico_activado = 0;
     var estado = "I";
     var rut = Obtener_dato_local("rut_activo");
     var empresa = Obtener_dato_local("empresa_activo");
@@ -583,10 +603,7 @@ function imprimir_guia() {
                                                                 DATOS_actualiza_datos_totales(gde_actual, function (result14) {
 
                                                                     DATOS_asigna_coordenadas(gde_actual, function (result15) {
-                                                                        envio_automatico_activado = 1;
-                                                                        app.dialog.alert("Guia emitida correctamente. Folio corresponder al N° " + folio_asignado.NUM_FOLIO + " ", "GFE", function () {
-                                                                            mainView.router.navigate('/VistaPreliminar/' + zona_activa + '/' + id_gde + '/' + tipo_volumen + '/' + tipo_emision + '/' + origen);
-                                                                        });
+                                                                        finalizarEmisionGuiaPersistida();
                                                                     });
 
 
@@ -629,10 +646,7 @@ function imprimir_guia() {
                                                             DATOS_actualiza_datos_producto(gde_actual, function (result13) {
                                                                 DATOS_actualiza_datos_totales(gde_actual, function (result14) {
                                                                     DATOS_asigna_coordenadas(gde_actual, function (result15) {
-                                                                        envio_automatico_activado = 1;
-                                                                        app.dialog.alert("Guia emitida correctamente. Folio corresponder al N° " + folio_asignado.NUM_FOLIO + " ", "GFE", function () {
-                                                                            mainView.router.navigate('/VistaPreliminar/' + zona_activa + '/' + id_gde + '/' + tipo_volumen + '/' + tipo_emision + '/' + origen);
-                                                                        });
+                                                                        finalizarEmisionGuiaPersistida();
                                                                     });
 
 

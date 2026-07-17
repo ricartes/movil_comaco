@@ -110,7 +110,12 @@ function cargarContexto(db, incluirTablas = false) {
 }
 
 function crearGdeMinima(db) {
-    db.exec('CREATE TABLE GDE (ID_UNICO_MOVIL TEXT, DATO_EXISTENTE TEXT)');
+    db.exec(`CREATE TABLE GDE (
+        ID_UNICO_MOVIL TEXT,
+        DATO_EXISTENTE TEXT,
+        GDE_ESTADO_MOVIL TEXT DEFAULT 'I',
+        ENVIADO INTEGER DEFAULT 0
+    )`);
 }
 
 function columnas(db, tabla) {
@@ -246,6 +251,104 @@ test('revierte todos los vínculos cuando falla una guía intermedia', async () 
     ]), /No se encontró una única guía/);
 
     assert.equal(await contexto.obtenerIdSeguimientoGuia('GUIA-1'), null);
+    db.close();
+});
+
+test('aceptación guarda credencial, seguimiento y ENVIADO en una sola transacción', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+
+    const guardadas = await contexto.guardarGuiasAceptadasConSeguimiento(
+        [respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1)],
+        ['GUIA-1']
+    );
+
+    assert.equal(guardadas, 1);
+    const guia = db.prepare('SELECT ID_UNICO_SEGUIMIENTO, ENVIADO, GDE_ESTADO_MOVIL FROM GDE').get();
+    assert.equal(guia.ID_UNICO_SEGUIMIENTO, UUID_SEGUIMIENTO_1);
+    assert.equal(guia.ENVIADO, 1);
+    assert.equal(guia.GDE_ESTADO_MOVIL, 'E');
+    assert.equal(db.prepare('SELECT COUNT(*) AS TOTAL FROM SEGUIMIENTO_CREDENCIAL').get().TOTAL, 1);
+    db.close();
+});
+
+test('credencial inválida impide marcar la guía como enviada', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+    const respuesta = respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1);
+    respuesta.TOKEN_SEGUIMIENTO = '   ';
+
+    await assert.rejects(
+        contexto.guardarGuiasAceptadasConSeguimiento([respuesta], ['GUIA-1']),
+        /TOKEN_SEGUIMIENTO/
+    );
+    const guia = db.prepare('SELECT ID_UNICO_SEGUIMIENTO, ENVIADO FROM GDE').get();
+    assert.equal(guia.ID_UNICO_SEGUIMIENTO, null);
+    assert.equal(guia.ENVIADO, 0);
+    db.close();
+});
+
+test('fallo en una guía intermedia revierte también ENVIADO y credenciales previas', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+
+    await assert.rejects(
+        contexto.guardarGuiasAceptadasConSeguimiento([
+            respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1),
+            respuestaSeguimiento('GUIA-INEXISTENTE', UUID_SEGUIMIENTO_2)
+        ], ['GUIA-1', 'GUIA-INEXISTENTE']),
+        /única guía pendiente/
+    );
+
+    assert.equal(db.prepare('SELECT ENVIADO FROM GDE WHERE ID_UNICO_MOVIL = ?').get('GUIA-1').ENVIADO, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) AS TOTAL FROM SEGUIMIENTO_CREDENCIAL').get().TOTAL, 0);
+    db.close();
+});
+
+test('respuesta desalineada no modifica ninguna guía', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+
+    await assert.rejects(
+        contexto.guardarGuiasAceptadasConSeguimiento(
+            [respuestaSeguimiento('OTRA-GUIA', UUID_SEGUIMIENTO_1)],
+            ['GUIA-1']
+        ),
+        /No existe seguimiento/
+    );
+    assert.equal(db.prepare('SELECT ENVIADO FROM GDE').get().ENVIADO, 0);
+    db.close();
+});
+
+test('una anulación N no puede aceptarse como guía nueva por Recibe_Guia_V2', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    db.prepare("INSERT INTO GDE (ID_UNICO_MOVIL, GDE_ESTADO_MOVIL) VALUES (?, 'N')").run('GUIA-ANULADA');
+
+    await assert.rejects(
+        contexto.guardarGuiasAceptadasConSeguimiento(
+            [respuestaSeguimiento('GUIA-ANULADA', UUID_SEGUIMIENTO_1)],
+            ['GUIA-ANULADA']
+        ),
+        /única guía pendiente/
+    );
+
+    assert.equal(db.prepare('SELECT ENVIADO FROM GDE').get().ENVIADO, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) AS TOTAL FROM SEGUIMIENTO_CREDENCIAL').get().TOTAL, 0);
     db.close();
 });
 

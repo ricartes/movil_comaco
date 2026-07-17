@@ -1348,37 +1348,57 @@ function extraerSeguimientosRecibeGuiaV2(data) {
     return seguimientos;
 }
 
+function extraerIdsGuiasAceptadasRecibeGuiaV2(data) {
+    var idsGuias = [];
+    $(data).find('CL_GDE_Proveedor').each(function () {
+        idsGuias.push($(this).find('ID_UNICO_MOVIL').first().text());
+    });
+    return idsGuias;
+}
+
 function procesarGuiasAceptadasRecibeGuiaV2(data, callback) {
-    var conta = 0;
     var tamano = parseInt($(data).find('tam_list').text());
     var seguimientos;
+    var idsGuiasAceptadas;
 
     try {
+        if (!Number.isInteger(tamano) || tamano < 0) {
+            throw new Error("tam_list inválido.");
+        }
         seguimientos = extraerSeguimientosRecibeGuiaV2(data);
+        idsGuiasAceptadas = extraerIdsGuiasAceptadasRecibeGuiaV2(data);
+        if (idsGuiasAceptadas.length !== tamano) {
+            throw new Error("tam_list no coincide con las guías aceptadas.");
+        }
     } catch (error) {
-        console.error("Respuesta inválida de Recibe_Guia_V2:", error);
+        console.error("[ENVIO-DATOS][GUIAS] respuesta_invalida");
         typeof callback == "function" && callback(-1);
         return;
     }
 
-    procesarSeguimientosRecibeGuiaV2(seguimientos).then(function () {
-        if (tamano == 0) {
-            typeof callback == "function" && callback(0);
-            return;
+    if (tamano === 0 && (seguimientos === null || seguimientos.length === 0)) {
+        typeof callback == "function" && callback(0);
+        return;
+    }
+
+    guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas).then(async function (cantidadGuardada) {
+        if (cantidadGuardada > 0) {
+            try {
+                if (typeof reevaluarTrackingAhora === "function") {
+                    await reevaluarTrackingAhora();
+                }
+            } catch (error) {
+                console.warn("[ENVIO-DATOS][GUIAS] reevaluacion_tracking_no_completada");
+            }
+
+            if (typeof solicitarEnvioSeguimiento === "function") {
+                solicitarEnvioSeguimiento("guia_aceptada", true);
+            }
         }
 
-        $(data).find('CL_GDE_Proveedor').each(function () {
-            var ID_UNICO_MOVIL = $(this).find('ID_UNICO_MOVIL').text();
-
-            DATOS_cambiar_estado_envio_gde_individual(ID_UNICO_MOVIL, function (result2) {
-                conta++;
-                if (confirma_guardado_parametro(conta, tamano) == 1) {
-                    typeof callback == "function" && callback(1);
-                }
-            });
-        });
+        typeof callback == "function" && callback(cantidadGuardada > 0 ? 1 : 0);
     }).catch(function (error) {
-        console.error("No fue posible guardar SEGUIMIENTOS de Recibe_Guia_V2:", error);
+        console.error("[ENVIO-DATOS][GUIAS] persistencia_no_completada");
         typeof callback == "function" && callback(-1);
     });
 }

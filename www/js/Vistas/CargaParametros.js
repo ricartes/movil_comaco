@@ -64,7 +64,6 @@ function carga_parametros() {
                             );
 
                             // Versión desactualizada => no seguimos con carga de parámetros
-                            envio_automatico_activado = 1;
                             $$(".link").removeClass("disabled");
                             $$('#btn_carga_parametros').removeClass("disabled");
 
@@ -99,7 +98,6 @@ function carga_parametros() {
 
                                                             ws_cargaGeocercas(rut, "1", result6, function (result7) {
                                                                 if (result7 > 0) {
-                                                                    envio_automatico_activado = 1;
                                                                     $$('#btn_carga_parametros').addClass("disabled");
                                                                     $$(".link").removeClass("disabled");
                                                                     Guardar_dato_local("fecha_hora_carga_parametros", FechaHoraActual());
@@ -176,7 +174,6 @@ function carga_parametros() {
 
 
                         } else {
-                            envio_automatico_activado = 1;
                             var mensaje = "";
                             if (result == 0) {
                                 mensaje = "No hay parámetros por cargar para el usuario ingresado.\n Compruebe con el administrador que tenga zonas asignadas";
@@ -195,7 +192,6 @@ function carga_parametros() {
                 } catch (e) {
                     console.log(e);
                     console.error("Error en carga_parametros:", e);
-                    envio_automatico_activado = 1;
                     $$(".link").removeClass("disabled");
                     $$('#btn_carga_parametros').removeClass("disabled");
                     app.dialog.alert(
@@ -209,7 +205,6 @@ function carga_parametros() {
 
                 $$(".link").removeClass("disabled");
                 $$('#btn_carga_parametros').removeClass("disabled")
-                envio_automatico_activado = 1;
                 app.dialog.alert("No se ha podido establecer la conexion con el servidor", "Carga de guías")
                 return false;
 

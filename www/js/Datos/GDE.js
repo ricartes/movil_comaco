@@ -758,7 +758,7 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
     //alert("entro a guardar gde");
     this.db.transaction(function (tr) {
-        tr.executeSql("SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL IN(?,?)", [Obtener_dato_local("rut_activo"), "0", "I", "N"], function (tr, rs) {
+        tr.executeSql("SELECT GDE.*, GDE.rowid FROM GDE WHERE GDE_COD_DESPACHADOR=? AND ENVIADO=? AND GDE_ESTADO_MOVIL=?", [Obtener_dato_local("rut_activo"), "0", "I"], function (tr, rs) {
             var n = rs.rows.length;
             //alert(n +"GDE POR ENVIAR");
             if (n == 0) {
@@ -1030,11 +1030,16 @@ function DATOS_asigna_coordenadas(GDE, callback) {
     //alert("a guardar gdep");
     //alert(GDE.GDE_COORDENADA_X+" "+GDE.GDE_COORDENADA_Y)
     this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
+    var resultado;
     this.db.transaction(function (tr) {
         tr.executeSql("UPDATE GDE SET GDE_COORDENADA_X=?, GDE_COORDENADA_Y=? WHERE ROWID=? ", [GDE.GDE_COORDENADA_X, GDE.GDE_COORDENADA_Y, GDE.ROWID], function (tr, rs) {
-            //alert("si guardo");
-            typeof callback == "function" && callback(rs);
+            resultado = rs;
         });
+    }, function () {
+        // Un rollback no debe continuar el flujo posterior a la persistencia.
+    }, function () {
+        // El callback público se ejecuta únicamente después del COMMIT.
+        typeof callback == "function" && callback(resultado);
     });
 
 }

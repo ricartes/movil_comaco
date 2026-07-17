@@ -38,6 +38,15 @@ var app = new Framework7({
 
 var timmerEnvio = null;          // envíos de guías/evidencias/imágenes
 var timmerTrazabilidad = null;   // solo trazabilidad
+var timeoutSolicitudEnvioDatos = null;
+var cicloEnvioDatosEnCurso = false;
+var envioDatosPendiente = false;
+var programadorEnvioDatosHabilitado = false;
+var listenerOnlineEnvioDatosRegistrado = false;
+var motivoEnvioDatosPendiente = "respaldo";
+var ENVIO_DATOS_INTERVALO_MS = 10000;
+var ENVIO_DATOS_DEBOUNCE_MS = 150;
+var ENVIO_DATOS_TIMEOUT_CICLO_MS = 120000;
 var versionAppCheckHecho = false;
 var versionAppValida = true;   // por defecto asumimos válida hasta comprobar
 var versionAppAlertMostrado = false;
@@ -329,8 +338,6 @@ async function cicloEnvioAutomaticoDatos() {
 
             if (!versionAppValida && !versionAppAlertMostrado) {
                 versionAppAlertMostrado = true;
-                envio_automatico_activado = 0;
-
                 let datos = await generarDataTrazabilidad(
                     TipoAccionTypes.VERSION_INCORRECTA_APP,
                     Obtener_dato_local("user_activo")
@@ -341,11 +348,7 @@ async function cicloEnvioAutomaticoDatos() {
                     datos
                 );
 
-                // Detenemos el timer automático porque sabemos que la versión es vieja
-                if (timmerEnvio) {
-                    clearInterval(timmerEnvio);
-                    timmerEnvio = null;
-                }
+                detenerProgramadorEnvioDatos("version_invalida");
 
                 app.dialog.alert(
                     "La versión de la aplicación instalada en este dispositivo no es la última vigente. " +
@@ -374,8 +377,8 @@ async function cicloEnvioAutomaticoDatos() {
         return;
     }
 
-    // Si la versión es válida, lanzamos el envío normal
-    EnvioAutomatico_segundo_plano(1, 1);
+    // Si la versión es válida, esperamos el envío normal.
+    return EnvioAutomatico_segundo_plano(1, 1);
 }
 
 
@@ -393,43 +396,206 @@ async function cicloEnvioTrazabilidad() {
 
 
 
-function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
+function ENVIO_DATOS_promesaCallback(invocador) {
+    return new Promise(function (resolve, reject) {
+        try {
+            invocador(function (resultado) {
+                resolve(resultado);
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
+function ENVIO_DATOS_conTimeout(promesa) {
+    var timeoutId;
+    var timeout = new Promise(function (resolve, reject) {
+        timeoutId = setTimeout(function () {
+            reject(new Error("Tiempo de espera agotado en el ciclo de envío de datos."));
+        }, ENVIO_DATOS_TIMEOUT_CICLO_MS);
+    });
+
+    return Promise.race([promesa, timeout]).finally(function () {
+        clearTimeout(timeoutId);
+    });
+}
+
+async function EnvioAutomatico_segundo_plano(segundo_plano, automatico) {
     Guardar_dato_local("bloqueado", 1);
 
-    if (checkConnection() != "No network connection") {
-        comprueba_conexion("0", function (result_conexion) {
-            if (result_conexion == 1) {
-                enviar_guias_proveedor("0", function (result_guias) {
-                    enviar_evidencias_proveedor("0", function (result_evidencias) {
-                        enviar_imagenes("0", function (result_imagenes) {
+    try {
+        if (checkConnection() == "No network connection") {
+            console.log("[ENVIO-DATOS][SIN_RED]");
+            return { SIN_RED: true };
+        }
 
-                            enviar_actualizacion_numero_guias("0", function (result_actualizadas) {
-                                Guardar_dato_local("bloqueado", 0);
-                                envio_automatico_activado = 1;
+        return await ENVIO_DATOS_conTimeout((async function () {
+            var resultConexion = await ENVIO_DATOS_promesaCallback(function (callback) {
+                comprueba_conexion("0", callback);
+            });
 
-                                if (
-                                    result_evidencias == 1 ||
-                                    result_evidencias == 0 ||
-                                    result_imagenes == 1 ||
-                                    result_imagenes == 0
-                                ) {
-                                    // OK silencioso
-                                } else {
-                                    // Error silencioso
-                                }
-                            });
-
-                        });
-                    });
-                });
-
-            } else {
-                Guardar_dato_local("bloqueado", 0);
+            if (resultConexion != 1) {
+                console.log("[ENVIO-DATOS][SIN_RED]");
+                return { SIN_RED: true };
             }
-        });
-    } else {
+
+            var resultGuias = await ENVIO_DATOS_promesaCallback(function (callback) {
+                enviar_guias_proveedor("0", callback);
+            });
+            console.log("[ENVIO-DATOS][GUIAS] resultado=" + String(resultGuias));
+
+            var resultEvidencias = await ENVIO_DATOS_promesaCallback(function (callback) {
+                enviar_evidencias_proveedor("0", callback);
+            });
+            var resultImagenes = await ENVIO_DATOS_promesaCallback(function (callback) {
+                enviar_imagenes("0", callback);
+            });
+            var resultActualizadas = await ENVIO_DATOS_promesaCallback(function (callback) {
+                enviar_actualizacion_numero_guias("0", callback);
+            });
+
+            return {
+                GUIAS: resultGuias,
+                EVIDENCIAS: resultEvidencias,
+                IMAGENES: resultImagenes,
+                GUIAS_ACTUALIZADAS: resultActualizadas
+            };
+        })());
+    } finally {
         Guardar_dato_local("bloqueado", 0);
+    }
+}
+
+function ENVIO_DATOS_sesionInteractivaValida() {
+    var rutActivo = Obtener_dato_local("rut_activo");
+    var usuarioActivo = Obtener_dato_local("user_activo");
+    return rutActivo !== undefined && rutActivo !== null && String(rutActivo).trim() !== "" &&
+        usuarioActivo !== undefined && usuarioActivo !== null && String(usuarioActivo).trim() !== "";
+}
+
+function ENVIO_DATOS_sanitizarMotivo(motivo) {
+    var permitido = {
+        guia_emitida: true,
+        login: true,
+        resume: true,
+        conexion_recuperada: true,
+        respaldo: true,
+        background_activado: true
+    };
+    var normalizado = String(motivo || "respaldo").toLowerCase().trim();
+    return permitido[normalizado] ? normalizado : "respaldo";
+}
+
+function inicializarProgramadorEnvioDatos() {
+    if (!ENVIO_DATOS_sesionInteractivaValida()) {
+        return false;
+    }
+
+    programadorEnvioDatosHabilitado = true;
+
+    if (!timmerEnvio) {
+        timmerEnvio = setInterval(function () {
+            solicitarEnvioAutomaticoDatos("respaldo", true);
+        }, ENVIO_DATOS_INTERVALO_MS);
+    }
+
+    if (!listenerOnlineEnvioDatosRegistrado) {
+        document.addEventListener("online", function () {
+            if (ENVIO_DATOS_sesionInteractivaValida()) {
+                solicitarEnvioAutomaticoDatos("conexion_recuperada", true);
+            }
+        }, false);
+        listenerOnlineEnvioDatosRegistrado = true;
+    }
+
+    return true;
+}
+
+function detenerProgramadorEnvioDatos(motivo) {
+    programadorEnvioDatosHabilitado = false;
+    envioDatosPendiente = false;
+    motivoEnvioDatosPendiente = "respaldo";
+
+    if (timmerEnvio) {
+        clearInterval(timmerEnvio);
+        timmerEnvio = null;
+    }
+    if (timeoutSolicitudEnvioDatos) {
+        clearTimeout(timeoutSolicitudEnvioDatos);
+        timeoutSolicitudEnvioDatos = null;
+    }
+
+    if (!cicloEnvioDatosEnCurso) {
+        Guardar_dato_local("bloqueado", 0);
+    }
+}
+
+function solicitarEnvioAutomaticoDatos(motivo, inmediato) {
+    var motivoSeguro = ENVIO_DATOS_sanitizarMotivo(motivo);
+
+    if (!ENVIO_DATOS_sesionInteractivaValida()) {
+        return false;
+    }
+    inicializarProgramadorEnvioDatos();
+    console.log("[ENVIO-DATOS][SOLICITADO] motivo=" + motivoSeguro);
+
+    if (cicloEnvioDatosEnCurso) {
+        envioDatosPendiente = true;
+        motivoEnvioDatosPendiente = motivoSeguro;
+        console.log("[ENVIO-DATOS][OMITIDO] motivo=ciclo_en_curso");
+        return true;
+    }
+
+    motivoEnvioDatosPendiente = motivoSeguro;
+    if (timeoutSolicitudEnvioDatos) {
+        clearTimeout(timeoutSolicitudEnvioDatos);
+    }
+    timeoutSolicitudEnvioDatos = setTimeout(function () {
+        timeoutSolicitudEnvioDatos = null;
+        ejecutarCicloEnvioAutomaticoDatos(motivoEnvioDatosPendiente);
+    }, inmediato === false ? ENVIO_DATOS_DEBOUNCE_MS : 0);
+    return true;
+}
+
+async function ejecutarCicloEnvioAutomaticoDatos(motivo) {
+    if (!programadorEnvioDatosHabilitado || !ENVIO_DATOS_sesionInteractivaValida()) {
+        return false;
+    }
+    if (cicloEnvioDatosEnCurso) {
+        envioDatosPendiente = true;
+        motivoEnvioDatosPendiente = ENVIO_DATOS_sanitizarMotivo(motivo);
+        console.log("[ENVIO-DATOS][OMITIDO] motivo=ciclo_en_curso");
+        return false;
+    }
+
+    if (Obtener_dato_local("bloqueado") != 0) {
+        console.log("[ENVIO-DATOS][OMITIDO] motivo=bloqueo_local");
+        return false;
+    }
+
+    cicloEnvioDatosEnCurso = true;
+    envioDatosPendiente = false;
+    var motivoSeguro = ENVIO_DATOS_sanitizarMotivo(motivo);
+    console.log("[ENVIO-DATOS][INICIO] motivo=" + motivoSeguro);
+
+    try {
+        await cicloEnvioAutomaticoDatos();
+        return true;
+    } catch (error) {
+        console.warn("[ENVIO-DATOS][ERROR] ciclo_no_completado");
+        return false;
+    } finally {
+        Guardar_dato_local("bloqueado", 0);
+        cicloEnvioDatosEnCurso = false;
+        console.log("[ENVIO-DATOS][FIN]");
+
+        if (envioDatosPendiente && programadorEnvioDatosHabilitado && ENVIO_DATOS_sesionInteractivaValida()) {
+            var motivoReprogramado = motivoEnvioDatosPendiente;
+            envioDatosPendiente = false;
+            console.log("[ENVIO-DATOS][REPROGRAMADO]");
+            solicitarEnvioAutomaticoDatos(motivoReprogramado, true);
+        }
     }
 }
 
@@ -493,7 +659,6 @@ function activarBackgroundModeSeguro() {
 
 function desactivarBackgroundModeSeguro() {
     try {
-        onDeactivate();
         if (backgroundModeActivo) {
             cordova.plugins.backgroundMode.disable();
             backgroundModeActivo = false;
@@ -507,7 +672,6 @@ function desactivarBackgroundModeSeguro() {
 function onActivate() {
     cordova.plugins.backgroundMode.disableWebViewOptimizations();
 
-    envio_automatico_activado = 1;
     versionAppCheckHecho = false;
     versionAppValida = true;
     versionAppAlertMostrado = false;
@@ -517,22 +681,31 @@ function onActivate() {
         timmerTrazabilidad = setInterval(cicloEnvioTrazabilidad, 10000);
     }
 
-    // Timer de envío de datos: puede ser desactivado por versión inválida
-    if (!timmerEnvio) {
-        timmerEnvio = setInterval(cicloEnvioAutomaticoDatos, 10000);
+    if (ENVIO_DATOS_sesionInteractivaValida()) {
+        inicializarProgramadorEnvioDatos();
+        solicitarEnvioAutomaticoDatos("background_activado", true);
     }
 }
 
 function onDeactivate() {
-    if (timmerEnvio) {
-        clearInterval(timmerEnvio);
-        timmerEnvio = null;
+    // El evento deactivate ocurre al volver al primer plano. El programador
+    // interactivo debe seguir vivo y puede aprovechar este despertar.
+    if (ENVIO_DATOS_sesionInteractivaValida()) {
+        inicializarProgramadorEnvioDatos();
+        solicitarEnvioAutomaticoDatos("resume", true);
     }
     if (timmerTrazabilidad) {
         clearInterval(timmerTrazabilidad);
         timmerTrazabilidad = null;
     }
 }
+
+document.addEventListener("resume", function () {
+    if (ENVIO_DATOS_sesionInteractivaValida()) {
+        inicializarProgramadorEnvioDatos();
+        solicitarEnvioAutomaticoDatos("resume", true);
+    }
+}, false);
 
 
 
@@ -675,7 +848,6 @@ document.addEventListener("deviceready", async function () {
     });
 
     $$(".login-screen").on("loginscreen:opened", function (e) {
-        envio_automatico_activado = 0;
         var rut_activo = Obtener_dato_local("ultimo_activo");
         var clave_activo = Obtener_dato_local("ultimo_password");
 
@@ -693,7 +865,6 @@ document.addEventListener("deviceready", async function () {
             if (result != -1) {
                 //startTracking();
                 Guardar_dato_local("bloqueado", 0);
-                envio_automatico_activado = 1;
                 Guardar_dato_local(
                     "nombre_activo",
                     result.nombre + " " + result.apellido
@@ -701,6 +872,8 @@ document.addEventListener("deviceready", async function () {
                 Guardar_dato_local("user_activo", result.user);
                 Guardar_dato_local("rut_activo", result.rut);
                 Guardar_dato_local("empresa_activo", result.id_emp);
+                inicializarProgramadorEnvioDatos();
+                solicitarEnvioAutomaticoDatos("login", true);
                 if (seguimientoSqliteLista && typeof inicializarProgramadorEnvioSeguimiento === "function") {
                     inicializarProgramadorEnvioSeguimiento();
                     solicitarEnvioSeguimiento("inicio_o_resume", true);
@@ -839,6 +1012,7 @@ function boton_atras() {
                 "GFE",
                 function () {
                     stopTracking();
+                    detenerProgramadorEnvioDatos("salida_aplicacion");
                     desactivarBackgroundModeSeguro();
                     Borrar_dato_local("user_activo");
                     Borrar_dato_local("rut_activo");
@@ -855,11 +1029,8 @@ function boton_atras() {
             break;
 
         case "enviar-datos":
-            //alert("activo envio automatico");
-            //envio_automatico_activado=1;
             //seleccion_zonas();
             $$("#enviados_appbar").text("");
-            envio_automatico_activado = 1;
             mainView.router.navigate("/");
             //seleccion_zonas();
             break;
@@ -1089,6 +1260,7 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
+            detenerProgramadorEnvioDatos("logout");
             if (timmer) {
                 clearInterval(timmer);
                 timmer = null;

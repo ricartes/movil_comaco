@@ -266,6 +266,97 @@ function guardarIdsSeguimientoGuias(seguimientos) {
     });
 }
 
+function SEGUIMIENTO_normalizarGuiasAceptadas(idsGuiasAceptadas) {
+    if (!Array.isArray(idsGuiasAceptadas)) {
+        throw new Error("Las guías aceptadas deben ser una lista.");
+    }
+
+    var idsVistos = {};
+    return idsGuiasAceptadas.map(function (idGuia) {
+        var idNormalizado = SEGUIMIENTO_textoObligatorio(idGuia, "ID_UNICO_MOVIL");
+        var clave = idNormalizado.toUpperCase();
+        if (idsVistos[clave]) {
+            throw new Error("La respuesta contiene más de una aceptación para la guía " + idNormalizado + ".");
+        }
+        idsVistos[clave] = true;
+        return idNormalizado;
+    });
+}
+
+function guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas) {
+    return new Promise(function (resolve, reject) {
+        var vinculos;
+        var idsAceptados;
+        try {
+            vinculos = SEGUIMIENTO_normalizarVinculosGuia(seguimientos);
+            idsAceptados = SEGUIMIENTO_normalizarGuiasAceptadas(idsGuiasAceptadas);
+
+            if (vinculos.length !== idsAceptados.length) {
+                throw new Error("La cantidad de seguimientos no coincide con las guías aceptadas.");
+            }
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        if (idsAceptados.length === 0) {
+            resolve(0);
+            return;
+        }
+
+        var vinculosPorGuia = {};
+        vinculos.forEach(function (vinculo) {
+            vinculosPorGuia[vinculo.ID_UNICO_MOVIL_GDE.toUpperCase()] = vinculo;
+        });
+
+        var vinculosAceptados;
+        try {
+            vinculosAceptados = idsAceptados.map(function (idGuia) {
+                var vinculo = vinculosPorGuia[idGuia.toUpperCase()];
+                if (!vinculo) {
+                    throw new Error("No existe seguimiento para la guía aceptada " + idGuia + ".");
+                }
+                return vinculo;
+            });
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        var cantidadGuardada = 0;
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            function guardarSiguiente(indice) {
+                if (indice >= vinculosAceptados.length) {
+                    return;
+                }
+
+                var vinculo = vinculosAceptados[indice];
+                SEGUIMIENTO_guardarCredencialEnTransaccion(tr, vinculo, function () {
+                    tr.executeSql(
+                        `UPDATE GDE
+                         SET ID_UNICO_SEGUIMIENTO = ?, ENVIADO = 1, GDE_ESTADO_MOVIL = 'E'
+                         WHERE ID_UNICO_MOVIL = ?
+                           AND ENVIADO = 0
+                           AND GDE_ESTADO_MOVIL = 'I'`,
+                        [vinculo.ID_UNICO_SEGUIMIENTO, vinculo.ID_UNICO_MOVIL_GDE],
+                        function (tr, rs) {
+                            if (rs.rowsAffected !== 1) {
+                                throw new Error("No se encontró una única guía pendiente para la aceptación recibida.");
+                            }
+                            cantidadGuardada++;
+                            guardarSiguiente(indice + 1);
+                        }
+                    );
+                });
+            }
+
+            guardarSiguiente(0);
+        }, reject, function () {
+            resolve(cantidadGuardada);
+        });
+    });
+}
+
 function guardarIdSeguimientoGuia(idUnicoMovilGde, idUnicoSeguimiento, uuidDispositivo, tokenSeguimiento) {
     return guardarIdsSeguimientoGuias([{
         ID_UNICO_MOVIL_GDE: idUnicoMovilGde,

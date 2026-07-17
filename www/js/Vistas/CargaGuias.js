@@ -32,7 +32,6 @@ function btn_carga_guias(){
 						app.dialog.close();
 						if(result_guias!=1 && result_guias!=0){
 							
-							envio_automatico_activado=1;
 				
 							app.dialog.alert("Error al obtener las guias","Carga de guías")
 
@@ -60,7 +59,6 @@ function btn_carga_guias(){
 
 			}else{
 				app.dialog.close();
-				envio_automatico_activado=1;
 				app.dialog.close();
 				app.dialog.alert("No se ha podido establecer la conexion con el servidor","Carga de guías")
 			}
@@ -68,7 +66,6 @@ function btn_carga_guias(){
 		});
 	}else{
 		app.dialog.close();
-		envio_automatico_activado=1;
 		app.dialog.close();
 		app.dialog.alert("Conexión a Internet no detectada","Carga de guías")
 	}
