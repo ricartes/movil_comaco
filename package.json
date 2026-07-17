@@ -5,8 +5,7 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/seguimiento-envio.test.js tests/seguimiento-programador.test.js tests/seguimiento-bootstrap.test.js tests/seguimiento-captura.test.js tests/gps-tracking-regresion.test.js tests/seguimiento-continuidad.test.js tests/envio-datos-programador.test.js tests/seguimiento-reinicio.integration.test.js",
-        "test:e2e-seguimiento": "node --test --experimental-test-isolation=none tests/seguimiento-reinicio.e2e.test.js"
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js"
     },
     "author": "Apache Cordova Team",
     "license": "Apache-2.0",
@@ -36,7 +35,7 @@
             "cordova-plugin-device-motion": {},
             "cordova-pdf-generator": {},
             "cordova-plugin-androidx": {},
-            "cordova-plugin-advanced-background-mode": {},
+            "cordova-plugin-comaco-tracking": {},
             "cordova-sqlite-spatialite-evplus-ext-common-free": {},
             "cordova-plugin-android-permissions": {},
             "cordova-plugin-camera": {
@@ -51,15 +50,6 @@
             "cordova-plugin-geolocation": {
                 "GPS_REQUIRED": "true"
             },
-            "cordova-background-geolocation-plugin": {
-                "GOOGLE_PLAY_SERVICES_VERSION": "17+",
-                "ICON": "@mipmap/ic_launcher",
-                "SMALL_ICON": "@mipmap/ic_launcher",
-                "ACCOUNT_NAME": "@string/app_name",
-                "ACCOUNT_LABEL": "@string/app_name",
-                "ACCOUNT_TYPE": "$PACKAGE_NAME.account",
-                "CONTENT_AUTHORITY": "$PACKAGE_NAME"
-            },
             "@ccervantesb/cordova-plugin-mock-location": {},
             "cordova-plugin-power-optimization": {}
         },
@@ -71,10 +61,7 @@
     "devDependencies": {
         "@ccervantesb/cordova-plugin-mock-location": "github:cesarcervantesb/cordova-plugin-mock-location",
         "cordova-android": "^13.0.0",
-        "cordova-background-geolocation-plugin": "^2.3.1",
         "cordova-pdf-generator": "^2.1.1",
-        "cordova-plugin-advanced-background-mode": "^1.1.1",
-        "cordova-plugin-android-background-mode": "github:FWiner/cordova-plugin-android-background-mode",
         "cordova-plugin-android-permissions": "^1.1.5",
         "cordova-plugin-androidx": "^3.0.0",
         "cordova-plugin-btprinter": "github:CesarBalzer/Cordova-Plugin-BTPrinter",
@@ -84,6 +71,7 @@
         "cordova-plugin-geolocation": "^5.0.0",
         "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
         "cordova-plugin-power-optimization": "^0.0.4",
+        "cordova-plugin-comaco-tracking": "file:plugins-local/cordova-plugin-comaco-tracking",
         "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
         "cordova.plugins.diagnostic": "^7.2.3",
         "verify-automatic-date-time-zone": "^1.0.3-dev"

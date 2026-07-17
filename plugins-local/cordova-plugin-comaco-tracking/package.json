@@ -1,0 +1,11 @@
+{
+  "name": "cordova-plugin-comaco-tracking",
+  "version": "1.0.1",
+  "description": "Subsistema Android nativo de seguimiento GPS de COMACO",
+  "cordova": {
+    "id": "cordova-plugin-comaco-tracking",
+    "platforms": ["android", "browser"]
+  },
+  "keywords": ["cordova", "android", "gps", "foreground-service"],
+  "license": "UNLICENSED"
+}

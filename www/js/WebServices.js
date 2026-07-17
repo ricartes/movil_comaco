@@ -1794,7 +1794,10 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
                     }
                     obtenerIdSeguimientoGuia(idUnico).then(function (idSeguimiento) {
                         if (!idSeguimiento) return 0;
-                        return marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                        return Promise.all([
+                            marcarCredencialSeguimiento(idSeguimiento, "TERMINAL"),
+                            finalizarSeguimientoNativo(idSeguimiento)
+                        ]);
                     }).then(function () {
                         resolve(response.data);
                     }).catch(function () {
@@ -1831,7 +1834,10 @@ function enviarAnulacionGuiaWebService(idUnico, motivo) {
                     }
                     obtenerIdSeguimientoGuia(idUnico).then(function (idSeguimiento) {
                         if (!idSeguimiento) return 0;
-                        return marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                        return Promise.all([
+                            marcarCredencialSeguimiento(idSeguimiento, "TERMINAL"),
+                            finalizarSeguimientoNativo(idSeguimiento)
+                        ]);
                     }).then(function () {
                         resolve(response.data);
                     }).catch(function () {
@@ -1866,32 +1872,7 @@ function enviarTrazabilidadWebService(trazabilidad) {
     });
 }
 
-function enviarPosicionesSeguimientoWebService(entrada) {
-    return new Promise(function (resolve, reject) {
-        DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-            if (!result_param || result_param === -1 || !result_param.PAG_VALOR) {
-                reject(new Error("No se encontró la dirección del servidor."));
-                return;
-            }
-
-            var ruta = result_param.PAG_VALOR + "/Webserviceproveedor.asmx/Recibe_Posiciones_Seguimiento";
-            axios.post(
-                ruta,
-                { entrada: entrada },
-                {
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    },
-                    timeout: SEGUIMIENTO_TIMEOUT_HTTP_MS
-                }
-            ).then(function (response) {
-                resolve(response.data);
-            }).catch(function (error) {
-                reject(error);
-            });
-        });
-    });
-}
+// El envío de posiciones se ejecuta exclusivamente en el subsistema Android nativo.
 
 
 function confirma_guardado_parametro(conta, tamano) {

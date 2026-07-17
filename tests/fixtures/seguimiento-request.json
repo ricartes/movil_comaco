@@ -1,0 +1,23 @@
+{
+  "entrada": {
+    "ID_UNICO_SEGUIMIENTO": "11111111-1111-4111-8111-111111111111",
+    "UUID_DISPOSITIVO": "DISPOSITIVO-ANONIMO",
+    "TOKEN_SEGUIMIENTO": "TOKEN-FICTICIO-NO-PRODUCTIVO",
+    "VERSION_APP": "5.0.3",
+    "POSICIONES": [
+      {
+        "UUID_POSICION": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "SECUENCIA_LOCAL": 7,
+        "FECHA_DISPOSITIVO_UTC": "2026-07-17T15:04:05.123Z",
+        "LATITUD": -33.4512345,
+        "LONGITUD": -70.6612345,
+        "PRECISION_METROS": 4.25,
+        "VELOCIDAD_MPS": null,
+        "RUMBO_GRADOS": 91.5,
+        "ALTITUD_METROS": null,
+        "ES_UBICACION_SIMULADA": false,
+        "ORIGEN_CAPTURA": "GPS_NATIVO"
+      }
+    ]
+  }
+}

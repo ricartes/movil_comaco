@@ -1,0 +1,7 @@
+{
+  "d": {
+    "EXITO": false,
+    "CODIGO": "CREDENCIAL_REVOCADA",
+    "MENSAJE": "Credencial de prueba no vigente"
+  }
+}

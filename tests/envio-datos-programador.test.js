@@ -245,12 +245,13 @@ test('un error libera el bloqueo y permite el siguiente ciclo', async () => {
     assert.equal(ciclos, 2);
 });
 
-test('onDeactivate mantiene vivo el programador al volver al foreground', () => {
-    const inicio = principal.indexOf('function onDeactivate()');
+test('resume mantiene vivo el programador interactivo sin plugin background genérico', () => {
+    const inicio = principal.indexOf('function reanudarProcesosInteractivos()');
     const fin = principal.indexOf('document.addEventListener("resume"', inicio);
     const cuerpo = principal.slice(inicio, fin);
     assert.match(cuerpo, /inicializarProgramadorEnvioDatos\(\)/);
     assert.doesNotMatch(cuerpo, /clearInterval\(timmerEnvio\)/);
+    assert.doesNotMatch(cuerpo, /cordova\.plugins/);
 });
 
 test('logout detiene sólo el programador interactivo y no el técnico GPS', () => {

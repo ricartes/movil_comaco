@@ -227,6 +227,22 @@ function SEGUIMIENTO_normalizarVinculosGuia(seguimientos) {
     });
 }
 
+function SEGUIMIENTO_confirmarCredencialesNativas(vinculos, cantidadGuardada, resolve) {
+    if (typeof SEGUIMIENTO_registrarCredencialesNativas !== "function") {
+        resolve(cantidadGuardada);
+        return;
+    }
+    SEGUIMIENTO_registrarCredencialesNativas(vinculos).then(function () {
+        return SEGUIMIENTO_limpiarLegacyConfirmado(vinculos.map(function (item) {
+            return item.ID_UNICO_SEGUIMIENTO;
+        }), false);
+    }).catch(function () {
+        console.error("No fue posible confirmar la credencial en el almacén nativo; se conserva la copia legacy.");
+    }).then(function () {
+        resolve(cantidadGuardada);
+    });
+}
+
 function guardarIdsSeguimientoGuias(seguimientos) {
     return new Promise(function (resolve, reject) {
         var vinculos;
@@ -261,7 +277,7 @@ function guardarIdsSeguimientoGuias(seguimientos) {
 
             guardarSiguiente(0);
         }, reject, function () {
-            resolve(cantidadGuardada);
+            SEGUIMIENTO_confirmarCredencialesNativas(vinculos, cantidadGuardada, resolve);
         });
     });
 }
@@ -352,7 +368,7 @@ function guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas) {
 
             guardarSiguiente(0);
         }, reject, function () {
-            resolve(cantidadGuardada);
+            SEGUIMIENTO_confirmarCredencialesNativas(vinculosAceptados, cantidadGuardada, resolve);
         });
     });
 }
@@ -399,6 +415,22 @@ function listarCredencialesSeguimientoActivas() {
                 function (tr, rs) { credenciales = SEGUIMIENTO_filas(rs); }
             );
         }, reject, function () { resolve(credenciales); });
+    });
+}
+
+function SEGUIMIENTO_limpiarLegacyConfirmado(idsSeguimiento, limpiarPosiciones) {
+    return new Promise(function (resolve, reject) {
+        var ids = Array.isArray(idsSeguimiento) ? idsSeguimiento.filter(Boolean) : [];
+        var db = SEGUIMIENTO_abrirBaseDatos();
+        db.transaction(function (tr) {
+            if (limpiarPosiciones === true) {
+                tr.executeSql("DELETE FROM SEGUIMIENTO_POSICION_PENDIENTE");
+            }
+            if (ids.length > 0) {
+                var marcadores = ids.map(function () { return "?"; }).join(",");
+                tr.executeSql("DELETE FROM SEGUIMIENTO_CREDENCIAL WHERE ID_UNICO_SEGUIMIENTO IN (" + marcadores + ")", ids);
+            }
+        }, reject, resolve);
     });
 }
 

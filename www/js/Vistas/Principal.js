@@ -253,22 +253,8 @@ function onError() {
 
 async function reevaluarTrackingAhora() {
     try {
-        const usuarioActivo = Obtener_dato_local("rut_activo");
-        const guiasTecnicas = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
-        const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
-        const hayCierreTecnicoPendiente = await DATOS_existeCierreSeguimientoTecnicoPendiente();
-
         const validacion = await validarRequisitosTrackingCordova();
-
-        console.log("[TRACKING] reevaluación inmediata:", JSON.stringify(validacion));
-
-        const reconciliacion = await reconciliarEstadoGpsNativo({
-            usuarioActivo: usuarioActivo,
-            guiasActivas: Array.isArray(guiasTecnicas) ? guiasTecnicas : [],
-            hayPosicionesPendientes: seguimientosPendientes.length > 0,
-            hayCierreTecnicoPendiente: hayCierreTecnicoPendiente,
-            validacion: validacion
-        });
+        const activo = await reconciliarEstadoGpsNativo();
 
         if (!validacion.ok) {
             mostrarAlertasTrackingFaltantes(validacion);
@@ -276,7 +262,7 @@ async function reevaluarTrackingAhora() {
             resetTrackingAlertas();
         }
 
-        return reconciliacion.debeEstarActivo;
+        return activo;
     } catch (e) {
         console.error("[TRACKING] Error en reevaluarTrackingAhora:", e);
         return false;
@@ -289,22 +275,8 @@ function controlarTrackingDinamico() {
 
     trackingIntervalId = setInterval(async () => {
         try {
-            const usuarioActivo = Obtener_dato_local("rut_activo");
-            const guiasTecnicas = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
-            const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
-            const hayCierreTecnicoPendiente = await DATOS_existeCierreSeguimientoTecnicoPendiente();
-
             const validacion = await validarRequisitosTrackingCordova();
-
-            console.log("[TRACKING] validación periódica:", JSON.stringify(validacion));
-
-            await reconciliarEstadoGpsNativo({
-                usuarioActivo: usuarioActivo,
-                guiasActivas: Array.isArray(guiasTecnicas) ? guiasTecnicas : [],
-                hayPosicionesPendientes: seguimientosPendientes.length > 0,
-                hayCierreTecnicoPendiente: hayCierreTecnicoPendiente,
-                validacion: validacion
-            });
+            await ComacoTracking.obtenerEstado();
 
             if (!validacion.ok) {
                 mostrarAlertasTrackingFaltantes(validacion);
@@ -621,91 +593,26 @@ function compruebaEnviaTrazabilidad() {
     });
 }
 
-let backgroundModeInicializado = false;
-let backgroundModeActivo = false;
-
-function inicializarBackgroundMode() {
-    if (backgroundModeInicializado) return;
-
-    cordova.plugins.backgroundMode.setDefaults({
-        title: "GFE",
-        icon: "ldpi",
-        text: "Proceso ejecutando en segundo plano...",
-    });
-
-    cordova.plugins.backgroundMode.on("activate", onActivate);
-    cordova.plugins.backgroundMode.on("deactivate", onDeactivate);
-
-    backgroundModeInicializado = true;
-    console.log("[BG-MODE] inicializado");
-}
-
-function activarBackgroundModeSeguro() {
-    try {
-        if (!backgroundModeInicializado) {
-            inicializarBackgroundMode();
-        }
-
-        if (!backgroundModeActivo) {
-            cordova.plugins.backgroundMode.enable();
-            cordova.plugins.backgroundMode.disableBatteryOptimizations();
-            backgroundModeActivo = true;
-            console.log("[BG-MODE] activado");
-        }
-    } catch (e) {
-        console.error("[BG-MODE] error al activar:", e);
-    }
-}
-
-function desactivarBackgroundModeSeguro() {
-    try {
-        if (backgroundModeActivo) {
-            cordova.plugins.backgroundMode.disable();
-            backgroundModeActivo = false;
-            console.log("[BG-MODE] desactivado");
-        }
-    } catch (e) {
-        console.error("[BG-MODE] error al desactivar:", e);
-    }
-}
-
-function onActivate() {
-    cordova.plugins.backgroundMode.disableWebViewOptimizations();
-
+function reanudarProcesosInteractivos() {
     versionAppCheckHecho = false;
     versionAppValida = true;
     versionAppAlertMostrado = false;
-
-    // Timer de trazabilidad: SIEMPRE debe correr
-    if (!timmerTrazabilidad) {
-        timmerTrazabilidad = setInterval(cicloEnvioTrazabilidad, 10000);
-    }
-
-    if (ENVIO_DATOS_sesionInteractivaValida()) {
-        inicializarProgramadorEnvioDatos();
-        solicitarEnvioAutomaticoDatos("background_activado", true);
-    }
-}
-
-function onDeactivate() {
-    // El evento deactivate ocurre al volver al primer plano. El programador
-    // interactivo debe seguir vivo y puede aprovechar este despertar.
+    if (!timmerTrazabilidad) timmerTrazabilidad = setInterval(cicloEnvioTrazabilidad, 10000);
     if (ENVIO_DATOS_sesionInteractivaValida()) {
         inicializarProgramadorEnvioDatos();
         solicitarEnvioAutomaticoDatos("resume", true);
     }
+}
+
+document.addEventListener("pause", function () {
     if (timmerTrazabilidad) {
         clearInterval(timmerTrazabilidad);
         timmerTrazabilidad = null;
     }
-}
-
-document.addEventListener("resume", function () {
-    if (ENVIO_DATOS_sesionInteractivaValida()) {
-        inicializarProgramadorEnvioDatos();
-        solicitarEnvioAutomaticoDatos("resume", true);
-    }
+    cicloEnvioTrazabilidad().catch(function () { return false; });
 }, false);
+
+document.addEventListener("resume", reanudarProcesosInteractivos, false);
 
 
 
@@ -725,8 +632,7 @@ document.addEventListener("deviceready", async function () {
 
     permisosCamara();
 
-    //
-    inicializarBackgroundMode();
+    reanudarProcesosInteractivos();
 
     Borrar_dato_local("version_app");
 
@@ -743,9 +649,6 @@ document.addEventListener("deviceready", async function () {
 
 
     try {
-        if (typeof configureBackgroundGeolocation === "function") {
-            await configureBackgroundGeolocation();
-        }
         await inicializarSeguimientoBootstrap();
         seguimientoSqliteLista = true;
 
@@ -1422,35 +1325,10 @@ function obtener_informacion_movil() {
 
 
 function verificarOptimizacionBateria() {
-    return new Promise((resolve) => {
-        try {
-            if (
-                cordova.plugins &&
-                cordova.plugins.backgroundMode &&
-                typeof cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations === "function"
-            ) {
-                cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations(function (isIgnoring) {
-                    console.log("[BATTERY] isIgnoringBatteryOptimizations:", isIgnoring);
-                    resolve({
-                        status: true,
-                        ignorandoOptimizacion: !!isIgnoring
-                    });
-                });
-            } else {
-                console.warn("[BATTERY] Plugin backgroundMode no soporta isIgnoringBatteryOptimizations");
-                resolve({
-                    status: false,
-                    ignorandoOptimizacion: false
-                });
-            }
-        } catch (e) {
-            console.error("[BATTERY] Error verificando optimización:", e);
-            resolve({
-                status: false,
-                ignorandoOptimizacion: false,
-                error: e
-            });
-        }
+    return ComacoTracking.obtenerEstado().then(function (estado) {
+        return { status: true, ignorandoOptimizacion: estado.optimizacionBateriaIgnorada === true };
+    }).catch(function () {
+        return { status: false, ignorandoOptimizacion: false };
     });
 }
 
@@ -1458,10 +1336,10 @@ function abrirConfiguracionOptimizacionBateria() {
     try {
         if (
             cordova.plugins &&
-            cordova.plugins.backgroundMode &&
-            typeof cordova.plugins.backgroundMode.openBatteryOptimizationsSettings === "function"
+            cordova.plugins.PowerOptimization &&
+            typeof cordova.plugins.PowerOptimization.RequestOptimizationsMenu === "function"
         ) {
-            cordova.plugins.backgroundMode.openBatteryOptimizationsSettings();
+            cordova.plugins.PowerOptimization.RequestOptimizationsMenu();
             console.log("[BATTERY] Abriendo configuración de optimización de batería");
             return;
         }
