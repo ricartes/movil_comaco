@@ -53,7 +53,7 @@ test('regresión GPS: tres callbacks simultáneos conservan orden, UUID y SQLite
 
     try {
         await runtime.inicializar();
-        runtime.contexto.configureBackgroundGeolocation();
+        await runtime.contexto.configureBackgroundGeolocation();
         assert.equal(typeof runtime.eventosGps.location, 'function');
         const resultados = await Promise.all(FECHAS.map(function (fecha, indice) {
             return runtime.eventosGps.location(crearUbicacion(indice));
@@ -243,5 +243,124 @@ test('regresión GPS: checkStatus reconcilia estado nativo sin start ni stop dup
     } finally {
         diferido.cerrar();
         limpiarSqliteTemporal(temporalDiferido);
+    }
+});
+
+test('configuración GPS es esperable e idempotente y registra listeners una vez', async () => {
+    const temporal = crearSqliteTemporal('gfe-seguimiento-gps-config-');
+    const runtime = crearGpsTrackingRuntime({ rutaDb: temporal.rutaDb });
+
+    try {
+        const primera = runtime.contexto.configureBackgroundGeolocation();
+        const segunda = runtime.contexto.configureBackgroundGeolocation();
+        assert.equal(typeof primera.then, 'function');
+        assert.equal(primera, segunda);
+        await Promise.all([primera, segunda]);
+        assert.equal(runtime.llamadasConfigure(), 1);
+        assert.equal(runtime.llamadasOn(), 3);
+    } finally {
+        runtime.cerrar();
+        limpiarSqliteTemporal(temporal);
+    }
+});
+
+test('reconciliación sin sesión conserva GPS por guía, posiciones o cierre técnico', async () => {
+    const casos = [
+        {
+            nombre: 'guia',
+            contexto: {
+                usuarioActivo: null,
+                guiasActivas: [crearGuiaGps('GUIA-SIN-SESION', ID_SEGUIMIENTO)],
+                hayPosicionesPendientes: false,
+                hayCierreTecnicoPendiente: false,
+                validacion: { ok: true }
+            }
+        },
+        {
+            nombre: 'posiciones',
+            contexto: {
+                usuarioActivo: null,
+                guiasActivas: [],
+                hayPosicionesPendientes: true,
+                hayCierreTecnicoPendiente: false,
+                validacion: { ok: true }
+            }
+        },
+        {
+            nombre: 'cierre',
+            contexto: {
+                usuarioActivo: null,
+                guiasActivas: [],
+                hayPosicionesPendientes: false,
+                hayCierreTecnicoPendiente: true,
+                validacion: { ok: true }
+            }
+        }
+    ];
+
+    for (const caso of casos) {
+        const temporal = crearSqliteTemporal('gfe-seguimiento-gps-' + caso.nombre + '-');
+        const runtime = crearGpsTrackingRuntime({ rutaDb: temporal.rutaDb });
+        try {
+            const resultado = await runtime.contexto.reconciliarEstadoGpsNativo(caso.contexto);
+            assert.equal(resultado.debeEstarActivo, true, caso.nombre);
+            assert.equal(runtime.llamadasStart(), 1, caso.nombre);
+        } finally {
+            runtime.cerrar();
+            limpiarSqliteTemporal(temporal);
+        }
+    }
+});
+
+test('reconciliación detiene GPS solo sin guías, posiciones ni cierre pendiente', async () => {
+    const temporal = crearSqliteTemporal('gfe-seguimiento-gps-sin-trabajo-');
+    const runtime = crearGpsTrackingRuntime({
+        rutaDb: temporal.rutaDb,
+        servicioNativoActivo: true,
+        usuarioActivo: null,
+        rutActivo: null
+    });
+
+    try {
+        const resultado = await runtime.contexto.reconciliarEstadoGpsNativo({
+            usuarioActivo: null,
+            guiasActivas: [],
+            hayPosicionesPendientes: false,
+            hayCierreTecnicoPendiente: false,
+            validacion: { ok: true }
+        });
+        assert.equal(resultado.debeEstarActivo, false);
+        assert.equal(runtime.llamadasStop(), 1);
+    } finally {
+        runtime.cerrar();
+        limpiarSqliteTemporal(temporal);
+    }
+});
+
+test('permisos inválidos no detienen un GPS con trabajo técnico pendiente', async () => {
+    const temporal = crearSqliteTemporal('gfe-seguimiento-gps-permisos-');
+    const runtime = crearGpsTrackingRuntime({
+        rutaDb: temporal.rutaDb,
+        servicioNativoActivo: true,
+        usuarioActivo: null,
+        rutActivo: null
+    });
+
+    try {
+        const resultado = await runtime.contexto.reconciliarEstadoGpsNativo({
+            usuarioActivo: null,
+            guiasActivas: [crearGuiaGps('GUIA-PERMISOS', ID_SEGUIMIENTO)],
+            hayPosicionesPendientes: false,
+            hayCierreTecnicoPendiente: false,
+            validacion: { ok: false }
+        });
+        assert.equal(resultado.debeEstarActivo, true);
+        assert.equal(resultado.permisosValidos, false);
+        assert.equal(runtime.llamadasStart(), 0);
+        assert.equal(runtime.llamadasStop(), 0);
+        assert.equal(runtime.servicioNativoActivo(), true);
+    } finally {
+        runtime.cerrar();
+        limpiarSqliteTemporal(temporal);
     }
 });

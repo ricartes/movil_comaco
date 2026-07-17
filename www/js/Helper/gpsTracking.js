@@ -11,6 +11,8 @@ let temporizadorInicioGps = null;
 let inicioTrackingMs = 0;
 let ultimoDiagnosticoGps = null;
 let configuracionGpsEfectiva = null;
+let promesaConfiguracionBackgroundGeolocation = null;
+let listenersBackgroundGeolocationRegistrados = false;
 
 // Umbrales de tiempo (en ms)
 const UMBRAL_MS_GUIA_NO_CONFIRMADA = 5 * 1000; // 10 segundos
@@ -37,47 +39,60 @@ document.addEventListener("resume", function () {
 }, false);
 
 
-// Configura el plugin
+function registrarListenersBackgroundGeolocation() {
+    if (listenersBackgroundGeolocationRegistrados) {
+        return;
+    }
+
+    BackgroundGeolocation.on('location', function (location) {
+        return encolarCapturaGps(location, new Date());
+    });
+
+    BackgroundGeolocation.on('stationary', function () {
+        // El evento se registra una sola vez; no requiere persistencia adicional.
+    });
+
+    BackgroundGeolocation.on('error', function (error) {
+        console.error(
+            "[TRACKING][PLUGIN_ERROR]",
+            error && error.message ? error.message : "ERROR_GPS"
+        );
+    });
+
+    listenersBackgroundGeolocationRegistrados = true;
+}
+
+// Configura el plugin una sola vez y expone una Promise esperable.
 function configureBackgroundGeolocation() {
+    registrarListenersBackgroundGeolocation();
 
+    if (promesaConfiguracionBackgroundGeolocation) {
+        return promesaConfiguracionBackgroundGeolocation;
+    }
 
-    Promise.resolve(BackgroundGeolocation.configure({
-        locationProvider: BackgroundGeolocation.RAW_PROVIDER, // O RAW_PROVIDER si quieres full precisión
-        desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY, // Máxima precisión GPS
-        stationaryRadius: 5,      // 10 metros: si se mueve menos, se considera quieto
-        distanceFilter: 5,        // mínimo 10 metros entre puntos
-        interval: 5000,           // intenta actualizar cada 10 segundos
-        fastestInterval: 5000,     // nunca más rápido que cada 5 segundos
-        activitiesInterval: 10000, // chequea actividad cada 10 segundos
+    promesaConfiguracionBackgroundGeolocation = Promise.resolve(BackgroundGeolocation.configure({
+        locationProvider: BackgroundGeolocation.RAW_PROVIDER,
+        desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
+        stationaryRadius: 5,
+        distanceFilter: 5,
+        interval: 5000,
+        fastestInterval: 5000,
+        activitiesInterval: 10000,
         debug: false,
         stopOnTerminate: false,
         startOnBoot: true
     })).then(function () {
         return registrarDiagnosticoGps();
     }).catch(function (error) {
-        console.error("[TRACKING][DIAGNOSTICO] No fue posible obtener la configuración efectiva:", error);
+        promesaConfiguracionBackgroundGeolocation = null;
+        console.error(
+            "[TRACKING][CONFIGURACION_ERROR]",
+            error && error.message ? error.message : "ERROR_CONFIGURACION_GPS"
+        );
+        throw error;
     });
 
-
-    // Maneja actualizaciones de ubicación
-    BackgroundGeolocation.on('location', function (location) {
-        return encolarCapturaGps(location, new Date());
-    });
-
-    BackgroundGeolocation.on('stationary', function (stationaryLocation) {
-        /*if (stationaryLocation.accuracy && stationaryLocation.accuracy <= 20) {
-            alert("Ubicación estacionaria válida:", stationaryLocation);
-        } else {
-            alert("Ubicación estacionaria ignorada por baja precisión:", stationaryLocation);
-        }*/
-    });
-
-
-
-    // Manejo de errores
-    BackgroundGeolocation.on('error', function (error) {
-        console.error("Error durante el rastreo:", error);
-    });
+    return promesaConfiguracionBackgroundGeolocation;
 }
 
 
@@ -200,12 +215,7 @@ function startTracking() {
 
 // Función para detener el rastreo
 function stopTracking() {
-    cancelarInicioGpsDiferido();
-    return serializarOperacionGps(async function () {
-        const status = await consultarStatusGps();
-        await detenerGpsSiCorresponde(status);
-        return status;
-    });
+    return reconciliarEstadoGpsNativo();
 }
 
 function serializarOperacionGps(operacion) {
@@ -327,20 +337,22 @@ async function obtenerContextoReconciliacionGps(contexto) {
     }
 
     const usuarioActivo = Obtener_dato_local("rut_activo");
-    const procesoActual = Obtener_dato_local("id_proceso_activo");
-    const guiasActivas = typeof DATOS_seleccionarGdeProveedorConfirmadas === "function"
-        ? await DATOS_seleccionarGdeProveedorConfirmadas()
-        : await listarGdeProveedorNoConfirmadas();
+    const guiasActivas = typeof DATOS_seleccionarGuiasSeguimientoTecnicoActivas === "function"
+        ? await DATOS_seleccionarGuiasSeguimientoTecnicoActivas()
+        : [];
     const resumenPendientes = typeof listarResumenSeguimientosConPosicionesPendientes === "function"
         ? await listarResumenSeguimientosConPosicionesPendientes()
         : [];
+    const hayCierreTecnicoPendiente = typeof DATOS_existeCierreSeguimientoTecnicoPendiente === "function"
+        ? await DATOS_existeCierreSeguimientoTecnicoPendiente()
+        : false;
     const validacion = await validarRequisitosTrackingCordova();
 
     return {
         usuarioActivo: usuarioActivo,
-        procesoActual: procesoActual,
         guiasActivas: Array.isArray(guiasActivas) ? guiasActivas : [],
         hayPosicionesPendientes: Array.isArray(resumenPendientes) && resumenPendientes.length > 0,
+        hayCierreTecnicoPendiente: hayCierreTecnicoPendiente === true,
         validacion: validacion
     };
 }
@@ -379,11 +391,24 @@ function reconciliarEstadoGpsNativo(contexto) {
         const estado = await obtenerContextoReconciliacionGps(contexto);
         const guiasActivas = Array.isArray(estado.guiasActivas) ? estado.guiasActivas : [];
         const haySesion = !!SEGUIMIENTO_textoCapturaDisponible(estado.usuarioActivo);
-        const hayGuiasActivas = !!SEGUIMIENTO_textoCapturaDisponible(estado.procesoActual) || guiasActivas.length > 0;
+        const hayGuiasActivas = guiasActivas.length > 0;
         const hayPosicionesPendientes = estado.hayPosicionesPendientes === true;
+        const hayCierreTecnicoPendiente = estado.hayCierreTecnicoPendiente === true;
         const permisosValidos = !!(estado.validacion && estado.validacion.ok);
-        const debeEstarActivo = (hayGuiasActivas || hayPosicionesPendientes) && permisosValidos;
+        const debeEstarActivo = (
+            hayGuiasActivas ||
+            hayPosicionesPendientes ||
+            hayCierreTecnicoPendiente
+        );
         const status = await consultarStatusGps();
+
+        console.log(
+            "[TRACKING][RECONCILIACION]" +
+            " guiasTecnicas=" + guiasActivas.length +
+            " posicionesPendientes=" + (hayPosicionesPendientes ? 1 : 0) +
+            " sesionInteractiva=" + haySesion +
+            " debeEstarActivo=" + debeEstarActivo
+        );
 
         limpiarUltimaUbicacionGuiasInactivas(guiasActivas, !hayGuiasActivas);
         try {
@@ -396,7 +421,13 @@ function reconciliarEstadoGpsNativo(contexto) {
             if (typeof activarBackgroundModeSeguro === "function") {
                 activarBackgroundModeSeguro();
             }
-            await iniciarGpsSiCorresponde(status);
+            if (permisosValidos) {
+                await iniciarGpsSiCorresponde(status);
+            } else {
+                // Sin permisos no se intenta iniciar, pero tampoco se detiene
+                // un servicio que conserva trabajo técnico pendiente.
+                isTrackingEnabled = status.isRunning === true;
+            }
         } else {
             await detenerGpsSiCorresponde(status);
             if (typeof desactivarBackgroundModeSeguro === "function") {
@@ -409,6 +440,7 @@ function reconciliarEstadoGpsNativo(contexto) {
             haySesion: haySesion,
             hayGuiasActivas: hayGuiasActivas,
             hayPosicionesPendientes: hayPosicionesPendientes,
+            hayCierreTecnicoPendiente: hayCierreTecnicoPendiente,
             permisosValidos: permisosValidos,
             isRunning: isTrackingEnabled,
             isTrackingEnabled: isTrackingEnabled
@@ -477,34 +509,17 @@ function getLastKnownLocation() {
 }
 
 
+async function obtenerGuiasCandidatasCaptura() {
+    if (typeof DATOS_seleccionarGuiasSeguimientoTecnicoActivas !== "function") {
+        return [];
+    }
+
+    const guias = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
+    return Array.isArray(guias) ? guias : [];
+}
+
 async function obtenerGuiasCaptura() {
-    const procesoActual = Obtener_dato_local("id_proceso_activo");
-    const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
-    const guias = [];
-    const idsAgregados = new Set();
-
-    function agregarGuia(guia) {
-        const idGuia = extraerIdGuiaActiva(guia);
-        if (!idGuia) {
-            return;
-        }
-
-        const clave = idGuia.toUpperCase();
-        if (!idsAgregados.has(clave)) {
-            idsAgregados.add(clave);
-            guias.push(guia);
-        }
-    }
-
-    if (procesoActual && procesoActual !== "") {
-        agregarGuia(await seleccionarGdeProveedor(procesoActual));
-    }
-
-    for (const guia of (Array.isArray(guiasNoConfirmadas) ? guiasNoConfirmadas : [])) {
-        agregarGuia(guia);
-    }
-
-    return guias;
+    return await obtenerGuiasCandidatasCaptura();
 }
 
 function capturaSuperaFiltroGlobal(captura, ultimaLocation, ultimoTime, ultimoGuardado) {

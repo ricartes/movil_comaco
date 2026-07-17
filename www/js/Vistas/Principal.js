@@ -254,9 +254,9 @@ function onError() {
 async function reevaluarTrackingAhora() {
     try {
         const usuarioActivo = Obtener_dato_local("rut_activo");
-        const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
-        const procesoActual = Obtener_dato_local("id_proceso_activo");
+        const guiasTecnicas = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
         const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
+        const hayCierreTecnicoPendiente = await DATOS_existeCierreSeguimientoTecnicoPendiente();
 
         const validacion = await validarRequisitosTrackingCordova();
 
@@ -264,9 +264,9 @@ async function reevaluarTrackingAhora() {
 
         const reconciliacion = await reconciliarEstadoGpsNativo({
             usuarioActivo: usuarioActivo,
-            procesoActual: procesoActual,
-            guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+            guiasActivas: Array.isArray(guiasTecnicas) ? guiasTecnicas : [],
             hayPosicionesPendientes: seguimientosPendientes.length > 0,
+            hayCierreTecnicoPendiente: hayCierreTecnicoPendiente,
             validacion: validacion
         });
 
@@ -290,9 +290,9 @@ function controlarTrackingDinamico() {
     trackingIntervalId = setInterval(async () => {
         try {
             const usuarioActivo = Obtener_dato_local("rut_activo");
-            const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
-            const procesoActual = Obtener_dato_local("id_proceso_activo");
+            const guiasTecnicas = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
             const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
+            const hayCierreTecnicoPendiente = await DATOS_existeCierreSeguimientoTecnicoPendiente();
 
             const validacion = await validarRequisitosTrackingCordova();
 
@@ -300,9 +300,9 @@ function controlarTrackingDinamico() {
 
             await reconciliarEstadoGpsNativo({
                 usuarioActivo: usuarioActivo,
-                procesoActual: procesoActual,
-                guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+                guiasActivas: Array.isArray(guiasTecnicas) ? guiasTecnicas : [],
                 hayPosicionesPendientes: seguimientosPendientes.length > 0,
+                hayCierreTecnicoPendiente: hayCierreTecnicoPendiente,
                 validacion: validacion
             });
 
@@ -715,6 +715,9 @@ document.addEventListener("resume", function () {
 document.addEventListener("deviceready", async function () {
 
     inicializarVariables();
+    Guardar_dato_local("uid", device.uuid);
+    $$("#uid_movil").text("UUID: " + device.uuid);
+
     if (Obtener_dato_local("actualiza_direccion") == undefined) {
         Guardar_dato_local("actualiza_direccion", 0);
     }
@@ -741,10 +744,9 @@ document.addEventListener("deviceready", async function () {
 
     try {
         if (typeof configureBackgroundGeolocation === "function") {
-            configureBackgroundGeolocation();
+            await configureBackgroundGeolocation();
         }
         await inicializarSeguimientoBootstrap();
-        await comprobarActualizarEsquema();
         seguimientoSqliteLista = true;
 
     } catch (error) {
@@ -778,8 +780,6 @@ document.addEventListener("deviceready", async function () {
         $$("#mibody").addClass("theme-dark color-theme-gray");
     }
 
-    $$("#uid_movil").text("UUID: " + device.uuid);
-    Guardar_dato_local("uid", device.uuid);
     ls.open(false);
 
     var rut_activo = Obtener_dato_local("ultimo_activo");
@@ -1010,14 +1010,23 @@ function boton_atras() {
             app.dialog.confirm(
                 "¿Está seguro que desea salir de la aplicación?",
                 "GFE",
-                function () {
-                    stopTracking();
+                async function () {
                     detenerProgramadorEnvioDatos("salida_aplicacion");
-                    desactivarBackgroundModeSeguro();
                     Borrar_dato_local("user_activo");
                     Borrar_dato_local("rut_activo");
                     Borrar_dato_local("nombre_activo");
                     Borrar_dato_local("empresa_activo");
+
+                    try {
+                        await reevaluarTrackingAhora();
+                        solicitarEnvioSeguimiento("salida_aplicacion", true);
+                    } catch (error) {
+                        console.error(
+                            "[TRACKING][SALIDA_RECONCILIACION_ERROR]",
+                            error && error.message ? error.message : "ERROR_RECONCILIACION"
+                        );
+                    }
+
                     navigator.app.exitApp();
                 }
             );
@@ -1260,35 +1269,57 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
-            detenerProgramadorEnvioDatos("logout");
-            if (timmer) {
-                clearInterval(timmer);
-                timmer = null;
-            }
-            const usuarioActivo = Obtener_dato_local('user_activo');
-            Borrar_dato_local("user_activo");
-            Borrar_dato_local("rut_activo");
-            Borrar_dato_local("empresa_activo");
-            (async () => {
-                let datos = await generarDataTrazabilidad(
-                    TipoAccionTypes.CIERRE_SESION,
-                    usuarioActivo,
+            ejecutarLogoutConfirmado().catch(function (error) {
+                console.error(
+                    "[LOGOUT][ERROR_CALLBACK]",
+                    error && error.message ? error.message : "ERROR_LOGOUT"
                 );
-                await obtenerUbicacionEInsertarLog(
-                    usuarioActivo,
-                    datos
-                );
-            })();
-            ls.open(false);
-            inicializarSeguimientoBootstrap().then(function () {
-                solicitarEnvioSeguimiento("inicio_o_resume", true);
-            }).catch(function () {
-                // El bootstrap ya informa el error sin incluir datos sensibles.
             });
         }
     );
 
     //$$('#formulario_login')[0].reset();
+}
+
+async function ejecutarLogoutConfirmado() {
+    console.log("[LOGOUT][CONFIRMADO]");
+
+    detenerProgramadorEnvioDatos("logout");
+
+    const usuarioActivo = Obtener_dato_local("user_activo");
+    Borrar_dato_local("user_activo");
+    Borrar_dato_local("rut_activo");
+    Borrar_dato_local("empresa_activo");
+    console.log("[LOGOUT][SESION_ELIMINADA]");
+
+    // El login se abre antes de cualquier operación de trazabilidad o red.
+    ls.open(false);
+
+    Promise.resolve().then(async function () {
+        const datos = await generarDataTrazabilidad(
+            TipoAccionTypes.CIERRE_SESION,
+            usuarioActivo
+        );
+        await obtenerUbicacionEInsertarLog(usuarioActivo, datos);
+    }).catch(function (error) {
+        console.error(
+            "[LOGOUT][TRAZABILIDAD_ERROR]",
+            error && error.message ? error.message : "ERROR_TRAZABILIDAD_LOGOUT"
+        );
+    });
+
+    try {
+        await inicializarSeguimientoBootstrap();
+    } catch (error) {
+        console.error(
+            "[LOGOUT][BOOTSTRAP_ERROR]",
+            error && error.message ? error.message : "ERROR_BOOTSTRAP"
+        );
+    }
+
+    await reevaluarTrackingAhora();
+    solicitarEnvioSeguimiento("logout", true);
+    console.log("[LOGOUT][TRACKING_TECNICO_CONSERVADO]");
 }
 
 async function ok_login(usuario) {

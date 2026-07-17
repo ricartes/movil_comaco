@@ -992,6 +992,123 @@ async function DATOS_seleccionarGdeProveedorConfirmadas() {
 }
 
 
+/*
+ * Consulta exclusiva del seguimiento técnico. A diferencia de la consulta
+ * interactiva anterior, su identidad es guía + seguimiento + dispositivo y
+ * no el usuario que tenga abierta la sesión.
+ */
+async function DATOS_seleccionarGuiasSeguimientoTecnicoActivas() {
+    const uuidDispositivo = String(Obtener_dato_local("uid") || "").trim();
+    if (uuidDispositivo === "") {
+        return [];
+    }
+
+    const db = window.sqlitePlugin.openDatabase({
+        name: "bd.db",
+        location: "default",
+        androidDatabaseImplementation: 2
+    });
+
+    return new Promise((resolve, reject) => {
+        db.transaction(function (tr) {
+            tr.executeSql(
+                `SELECT GDE.*, GDE.rowid
+                   FROM GDE
+                   INNER JOIN SEGUIMIENTO_CREDENCIAL AS C
+                     ON UPPER(TRIM(C.ID_UNICO_SEGUIMIENTO)) = UPPER(TRIM(GDE.ID_UNICO_SEGUIMIENTO))
+                    AND C.ID_UNICO_MOVIL_GDE = GDE.ID_UNICO_MOVIL
+                  WHERE GDE.GDE_ESTADO_MOVIL IN ('I', 'E')
+                    AND COALESCE(GDE.GDE_CONFIRMA_INGRESO_PLANTA, 0) = 0
+                    AND GDE.ID_UNICO_SEGUIMIENTO IS NOT NULL
+                    AND LENGTH(TRIM(GDE.ID_UNICO_SEGUIMIENTO)) = 36
+                    AND SUBSTR(TRIM(GDE.ID_UNICO_SEGUIMIENTO), 9, 1) = '-'
+                    AND SUBSTR(TRIM(GDE.ID_UNICO_SEGUIMIENTO), 14, 1) = '-'
+                    AND SUBSTR(TRIM(GDE.ID_UNICO_SEGUIMIENTO), 19, 1) = '-'
+                    AND SUBSTR(TRIM(GDE.ID_UNICO_SEGUIMIENTO), 24, 1) = '-'
+                    AND LOWER(REPLACE(TRIM(GDE.ID_UNICO_SEGUIMIENTO), '-', '')) NOT GLOB '*[^0-9a-f]*'
+                    AND (GDE.FECHA_ANULACION IS NULL OR TRIM(GDE.FECHA_ANULACION) = '')
+                    AND (GDE.GDE_MOTIVO_ANULACION IS NULL OR TRIM(GDE.GDE_MOTIVO_ANULACION) = '')
+                    AND C.ESTADO = 'ACTIVA'
+                    AND UPPER(TRIM(C.UUID_DISPOSITIVO)) = UPPER(TRIM(?))
+                  ORDER BY GDE.rowid`,
+                [uuidDispositivo],
+                function (tr, rs) {
+                    const guias = [];
+                    for (let i = 0; i < rs.rows.length; i++) {
+                        const fila = rs.rows.item(i);
+                        const gde = new CL_GDE();
+                        gde.ROWID = fila.rowid;
+                        gde.ID_UNICO_MOVIL = fila.ID_UNICO_MOVIL;
+                        gde.ID_UNICO_SEGUIMIENTO = fila.ID_UNICO_SEGUIMIENTO;
+                        gde.GDE_ESTADO_MOVIL = fila.GDE_ESTADO_MOVIL;
+                        gde.GDE_CONFIRMA_INGRESO_PLANTA = fila.GDE_CONFIRMA_INGRESO_PLANTA == null
+                            ? 0
+                            : fila.GDE_CONFIRMA_INGRESO_PLANTA;
+                        gde.FECHA_ANULACION = fila.FECHA_ANULACION;
+                        gde.GDE_MOTIVO_ANULACION = fila.GDE_MOTIVO_ANULACION;
+                        gde.GDE_COD_ORIGEN = fila.GDE_COD_ORIGEN;
+                        gde.GDE_COD_DESTINO = fila.GDE_COD_DESTINO;
+                        guias.push(gde);
+                    }
+                    resolve(guias);
+                },
+                function (tr, error) {
+                    reject(error);
+                }
+            );
+        }, reject);
+    });
+}
+
+
+/*
+ * Una credencial aún activa asociada a una guía que ya salió del estado
+ * capturable representa un cierre técnico que todavía debe resolverse.
+ */
+async function DATOS_existeCierreSeguimientoTecnicoPendiente() {
+    const uuidDispositivo = String(Obtener_dato_local("uid") || "").trim();
+    if (uuidDispositivo === "") {
+        return false;
+    }
+
+    const db = window.sqlitePlugin.openDatabase({
+        name: "bd.db",
+        location: "default",
+        androidDatabaseImplementation: 2
+    });
+
+    return new Promise((resolve, reject) => {
+        db.transaction(function (tr) {
+            tr.executeSql(
+                `SELECT COUNT(1) AS CANTIDAD
+                   FROM GDE
+                   INNER JOIN SEGUIMIENTO_CREDENCIAL AS C
+                     ON UPPER(TRIM(C.ID_UNICO_SEGUIMIENTO)) = UPPER(TRIM(GDE.ID_UNICO_SEGUIMIENTO))
+                    AND C.ID_UNICO_MOVIL_GDE = GDE.ID_UNICO_MOVIL
+                  WHERE C.ESTADO = 'ACTIVA'
+                    AND UPPER(TRIM(C.UUID_DISPOSITIVO)) = UPPER(TRIM(?))
+                    AND (
+                        GDE.GDE_ESTADO_MOVIL NOT IN ('I', 'E')
+                        OR COALESCE(GDE.GDE_CONFIRMA_INGRESO_PLANTA, 0) <> 0
+                        OR (GDE.FECHA_ANULACION IS NOT NULL AND TRIM(GDE.FECHA_ANULACION) <> '')
+                        OR (GDE.GDE_MOTIVO_ANULACION IS NOT NULL AND TRIM(GDE.GDE_MOTIVO_ANULACION) <> '')
+                    )`,
+                [uuidDispositivo],
+                function (tr, rs) {
+                    const cantidad = rs.rows.length === 1
+                        ? Number(rs.rows.item(0).CANTIDAD || 0)
+                        : 0;
+                    resolve(cantidad > 0);
+                },
+                function (tr, error) {
+                    reject(error);
+                }
+            );
+        }, reject);
+    });
+}
+
+
 
 function DATOS_seleccionar_gde_actualizada_por_enviar(estado, callback) {
 

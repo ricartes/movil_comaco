@@ -140,6 +140,19 @@ function crearEscenario(opciones = {}) {
         async DATOS_seleccionarGdeProveedorConfirmadas() {
             return guiasPendientes;
         },
+        async DATOS_seleccionarGuiasSeguimientoTecnicoActivas() {
+            const guias = [];
+            const ids = new Set();
+            [guiaActual].concat(guiasPendientes).forEach(function (guia) {
+                if (!guia || ids.has(guia.ID_UNICO_MOVIL)) return;
+                ids.add(guia.ID_UNICO_MOVIL);
+                guias.push(guia);
+            });
+            return guias;
+        },
+        async DATOS_existeCierreSeguimientoTecnicoPendiente() {
+            return opciones.hayCierreTecnicoPendiente === true;
+        },
         async validarRequisitosTrackingCordova() {
             return { ok: opciones.permisosValidos !== false };
         },
@@ -157,6 +170,10 @@ function crearEscenario(opciones = {}) {
         contexto,
         { filename: 'Seguimiento.js' }
     );
+
+    contexto.listarResumenSeguimientosConPosicionesPendientes = async function () {
+        return opciones.hayPosicionesPendientes ? [{ CANTIDAD_PENDIENTE: 1 }] : [];
+    };
 
     contexto.insertarPosicionesSeguimientoPendientes = async function (posiciones) {
         llamadasInsercion++;

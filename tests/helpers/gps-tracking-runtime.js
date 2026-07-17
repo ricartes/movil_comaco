@@ -40,11 +40,22 @@ function crearGpsTrackingRuntime(opciones) {
     let llamadasStart = 0;
     let llamadasStop = 0;
     let llamadasCheckStatus = 0;
+    let llamadasConfigure = 0;
+    let llamadasOn = 0;
 
     const obtenerDatoOriginal = contexto.Obtener_dato_local;
     contexto.Obtener_dato_local = function (clave) {
-        if (clave === 'user_activo') return opciones.usuarioActivo || 'USUARIO-PRUEBA';
-        if (clave === 'rut_activo') return opciones.rutActivo || '11-1';
+        if (clave === 'user_activo') {
+            return Object.prototype.hasOwnProperty.call(opciones, 'usuarioActivo')
+                ? opciones.usuarioActivo
+                : 'USUARIO-PRUEBA';
+        }
+        if (clave === 'rut_activo') {
+            return Object.prototype.hasOwnProperty.call(opciones, 'rutActivo')
+                ? opciones.rutActivo
+                : '11-1';
+        }
+        if (clave === 'uid') return opciones.uuidDispositivo || 'DISPOSITIVO-PRUEBA';
         if (clave === 'id_proceso_activo') return guiaActual ? 'PROCESO-PRUEBA' : '';
         return obtenerDatoOriginal(clave);
     };
@@ -71,8 +82,14 @@ function crearGpsTrackingRuntime(opciones) {
     contexto.BackgroundGeolocation = {
         RAW_PROVIDER: 2,
         HIGH_ACCURACY: 0,
-        configure() { return Promise.resolve(); },
-        on(nombre, callback) { eventosGps[nombre] = callback; },
+        configure() {
+            llamadasConfigure++;
+            return Promise.resolve();
+        },
+        on(nombre, callback) {
+            llamadasOn++;
+            eventosGps[nombre] = callback;
+        },
         getConfig(exito) {
             exito({
                 locationProvider: 2,
@@ -114,6 +131,15 @@ function crearGpsTrackingRuntime(opciones) {
     };
     contexto.DATOS_seleccionarGdeProveedorConfirmadas = async function () {
         return guiasPendientes;
+    };
+    contexto.DATOS_seleccionarGuiasSeguimientoTecnicoActivas = async function () {
+        return guiasPendientes;
+    };
+    contexto.DATOS_existeCierreSeguimientoTecnicoPendiente = async function () {
+        return opciones.hayCierreTecnicoPendiente === true;
+    };
+    contexto.listarResumenSeguimientosConPosicionesPendientes = async function () {
+        return opciones.hayPosicionesPendientes ? [{ CANTIDAD_PENDIENTE: 1 }] : [];
     };
     contexto.solicitarEnvioSeguimiento = function (motivo, inmediato) {
         if (fallarSchedulerSiguiente) {
@@ -177,6 +203,8 @@ function crearGpsTrackingRuntime(opciones) {
         llamadasStart() { return llamadasStart; },
         llamadasStop() { return llamadasStop; },
         llamadasCheckStatus() { return llamadasCheckStatus; },
+        llamadasConfigure() { return llamadasConfigure; },
+        llamadasOn() { return llamadasOn; },
         servicioNativoActivo() { return servicioNativoActivo; },
         fallarProximaInsercionSqlite() { fallarSqliteSiguiente = true; },
         fallarProximoScheduler() { fallarSchedulerSiguiente = true; },

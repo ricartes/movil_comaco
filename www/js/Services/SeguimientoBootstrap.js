@@ -4,8 +4,9 @@ var SEGUIMIENTO_bootstrapResumeRegistrado = false;
 
 async function SEGUIMIENTO_reconciliarGpsTecnico() {
     if (typeof reevaluarTrackingAhora === "function") {
-        await reevaluarTrackingAhora();
+        return await reevaluarTrackingAhora();
     }
+    return false;
 }
 
 function inicializarSeguimientoBootstrap() {
@@ -14,13 +15,37 @@ function inicializarSeguimientoBootstrap() {
     }
 
     SEGUIMIENTO_bootstrapPromesa = (async function () {
-        await Tablas_crear_tablas();
-        if (typeof listarCredencialesSeguimientoActivas === "function") {
-            await listarCredencialesSeguimientoActivas();
+        if (typeof configureBackgroundGeolocation === "function") {
+            await configureBackgroundGeolocation();
         }
+
+        await Tablas_crear_tablas();
+        if (typeof comprobarActualizarEsquema === "function") {
+            await comprobarActualizarEsquema();
+        }
+
+        var credencialesActivas = [];
+        if (typeof listarCredencialesSeguimientoActivas === "function") {
+            credencialesActivas = await listarCredencialesSeguimientoActivas();
+        }
+
         inicializarProgramadorEnvioSeguimiento();
-        await SEGUIMIENTO_reconciliarGpsTecnico();
+
+        var guiasTecnicas = [];
+        if (typeof DATOS_seleccionarGuiasSeguimientoTecnicoActivas === "function") {
+            guiasTecnicas = await DATOS_seleccionarGuiasSeguimientoTecnicoActivas();
+        }
+
+        var gpsIniciado = await SEGUIMIENTO_reconciliarGpsTecnico();
         solicitarEnvioSeguimiento("inicio_o_resume", true);
+
+        console.log(
+            "[TRACKING][COLD_START]" +
+            " guiasTecnicas=" + (Array.isArray(guiasTecnicas) ? guiasTecnicas.length : 0) +
+            " credencialesActivas=" + (Array.isArray(credencialesActivas) ? credencialesActivas.length : 0) +
+            " gpsIniciado=" + (gpsIniciado === true)
+        );
+
         return true;
     })().catch(function (error) {
         SEGUIMIENTO_bootstrapPromesa = null;
@@ -54,8 +79,3 @@ function SEGUIMIENTO_registrarEntradasTecnicas() {
 }
 
 SEGUIMIENTO_registrarEntradasTecnicas();
-document.addEventListener("deviceready", function () {
-    inicializarSeguimientoBootstrap().catch(function () {
-        // El bootstrap ya emitió un mensaje sanitizado.
-    });
-}, false);
