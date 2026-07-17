@@ -1339,7 +1339,9 @@ function extraerSeguimientosRecibeGuiaV2(data) {
     contenedor.find('CL_SeguimientoGuiaRespuesta').each(function () {
         seguimientos.push({
             ID_UNICO_MOVIL_GDE: $(this).find('ID_UNICO_MOVIL_GDE').first().text(),
-            ID_UNICO_SEGUIMIENTO: $(this).find('ID_UNICO_SEGUIMIENTO').first().text()
+            ID_UNICO_SEGUIMIENTO: $(this).find('ID_UNICO_SEGUIMIENTO').first().text(),
+            UUID_DISPOSITIVO: $(this).find('UUID_DISPOSITIVO').first().text(),
+            TOKEN_SEGUIMIENTO: $(this).find('TOKEN_SEGUIMIENTO').first().text()
         });
     });
 
@@ -1766,7 +1768,18 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
                     timeout: 5000
                 })
                 .then((response) => {
-                    resolve(response.data);
+                    if (!response.data || response.data.STATUS !== true) {
+                        resolve(response.data);
+                        return;
+                    }
+                    obtenerIdSeguimientoGuia(idUnico).then(function (idSeguimiento) {
+                        if (!idSeguimiento) return 0;
+                        return marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                    }).then(function () {
+                        resolve(response.data);
+                    }).catch(function () {
+                        reject({ MENSAJE: "No fue posible cerrar la credencial técnica local." });
+                    });
                 })
                 .catch((error) => {
                     reject({ MENSAJE: error.message, ERROR_MSJ: error.code });
@@ -1792,7 +1805,18 @@ function enviarAnulacionGuiaWebService(idUnico, motivo) {
                     timeout: 5000
                 })
                 .then((response) => {
-                    resolve(response.data);
+                    if (!response.data || response.data.STATUS !== true) {
+                        resolve(response.data);
+                        return;
+                    }
+                    obtenerIdSeguimientoGuia(idUnico).then(function (idSeguimiento) {
+                        if (!idSeguimiento) return 0;
+                        return marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                    }).then(function () {
+                        resolve(response.data);
+                    }).catch(function () {
+                        reject({ MENSAJE: "No fue posible cerrar la credencial técnica local." });
+                    });
                 })
                 .catch((error) => {
                     reject({ MENSAJE: error.message, ERROR_MSJ: error.code });

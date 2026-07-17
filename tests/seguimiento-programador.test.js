@@ -161,6 +161,15 @@ function crearEscenario(opciones = {}) {
         async listarPosicionesSeguimientoPendientes(idSeguimiento, limite) {
             return (colas[idSeguimiento] || []).slice(0, limite);
         },
+        async obtenerCredencialSeguimiento(idSeguimiento) {
+            return {
+                ID_UNICO_SEGUIMIENTO: idSeguimiento,
+                UUID_DISPOSITIVO: `DISPOSITIVO-${idSeguimiento.slice(0, 8)}`,
+                TOKEN_SEGUIMIENTO: 'A'.repeat(43),
+                ESTADO: 'ACTIVA'
+            };
+        },
+        async marcarCredencialSeguimiento() { return 1; },
         async eliminarPosicionesSeguimientoPorUuid(lista) {
             const claves = new Set(lista.map(item => item.toUpperCase()));
             Object.keys(colas).forEach(id => {

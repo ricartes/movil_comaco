@@ -12,6 +12,7 @@ $env:E2E_CONFIRMAR_BD_DESARROLLO="SI"
 $env:E2E_SEGUIMIENTO_URL="https://SUBDOMINIO.ngrok-free.app/WebServiceProveedor.asmx/Recibe_Posiciones_Seguimiento"
 $env:E2E_ID_UNICO_SEGUIMIENTO="00000000-0000-4000-8000-000000000000"
 $env:E2E_UUID_DISPOSITIVO="UUID-DEL-DISPOSITIVO-DE-DESARROLLO"
+$env:E2E_TOKEN_SEGUIMIENTO="TOKEN-BASE64URL-DE-43-CARACTERES-DEL-SEGUIMIENTO"
 $env:E2E_VERSION_APP="5.0.3-E2E"
 $env:E2E_LATITUD="-36.748134"
 $env:E2E_LONGITUD="-72.998278"
@@ -26,5 +27,7 @@ $env:E2E_PERMITIR_HTTP_LOCAL="1"
 ```
 
 Si `RUN_E2E_SEGUIMIENTO` no vale `1`, Node marca la prueba como omitida sin crear la SQLite ni realizar HTTP.
+
+El token debe corresponder al seguimiento activo y tener 43 caracteres Base64URL. La prueba no lo incluye en diagnósticos ni errores.
 
 La salida muestra los dos `UUID_POSICION`, la ruta temporal, el dispositivo enmascarado, los estados de ambos envíos y una consulta SQL lista para copiar.

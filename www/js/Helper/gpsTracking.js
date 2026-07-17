@@ -339,12 +339,16 @@ async function obtenerContextoReconciliacionGps(contexto) {
     const guiasActivas = typeof DATOS_seleccionarGdeProveedorConfirmadas === "function"
         ? await DATOS_seleccionarGdeProveedorConfirmadas()
         : await listarGdeProveedorNoConfirmadas();
+    const resumenPendientes = typeof listarResumenSeguimientosConPosicionesPendientes === "function"
+        ? await listarResumenSeguimientosConPosicionesPendientes()
+        : [];
     const validacion = await validarRequisitosTrackingCordova();
 
     return {
         usuarioActivo: usuarioActivo,
         procesoActual: procesoActual,
         guiasActivas: Array.isArray(guiasActivas) ? guiasActivas : [],
+        hayPosicionesPendientes: Array.isArray(resumenPendientes) && resumenPendientes.length > 0,
         validacion: validacion
     };
 }
@@ -384,8 +388,9 @@ function reconciliarEstadoGpsNativo(contexto) {
         const guiasActivas = Array.isArray(estado.guiasActivas) ? estado.guiasActivas : [];
         const haySesion = !!SEGUIMIENTO_textoCapturaDisponible(estado.usuarioActivo);
         const hayGuiasActivas = !!SEGUIMIENTO_textoCapturaDisponible(estado.procesoActual) || guiasActivas.length > 0;
+        const hayPosicionesPendientes = estado.hayPosicionesPendientes === true;
         const permisosValidos = !!(estado.validacion && estado.validacion.ok);
-        const debeEstarActivo = haySesion && hayGuiasActivas && permisosValidos;
+        const debeEstarActivo = (hayGuiasActivas || hayPosicionesPendientes) && permisosValidos;
         const status = await consultarStatusGps();
 
         limpiarUltimaUbicacionGuiasInactivas(guiasActivas, !hayGuiasActivas);
@@ -411,6 +416,7 @@ function reconciliarEstadoGpsNativo(contexto) {
             debeEstarActivo: debeEstarActivo,
             haySesion: haySesion,
             hayGuiasActivas: hayGuiasActivas,
+            hayPosicionesPendientes: hayPosicionesPendientes,
             permisosValidos: permisosValidos,
             isRunning: isTrackingEnabled,
             isTrackingEnabled: isTrackingEnabled

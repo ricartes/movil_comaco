@@ -120,6 +120,16 @@ function columnas(db, tabla) {
 const UUID_SEGUIMIENTO_1 = '11111111-1111-4111-8111-111111111111';
 const UUID_SEGUIMIENTO_2 = '22222222-2222-4222-8222-222222222222';
 const UUID_POSICION = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const TOKEN_SEGUIMIENTO = 'A'.repeat(43);
+
+function respuestaSeguimiento(idGuia, idSeguimiento) {
+    return {
+        ID_UNICO_MOVIL_GDE: idGuia,
+        ID_UNICO_SEGUIMIENTO: idSeguimiento,
+        UUID_DISPOSITIVO: 'DISPOSITIVO-PRUEBA',
+        TOKEN_SEGUIMIENTO
+    };
+}
 
 test('instalación nueva crea el esquema real de seguimiento', async () => {
     const db = new DatabaseSync(':memory:');
@@ -134,6 +144,10 @@ test('instalación nueva crea el esquema real de seguimiento', async () => {
         'PRECISION_METROS', 'VELOCIDAD_MPS', 'RUMBO_GRADOS', 'ALTITUD_METROS',
         'ES_UBICACION_SIMULADA', 'ORIGEN_CAPTURA', 'INTENTOS_ENVIO',
         'FECHA_ULTIMO_INTENTO_UTC', 'FECHA_CREACION_UTC'
+    ]);
+    assert.deepEqual(columnas(db, 'SEGUIMIENTO_CREDENCIAL'), [
+        'ID_UNICO_SEGUIMIENTO', 'ID_UNICO_MOVIL_GDE', 'UUID_DISPOSITIVO',
+        'TOKEN_SEGUIMIENTO', 'ESTADO', 'FECHA_EMISION_UTC', 'FECHA_ACTUALIZACION_UTC'
     ]);
     const indice = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?")
         .get('IX_SEG_POS_PENDIENTE_SEGUIMIENTO_ID');
@@ -165,9 +179,13 @@ test('guarda una guía y acepta una respuesta antigua sin SEGUIMIENTOS', async (
     db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
 
     await contexto.procesarSeguimientosRecibeGuiaV2([
-        { ID_UNICO_MOVIL_GDE: ' GUIA-1 ', ID_UNICO_SEGUIMIENTO: ` ${UUID_SEGUIMIENTO_1} ` }
+        respuestaSeguimiento(' GUIA-1 ', ` ${UUID_SEGUIMIENTO_1} `)
     ]);
     assert.equal(await contexto.obtenerIdSeguimientoGuia('GUIA-1'), UUID_SEGUIMIENTO_1);
+    const credencial = await contexto.obtenerCredencialSeguimiento(UUID_SEGUIMIENTO_1);
+    assert.equal(credencial.UUID_DISPOSITIVO, 'DISPOSITIVO-PRUEBA');
+    assert.equal(credencial.ESTADO, 'ACTIVA');
+    assert.equal(credencial.TOKEN_SEGUIMIENTO.length, 43);
 
     assert.equal(await contexto.procesarSeguimientosRecibeGuiaV2(null), 0);
     assert.equal(await contexto.obtenerIdSeguimientoGuia('GUIA-1'), UUID_SEGUIMIENTO_1);
@@ -182,8 +200,8 @@ test('correlaciona varias guías por ID aunque la respuesta venga en otro orden'
     db.exec("INSERT INTO GDE (ID_UNICO_MOVIL) VALUES ('GUIA-1'), ('GUIA-2')");
 
     await contexto.procesarSeguimientosRecibeGuiaV2([
-        { ID_UNICO_MOVIL_GDE: 'GUIA-2', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_2 },
-        { ID_UNICO_MOVIL_GDE: 'GUIA-1', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1 }
+        respuestaSeguimiento('GUIA-2', UUID_SEGUIMIENTO_2),
+        respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1)
     ]);
 
     assert.equal(await contexto.obtenerIdSeguimientoGuia('GUIA-1'), UUID_SEGUIMIENTO_1);
@@ -200,14 +218,14 @@ test('rechaza UUID inválido y resultados duplicados para una guía', async () =
 
     await assert.rejects(
         contexto.procesarSeguimientosRecibeGuiaV2([
-            { ID_UNICO_MOVIL_GDE: 'GUIA-1', ID_UNICO_SEGUIMIENTO: 'no-es-uuid' }
+            respuestaSeguimiento('GUIA-1', 'no-es-uuid')
         ]),
         /formato UUID/
     );
     await assert.rejects(
         contexto.procesarSeguimientosRecibeGuiaV2([
-            { ID_UNICO_MOVIL_GDE: 'GUIA-1', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1 },
-            { ID_UNICO_MOVIL_GDE: 'guia-1', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_2 }
+            respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1),
+            respuestaSeguimiento('guia-1', UUID_SEGUIMIENTO_2)
         ]),
         /más de un seguimiento/
     );
@@ -223,8 +241,8 @@ test('revierte todos los vínculos cuando falla una guía intermedia', async () 
     db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
 
     await assert.rejects(contexto.guardarIdsSeguimientoGuias([
-        { ID_UNICO_MOVIL_GDE: 'GUIA-1', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_1 },
-        { ID_UNICO_MOVIL_GDE: 'GUIA-INEXISTENTE', ID_UNICO_SEGUIMIENTO: UUID_SEGUIMIENTO_2 }
+        respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1),
+        respuestaSeguimiento('GUIA-INEXISTENTE', UUID_SEGUIMIENTO_2)
     ]), /No se encontró una única guía/);
 
     assert.equal(await contexto.obtenerIdSeguimientoGuia('GUIA-1'), null);

@@ -31,6 +31,10 @@ function Tablas_crear_tablas(valor) {
 
             crearSiguiente(0);
         }, reject, function () {
+            if (typeof DATOS_inicializarSeguimientoSqlite !== "function") {
+                reject(new Error("No está disponible la migración técnica de seguimiento."));
+                return;
+            }
             DATOS_inicializarSeguimientoSqlite().then(resolve).catch(reject);
         });
     });

@@ -525,6 +525,39 @@ test('reconciliación detecta servicio nativo activo con estado JavaScript falso
     assert.equal(escenario.llamadasStop(), 0);
 });
 
+test('reconciliación mantiene GPS activo sin sesión cuando existe seguimiento', async () => {
+    const guia = crearGuia('GUIA-SIN-SESION');
+    const escenario = crearEscenario();
+
+    const resultado = await escenario.contexto.reconciliarEstadoGpsNativo({
+        usuarioActivo: '',
+        procesoActual: '',
+        guiasActivas: [guia],
+        hayPosicionesPendientes: false,
+        validacion: { ok: true }
+    });
+
+    assert.equal(resultado.haySesion, false);
+    assert.equal(resultado.debeEstarActivo, true);
+    assert.equal(escenario.llamadasStart(), 1);
+});
+
+test('reconciliación mantiene GPS activo en login mientras queden posiciones pendientes', async () => {
+    const escenario = crearEscenario();
+
+    const resultado = await escenario.contexto.reconciliarEstadoGpsNativo({
+        usuarioActivo: '',
+        procesoActual: '',
+        guiasActivas: [],
+        hayPosicionesPendientes: true,
+        validacion: { ok: true }
+    });
+
+    assert.equal(resultado.debeEstarActivo, true);
+    assert.equal(resultado.hayPosicionesPendientes, true);
+    assert.equal(escenario.llamadasStart(), 1);
+});
+
 test('diagnóstico registra exclusivamente configuración y estado técnicos', async () => {
     const escenario = crearEscenario({ servicioNativoActivo: true });
     const diagnostico = await escenario.contexto.registrarDiagnosticoGps();

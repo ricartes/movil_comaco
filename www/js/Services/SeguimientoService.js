@@ -8,6 +8,7 @@ function SEGUIMIENTO_resultadoCiclo() {
         POSICIONES_CONFIRMADAS: 0,
         POSICIONES_PENDIENTES: 0,
         SEGUIMIENTOS_PENDIENTES: 0,
+        SEGUIMIENTOS_SUSPENDIDOS: 0,
         ERRORES: 0,
         OMITIDO: false,
         MOTIVO: null,
@@ -86,7 +87,9 @@ function SEGUIMIENTO_desempaquetarRespuesta(respuesta) {
 function SEGUIMIENTO_analizarConfirmaciones(respuesta, posicionesEnviadas) {
     var resultado = SEGUIMIENTO_desempaquetarRespuesta(respuesta);
     if (resultado.EXITO !== true || !Array.isArray(resultado.POSICIONES)) {
-        throw new Error("El servidor rechazó el lote de seguimiento.");
+        var rechazo = new Error("El servidor rechazó el lote de seguimiento.");
+        rechazo.CODIGO_SEGUIMIENTO = SEGUIMIENTO_textoDisponible(resultado.CODIGO) || null;
+        throw rechazo;
     }
 
     var enviadosPorClave = {};
@@ -158,7 +161,7 @@ async function SEGUIMIENTO_registrarIntentoSeguro(listaUuid) {
 async function SEGUIMIENTO_procesarLote(
     idUnicoSeguimiento,
     posiciones,
-    uuidDispositivo,
+    credencial,
     versionApp,
     resumen,
     cantidadPendienteAntes
@@ -180,7 +183,8 @@ async function SEGUIMIENTO_procesarLote(
         httpIniciado = true;
         var respuesta = await enviarPosicionesSeguimientoWebService({
             ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento,
-            UUID_DISPOSITIVO: uuidDispositivo,
+            UUID_DISPOSITIVO: credencial.UUID_DISPOSITIVO,
+            TOKEN_SEGUIMIENTO: credencial.TOKEN_SEGUIMIENTO,
             VERSION_APP: versionApp || "",
             POSICIONES: posicionesEntrada
         });
@@ -229,6 +233,29 @@ async function SEGUIMIENTO_procesarLote(
             CONFIRMADAS: confirmaciones.CONFIRMADOS.length
         };
     } catch (error) {
+        var codigo = SEGUIMIENTO_textoDisponible(error && error.CODIGO_SEGUIMIENTO);
+        var rechazosDefinitivos = [
+            "CREDENCIAL_NO_AUTORIZADA",
+            "CREDENCIAL_REVOCADA",
+            "CREDENCIAL_EXPIRADA",
+            "DISPOSITIVO_NO_AUTORIZADO",
+            "SEGUIMIENTO_NO_ACTIVO"
+        ];
+        if (codigo && rechazosDefinitivos.indexOf(codigo) >= 0) {
+            await marcarCredencialSeguimiento(
+                idUnicoSeguimiento,
+                codigo === "CREDENCIAL_REVOCADA" ? "REVOCADA" : "BLOQUEADA"
+            );
+            SEGUIMIENTO_registrarDiagnostico({
+                TIPO: "SEGUIMIENTO_SUSPENDIDO",
+                ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento,
+                RESULTADO: "CREDENCIAL_RECHAZADA",
+                CODIGO: codigo
+            });
+            resumen.SEGUIMIENTOS_SUSPENDIDOS++;
+            return { EXITO: false, SUSPENDIDO: true, CONFIRMADAS: 0 };
+        }
+
         console.warn("No fue posible enviar el lote de seguimiento GPS.");
         if (httpIniciado) {
             finHttpMs = Date.now();
@@ -296,13 +323,6 @@ async function enviarPosicionesSeguimientoPendientes() {
         return resumen;
     }
 
-    var uuidDispositivo = SEGUIMIENTO_textoDisponible(Obtener_dato_local("uid"));
-    if (!uuidDispositivo) {
-        resumen.OMITIDO = true;
-        resumen.MOTIVO = "UUID_DISPOSITIVO_AUSENTE";
-        return resumen;
-    }
-
     SEGUIMIENTO_envioEnCurso = true;
     try {
         var seguimientos = await SEGUIMIENTO_resumenPendientes();
@@ -315,6 +335,7 @@ async function enviarPosicionesSeguimientoPendientes() {
         var versionApp = SEGUIMIENTO_textoDisponible(Obtener_dato_local("version_app")) || "";
 
         var colaSeguimientos = seguimientos.slice(0);
+        var seguimientosSuspendidos = {};
         while (colaSeguimientos.length > 0 && resumen.LOTES_ENVIADOS < SEGUIMIENTO_MAX_LOTES_POR_CICLO) {
             if (!SEGUIMIENTO_hayConexionDisponible()) {
                 resumen.OMITIDO = true;
@@ -332,17 +353,37 @@ async function enviarPosicionesSeguimientoPendientes() {
                 continue;
             }
 
+            var credencial = await obtenerCredencialSeguimiento(idUnicoSeguimiento);
+            if (!credencial || credencial.ESTADO !== "ACTIVA" ||
+                !SEGUIMIENTO_textoDisponible(credencial.UUID_DISPOSITIVO) ||
+                !SEGUIMIENTO_textoDisponible(credencial.TOKEN_SEGUIMIENTO)) {
+                if (!seguimientosSuspendidos[idUnicoSeguimiento]) {
+                    seguimientosSuspendidos[idUnicoSeguimiento] = true;
+                    resumen.SEGUIMIENTOS_SUSPENDIDOS++;
+                }
+                SEGUIMIENTO_registrarDiagnostico({
+                    TIPO: "SEGUIMIENTO_SUSPENDIDO",
+                    ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento,
+                    RESULTADO: credencial ? "CREDENCIAL_RECHAZADA" : "CREDENCIAL_FALTANTE"
+                });
+                continue;
+            }
+
             resumen.LOTES_ENVIADOS++;
             var resultadoLote = await SEGUIMIENTO_procesarLote(
                 idUnicoSeguimiento,
                 posiciones,
-                uuidDispositivo,
+                credencial,
                 versionApp,
                 resumen,
                 typeof seguimiento.CANTIDAD_PENDIENTE === "number"
                     ? seguimiento.CANTIDAD_PENDIENTE
                     : null
             );
+            if (resultadoLote.SUSPENDIDO) {
+                seguimientosSuspendidos[idUnicoSeguimiento] = true;
+                continue;
+            }
             if (!resultadoLote.EXITO) {
                 break;
             }
@@ -367,7 +408,12 @@ async function enviarPosicionesSeguimientoPendientes() {
                 return total + (Number(seguimientoPendiente.CANTIDAD_PENDIENTE) || 0);
             }, 0)
             : resumen.POSICIONES_PENDIENTES;
-        resumen.REQUIERE_CONTINUACION = resumen.SEGUIMIENTOS_PENDIENTES > 0;
+        resumen.REQUIERE_CONTINUACION =
+            resumen.SEGUIMIENTOS_PENDIENTES > resumen.SEGUIMIENTOS_SUSPENDIDOS;
+        if (resumen.LOTES_ENVIADOS === 0 && resumen.SEGUIMIENTOS_SUSPENDIDOS > 0) {
+            resumen.OMITIDO = true;
+            resumen.MOTIVO = "CREDENCIAL_FALTANTE";
+        }
     } catch (error) {
         console.error("Error controlado en el emisor de seguimiento GPS.");
         resumen.ERRORES++;
@@ -478,14 +524,6 @@ function obtenerDiagnosticoEnvioSeguimiento() {
     };
 }
 
-function SEGUIMIENTO_sesionDisponible() {
-    try {
-        return !!SEGUIMIENTO_textoDisponible(Obtener_dato_local("user_activo"));
-    } catch (error) {
-        return false;
-    }
-}
-
 async function SEGUIMIENTO_contarPendientes() {
     var resumen = await SEGUIMIENTO_resumenPendientes();
     var seguimientos = Array.isArray(resumen) ? resumen.length : 0;
@@ -550,13 +588,6 @@ async function SEGUIMIENTO_ejecutarCicloProgramado() {
         return;
     }
 
-    if (!SEGUIMIENTO_sesionDisponible()) {
-        SEGUIMIENTO_motivoPendiente = null;
-        SEGUIMIENTO_prioridadMotivoPendiente = 0;
-        SEGUIMIENTO_fechaSolicitudPendienteMs = null;
-        return;
-    }
-
     SEGUIMIENTO_cicloProgramadorEnCurso = true;
     var motivo = SEGUIMIENTO_motivoPendiente || "sin_especificar";
     var fechaSolicitudMs = SEGUIMIENTO_fechaSolicitudPendienteMs === null
@@ -611,6 +642,14 @@ async function SEGUIMIENTO_ejecutarCicloProgramado() {
         SEGUIMIENTO_cicloProgramadorEnCurso = false;
         SEGUIMIENTO_fechaSolicitudCicloMs = null;
         SEGUIMIENTO_motivoCicloActual = null;
+
+        if (typeof SEGUIMIENTO_reconciliarGpsTecnico === "function") {
+            try {
+                await SEGUIMIENTO_reconciliarGpsTecnico();
+            } catch (errorReconciliacion) {
+                console.warn("No fue posible reconciliar el GPS después del ciclo de envío.");
+            }
+        }
 
         if (!SEGUIMIENTO_programadorActivo) {
             return;

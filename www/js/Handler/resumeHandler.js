@@ -2,8 +2,7 @@ let appStartTime = Date.now(); // Hora real al iniciar la app
 let elapsedTime = 0;           // Tiempo acumulado por el reloj interno
 const THRESHOLD = 5000; // Umbral de 5 segundos
 // Función para inicializar el evento resume
-function initializeResumeHandler() {
-    document.addEventListener("resume", async function () {
+async function manejarResumeInteractivo() {
 
         const usuarioActivo = Obtener_dato_local("user_activo");
         if (usuarioActivo && usuarioActivo != "") {
@@ -91,7 +90,6 @@ function initializeResumeHandler() {
 
             handleTimeChange();
         }
-    }, false);
 }
 
 // Función para manejar el cambio de hora

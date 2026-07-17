@@ -31,8 +31,11 @@ async function postHttpReal(url, cuerpo, configuracion, opciones) {
         });
         const texto = await respuesta.text();
         if (!respuesta.ok) {
-            const cuerpoSeguro = limitarTexto(texto, 800)
+            let cuerpoSeguro = limitarTexto(texto, 800)
                 .replaceAll(opciones.uuidDispositivo, '[UUID_DISPOSITIVO]');
+            if (opciones.tokenSeguimiento) {
+                cuerpoSeguro = cuerpoSeguro.replaceAll(opciones.tokenSeguimiento, '[TOKEN_SEGUIMIENTO]');
+            }
             throw new Error(
                 `HTTP ${respuesta.status} en ${new URL(url).origin}${new URL(url).pathname}; ` +
                 `timeout=${timeoutMs}ms; respuesta=${cuerpoSeguro}`
@@ -118,6 +121,9 @@ async function ejecutar(configuracion) {
 
     try {
         await preparar(runtime);
+        if (configuracion.tokenSeguimiento) {
+            runtime.guardarCredencial(configuracion);
+        }
 
         if (configuracion.accion === 'ESCRIBIR') {
             const insertadas = await runtime.contexto.insertarPosicionesSeguimientoPendientes(configuracion.posiciones);
@@ -134,6 +140,7 @@ async function ejecutar(configuracion) {
             const respuesta = await runtime.contexto.enviarPosicionesSeguimientoWebService({
                 ID_UNICO_SEGUIMIENTO: configuracion.idSeguimiento,
                 UUID_DISPOSITIVO: configuracion.uuidDispositivo,
+                TOKEN_SEGUIMIENTO: configuracion.tokenSeguimiento,
                 VERSION_APP: configuracion.versionApp,
                 POSICIONES: posicionesEntrada
             });

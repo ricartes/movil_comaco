@@ -42,6 +42,7 @@ function crearEscenario(opciones = {}) {
     const solicitudes = [];
     const intentos = {};
     const eliminados = [];
+    const credencialesMarcadas = [];
     let solicitudesActivas = 0;
     let maximoSolicitudesActivas = 0;
     let enviar = opciones.enviar;
@@ -97,6 +98,19 @@ function crearEscenario(opciones = {}) {
         async listarPosicionesSeguimientoPendientes(idSeguimiento, limite) {
             return (colas[idSeguimiento] || []).slice(0, limite);
         },
+        async obtenerCredencialSeguimiento(idSeguimiento) {
+            if (opciones.credencialFaltante === idSeguimiento) return null;
+            return {
+                ID_UNICO_SEGUIMIENTO: idSeguimiento,
+                UUID_DISPOSITIVO: `DISPOSITIVO-${idSeguimiento.slice(0, 8)}`,
+                TOKEN_SEGUIMIENTO: 'A'.repeat(43),
+                ESTADO: 'ACTIVA'
+            };
+        },
+        async marcarCredencialSeguimiento(idSeguimiento, estado) {
+            credencialesMarcadas.push({ idSeguimiento, estado });
+            return 1;
+        },
         async eliminarPosicionesSeguimientoPorUuid(listaUuid) {
             const claves = new Set(listaUuid.map(uuid => uuid.toUpperCase()));
             Object.keys(colas).forEach(id => {
@@ -142,6 +156,8 @@ function crearEscenario(opciones = {}) {
         listarPosicionesSeguimientoPendientes: contexto.listarPosicionesSeguimientoPendientes,
         eliminarPosicionesSeguimientoPorUuid: contexto.eliminarPosicionesSeguimientoPorUuid,
         registrarIntentoEnvioPosiciones: contexto.registrarIntentoEnvioPosiciones
+        ,obtenerCredencialSeguimiento: contexto.obtenerCredencialSeguimiento
+        ,marcarCredencialSeguimiento: contexto.marcarCredencialSeguimiento
     };
 
     vm.createContext(contexto);
@@ -162,6 +178,7 @@ function crearEscenario(opciones = {}) {
         colas,
         eliminados,
         intentos,
+        credencialesMarcadas,
         solicitudes,
         cambiarEnvio(nuevoEnvio) {
             enviar = nuevoEnvio;
@@ -172,11 +189,11 @@ function crearEscenario(opciones = {}) {
     };
 }
 
-test('cola vacía, sin conexión y UUID ausente no realizan solicitudes', async () => {
+test('cola vacía, sin conexión y credencial faltante no realizan solicitudes', async () => {
     for (const opciones of [
         {},
         { conexion: false, colas: { [UUID_SEGUIMIENTO]: crearPosiciones(1) } },
-        { uuidDispositivo: '   ', colas: { [UUID_SEGUIMIENTO]: crearPosiciones(1) } },
+        { credencialFaltante: UUID_SEGUIMIENTO, colas: { [UUID_SEGUIMIENTO]: crearPosiciones(1) } },
         { habilitado: false, colas: { [UUID_SEGUIMIENTO]: crearPosiciones(1) } }
     ]) {
         const escenario = crearEscenario(opciones);
@@ -203,7 +220,8 @@ test('un lote directo elimina INSERTADA y YA_EXISTIA sin alterar UUID ni fecha',
 
     assert.equal(resultado.POSICIONES_CONFIRMADAS, 2);
     assert.equal(escenario.colas[UUID_SEGUIMIENTO].length, 0);
-    assert.equal(escenario.solicitudes[0].UUID_DISPOSITIVO, 'DISPOSITIVO-REAL-01');
+    assert.equal(escenario.solicitudes[0].UUID_DISPOSITIVO, 'DISPOSITIVO-11111111');
+    assert.equal(escenario.solicitudes[0].TOKEN_SEGUIMIENTO, 'A'.repeat(43));
     assert.equal(escenario.solicitudes[0].VERSION_APP, '5.0.3');
     assert.equal(escenario.solicitudes[0].POSICIONES[0].UUID_POSICION, posiciones[0].UUID_POSICION);
     assert.equal(escenario.solicitudes[0].POSICIONES[0].FECHA_DISPOSITIVO_UTC, posiciones[0].FECHA_DISPOSITIVO_UTC);
@@ -395,6 +413,60 @@ test('un error libera el bloqueo y permite reiniciar el envío', async () => {
 
     assert.equal(escenario.solicitudes.length, 2);
     assert.equal(escenario.colas[UUID_SEGUIMIENTO].length, 0);
+});
+
+test('178 posiciones se drenan en lotes 100 y 78 con credencial técnica', async () => {
+    const escenario = crearEscenario({
+        colas: { [UUID_SEGUIMIENTO]: crearPosiciones(178) }
+    });
+    await escenario.contexto.enviarPosicionesSeguimientoPendientes();
+    assert.deepEqual(escenario.solicitudes.map(item => item.POSICIONES.length), [100, 78]);
+    assert.ok(escenario.solicitudes.every(item => item.TOKEN_SEGUIMIENTO === 'A'.repeat(43)));
+    assert.equal(escenario.colas[UUID_SEGUIMIENTO].length, 0);
+});
+
+test('credencial faltante suspende solo su seguimiento y conserva posiciones', async () => {
+    const escenario = crearEscenario({
+        credencialFaltante: UUID_SEGUIMIENTO,
+        colas: {
+            [UUID_SEGUIMIENTO]: crearPosiciones(2, UUID_SEGUIMIENTO),
+            [UUID_SEGUIMIENTO_2]: crearPosiciones(2, UUID_SEGUIMIENTO_2, 20)
+        }
+    });
+    const resultado = await escenario.contexto.enviarPosicionesSeguimientoPendientes();
+    assert.equal(escenario.colas[UUID_SEGUIMIENTO].length, 2);
+    assert.equal(escenario.colas[UUID_SEGUIMIENTO_2].length, 0);
+    assert.deepEqual(escenario.solicitudes.map(item => item.ID_UNICO_SEGUIMIENTO), [UUID_SEGUIMIENTO_2]);
+    assert.equal(resultado.ERRORES, 0);
+    assert.equal(resultado.SEGUIMIENTOS_SUSPENDIDOS, 1);
+});
+
+test('credencial rechazada bloquea solo su seguimiento y continúa con otro', async () => {
+    const escenario = crearEscenario({
+        colas: {
+            [UUID_SEGUIMIENTO]: crearPosiciones(1, UUID_SEGUIMIENTO),
+            [UUID_SEGUIMIENTO_2]: crearPosiciones(1, UUID_SEGUIMIENTO_2, 30)
+        },
+        enviar: async entrada => {
+            if (entrada.ID_UNICO_SEGUIMIENTO === UUID_SEGUIMIENTO) {
+                return { EXITO: false, CODIGO: 'CREDENCIAL_NO_AUTORIZADA', POSICIONES: [] };
+            }
+            return {
+                EXITO: true,
+                POSICIONES: entrada.POSICIONES.map(item => ({
+                    UUID_POSICION: item.UUID_POSICION,
+                    ESTADO: 'INSERTADA'
+                }))
+            };
+        }
+    });
+    const resultado = await escenario.contexto.enviarPosicionesSeguimientoPendientes();
+    assert.equal(escenario.colas[UUID_SEGUIMIENTO].length, 1);
+    assert.equal(escenario.colas[UUID_SEGUIMIENTO_2].length, 0);
+    assert.deepEqual(escenario.credencialesMarcadas, [
+        { idSeguimiento: UUID_SEGUIMIENTO, estado: 'BLOQUEADA' }
+    ]);
+    assert.equal(resultado.ERRORES, 0);
 });
 
 test('wrapper HTTP existente envía POST JSON con timeout al ASMX', async () => {

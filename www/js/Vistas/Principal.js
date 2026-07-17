@@ -247,6 +247,7 @@ async function reevaluarTrackingAhora() {
         const usuarioActivo = Obtener_dato_local("rut_activo");
         const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
         const procesoActual = Obtener_dato_local("id_proceso_activo");
+        const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
 
         const validacion = await validarRequisitosTrackingCordova();
 
@@ -256,6 +257,7 @@ async function reevaluarTrackingAhora() {
             usuarioActivo: usuarioActivo,
             procesoActual: procesoActual,
             guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+            hayPosicionesPendientes: seguimientosPendientes.length > 0,
             validacion: validacion
         });
 
@@ -281,6 +283,7 @@ function controlarTrackingDinamico() {
             const usuarioActivo = Obtener_dato_local("rut_activo");
             const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorConfirmadas();
             const procesoActual = Obtener_dato_local("id_proceso_activo");
+            const seguimientosPendientes = await listarResumenSeguimientosConPosicionesPendientes();
 
             const validacion = await validarRequisitosTrackingCordova();
 
@@ -290,6 +293,7 @@ function controlarTrackingDinamico() {
                 usuarioActivo: usuarioActivo,
                 procesoActual: procesoActual,
                 guiasActivas: Array.isArray(gdeNoConfirmadas) ? gdeNoConfirmadas : [],
+                hayPosicionesPendientes: seguimientosPendientes.length > 0,
                 validacion: validacion
             });
 
@@ -566,7 +570,10 @@ document.addEventListener("deviceready", async function () {
 
 
     try {
-        await Tablas_crear_tablas(); //ok
+        if (typeof configureBackgroundGeolocation === "function") {
+            configureBackgroundGeolocation();
+        }
+        await inicializarSeguimientoBootstrap();
         await comprobarActualizarEsquema();
         seguimientoSqliteLista = true;
 
@@ -603,11 +610,6 @@ document.addEventListener("deviceready", async function () {
 
     $$("#uid_movil").text("UUID: " + device.uuid);
     Guardar_dato_local("uid", device.uuid);
-    if (seguimientoSqliteLista && typeof inicializarProgramadorEnvioSeguimiento === "function") {
-        inicializarProgramadorEnvioSeguimiento();
-        solicitarEnvioSeguimiento("inicio_o_resume", true);
-    }
-
     ls.open(false);
 
     var rut_activo = Obtener_dato_local("ultimo_activo");
@@ -742,22 +744,10 @@ document.addEventListener("deviceready", async function () {
 
 
 
-    if (typeof initializeResumeHandler === "function") {
-        initializeResumeHandler();
-    } else {
-        console.warn("initializeResumeHandler no está disponible.");
-    }
-
     if (typeof inicializarGpsDiagnosticHandler === "function") {
         inicializarGpsDiagnosticHandler();
     } else {
         console.warn("inicializarGpsDiagnosticHandler no está disponible.");
-    }
-
-    if (typeof configureBackgroundGeolocation === "function") {
-        configureBackgroundGeolocation();
-    } else {
-        console.error("configureBackgroundGeolocation no está disponible.");
     }
 
     await validarTrackingAlInicio();
@@ -1102,15 +1092,6 @@ function logout() {
         "¿Está seguro que desea cerrar sesión?",
         "GFE",
         function () {
-            if (typeof detenerProgramadorEnvioSeguimiento === "function") {
-                detenerProgramadorEnvioSeguimiento();
-            }
-            stopTracking();
-            desactivarBackgroundModeSeguro();
-            if (trackingIntervalId !== null) {
-                clearInterval(trackingIntervalId);
-                trackingIntervalId = null;
-            }
             if (timmer) {
                 clearInterval(timmer);
                 timmer = null;
@@ -1130,6 +1111,11 @@ function logout() {
                 );
             })();
             ls.open(false);
+            inicializarSeguimientoBootstrap().then(function () {
+                solicitarEnvioSeguimiento("inicio_o_resume", true);
+            }).catch(function () {
+                // El bootstrap ya informa el error sin incluir datos sensibles.
+            });
         }
     );
 

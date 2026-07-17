@@ -23,6 +23,21 @@ var SEGUIMIENTO_SQL_CREAR_POSICIONES_PENDIENTES = `CREATE TABLE IF NOT EXISTS SE
 var SEGUIMIENTO_SQL_CREAR_INDICE_PENDIENTES = `CREATE INDEX IF NOT EXISTS IX_SEG_POS_PENDIENTE_SEGUIMIENTO_ID
     ON SEGUIMIENTO_POSICION_PENDIENTE (ID_UNICO_SEGUIMIENTO, ID)`;
 
+// Limitación Hito 1: el token queda encapsulado en SQLite. En una fase futura
+// este repositorio podrá sustituirse por Android Keystore sin cambiar el emisor.
+var SEGUIMIENTO_SQL_CREAR_CREDENCIALES = `CREATE TABLE IF NOT EXISTS SEGUIMIENTO_CREDENCIAL (
+    ID_UNICO_SEGUIMIENTO TEXT PRIMARY KEY,
+    ID_UNICO_MOVIL_GDE TEXT NOT NULL,
+    UUID_DISPOSITIVO TEXT NOT NULL,
+    TOKEN_SEGUIMIENTO TEXT NOT NULL,
+    ESTADO TEXT NOT NULL,
+    FECHA_EMISION_UTC TEXT NULL,
+    FECHA_ACTUALIZACION_UTC TEXT NOT NULL
+)`;
+
+var SEGUIMIENTO_SQL_CREAR_INDICE_CREDENCIALES_ESTADO = `CREATE INDEX IF NOT EXISTS IX_SEG_CREDENCIAL_ESTADO
+    ON SEGUIMIENTO_CREDENCIAL (ESTADO, ID_UNICO_SEGUIMIENTO)`;
+
 function SEGUIMIENTO_abrirBaseDatos() {
     return window.sqlitePlugin.openDatabase({
         name: "bd.db",
@@ -38,6 +53,8 @@ function DATOS_inicializarSeguimientoSqlite() {
         db.transaction(function (tr) {
             tr.executeSql(SEGUIMIENTO_SQL_CREAR_POSICIONES_PENDIENTES);
             tr.executeSql(SEGUIMIENTO_SQL_CREAR_INDICE_PENDIENTES);
+            tr.executeSql(SEGUIMIENTO_SQL_CREAR_CREDENCIALES);
+            tr.executeSql(SEGUIMIENTO_SQL_CREAR_INDICE_CREDENCIALES_ESTADO);
             tr.executeSql("PRAGMA table_info(GDE)", [], function (tr, rs) {
                 var existeColumna = false;
 
@@ -160,6 +177,24 @@ function SEGUIMIENTO_actualizarGuiaEnTransaccion(tr, seguimiento, alCompletar) {
     );
 }
 
+function SEGUIMIENTO_guardarCredencialEnTransaccion(tr, seguimiento, alCompletar) {
+    tr.executeSql(
+        `INSERT OR REPLACE INTO SEGUIMIENTO_CREDENCIAL (
+            ID_UNICO_SEGUIMIENTO, ID_UNICO_MOVIL_GDE, UUID_DISPOSITIVO,
+            TOKEN_SEGUIMIENTO, ESTADO, FECHA_EMISION_UTC, FECHA_ACTUALIZACION_UTC
+        ) VALUES (?, ?, ?, ?, 'ACTIVA', ?, ?)`,
+        [
+            seguimiento.ID_UNICO_SEGUIMIENTO,
+            seguimiento.ID_UNICO_MOVIL_GDE,
+            seguimiento.UUID_DISPOSITIVO,
+            seguimiento.TOKEN_SEGUIMIENTO,
+            seguimiento.FECHA_EMISION_UTC,
+            new Date().toISOString()
+        ],
+        function () { alCompletar(); }
+    );
+}
+
 function SEGUIMIENTO_normalizarVinculosGuia(seguimientos) {
     if (!Array.isArray(seguimientos)) {
         throw new Error("SEGUIMIENTOS debe ser una lista.");
@@ -173,6 +208,8 @@ function SEGUIMIENTO_normalizarVinculosGuia(seguimientos) {
 
         var idGuia = SEGUIMIENTO_textoObligatorio(seguimiento.ID_UNICO_MOVIL_GDE, "ID_UNICO_MOVIL_GDE");
         var idSeguimiento = SEGUIMIENTO_uuidObligatorio(seguimiento.ID_UNICO_SEGUIMIENTO, "ID_UNICO_SEGUIMIENTO");
+        var uuidDispositivo = SEGUIMIENTO_textoObligatorio(seguimiento.UUID_DISPOSITIVO, "UUID_DISPOSITIVO");
+        var tokenSeguimiento = SEGUIMIENTO_textoObligatorio(seguimiento.TOKEN_SEGUIMIENTO, "TOKEN_SEGUIMIENTO");
         var claveGuia = idGuia.toUpperCase();
 
         if (idsGuia[claveGuia]) {
@@ -182,7 +219,10 @@ function SEGUIMIENTO_normalizarVinculosGuia(seguimientos) {
 
         return {
             ID_UNICO_MOVIL_GDE: idGuia,
-            ID_UNICO_SEGUIMIENTO: idSeguimiento
+            ID_UNICO_SEGUIMIENTO: idSeguimiento,
+            UUID_DISPOSITIVO: uuidDispositivo,
+            TOKEN_SEGUIMIENTO: tokenSeguimiento,
+            FECHA_EMISION_UTC: seguimiento.FECHA_EMISION_UTC || null
         };
     });
 }
@@ -211,9 +251,11 @@ function guardarIdsSeguimientoGuias(seguimientos) {
                     return;
                 }
 
-                SEGUIMIENTO_actualizarGuiaEnTransaccion(tr, vinculos[indice], function () {
-                    cantidadGuardada++;
-                    guardarSiguiente(indice + 1);
+                SEGUIMIENTO_guardarCredencialEnTransaccion(tr, vinculos[indice], function () {
+                    SEGUIMIENTO_actualizarGuiaEnTransaccion(tr, vinculos[indice], function () {
+                        cantidadGuardada++;
+                        guardarSiguiente(indice + 1);
+                    });
                 });
             }
 
@@ -224,11 +266,113 @@ function guardarIdsSeguimientoGuias(seguimientos) {
     });
 }
 
-function guardarIdSeguimientoGuia(idUnicoMovilGde, idUnicoSeguimiento) {
+function guardarIdSeguimientoGuia(idUnicoMovilGde, idUnicoSeguimiento, uuidDispositivo, tokenSeguimiento) {
     return guardarIdsSeguimientoGuias([{
         ID_UNICO_MOVIL_GDE: idUnicoMovilGde,
-        ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento
+        ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento,
+        UUID_DISPOSITIVO: uuidDispositivo,
+        TOKEN_SEGUIMIENTO: tokenSeguimiento
     }]);
+}
+
+function obtenerCredencialSeguimiento(idUnicoSeguimiento) {
+    return new Promise(function (resolve, reject) {
+        var idSeguimiento;
+        try {
+            idSeguimiento = SEGUIMIENTO_uuidObligatorio(idUnicoSeguimiento, "ID_UNICO_SEGUIMIENTO");
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        var credencial = null;
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                "SELECT * FROM SEGUIMIENTO_CREDENCIAL WHERE ID_UNICO_SEGUIMIENTO = ? LIMIT 1",
+                [idSeguimiento],
+                function (tr, rs) {
+                    credencial = rs.rows.length === 1 ? rs.rows.item(0) : null;
+                }
+            );
+        }, reject, function () { resolve(credencial); });
+    });
+}
+
+function listarCredencialesSeguimientoActivas() {
+    return new Promise(function (resolve, reject) {
+        var credenciales = [];
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                "SELECT * FROM SEGUIMIENTO_CREDENCIAL WHERE ESTADO = 'ACTIVA' ORDER BY ID_UNICO_SEGUIMIENTO",
+                [],
+                function (tr, rs) { credenciales = SEGUIMIENTO_filas(rs); }
+            );
+        }, reject, function () { resolve(credenciales); });
+    });
+}
+
+function marcarCredencialSeguimiento(idUnicoSeguimiento, estado) {
+    return new Promise(function (resolve, reject) {
+        var idSeguimiento;
+        try {
+            idSeguimiento = SEGUIMIENTO_uuidObligatorio(idUnicoSeguimiento, "ID_UNICO_SEGUIMIENTO");
+            estado = SEGUIMIENTO_textoObligatorio(estado, "ESTADO").toUpperCase();
+            if (["ACTIVA", "BLOQUEADA", "REVOCADA", "TERMINAL"].indexOf(estado) < 0) {
+                throw new Error("Estado de credencial no permitido.");
+            }
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        var afectadas = 0;
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                "UPDATE SEGUIMIENTO_CREDENCIAL SET ESTADO = ?, FECHA_ACTUALIZACION_UTC = ? WHERE ID_UNICO_SEGUIMIENTO = ?",
+                [estado, new Date().toISOString(), idSeguimiento],
+                function (tr, rs) { afectadas = rs.rowsAffected; }
+            );
+        }, reject, function () { resolve(afectadas); });
+    });
+}
+
+function eliminarCredencialSeguimientoTerminal(idUnicoSeguimiento) {
+    return new Promise(function (resolve, reject) {
+        var idSeguimiento;
+        try {
+            idSeguimiento = SEGUIMIENTO_uuidObligatorio(idUnicoSeguimiento, "ID_UNICO_SEGUIMIENTO");
+        } catch (error) {
+            reject(error);
+            return;
+        }
+        var eliminadas = 0;
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                "DELETE FROM SEGUIMIENTO_CREDENCIAL WHERE ID_UNICO_SEGUIMIENTO = ? AND ESTADO IN ('REVOCADA', 'TERMINAL')",
+                [idSeguimiento],
+                function (tr, rs) { eliminadas = rs.rowsAffected; }
+            );
+        }, reject, function () { resolve(eliminadas); });
+    });
+}
+
+function listarSeguimientosPendientesSinCredencial() {
+    return new Promise(function (resolve, reject) {
+        var seguimientos = [];
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                `SELECT P.ID_UNICO_SEGUIMIENTO, COUNT(*) AS CANTIDAD_PENDIENTE
+                 FROM SEGUIMIENTO_POSICION_PENDIENTE P
+                 LEFT JOIN SEGUIMIENTO_CREDENCIAL C
+                   ON C.ID_UNICO_SEGUIMIENTO = P.ID_UNICO_SEGUIMIENTO
+                  AND C.ESTADO = 'ACTIVA'
+                 WHERE C.ID_UNICO_SEGUIMIENTO IS NULL
+                 GROUP BY P.ID_UNICO_SEGUIMIENTO`,
+                [],
+                function (tr, rs) { seguimientos = SEGUIMIENTO_filas(rs); }
+            );
+        }, reject, function () { resolve(seguimientos); });
+    });
 }
 
 function obtenerIdSeguimientoGuia(idUnicoMovilGde) {

@@ -149,9 +149,14 @@ function crearRuntime(opciones) {
         },
         axios: {
             async post(url, cuerpo, configuracion) {
+                const cuerpoDiagnostico = JSON.parse(JSON.stringify(cuerpo));
+                if (cuerpoDiagnostico && cuerpoDiagnostico.entrada &&
+                    cuerpoDiagnostico.entrada.TOKEN_SEGUIMIENTO) {
+                    cuerpoDiagnostico.entrada.TOKEN_SEGUIMIENTO = '[REDACTADO]';
+                }
                 const solicitud = {
                     url,
-                    cuerpo: JSON.parse(JSON.stringify(cuerpo)),
+                    cuerpo: cuerpoDiagnostico,
                     configuracion: JSON.parse(JSON.stringify(configuracion || {})),
                     fechaInicioMs: Date.now(),
                     fechaFinMs: null
@@ -178,6 +183,20 @@ function crearRuntime(opciones) {
         mensajes,
         respuestas,
         solicitudes,
+        guardarCredencial(datos) {
+            db.prepare(`INSERT OR REPLACE INTO SEGUIMIENTO_CREDENCIAL (
+                ID_UNICO_SEGUIMIENTO, ID_UNICO_MOVIL_GDE, UUID_DISPOSITIVO,
+                TOKEN_SEGUIMIENTO, ESTADO, FECHA_EMISION_UTC, FECHA_ACTUALIZACION_UTC
+            ) VALUES (?, ?, ?, ?, 'ACTIVA', ?, ?)`)
+                .run(
+                    datos.idSeguimiento,
+                    datos.idGuia || `GUIA-${datos.idSeguimiento}`,
+                    datos.uuidDispositivo,
+                    datos.tokenSeguimiento,
+                    new Date().toISOString(),
+                    new Date().toISOString()
+                );
+        },
         cerrar() {
             db.close();
         }

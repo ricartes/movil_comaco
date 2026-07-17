@@ -32,6 +32,7 @@ function validarConfiguracion() {
     const endpointTexto = variableObligatoria('E2E_SEGUIMIENTO_URL');
     const idSeguimiento = variableObligatoria('E2E_ID_UNICO_SEGUIMIENTO');
     const uuidDispositivo = variableObligatoria('E2E_UUID_DISPOSITIVO');
+    const tokenSeguimiento = variableObligatoria('E2E_TOKEN_SEGUIMIENTO');
     const endpoint = new URL(endpointTexto);
     const hostLocal = ['localhost', '127.0.0.1', '::1'].includes(endpoint.hostname);
     const hostNgrok = /(?:^|\.)ngrok(?:-free)?\.(?:app|io)$/i.test(endpoint.hostname);
@@ -53,6 +54,9 @@ function validarConfiguracion() {
     }
     if (uuidDispositivo.length > 100) {
         throw new Error('E2E_UUID_DISPOSITIVO supera 100 caracteres.');
+    }
+    if (!/^[A-Za-z0-9_-]{43}$/.test(tokenSeguimiento)) {
+        throw new Error('E2E_TOKEN_SEGUIMIENTO no tiene el formato Base64URL esperado.');
     }
 
     const latitud = Number(process.env.E2E_LATITUD || '-36.748134');
@@ -84,6 +88,7 @@ function validarConfiguracion() {
         latenciaMaxInicioMs,
         latenciaMaxTotalMs,
         timeoutMs,
+        tokenSeguimiento,
         uuidDispositivo,
         versionApp: String(process.env.E2E_VERSION_APP || '5.0.3-E2E').trim()
     };
@@ -159,6 +164,7 @@ test('E2E opt-in: reinicio, cierre antes del DELETE y reenvío idempotente', { s
     const base = {
         rutaDb: temporal.rutaDb,
         idSeguimiento: configuracion.idSeguimiento,
+        tokenSeguimiento: configuracion.tokenSeguimiento,
         uuidDispositivo: configuracion.uuidDispositivo,
         versionApp: configuracion.versionApp,
         endpoint: configuracion.endpoint,
@@ -294,6 +300,7 @@ test('E2E opt-in: callbacks GPS reales del pipeline llegan a HTTPS y vacían SQL
             conectado: true,
             rutaDb: temporal.rutaDb,
             idSeguimiento: configuracion.idSeguimiento,
+            tokenSeguimiento: configuracion.tokenSeguimiento,
             uuidDispositivo: configuracion.uuidDispositivo,
             versionApp: configuracion.versionApp,
             endpoint: configuracion.endpoint,
@@ -352,6 +359,12 @@ test('E2E opt-in: commit SQLite, debounce y confirmación cumplen límites de la
     try {
         runtime.db.exec('CREATE TABLE IF NOT EXISTS GDE (ID_UNICO_MOVIL TEXT)');
         await runtime.contexto.DATOS_inicializarSeguimientoSqlite();
+        runtime.guardarCredencial({
+            idGuia: `GUIA-E2E-LATENCIA-${Date.now()}`,
+            idSeguimiento: configuracion.idSeguimiento,
+            tokenSeguimiento: configuracion.tokenSeguimiento,
+            uuidDispositivo: configuracion.uuidDispositivo
+        });
         await runtime.contexto.insertarPosicionSeguimientoPendiente({
             UUID_POSICION: uuidPosicion,
             ID_UNICO_MOVIL_GDE: `GUIA-E2E-LATENCIA-${Date.now()}`,

@@ -10,6 +10,7 @@ const {
 
 const ID_SEGUIMIENTO = '33333333-3333-4333-8333-333333333333';
 const UUID_DISPOSITIVO = 'DISPOSITIVO-INTEGRACION-01';
+const TOKEN_SEGUIMIENTO_PRUEBA = 'A'.repeat(43);
 const UUID_POSICIONES = [
     'cccccccc-cccc-4ccc-8ccc-000000000001',
     'cccccccc-cccc-4ccc-8ccc-000000000002'
@@ -21,6 +22,7 @@ function configuracionBase(temporal) {
         rutaDb: temporal.rutaDb,
         idSeguimiento: ID_SEGUIMIENTO,
         uuidDispositivo: UUID_DISPOSITIVO,
+        tokenSeguimiento: TOKEN_SEGUIMIENTO_PRUEBA,
         versionApp: '5.0.3-INTEGRACION',
         timeoutMs: 5000
     };
