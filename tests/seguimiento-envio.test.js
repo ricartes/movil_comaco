@@ -439,6 +439,15 @@ test('credencial faltante suspende solo su seguimiento y conserva posiciones', a
     assert.deepEqual(escenario.solicitudes.map(item => item.ID_UNICO_SEGUIMIENTO), [UUID_SEGUIMIENTO_2]);
     assert.equal(resultado.ERRORES, 0);
     assert.equal(resultado.SEGUIMIENTOS_SUSPENDIDOS, 1);
+    const diagnostico = escenario.contexto.obtenerDiagnosticoEnvioSeguimiento();
+    const suspension = diagnostico.EVENTOS.find(evento =>
+        evento.RESULTADO === 'SEGUIMIENTO_SIN_CREDENCIAL'
+    );
+    assert.deepEqual(JSON.parse(JSON.stringify(suspension)), {
+        TIPO: 'SEGUIMIENTO_SUSPENDIDO',
+        RESULTADO: 'SEGUIMIENTO_SIN_CREDENCIAL'
+    });
+    assert.doesNotMatch(JSON.stringify(diagnostico), /A{20,}|TOKEN_SEGUIMIENTO/);
 });
 
 test('credencial rechazada bloquea solo su seguimiento y continúa con otro', async () => {

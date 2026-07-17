@@ -363,8 +363,7 @@ async function enviarPosicionesSeguimientoPendientes() {
                 }
                 SEGUIMIENTO_registrarDiagnostico({
                     TIPO: "SEGUIMIENTO_SUSPENDIDO",
-                    ID_UNICO_SEGUIMIENTO: idUnicoSeguimiento,
-                    RESULTADO: credencial ? "CREDENCIAL_RECHAZADA" : "CREDENCIAL_FALTANTE"
+                    RESULTADO: credencial ? "SEGUIMIENTO_NO_COMPATIBLE" : "SEGUIMIENTO_SIN_CREDENCIAL"
                 });
                 continue;
             }
@@ -412,7 +411,7 @@ async function enviarPosicionesSeguimientoPendientes() {
             resumen.SEGUIMIENTOS_PENDIENTES > resumen.SEGUIMIENTOS_SUSPENDIDOS;
         if (resumen.LOTES_ENVIADOS === 0 && resumen.SEGUIMIENTOS_SUSPENDIDOS > 0) {
             resumen.OMITIDO = true;
-            resumen.MOTIVO = "CREDENCIAL_FALTANTE";
+            resumen.MOTIVO = "SEGUIMIENTO_SIN_CREDENCIAL";
         }
     } catch (error) {
         console.error("Error controlado en el emisor de seguimiento GPS.");
@@ -449,8 +448,7 @@ function SEGUIMIENTO_prioridadMotivo(motivo) {
         e2e_latencia: 50,
         nueva_captura: 40,
         continuacion_drenaje: 30,
-        respaldo: 20,
-        legacy: 10
+        respaldo: 20
     };
     return prioridades[motivo] || 1;
 }

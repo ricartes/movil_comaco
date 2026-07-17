@@ -282,7 +282,7 @@ test('E2E opt-in: callbacks GPS reales del pipeline llegan a HTTPS y vacían SQL
         const posicionesLocales = await runtime.posiciones(configuracion.idSeguimiento);
         assert.equal(posicionesLocales.length, 3);
         assert.equal(runtime.maximoInsercionesActivas(), 1);
-        assert.equal(runtime.accionesLegacy(), 3);
+        assert.equal(runtime.solicitudesScheduler.length, 3);
         assert.deepEqual(posicionesLocales.map(function (posicion) {
             return posicion.FECHA_DISPOSITIVO_UTC;
         }), fechas);

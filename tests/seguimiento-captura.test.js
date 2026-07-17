@@ -41,7 +41,9 @@ function crearEscenario(opciones = {}) {
     const insertadas = [];
     const advertencias = [];
     const logs = [];
-    let accionesLegacy = 0;
+    const diagnosticos = [];
+    const solicitudesScheduler = [];
+    let llamadasTrazabilidadGps = 0;
     let llamadasInsercion = 0;
     let errorSqlite = opciones.errorSqlite === true;
     let servicioNativoActivo = opciones.servicioNativoActivo === true;
@@ -95,7 +97,6 @@ function crearEscenario(opciones = {}) {
         Date,
         Error,
         HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO: opciones.habilitado !== false,
-        HABILITAR_UBICACION_TRAZABILIDAD_LEGACY: opciones.legacyHabilitado !== false,
         JSON,
         Math,
         Number,
@@ -103,7 +104,6 @@ function crearEscenario(opciones = {}) {
         Promise,
         String,
         Uint8Array,
-        TipoAccionTypes: { CAPTURA_UBICACION: 33 },
         BackgroundGeolocation,
         console: {
             log(...argumentos) { logs.push(argumentos); },
@@ -113,7 +113,6 @@ function crearEscenario(opciones = {}) {
         document: { addEventListener() {} },
         window: { crypto: crypto.webcrypto },
         Obtener_dato_local(clave) {
-            if (clave === 'user_activo') return 'usuario';
             if (clave === 'id_proceso_activo') return guiaActual ? '10' : '';
             return null;
         },
@@ -123,15 +122,20 @@ function crearEscenario(opciones = {}) {
         async seleccionarGdeProveedor() {
             return guiaActual;
         },
-        async generarDataTrazabilidad(accion) {
-            assert.equal(accion, 33);
-            return { accion };
+        async generarDataTrazabilidad() {
+            llamadasTrazabilidadGps++;
+            throw new Error('La captura GPS no debe usar trazabilidad genérica.');
         },
         async obtenerUbicacionEInsertarLog() {
-            if (opciones.errorLegacy) {
-                throw new Error('fallo legacy simulado');
-            }
-            accionesLegacy++;
+            llamadasTrazabilidadGps++;
+            throw new Error('La captura GPS no debe insertar trazabilidad genérica.');
+        },
+        solicitarEnvioSeguimiento(motivo, inmediato) {
+            solicitudesScheduler.push({ motivo, inmediato });
+            return true;
+        },
+        SEGUIMIENTO_registrarDiagnostico(evento) {
+            diagnosticos.push(evento);
         },
         async DATOS_seleccionarGdeProveedorConfirmadas() {
             return guiasPendientes;
@@ -185,8 +189,10 @@ function crearEscenario(opciones = {}) {
         eventosGps,
         insertadas,
         advertencias,
+        diagnosticos,
         logs,
-        accionesLegacy() { return accionesLegacy; },
+        solicitudesScheduler,
+        llamadasTrazabilidadGps() { return llamadasTrazabilidadGps; },
         llamadasInsercion() { return llamadasInsercion; },
         llamadasStart() { return llamadasStart; },
         llamadasStop() { return llamadasStop; },
@@ -196,15 +202,18 @@ function crearEscenario(opciones = {}) {
     };
 }
 
-test('una guía activa crea posición shadow y conserva acción 33', async () => {
+test('una captura aceptada se guarda una vez en SQLite y solicita al scheduler', async () => {
     const escenario = crearEscenario({ guiaActual: crearGuia('GUIA-1') });
 
     await escenario.contexto.saveLocation(crearLocation());
 
-    assert.equal(escenario.accionesLegacy(), 1);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.insertadas.length, 1);
     assert.equal(escenario.insertadas[0].ID_UNICO_MOVIL_GDE, 'GUIA-1');
     assert.equal(escenario.insertadas[0].ID_UNICO_SEGUIMIENTO, UUID_SEGUIMIENTO_1);
+    assert.deepEqual(escenario.solicitudesScheduler, [
+        { motivo: 'nueva_captura', inmediato: false }
+    ]);
 });
 
 test('dos guías activas crean filas con UUID_POSICION diferentes', async () => {
@@ -217,7 +226,7 @@ test('dos guías activas crean filas con UUID_POSICION diferentes', async () => 
 
     await escenario.contexto.saveLocation(crearLocation());
 
-    assert.equal(escenario.accionesLegacy(), 2);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.insertadas.length, 2);
     assert.notEqual(escenario.insertadas[0].UUID_POSICION, escenario.insertadas[1].UUID_POSICION);
     assert.equal(escenario.llamadasInsercion(), 1);
@@ -232,18 +241,22 @@ test('una guía repetida entre fuentes genera una sola fila', async () => {
 
     await escenario.contexto.saveLocation(crearLocation());
 
-    assert.equal(escenario.accionesLegacy(), 1);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.insertadas.length, 1);
 });
 
-test('guía sin seguimiento conserva acción 33, no crea fila y advierte', async () => {
+test('guía sin seguimiento técnico queda no compatible y no usa fallback', async () => {
     const escenario = crearEscenario({ guiaActual: crearGuia('GUIA-SIN-SEG', null) });
 
     await escenario.contexto.saveLocation(crearLocation());
 
-    assert.equal(escenario.accionesLegacy(), 1);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.insertadas.length, 0);
     assert.ok(escenario.advertencias.length >= 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(escenario.diagnosticos)), [{
+        TIPO: 'SEGUIMIENTO_NO_COMPATIBLE',
+        RESULTADO: 'ID_UNICO_SEGUIMIENTO_INVALIDO'
+    }]);
 });
 
 test('guías confirmadas, anuladas o con otro estado no crean posiciones nuevas', async () => {
@@ -255,7 +268,7 @@ test('guías confirmadas, anuladas o con otro estado no crean posiciones nuevas'
 
     for (const guia of casos) {
         const escenario = crearEscenario();
-        await escenario.contexto.registrarCapturaSeguimientoNueva(crearLocation(), [guia]);
+        await escenario.contexto.registrarCapturaSeguimiento(crearLocation(), [guia]);
         assert.equal(escenario.insertadas.length, 0);
         assert.equal(escenario.llamadasInsercion(), 0);
     }
@@ -268,7 +281,7 @@ test('latitud o longitud inválida no crea ninguna fila', async () => {
         crearLocation({ latitude: NaN })
     ]) {
         const escenario = crearEscenario();
-        await escenario.contexto.registrarCapturaSeguimientoNueva(location, [crearGuia('GUIA-1')]);
+        await escenario.contexto.registrarCapturaSeguimiento(location, [crearGuia('GUIA-1')]);
         assert.equal(escenario.insertadas.length, 0);
     }
 });
@@ -283,7 +296,7 @@ test('mapea campos reales del plugin y normaliza velocidad y rumbo inválidos a 
         isFromMockProvider: true
     });
 
-    await escenario.contexto.registrarCapturaSeguimientoNueva(location, [crearGuia('GUIA-1')]);
+    await escenario.contexto.registrarCapturaSeguimiento(location, [crearGuia('GUIA-1')]);
 
     const posicion = escenario.insertadas[0];
     assert.equal(posicion.VELOCIDAD_MPS, null);
@@ -297,7 +310,7 @@ test('mapea campos reales del plugin y normaliza velocidad y rumbo inválidos a 
 
 test('time válido del plugin se convierte a ISO-8601 terminado en Z', async () => {
     const escenario = crearEscenario();
-    await escenario.contexto.registrarCapturaSeguimientoNueva(
+    await escenario.contexto.registrarCapturaSeguimiento(
         crearLocation({ time: '2026-07-14T08:30:00-04:00' }),
         [crearGuia('GUIA-1')]
     );
@@ -305,18 +318,20 @@ test('time válido del plugin se convierte a ISO-8601 terminado en Z', async () 
     assert.equal(escenario.insertadas[0].FECHA_DISPOSITIVO_UTC, '2026-07-14T12:30:00.000Z');
 });
 
-test('fallo del flujo SQLite nuevo no interrumpe el almacenamiento legacy', async () => {
+test('una falla SQLite no avanza la captura ni programa su envío', async () => {
     const escenario = crearEscenario({
         guiaActual: crearGuia('GUIA-1'),
         errorSqlite: true
     });
 
-    await assert.doesNotReject(escenario.contexto.saveLocation(crearLocation()));
-    assert.equal(escenario.accionesLegacy(), 1);
+    const resultado = await escenario.contexto.saveLocation(crearLocation());
+    assert.equal(resultado.persistido, false);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.insertadas.length, 0);
+    assert.equal(escenario.solicitudesScheduler.length, 0);
 });
 
-test('feature flag de captura desactivado conserva legacy y no toca la tabla nueva', async () => {
+test('feature flag de captura desactivado no activa ningún fallback', async () => {
     const escenario = crearEscenario({
         guiaActual: crearGuia('GUIA-1'),
         habilitado: false
@@ -324,23 +339,10 @@ test('feature flag de captura desactivado conserva legacy y no toca la tabla nue
 
     await escenario.contexto.saveLocation(crearLocation());
 
-    assert.equal(escenario.accionesLegacy(), 1);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
     assert.equal(escenario.llamadasInsercion(), 0);
     assert.equal(escenario.insertadas.length, 0);
-});
-
-test('fallo de acción 33 no impide guardar el seguimiento nuevo', async () => {
-    const escenario = crearEscenario({
-        guiaActual: crearGuia('GUIA-LEGACY-FALLA'),
-        errorLegacy: true
-    });
-
-    const resultado = await escenario.contexto.saveLocation(crearLocation());
-
-    assert.equal(resultado.nuevoPersistido, true);
-    assert.equal(resultado.legacyPersistido, false);
-    assert.equal(escenario.insertadas.length, 1);
-    assert.equal(escenario.accionesLegacy(), 0);
+    assert.equal(escenario.solicitudesScheduler.length, 0);
 });
 
 test('normalización rechaza coordenadas antes de calcular distancias', async () => {
@@ -359,7 +361,7 @@ test('normalización rechaza coordenadas antes de calcular distancias', async ()
     assert.equal(resultado.capturaValida, false);
     assert.equal(calculosDistancia, 0);
     assert.equal(escenario.llamadasInsercion(), 0);
-    assert.equal(escenario.accionesLegacy(), 0);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
 });
 
 test('fecha inválida se rechaza y timestamp no sustituye a time', async () => {
@@ -372,7 +374,7 @@ test('fecha inválida se rechaza y timestamp no sustituye a time', async () => {
 
     assert.equal(resultado.capturaValida, false);
     assert.equal(escenario.llamadasInsercion(), 0);
-    assert.equal(escenario.accionesLegacy(), 0);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
 });
 
 test('fecha local sin offset verificable se rechaza', async () => {
@@ -409,7 +411,7 @@ test('accuracy inválida rechaza la captura completa', async () => {
 
     assert.equal(resultado.capturaValida, false);
     assert.equal(escenario.llamadasInsercion(), 0);
-    assert.equal(escenario.accionesLegacy(), 0);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
 });
 
 test('dos callbacks simultáneos se persisten secuencialmente y en orden', async () => {
@@ -420,7 +422,6 @@ test('dos callbacks simultáneos se persisten secuencialmente y en orden', async
     const orden = [];
     const escenario = crearEscenario({
         guiasPendientes: [crearGuia('GUIA-COLA')],
-        legacyHabilitado: false,
         async antesInsertar(posiciones, numeroLlamada) {
             insercionesActivas++;
             maximoSimultaneo = Math.max(maximoSimultaneo, insercionesActivas);
@@ -457,7 +458,6 @@ test('dos callbacks simultáneos se persisten secuencialmente y en orden', async
 test('un error libera la cola y permite persistir callbacks posteriores', async () => {
     const escenario = crearEscenario({
         guiasPendientes: [crearGuia('GUIA-COLA-ERROR')],
-        legacyHabilitado: false,
         errorSqlite: true
     });
 
@@ -471,15 +471,16 @@ test('un error libera la cola y permite persistir callbacks posteriores', async 
         new Date('2026-07-14T12:35:02Z')
     );
 
-    assert.equal(primera.nuevoPersistido, false);
-    assert.equal(segunda.nuevoPersistido, true);
+    assert.equal(primera.persistido, false);
+    assert.equal(segunda.persistido, true);
     assert.equal(escenario.insertadas.length, 1);
+    assert.equal(escenario.solicitudesScheduler.length, 1);
+    assert.equal(escenario.llamadasTrazabilidadGps(), 0);
 });
 
-test('rollback SQLite no avanza el estado de filtros del pipeline nuevo', async () => {
+test('rollback SQLite no avanza el estado de filtros del pipeline', async () => {
     const escenario = crearEscenario({
         guiaActual: crearGuia('GUIA-ROLLBACK'),
-        legacyHabilitado: false,
         errorSqlite: true
     });
     const captura = crearLocation({ time: '2026-07-14T12:34:56Z' });
@@ -488,7 +489,7 @@ test('rollback SQLite no avanza el estado de filtros del pipeline nuevo', async 
     escenario.setErrorSqlite(false);
     const reintento = await escenario.contexto.saveLocation(captura);
 
-    assert.equal(reintento.nuevoPersistido, true);
+    assert.equal(reintento.persistido, true);
     assert.equal(escenario.llamadasInsercion(), 2);
     assert.equal(escenario.insertadas.length, 1);
 });
@@ -621,13 +622,13 @@ test('reconciliaciones repetidas no duplican start ni stop', async () => {
 });
 
 test('estado por guía se limpia cuando deja de estar activa localmente', async () => {
-    const escenario = crearEscenario({ legacyHabilitado: false });
+    const escenario = crearEscenario();
     const captura = escenario.contexto.normalizarCapturaGps(
         crearLocation(),
         new Date('2026-07-14T12:34:56Z')
     );
 
-    await escenario.contexto.registrarCapturaSeguimientoNueva(
+    await escenario.contexto.registrarCapturaSeguimiento(
         captura,
         [crearGuia('GUIA-CERRADA')]
     );

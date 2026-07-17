@@ -1,4 +1,3 @@
-const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -29,13 +28,11 @@ function crearGpsTrackingRuntime(opciones) {
     const contexto = runtime.contexto;
     const eventosGps = {};
     const ordenPersistencia = [];
-    const ordenLegacy = [];
+    const solicitudesScheduler = [];
     const guiasPendientes = opciones.guiasPendientes || [];
     const guiaActual = opciones.guiaActual || null;
-    let accionesLegacy = 0;
-    let intentosLegacy = 0;
-    let fallarLegacySiguiente = opciones.fallarLegacySiguiente === true;
     let fallarSqliteSiguiente = opciones.fallarSqliteSiguiente === true;
+    let fallarSchedulerSiguiente = opciones.fallarSchedulerSiguiente === true;
     let insercionesActivas = 0;
     let maximoInsercionesActivas = 0;
     let llamadasInsercion = 0;
@@ -53,8 +50,6 @@ function crearGpsTrackingRuntime(opciones) {
     };
 
     contexto.HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO = opciones.capturaNuevaHabilitada !== false;
-    contexto.HABILITAR_UBICACION_TRAZABILIDAD_LEGACY = opciones.legacyHabilitado !== false;
-    contexto.TipoAccionTypes = { CAPTURA_UBICACION: 33 };
     contexto.document = { addEventListener() {} };
     contexto.navigator = {};
     contexto.cordova = { plugins: {} };
@@ -120,18 +115,13 @@ function crearGpsTrackingRuntime(opciones) {
     contexto.DATOS_seleccionarGdeProveedorConfirmadas = async function () {
         return guiasPendientes;
     };
-    contexto.generarDataTrazabilidad = async function (accion) {
-        assert.equal(accion, 33);
-        return { accion };
-    };
-    contexto.obtenerUbicacionEInsertarLog = async function (usuario, datos, captura) {
-        intentosLegacy++;
-        if (fallarLegacySiguiente) {
-            fallarLegacySiguiente = false;
-            throw new Error('fallo acción 33 simulado');
+    contexto.solicitarEnvioSeguimiento = function (motivo, inmediato) {
+        if (fallarSchedulerSiguiente) {
+            fallarSchedulerSiguiente = false;
+            throw new Error('fallo scheduler simulado');
         }
-        accionesLegacy++;
-        ordenLegacy.push(captura.time);
+        solicitudesScheduler.push({ motivo, inmediato });
+        return true;
     };
     contexto.activarBackgroundModeSeguro = function () {};
     contexto.desactivarBackgroundModeSeguro = function () {};
@@ -171,7 +161,7 @@ function crearGpsTrackingRuntime(opciones) {
         contexto,
         eventosGps,
         ordenPersistencia,
-        ordenLegacy,
+        solicitudesScheduler,
         async inicializar() {
             runtime.db.exec('CREATE TABLE IF NOT EXISTS GDE (ID_UNICO_MOVIL TEXT)');
             await contexto.DATOS_inicializarSeguimientoSqlite();
@@ -182,16 +172,14 @@ function crearGpsTrackingRuntime(opciones) {
                 copiar
             );
         },
-        accionesLegacy() { return accionesLegacy; },
-        intentosLegacy() { return intentosLegacy; },
         llamadasInsercion() { return llamadasInsercion; },
         maximoInsercionesActivas() { return maximoInsercionesActivas; },
         llamadasStart() { return llamadasStart; },
         llamadasStop() { return llamadasStop; },
         llamadasCheckStatus() { return llamadasCheckStatus; },
         servicioNativoActivo() { return servicioNativoActivo; },
-        fallarProximaAccionLegacy() { fallarLegacySiguiente = true; },
         fallarProximaInsercionSqlite() { fallarSqliteSiguiente = true; },
+        fallarProximoScheduler() { fallarSchedulerSiguiente = true; },
         cerrar() { runtime.cerrar(); }
     };
 }

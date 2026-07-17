@@ -358,6 +358,16 @@ test('un ciclo exitoso restablece el backoff inicial', async () => {
     assert.equal(escenario.contexto.obtenerDiagnosticoEnvioSeguimiento().BACKOFF_ACTUAL_MS, 5000);
 });
 
+test('seguimiento sin credencial no activa backoff global', () => {
+    const escenario = crearEscenario();
+    const resumen = escenario.contexto.SEGUIMIENTO_resultadoCiclo();
+    resumen.OMITIDO = true;
+    resumen.MOTIVO = 'SEGUIMIENTO_SIN_CREDENCIAL';
+    resumen.SEGUIMIENTOS_SUSPENDIDOS = 1;
+
+    assert.equal(escenario.contexto.SEGUIMIENTO_resultadoTexto(resumen), 'EXITO');
+});
+
 test('una respuesta parcial con progreso conserva omitidas y continúa tras 1,5 segundos', async () => {
     const escenario = crearEscenario();
     escenario.agregar(ID_A, 2);
@@ -465,19 +475,21 @@ test('diagnóstico conserva máximo 50 eventos y no expone UUID, coordenadas ni 
     }
 });
 
-test('el ciclo legacy sólo solicita al programador y no invoca el emisor directo', () => {
+test('el ciclo de trazabilidad no dispara el pipeline de seguimiento GPS', () => {
     const principal = fs.readFileSync(path.join(raiz, 'www/js/Vistas/Principal.js'), 'utf8');
     const cuerpo = principal.slice(
         principal.indexOf('async function cicloEnvioTrazabilidad'),
         principal.indexOf('function EnvioAutomatico_segundo_plano')
     );
-    assert.match(cuerpo, /solicitarEnvioSeguimiento\("legacy", true\)/);
-    assert.doesNotMatch(cuerpo, /enviarPosicionesSeguimientoPendientes/);
+    assert.doesNotMatch(
+        cuerpo,
+        /solicitarEnvioSeguimiento|enviarPosicionesSeguimientoWebService|enviarPosicionesSeguimientoPendientes/
+    );
 });
 
 test('gpsTracking avisa sólo después del commit y no realiza HTTP directo', () => {
     const gps = fs.readFileSync(path.join(raiz, 'www/js/Helper/gpsTracking.js'), 'utf8');
-    const inicio = gps.indexOf('async function registrarCapturaSeguimientoNueva');
+    const inicio = gps.indexOf('async function registrarCapturaSeguimiento');
     const fin = gps.indexOf('// Validar si la ubicación es antigua', inicio);
     const cuerpo = gps.slice(inicio, fin);
     const indiceCommit = cuerpo.indexOf('await insertarPosicionesSeguimientoPendientes');

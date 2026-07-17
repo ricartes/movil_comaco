@@ -389,9 +389,6 @@ async function cicloEnvioTrazabilidad() {
         });
     }
 
-    if (typeof solicitarEnvioSeguimiento === "function") {
-        solicitarEnvioSeguimiento("legacy", true);
-    }
 }
 
 

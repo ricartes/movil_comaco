@@ -60,12 +60,11 @@ test('regresión GPS: tres callbacks simultáneos conservan orden, UUID y SQLite
         }));
 
         assert.ok(resultados.every(function (resultado) {
-            return resultado.nuevoPersistido && resultado.legacyPersistido;
+            return resultado.persistido;
         }));
         assert.equal(runtime.maximoInsercionesActivas(), 1);
         assert.deepEqual(runtime.ordenPersistencia, FECHAS);
-        assert.deepEqual(runtime.ordenLegacy, FECHAS);
-        assert.equal(runtime.accionesLegacy(), 3);
+        assert.equal(runtime.solicitudesScheduler.length, 3);
 
         const posiciones = await runtime.posiciones(ID_SEGUIMIENTO);
         assert.equal(posiciones.length, 3);
@@ -97,12 +96,12 @@ test('regresión GPS: tres callbacks simultáneos conservan orden, UUID y SQLite
     }
 });
 
-test('regresión GPS: fallo de acción 33 no cancela SQLite ni el callback posterior', async () => {
-    const temporal = crearSqliteTemporal('gfe-seguimiento-gps-legacy-');
+test('regresión GPS: un error del scheduler no cancela SQLite ni capturas posteriores', async () => {
+    const temporal = crearSqliteTemporal('gfe-seguimiento-gps-scheduler-');
     const runtime = crearGpsTrackingRuntime({
         rutaDb: temporal.rutaDb,
-        guiasPendientes: [crearGuiaGps('GUIA-LEGACY-FALLA', ID_SEGUIMIENTO)],
-        fallarLegacySiguiente: true
+        guiasPendientes: [crearGuiaGps('GUIA-SCHEDULER-FALLA', ID_SEGUIMIENTO)],
+        fallarSchedulerSiguiente: true
     });
 
     try {
@@ -116,12 +115,11 @@ test('regresión GPS: fallo de acción 33 no cancela SQLite ni el callback poste
             new Date(FECHAS[1])
         );
 
-        assert.equal(primero.nuevoPersistido, true);
-        assert.equal(primero.legacyPersistido, false);
-        assert.equal(segundo.nuevoPersistido, true);
-        assert.equal(segundo.legacyPersistido, true);
-        assert.equal(runtime.intentosLegacy(), 2);
-        assert.equal(runtime.accionesLegacy(), 1);
+        assert.equal(primero.persistido, true);
+        assert.equal(segundo.persistido, true);
+        assert.deepEqual(runtime.solicitudesScheduler, [
+            { motivo: 'nueva_captura', inmediato: false }
+        ]);
         assert.equal((await runtime.posiciones(ID_SEGUIMIENTO)).length, 2);
     } finally {
         runtime.cerrar();
@@ -143,11 +141,10 @@ test('regresión GPS: rollback SQLite no avanza filtro y permite reenviar la mis
         const primero = await runtime.contexto.encolarCapturaGps(captura, new Date(FECHAS[0]));
         const reenvio = await runtime.contexto.encolarCapturaGps(captura, new Date(FECHAS[0]));
 
-        assert.equal(primero.nuevoPersistido, false);
-        assert.equal(primero.legacyPersistido, true);
-        assert.equal(reenvio.nuevoPersistido, true);
+        assert.equal(primero.persistido, false);
+        assert.equal(reenvio.persistido, true);
         assert.equal(runtime.llamadasInsercion(), 2);
-        assert.equal(runtime.accionesLegacy(), 1);
+        assert.equal(runtime.solicitudesScheduler.length, 1);
 
         const posiciones = await runtime.posiciones(ID_SEGUIMIENTO);
         assert.equal(posiciones.length, 1);

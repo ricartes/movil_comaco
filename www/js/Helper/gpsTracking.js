@@ -5,11 +5,6 @@ let ultimoTimestamp = null;
 let ultimoGuardadoMs = 0;
 
 const ultimaUbicacionPorGuia = new Map();
-const ultimaUbicacionLegacyPorGuia = new Map();
-
-let lastKnownLocationLegacy = null;
-let ultimoTimestampLegacy = null;
-let ultimoGuardadoLegacyMs = 0;
 let colaCapturasGps = Promise.resolve();
 let colaOperacionesGps = Promise.resolve();
 let temporizadorInicioGps = null;
@@ -18,7 +13,6 @@ let ultimoDiagnosticoGps = null;
 let configuracionGpsEfectiva = null;
 
 // Umbrales de tiempo (en ms)
-const UMBRAL_MS_GDE_ACTUAL = 5 * 1000;        // 10 segundos
 const UMBRAL_MS_GUIA_NO_CONFIRMADA = 5 * 1000; // 10 segundos
 const UMBRAL_MS_GLOBAL = 5 * 1000;
 
@@ -177,7 +171,7 @@ async function procesarCapturaGps(location, fechaRecepcion) {
         captura = normalizarCapturaGps(location, fechaRecepcion);
     } catch (error) {
         console.warn("[GPS][RECHAZO]", error && error.message ? error.message : "CAPTURA_INVALIDA");
-        return { capturaValida: false, nuevoPersistido: false, legacyPersistido: false };
+        return { capturaValida: false, persistido: false };
     }
 
     return await saveLocation(captura);
@@ -308,9 +302,7 @@ function limpiarUltimaUbicacionGuiasInactivas(guiasActivas, limpiarTodas) {
         }
     });
 
-    [ultimaUbicacionPorGuia, ultimaUbicacionLegacyPorGuia].forEach(function (mapa) {
-        limpiarMapaUltimaUbicacionGuias(mapa, idsActivos, limpiarTodas);
-    });
+    limpiarMapaUltimaUbicacionGuias(ultimaUbicacionPorGuia, idsActivos, limpiarTodas);
 }
 
 function limpiarMapaUltimaUbicacionGuias(mapa, guiasActivas, limpiarTodas) {
@@ -485,13 +477,13 @@ function getLastKnownLocation() {
 }
 
 
-async function obtenerGuiasCandidatasCaptura() {
+async function obtenerGuiasCaptura() {
     const procesoActual = Obtener_dato_local("id_proceso_activo");
     const guiasNoConfirmadas = await listarGdeProveedorNoConfirmadas();
     const guias = [];
     const idsAgregados = new Set();
 
-    async function agregarGuia(guia, umbralMs) {
+    function agregarGuia(guia) {
         const idGuia = extraerIdGuiaActiva(guia);
         if (!idGuia) {
             return;
@@ -500,16 +492,16 @@ async function obtenerGuiasCandidatasCaptura() {
         const clave = idGuia.toUpperCase();
         if (!idsAgregados.has(clave)) {
             idsAgregados.add(clave);
-            guias.push({ guia: guia, idGuia: idGuia, umbralMs: umbralMs });
+            guias.push(guia);
         }
     }
 
     if (procesoActual && procesoActual !== "") {
-        await agregarGuia(await seleccionarGdeProveedor(procesoActual), UMBRAL_MS_GDE_ACTUAL);
+        agregarGuia(await seleccionarGdeProveedor(procesoActual));
     }
 
     for (const guia of (Array.isArray(guiasNoConfirmadas) ? guiasNoConfirmadas : [])) {
-        await agregarGuia(guia, UMBRAL_MS_GUIA_NO_CONFIRMADA);
+        agregarGuia(guia);
     }
 
     return guias;
@@ -539,61 +531,10 @@ function capturaSuperaFiltroGlobal(captura, ultimaLocation, ultimoTime, ultimoGu
     return true;
 }
 
-function confirmarFiltroGlobalNuevo(captura) {
+function confirmarFiltroGlobal(captura) {
     lastKnownLocation = captura;
     ultimoTimestamp = captura.time;
     ultimoGuardadoMs = captura.fechaRecepcionMs;
-}
-
-function confirmarFiltroGlobalLegacy(captura) {
-    lastKnownLocationLegacy = captura;
-    ultimoTimestampLegacy = captura.time;
-    ultimoGuardadoLegacyMs = captura.fechaRecepcionMs;
-}
-
-async function registrarCapturaTrazabilidadLegacy(captura, usuarioActivo, guiasCandidatas) {
-    if (typeof HABILITAR_UBICACION_TRAZABILIDAD_LEGACY !== "undefined" && !HABILITAR_UBICACION_TRAZABILIDAD_LEGACY) {
-        return 0;
-    }
-
-    if (!capturaSuperaFiltroGlobal(captura, lastKnownLocationLegacy, ultimoTimestampLegacy, ultimoGuardadoLegacyMs)) {
-        return 0;
-    }
-
-    let cantidadPersistida = 0;
-    for (const candidato of guiasCandidatas) {
-        if (!puedeRegistrarParaGuiaEnMapa(
-            ultimaUbicacionLegacyPorGuia,
-            candidato.idGuia,
-            captura,
-            candidato.umbralMs
-        )) {
-            continue;
-        }
-
-        try {
-            const datos = await generarDataTrazabilidad(
-                TipoAccionTypes.CAPTURA_UBICACION,
-                usuarioActivo,
-                {
-                    rol: candidato.guia && candidato.guia.GDE_COD_ORIGEN,
-                    despacho: candidato.guia,
-                    id_unico_movil_gde: candidato.idGuia
-                }
-            );
-
-            await obtenerUbicacionEInsertarLog(usuarioActivo, datos, captura);
-            confirmarRegistroParaGuia(ultimaUbicacionLegacyPorGuia, candidato.idGuia, captura);
-            cantidadPersistida++;
-        } catch (error) {
-            console.error("[SAVE][LEGACY] Error controlado para una guía:", error);
-        }
-    }
-
-    if (cantidadPersistida > 0) {
-        confirmarFiltroGlobalLegacy(captura);
-    }
-    return cantidadPersistida;
 }
 
 async function saveLocation(location) {
@@ -602,48 +543,36 @@ async function saveLocation(location) {
         captura = normalizarCapturaGps(location, new Date());
     }
 
-    const usuarioActivo = Obtener_dato_local('user_activo');
-    const guiasCandidatas = await obtenerGuiasCandidatasCaptura();
-    const guias = guiasCandidatas.map(function (candidato) { return candidato.guia; });
+    const guias = await obtenerGuiasCaptura();
     const guiasCapturables = SEGUIMIENTO_guiasCapturables(guias);
     limpiarMapaUltimaUbicacionGuias(
         ultimaUbicacionPorGuia,
         guiasCapturables,
         guiasCapturables.length === 0
     );
-    limpiarMapaUltimaUbicacionGuias(
-        ultimaUbicacionLegacyPorGuia,
-        guias,
-        guias.length === 0
-    );
-
-    let nuevoPersistido = false;
-    let legacyPersistido = false;
+    let persistido = false;
 
     if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO === "undefined" || HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
         try {
             if (capturaSuperaFiltroGlobal(captura, lastKnownLocation, ultimoTimestamp, ultimoGuardadoMs)) {
-                const insertadas = await registrarCapturaSeguimientoNueva(captura, guias);
-                nuevoPersistido = Array.isArray(insertadas) && insertadas.length > 0;
-                if (nuevoPersistido) {
-                    confirmarFiltroGlobalNuevo(captura);
+                const insertadas = await registrarCapturaSeguimiento(
+                    captura,
+                    guias,
+                    guiasCapturables
+                );
+                persistido = Array.isArray(insertadas) && insertadas.length > 0;
+                if (persistido) {
+                    confirmarFiltroGlobal(captura);
                 }
             }
         } catch (error) {
-            console.error("[SAVE][SEGUIMIENTO] Error controlado guardando captura nueva:", error);
+            console.error("[SAVE][SEGUIMIENTO] Error controlado guardando captura:", error);
         }
-    }
-
-    try {
-        legacyPersistido = (await registrarCapturaTrazabilidadLegacy(captura, usuarioActivo, guiasCandidatas)) > 0;
-    } catch (error) {
-        console.error("[SAVE][LEGACY] Error controlado guardando acción 33:", error);
     }
 
     return {
         capturaValida: true,
-        nuevoPersistido: nuevoPersistido,
-        legacyPersistido: legacyPersistido
+        persistido: persistido
     };
 }
 
@@ -707,7 +636,13 @@ function SEGUIMIENTO_guiasCapturables(guias) {
         try {
             idSeguimiento = SEGUIMIENTO_uuidObligatorio(guia.ID_UNICO_SEGUIMIENTO, "ID_UNICO_SEGUIMIENTO");
         } catch (error) {
-            console.warn("[SAVE] Guía activa sin ID_UNICO_SEGUIMIENTO válido:", idGuia);
+            console.warn("[SAVE][SEGUIMIENTO_NO_COMPATIBLE] ID_UNICO_SEGUIMIENTO inválido.");
+            if (typeof SEGUIMIENTO_registrarDiagnostico === "function") {
+                SEGUIMIENTO_registrarDiagnostico({
+                    TIPO: "SEGUIMIENTO_NO_COMPATIBLE",
+                    RESULTADO: "ID_UNICO_SEGUIMIENTO_INVALIDO"
+                });
+            }
             return;
         }
 
@@ -725,7 +660,11 @@ function SEGUIMIENTO_guiasCapturables(guias) {
     });
 }
 
-async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltros) {
+async function registrarCapturaSeguimiento(
+    location,
+    guiasQueSuperaronFiltros,
+    guiasCapturablesPrecalculadas
+) {
     if (typeof HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO !== "undefined" && !HABILITAR_CAPTURA_SEGUIMIENTO_NUEVO) {
         return [];
     }
@@ -740,7 +679,10 @@ async function registrarCapturaSeguimientoNueva(location, guiasQueSuperaronFiltr
         return [];
     }
 
-    var guias = SEGUIMIENTO_guiasCapturables(guiasQueSuperaronFiltros).filter(function (guia) {
+    var guiasBase = Array.isArray(guiasCapturablesPrecalculadas)
+        ? guiasCapturablesPrecalculadas
+        : SEGUIMIENTO_guiasCapturables(guiasQueSuperaronFiltros);
+    var guias = guiasBase.filter(function (guia) {
         return puedeRegistrarParaGuiaEnMapa(
             ultimaUbicacionPorGuia,
             guia.ID_UNICO_MOVIL_GDE,
