@@ -7,6 +7,7 @@ import android.app.usage.UsageStatsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.Uri;
@@ -156,6 +157,21 @@ final class PowerPolicyInspector {
 
         boolean normalTrackingAllowed = blockers.length() == 0;
         boolean wouldBlockInEnforceMode = !normalTrackingAllowed;
+        boolean remediationRequired = blockers.length() > 0 || warnings.length() > 0;
+        JSONArray remediationActions = new JSONArray();
+        if (backgroundRestricted) {
+            remediationActions.put("OPEN_APPLICATION_SETTINGS");
+        }
+        if (!ignoringBatteryOptimizations) {
+            remediationActions.put("REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+        }
+        if (!backgroundRestricted && remediationRequired) {
+            remediationActions.put("OPEN_APPLICATION_SETTINGS");
+        }
+        if (remediationRequired) remediationActions.put("RECHECK");
+        String remediationStep = backgroundRestricted
+                ? "BACKGROUND_RESTRICTION"
+                : (!ignoringBatteryOptimizations ? "BATTERY_OPTIMIZATION" : "APPLICATION_SETTINGS");
         String diagnosticMode;
         if (wouldBlockInEnforceMode) diagnosticMode = "BLOCKED";
         else if (!logicalActive) diagnosticMode = "IDLE";
@@ -171,12 +187,13 @@ final class PowerPolicyInspector {
 
         EnforcementMode enforcementMode = EnforcementMode.from(store.policyMode());
         boolean requiresExplicitContinue = enforcementMode == EnforcementMode.WARN
-                && wouldBlockInEnforceMode
+                && remediationRequired
                 && !serviceCreated
                 && !userOverrideUsed;
-        boolean startAllowed = normalTrackingAllowed
-                || enforcementMode == EnforcementMode.OBSERVE
-                || (enforcementMode == EnforcementMode.WARN && userOverrideUsed);
+        boolean startAllowed = enforcementMode == EnforcementMode.OBSERVE
+                || (enforcementMode == EnforcementMode.WARN
+                    && (!remediationRequired || userOverrideUsed))
+                || (enforcementMode == EnforcementMode.ENFORCE && normalTrackingAllowed);
 
         JSONObject decision = new JSONObject();
         decision.put("mode", diagnosticMode);
@@ -259,44 +276,125 @@ final class PowerPolicyInspector {
         result.put("tracking", tracking);
         result.put("decision", decision);
         result.put("enforcement", enforcement);
+        result.put("enforcementMode", enforcementMode.name());
+        result.put("health", diagnosticMode);
+        result.put("warnings", warnings);
+        result.put("reasons", reasons);
+        result.put("blockers", blockers);
+        result.put("backgroundRestricted", backgroundRestricted);
+        result.put("ignoringBatteryOptimizations", ignoringBatteryOptimizations);
+        result.put("standbyBucket", bucket);
+        result.put("logicalActive", logicalActive);
+        result.put("foregroundRequested", foregroundRequested);
+        result.put("foregroundObserved", foregroundObserved == null ? JSONObject.NULL : foregroundObserved);
+        result.put("updatesRegistered", updatesRegistered);
+        result.put("manufacturer", Build.MANUFACTURER);
+        result.put("remediationRequired", remediationRequired);
+        result.put("remediationStep", remediationRequired ? remediationStep : "NONE");
+        result.put("remediationActions", remediationActions);
+        result.put("manufacturerGuidance", manufacturerGuidance(Build.MANUFACTURER));
+        result.put("settingsOpened", false);
+        result.put("checkedAtUtc", result.getString("capturedAtUtc"));
         return result;
     }
 
     JSONObject openSettings(String destination) throws Exception {
-        String requested = destination == null ? "APP_DETAILS" : destination;
-        String resolved = requested;
-        boolean fallbackUsed = false;
-        Intent intent;
-        if ("BATTERY_OPTIMIZATION_LIST".equals(requested)) {
-            intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-        } else {
-            if ("MOTOROLA_BATTERY_OPTIONAL".equals(requested)) {
-                // No se inventa un componente OEM no documentado. Hasta validar un
-                // destino por modelo, Motorola usa el fallback estandar y auditable.
-                fallbackUsed = true;
-                resolved = "APP_DETAILS";
+        return openPowerRestrictionSettings();
+    }
+
+    JSONObject openPowerRestrictionSettings() throws Exception {
+        Intent[] intents = new Intent[] {
+                packageIntent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS),
+                new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS),
+                new Intent(Settings.ACTION_SETTINGS)
+        };
+        String[] actions = new String[] {
+                "OPEN_APPLICATION_SETTINGS",
+                "OPEN_BATTERY_OPTIMIZATION_LIST",
+                "OPEN_BATTERY_SAVER_SETTINGS",
+                "OPEN_GENERAL_SETTINGS"
+        };
+        return openFirstResolvable(intents, actions, "OPEN_POWER_RESTRICTION_SETTINGS");
+    }
+
+    JSONObject requestBatteryOptimizationExemption() throws Exception {
+        PowerManager power = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        if (power != null && power.isIgnoringBatteryOptimizations(context.getPackageName())) {
+            JSONObject result = settingsResult("REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+            result.put("success", true);
+            result.put("settingsOpened", false);
+            result.put("alreadyGranted", true);
+            result.put("resolvedAction", "ALREADY_GRANTED");
+            return result;
+        }
+
+        if (power != null) {
+            Intent request = packageIntent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            if (request.resolveActivity(context.getPackageManager()) != null) {
+                try {
+                    request.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(request);
+                    JSONObject result = settingsResult("REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+                    result.put("success", true);
+                    result.put("settingsOpened", true);
+                    result.put("alreadyGranted", false);
+                    result.put("resolvedAction", "REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+                    return result;
+                } catch (ActivityNotFoundException | SecurityException exception) {
+                    JSONObject fallback = openPowerRestrictionSettings();
+                    fallback.put("requestedAction", "REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+                    fallback.put("fallbackUsed", true);
+                    fallback.put("errorClass", exception.getClass().getSimpleName());
+                    return fallback;
+                }
             }
-            intent = new Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.parse("package:" + context.getPackageName()));
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PackageManager pm = context.getPackageManager();
-        if (intent.resolveActivity(pm) == null) {
-            fallbackUsed = true;
-            resolved = "GENERAL_SETTINGS";
-            intent = new Intent(Settings.ACTION_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        JSONObject fallback = openPowerRestrictionSettings();
+        fallback.put("requestedAction", "REQUEST_BATTERY_OPTIMIZATION_EXEMPTION");
+        fallback.put("fallbackUsed", true);
+        if (power == null) fallback.put("errorClass", "PowerManagerUnavailable");
+        return fallback;
+    }
+
+    private JSONObject openFirstResolvable(Intent[] intents, String[] actions, String requested) throws Exception {
+        PackageManager packageManager = context.getPackageManager();
+        String lastErrorClass = null;
+        for (int i = 0; i < intents.length; i++) {
+            Intent intent = intents[i];
+            if (intent.resolveActivity(packageManager) == null) continue;
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                JSONObject result = settingsResult(requested);
+                result.put("success", true);
+                result.put("settingsOpened", true);
+                result.put("resolvedAction", actions[i]);
+                result.put("fallbackUsed", i > 0);
+                if (lastErrorClass != null) result.put("errorClass", lastErrorClass);
+                return result;
+            } catch (ActivityNotFoundException | SecurityException exception) {
+                lastErrorClass = exception.getClass().getSimpleName();
+            }
         }
-        if (intent.resolveActivity(pm) == null) {
-            throw new IllegalStateException("SETTINGS_ACTIVITY_UNAVAILABLE");
-        }
-        context.startActivity(intent);
+        JSONObject result = settingsResult(requested);
+        result.put("success", false);
+        result.put("settingsOpened", false);
+        result.put("resolvedAction", JSONObject.NULL);
+        result.put("fallbackUsed", true);
+        result.put("errorClass", lastErrorClass == null ? "SettingsActivityUnavailable" : lastErrorClass);
+        return result;
+    }
+
+    private Intent packageIntent(String action) {
+        return new Intent(action, Uri.parse("package:" + context.getPackageName()));
+    }
+
+    private JSONObject settingsResult(String requested) throws Exception {
         JSONObject result = new JSONObject();
-        result.put("launched", true);
-        result.put("requestedDestination", requested);
-        result.put("resolvedDestination", resolved);
-        result.put("fallbackUsed", fallbackUsed);
+        result.put("requestedAction", requested);
+        result.put("manufacturer", Build.MANUFACTURER);
         return result;
     }
 
@@ -344,5 +442,12 @@ final class PowerPolicyInspector {
             if (expected.equals(values.optString(i))) return true;
         }
         return false;
+    }
+
+    private static String manufacturerGuidance(String manufacturer) {
+        if (manufacturer != null && manufacturer.toLowerCase(Locale.US).contains("motorola")) {
+            return "En Bateria, selecciona Permitir en segundo plano y luego Sin restricciones. Revisa tambien cualquier optimizador de aplicaciones o administrador de memoria si el problema continua.";
+        }
+        return "En la configuracion de la aplicacion, permite la actividad en segundo plano y selecciona el modo de bateria sin restricciones si esta disponible.";
     }
 }

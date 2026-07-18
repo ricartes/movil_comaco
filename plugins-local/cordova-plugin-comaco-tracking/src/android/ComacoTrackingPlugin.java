@@ -46,6 +46,11 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             case "configurarModoPolitica":
             case "continuarInicioConAdvertencia":
             case "abrirConfiguracionPolitica":
+            case "getPowerPolicyStatus":
+            case "openPowerRestrictionSettings":
+            case "requestBatteryOptimizationExemption":
+            case "recheckPowerPolicy":
+            case "presentPowerRemediation":
                 cordova.getThreadPool().execute(() -> run(action, args, callback));
                 return true;
             default:
@@ -130,11 +135,32 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                             true));
                     break;
                 case "abrirConfiguracionPolitica":
-                    JSONObject settingsInput = args.optJSONObject(0);
-                    result = inspector.openSettings(settingsInput == null
-                            ? "APP_DETAILS"
-                            : settingsInput.optString("destino", "APP_DETAILS"));
-                    store.event("POWER_POLICY_SETTINGS_OPENED", result.toString());
+                case "openPowerRestrictionSettings":
+                    result = performRemediationAction(
+                            "OPEN_POWER_RESTRICTION_SETTINGS",
+                            inspect("power_settings", currentOverrideUsed()),
+                            false);
+                    break;
+                case "requestBatteryOptimizationExemption":
+                    result = performRemediationAction(
+                            "REQUEST_BATTERY_OPTIMIZATION_EXEMPTION",
+                            inspect("battery_optimization_request", currentOverrideUsed()),
+                            true);
+                    break;
+                case "getPowerPolicyStatus":
+                    result = inspect("get_power_policy_status", currentOverrideUsed());
+                    store.diagnosticEvent("POWER_POLICY_DIAGNOSTIC", diagnosticDetail(result));
+                    break;
+                case "recheckPowerPolicy":
+                    store.recordRemediationAction("RECHECK");
+                    result = inspect("power_policy_recheck", currentOverrideUsed());
+                    store.diagnosticEvent("POWER_REMEDIATION_ACTION", powerEventDetail("RECHECK", result, null));
+                    store.diagnosticEvent("POWER_POLICY_RECHECKED", powerEventDetail("RECHECK", result, null));
+                    break;
+                case "presentPowerRemediation":
+                    result = args.optJSONObject(0);
+                    if (result == null) result = new JSONObject();
+                    store.diagnosticEvent("POWER_REMEDIATION_PRESENTED", powerEventDetail("PRESENT", result, null));
                     break;
                 default:
                     throw new IllegalArgumentException("Accion no soportada.");
@@ -158,6 +184,7 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
         JSONObject enforcement = snapshot.getJSONObject("enforcement");
         String mode = enforcement.getString("mode");
         boolean blockers = decision.getBoolean("wouldBlockInEnforceMode");
+        boolean remediationRequired = snapshot.optBoolean("remediationRequired", blockers);
 
         store.diagnosticEvent("POWER_POLICY_PREFLIGHT", diagnosticDetail(snapshot));
 
@@ -175,12 +202,12 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             return snapshot;
         }
 
-        if ("WARN".equals(mode) && blockers && !explicitContinue) {
+        if ("WARN".equals(mode) && remediationRequired && !explicitContinue) {
             store.event("SERVICE_START_AWAITING_POLICY_OVERRIDE", diagnosticDetail(snapshot));
             return snapshot;
         }
 
-        boolean overrideUsed = "WARN".equals(mode) && blockers && explicitContinue;
+        boolean overrideUsed = "WARN".equals(mode) && remediationRequired && explicitContinue;
         if (overrideUsed) {
             snapshot = inspect(reason, true);
             store.event("TRACKING_STARTED_WITH_POLICY_WARNING", diagnosticDetail(snapshot));
@@ -194,8 +221,53 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
     private JSONObject inspect(String reason, boolean userOverrideUsed) throws Exception {
         JSONObject snapshot = inspector.inspect(store, reason, userOverrideUsed);
         TrackingStore.HealthUpdate update = store.applyHealthSnapshot(snapshot);
+        if (store.applyPowerRestrictionSnapshot(snapshot.getBoolean("backgroundRestricted"))) {
+            store.diagnosticEvent(
+                    "POWER_RESTRICTION_RECOVERED",
+                    powerEventDetail("RECHECK", snapshot, null));
+        }
         if (update.changed) publishHealth(snapshot);
         return snapshot;
+    }
+
+    private JSONObject performRemediationAction(
+            String action,
+            JSONObject snapshot,
+            boolean requestExemption) throws Exception {
+        store.recordRemediationAction(action);
+        store.diagnosticEvent("POWER_REMEDIATION_ACTION", powerEventDetail(action, snapshot, null));
+        JSONObject outcome = requestExemption
+                ? inspector.requestBatteryOptimizationExemption()
+                : inspector.openPowerRestrictionSettings();
+        snapshot.put("settingsOpened", outcome.optBoolean("settingsOpened", false));
+        snapshot.put("remediationResult", outcome);
+        if (!outcome.optBoolean("alreadyGranted", false)) {
+            String event = outcome.optBoolean("settingsOpened", false)
+                    ? "POWER_SETTINGS_OPENED"
+                    : "POWER_SETTINGS_OPEN_FAILED";
+            store.diagnosticEvent(event, powerEventDetail(action, snapshot, outcome));
+        }
+        return snapshot;
+    }
+
+    private String powerEventDetail(String action, JSONObject snapshot, JSONObject outcome) {
+        JSONObject detail = new JSONObject();
+        try {
+            detail.put("action", action);
+            detail.put("manufacturer", snapshot.optString("manufacturer", "unknown"));
+            detail.put("backgroundRestricted", snapshot.optBoolean("backgroundRestricted", false));
+            detail.put("ignoringBatteryOptimizations", snapshot.optBoolean("ignoringBatteryOptimizations", false));
+            detail.put("health", snapshot.optString("health", "UNKNOWN"));
+            detail.put("blockers", snapshot.optJSONArray("blockers"));
+            detail.put("warnings", snapshot.optJSONArray("warnings"));
+            if (outcome != null) {
+                detail.put("success", outcome.optBoolean("success", false));
+                detail.put("errorClass", jsonValue(outcome, "errorClass"));
+            }
+        } catch (Exception ignored) {
+            return "{\"action\":\"UNKNOWN\",\"success\":false}";
+        }
+        return detail.toString();
     }
 
     private boolean currentOverrideUsed() {

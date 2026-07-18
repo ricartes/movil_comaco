@@ -2,7 +2,10 @@
 var diagnostico = {
     schemaVersion: 1,
     decision: { mode: "IDLE", normalTrackingAllowed: true, wouldBlockInEnforceMode: false, blockers: [], warnings: [], reasons: [] },
-    enforcement: { mode: "WARN", userOverrideUsed: false, requiresExplicitContinue: false, startAllowed: true }
+    enforcement: { mode: "WARN", userOverrideUsed: false, requiresExplicitContinue: false, startAllowed: true },
+    enforcementMode: "WARN", health: "IDLE", warnings: [], reasons: [], blockers: [],
+    backgroundRestricted: false, ignoringBatteryOptimizations: true,
+    remediationRequired: false, remediationStep: "NONE", remediationActions: [], settingsOpened: false
 };
 var estado = { configurado: false, servicioActivo: false, seguimientosActivos: 0, pendientes: 0, plataforma: "browser", decision: diagnostico.decision, enforcement: diagnostico.enforcement, policyDiagnostic: diagnostico };
 function ok(value) { return Promise.resolve(value); }
@@ -21,6 +24,11 @@ var api = {
     configurarModoPolitica: function (mode) { diagnostico.enforcement.mode = mode || "WARN"; return ok(diagnostico); },
     continuarInicioConAdvertencia: function () { diagnostico.enforcement.userOverrideUsed = true; return ok(estado); },
     abrirConfiguracionPolitica: function () { return ok({ launched: false, resolvedDestination: "UNAVAILABLE", fallbackUsed: false }); },
+    getPowerPolicyStatus: function () { return ok(diagnostico); },
+    openPowerRestrictionSettings: function () { return ok(diagnostico); },
+    requestBatteryOptimizationExemption: function () { return ok(diagnostico); },
+    recheckPowerPolicy: function () { return ok(diagnostico); },
+    presentPowerRemediation: function (diagnostic) { return ok(diagnostic || diagnostico); },
     suscribirEstadoSalud: function () { return undefined; }
 };
 module.exports = api;

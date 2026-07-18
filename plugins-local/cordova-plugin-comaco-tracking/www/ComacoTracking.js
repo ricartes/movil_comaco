@@ -21,6 +21,11 @@ module.exports = {
     configurarModoPolitica: function (mode) { return invoke("configurarModoPolitica", { mode: mode }); },
     continuarInicioConAdvertencia: function (motivo) { return invoke("continuarInicioConAdvertencia", { motivo: motivo || "continuacion_explicita" }); },
     abrirConfiguracionPolitica: function (destino) { return invoke("abrirConfiguracionPolitica", { destino: destino || "APP_DETAILS" }); },
+    getPowerPolicyStatus: function () { return invoke("getPowerPolicyStatus"); },
+    openPowerRestrictionSettings: function () { return invoke("openPowerRestrictionSettings"); },
+    requestBatteryOptimizationExemption: function () { return invoke("requestBatteryOptimizationExemption"); },
+    recheckPowerPolicy: function () { return invoke("recheckPowerPolicy"); },
+    presentPowerRemediation: function (diagnostic) { return invoke("presentPowerRemediation", diagnostic || {}); },
     suscribirEstadoSalud: function (onUpdate, onError) {
         exec(onUpdate, onError, "ComacoTracking", "suscribirEstadoSalud", []);
     }

@@ -3,6 +3,7 @@ var TRACKING_POLICY_dialogoPendiente = null;
 var TRACKING_POLICY_ultimaAlerta = null;
 var TRACKING_POLICY_estadoActual = null;
 var TRACKING_POLICY_suscripcionActiva = false;
+var TRACKING_POLICY_esperandoRetornoSettings = false;
 
 function TRACKING_POLICY_extraer(resultado) {
     return resultado && resultado.policyDiagnostic ? resultado.policyDiagnostic : resultado;
@@ -11,8 +12,11 @@ function TRACKING_POLICY_extraer(resultado) {
 function TRACKING_POLICY_describir(blockers) {
     var textos = {
         BACKGROUND_RESTRICTED: "Android tiene restringida la actividad en segundo plano; al minimizar puede detener la trazabilidad.",
+        BATTERY_OPTIMIZATION_ACTIVE: "La optimizacion de bateria sigue activa para la aplicacion; selecciona Sin restricciones si Android ofrece esa opcion.",
+        APP_STANDBY_RESTRICTED: "Android mantiene la aplicacion en un nivel de espera restringido; revisa el uso de bateria en segundo plano.",
         LOCATION_DISABLED: "La ubicacion del dispositivo esta desactivada.",
         FINE_LOCATION_DENIED: "Falta el permiso de ubicacion precisa.",
+        BACKGROUND_LOCATION_DENIED: "Falta permitir la ubicacion en segundo plano; selecciona Permitir siempre en los permisos de la aplicacion.",
         POST_NOTIFICATIONS_DENIED: "Falta el permiso de notificaciones; Android puede ocultar el aviso del seguimiento.",
         LOCATION_STALE: "Sin posiciones recientes de la sesion GPS actual.",
         FOREGROUND_LOST: "El servicio perdio el estado foreground.",
@@ -23,6 +27,9 @@ function TRACKING_POLICY_describir(blockers) {
         LOCATION_REGISTRATION_UNKNOWN: "Comprobando el registro de ubicacion actual."
     };
     return (blockers || []).map(function (code) {
+        if (String(code).indexOf("STANDBY_BUCKET_") === 0) {
+            return "Android mantiene la aplicacion en un nivel de espera restringido; revisa el uso de bateria en segundo plano.";
+        }
         return textos[code] || code;
     }).join("<br><br>");
 }
@@ -60,45 +67,86 @@ function TRACKING_POLICY_marcarChecking(motivo) {
     });
 }
 
-function TRACKING_POLICY_mostrarWarn(diagnostico, motivo) {
+function TRACKING_POLICY_describirRemediacion(diagnostico) {
+    var decision = diagnostico.decision || {};
+    var causas = (decision.blockers || []).concat(decision.warnings || []);
+    var descripcion = TRACKING_POLICY_describir(causas);
+    if (diagnostico.manufacturerGuidance) {
+        descripcion += (descripcion ? "<br><br>" : "") + diagnostico.manufacturerGuidance;
+    }
+    return descripcion;
+}
+
+function TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo) {
     if (TRACKING_POLICY_dialogoPendiente) return TRACKING_POLICY_dialogoPendiente;
     TRACKING_POLICY_dialogoPendiente = new Promise(function (resolve) {
         if (typeof app === "undefined" || !app.dialog || typeof app.dialog.create !== "function") {
             resolve(false);
             return;
         }
-        var blockers = diagnostico.decision.blockers || [];
-        var dialogo = app.dialog.create({
-            title: "Seguimiento en modo degradado",
-            text: TRACKING_POLICY_describir(blockers)
-                + "<br><br>Puede abrir la configuracion, cancelar o continuar explicitamente bajo advertencia para pruebas o contingencia.",
-            verticalButtons: true,
-            buttons: [
-                {
-                    text: "Abrir configuracion",
-                    onClick: function () {
-                        ComacoTracking.abrirConfiguracionPolitica("APP_DETAILS").catch(function () {});
+        var enforcementMode = diagnostico.enforcementMode
+            || diagnostico.enforcement && diagnostico.enforcement.mode
+            || "WARN";
+        var actions = diagnostico.remediationActions || [];
+        var buttons = [
+            {
+                text: "Configurar ahora",
+                onClick: function () {
+                    var request = diagnostico.backgroundRestricted !== true
+                            && actions.indexOf("REQUEST_BATTERY_OPTIMIZATION_EXEMPTION") !== -1
+                        ? ComacoTracking.requestBatteryOptimizationExemption()
+                        : ComacoTracking.openPowerRestrictionSettings();
+                    request.then(function (resultado) {
+                        TRACKING_POLICY_actualizarEstado(resultado);
+                        TRACKING_POLICY_esperandoRetornoSettings = resultado.settingsOpened === true;
                         resolve(false);
-                    }
-                },
-                { text: "Cancelar", onClick: function () { resolve(false); } },
-                {
-                    text: "Continuar bajo advertencia",
-                    color: "red",
-                    bold: true,
-                    onClick: function () {
-                        ComacoTracking.continuarInicioConAdvertencia(motivo || "warn_frontend")
-                            .then(function (resultado) {
-                                var actualizado = TRACKING_POLICY_extraer(resultado);
-                                resolve(!!(actualizado
-                                    && actualizado.enforcement
-                                    && actualizado.enforcement.userOverrideUsed));
-                            })
-                            .catch(function () { resolve(false); });
-                    }
+                    }).catch(function () { resolve(false); });
                 }
-            ]
+            },
+            {
+                text: "Volver a comprobar",
+                onClick: function () {
+                    TRACKING_POLICY_marcarChecking("recheck_manual");
+                    ComacoTracking.recheckPowerPolicy().then(function (actualizado) {
+                        TRACKING_POLICY_actualizarEstado(actualizado);
+                        var corregido = actualizado.remediationRequired !== true;
+                        resolve(corregido);
+                        if (!corregido) {
+                            setTimeout(function () {
+                                TRACKING_POLICY_mostrarRemediacion(actualizado, motivo);
+                            }, 0);
+                        }
+                    }).catch(function () { resolve(false); });
+                }
+            }
+        ];
+        if (enforcementMode === "WARN") {
+            buttons.push({
+                text: "Continuar bajo advertencia",
+                color: "red",
+                bold: true,
+                onClick: function () {
+                    ComacoTracking.continuarInicioConAdvertencia(motivo || "warn_frontend")
+                        .then(function (resultado) {
+                            var actualizado = TRACKING_POLICY_extraer(resultado);
+                            TRACKING_POLICY_actualizarEstado(actualizado);
+                            resolve(!!(actualizado
+                                && actualizado.enforcement
+                                && actualizado.enforcement.userOverrideUsed));
+                        })
+                        .catch(function () { resolve(false); });
+                }
+            });
+        }
+        var dialogo = app.dialog.create({
+            title: "Configura el seguimiento en segundo plano",
+            text: TRACKING_POLICY_describirRemediacion(diagnostico),
+            verticalButtons: true,
+            buttons: buttons
         });
+        if (typeof ComacoTracking.presentPowerRemediation === "function") {
+            ComacoTracking.presentPowerRemediation(diagnostico).catch(function () {});
+        }
         dialogo.open();
     }).finally(function () {
         TRACKING_POLICY_dialogoPendiente = null;
@@ -112,27 +160,29 @@ async function TRACKING_POLICY_procesarResultado(resultado, motivo) {
     TRACKING_POLICY_actualizarEstado(diagnostico);
     var decision = diagnostico.decision;
     var enforcement = diagnostico.enforcement;
-    if (!decision.wouldBlockInEnforceMode) return true;
-    if (enforcement.mode === "OBSERVE") return true;
-    if (enforcement.mode === "ENFORCE") {
-        if (typeof app !== "undefined" && app.dialog) {
-            app.dialog.alert(
-                TRACKING_POLICY_describir(decision.blockers),
-                "Inicio de seguimiento bloqueado");
-        }
-        return false;
+    var remediationRequired = diagnostico.remediationRequired === true;
+    if (enforcement.mode === "OBSERVE") {
+        if (remediationRequired) TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo);
+        return true;
+    }
+    if (enforcement.mode === "ENFORCE" && decision.wouldBlockInEnforceMode) {
+        return TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo);
     }
     if (enforcement.mode === "WARN" && enforcement.requiresExplicitContinue) {
-        return TRACKING_POLICY_mostrarWarn(diagnostico, motivo);
+        return TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo);
     }
-    return enforcement.userOverrideUsed || !!diagnostico.tracking.serviceCreated;
+    if (remediationRequired) TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo);
+    return !remediationRequired
+        || enforcement.userOverrideUsed
+        || !!(diagnostico.tracking && diagnostico.tracking.serviceCreated)
+        || resultado && resultado.serviceStartRequested === true;
 }
 
 async function TRACKING_POLICY_revisar(motivo) {
     if (typeof ComacoTracking === "undefined"
-            || typeof ComacoTracking.obtenerDiagnosticoPolitica !== "function") return null;
+            || typeof ComacoTracking.getPowerPolicyStatus !== "function") return null;
     TRACKING_POLICY_marcarChecking(motivo || "revision_visible");
-    var diagnostico = await ComacoTracking.obtenerDiagnosticoPolitica(motivo || "revision_visible");
+    var diagnostico = await ComacoTracking.getPowerPolicyStatus();
     TRACKING_POLICY_actualizarEstado(diagnostico);
     var mode = diagnostico.decision && diagnostico.decision.mode;
     var reasons = diagnostico.decision && diagnostico.decision.reasons || [];
@@ -144,6 +194,21 @@ async function TRACKING_POLICY_revisar(motivo) {
         app.dialog.alert(
             TRACKING_POLICY_describir(reasons),
             "Estado de trazabilidad: " + mode);
+    }
+    if (diagnostico.remediationRequired === true) {
+        TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo || "revision_visible");
+    }
+    return diagnostico;
+}
+
+async function TRACKING_POLICY_revalidarRetornoSettings() {
+    if (!TRACKING_POLICY_esperandoRetornoSettings) return null;
+    TRACKING_POLICY_esperandoRetornoSettings = false;
+    TRACKING_POLICY_marcarChecking("retorno_settings");
+    var diagnostico = await ComacoTracking.recheckPowerPolicy();
+    TRACKING_POLICY_actualizarEstado(diagnostico);
+    if (diagnostico.remediationRequired === true) {
+        TRACKING_POLICY_mostrarRemediacion(diagnostico, "retorno_settings");
     }
     return diagnostico;
 }

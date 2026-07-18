@@ -57,8 +57,11 @@ function inicializarSeguimientoBootstrap() {
 async function SEGUIMIENTO_alResumeTecnico() {
     try {
         await inicializarSeguimientoBootstrap();
-        await TRACKING_POLICY_revisar("resume");
-        await reconciliarEstadoGpsNativo();
+        var retornoSettings = await TRACKING_POLICY_revalidarRetornoSettings();
+        if (!retornoSettings) {
+            await TRACKING_POLICY_revisar("resume");
+            await reconciliarEstadoGpsNativo();
+        }
     } catch (error) {
         console.error("No fue posible reconciliar el seguimiento técnico nativo.");
     }

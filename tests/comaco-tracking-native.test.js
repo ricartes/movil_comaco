@@ -186,7 +186,7 @@ test('28 token no aparece en eventos o llamadas Log', () => {
 });
 
 test('29 implementación browser expone toda la API sin romper build', () => {
-    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','suscribirEstadoSalud']) {
+    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy','presentPowerRemediation','suscribirEstadoSalud']) {
         assert.match(browser, new RegExp(action + ':'));
         assert.match(bridge, new RegExp(action + ':'));
     }

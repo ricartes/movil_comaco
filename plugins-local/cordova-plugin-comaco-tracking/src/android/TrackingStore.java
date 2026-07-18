@@ -29,7 +29,7 @@ final class TrackingStore extends SQLiteOpenHelper {
     static final String CREDENTIAL_ERROR = "ERROR_CREDENCIAL";
     static final String FINAL = "FINAL";
     private static final String DB_NAME = "comaco_tracking.db";
-    private static final int DB_VERSION = 3;
+    private static final int DB_VERSION = 4;
     private final CredentialCipher cipher = new CredentialCipher();
 
     static final class OutboxItem {
@@ -67,11 +67,14 @@ final class TrackingStore extends SQLiteOpenHelper {
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) createRuntimeState(db);
-        else if (oldVersion < 3) addCurrentHealthColumns(db);
+        else if (oldVersion < 3) {
+            addCurrentHealthColumns(db);
+            addPowerRemediationColumns(db);
+        } else if (oldVersion < 4) addPowerRemediationColumns(db);
     }
 
     private static void createRuntimeState(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS tracking_runtime_state (id INTEGER PRIMARY KEY CHECK(id=1), policy_mode TEXT NOT NULL DEFAULT 'WARN', last_location_callback_ms INTEGER, last_location_callback_elapsed_ms INTEGER, last_location_callback_registration_generation TEXT, location_registration_generation TEXT, location_registration_started_ms INTEGER, location_registration_started_elapsed_ms INTEGER, current_health TEXT, current_health_reasons TEXT, current_health_updated_ms INTEGER, last_start_user_override INTEGER NOT NULL DEFAULT 0, last_policy_mode TEXT, last_policy_decision TEXT, service_generation TEXT, service_created_ms INTEGER, service_destroyed_ms INTEGER, updated_ms INTEGER NOT NULL DEFAULT 0)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS tracking_runtime_state (id INTEGER PRIMARY KEY CHECK(id=1), policy_mode TEXT NOT NULL DEFAULT 'WARN', last_location_callback_ms INTEGER, last_location_callback_elapsed_ms INTEGER, last_location_callback_registration_generation TEXT, location_registration_generation TEXT, location_registration_started_ms INTEGER, location_registration_started_elapsed_ms INTEGER, current_health TEXT, current_health_reasons TEXT, current_health_updated_ms INTEGER, current_background_restricted INTEGER, last_remediation_action TEXT, last_remediation_action_ms INTEGER, last_start_user_override INTEGER NOT NULL DEFAULT 0, last_policy_mode TEXT, last_policy_decision TEXT, service_generation TEXT, service_created_ms INTEGER, service_destroyed_ms INTEGER, updated_ms INTEGER NOT NULL DEFAULT 0)");
         db.execSQL("INSERT OR IGNORE INTO tracking_runtime_state(id,policy_mode,updated_ms) VALUES(1,'WARN',0)");
     }
 
@@ -83,6 +86,12 @@ final class TrackingStore extends SQLiteOpenHelper {
         db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN current_health TEXT");
         db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN current_health_reasons TEXT");
         db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN current_health_updated_ms INTEGER");
+    }
+
+    private static void addPowerRemediationColumns(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN current_background_restricted INTEGER");
+        db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN last_remediation_action TEXT");
+        db.execSQL("ALTER TABLE tracking_runtime_state ADD COLUMN last_remediation_action_ms INTEGER");
     }
 
     synchronized JSONObject configure(JSONObject input) throws Exception {
@@ -356,9 +365,21 @@ final class TrackingStore extends SQLiteOpenHelper {
         return update;
     }
 
+    synchronized boolean applyPowerRestrictionSnapshot(boolean backgroundRestricted) {
+        long previous=scalarLong("SELECT current_background_restricted FROM tracking_runtime_state WHERE id=1",null,-1);
+        ContentValues v=new ContentValues();v.put("current_background_restricted",backgroundRestricted?1:0);v.put("updated_ms",System.currentTimeMillis());
+        getWritableDatabase().update("tracking_runtime_state",v,"id=1",null);
+        return previous==1&&!backgroundRestricted;
+    }
+
+    synchronized void recordRemediationAction(String action) {
+        ContentValues v=new ContentValues();v.put("last_remediation_action",safe(action));v.put("last_remediation_action_ms",System.currentTimeMillis());v.put("updated_ms",System.currentTimeMillis());
+        getWritableDatabase().update("tracking_runtime_state",v,"id=1",null);
+    }
+
     synchronized JSONObject state(boolean serviceActive) throws JSONException {
         JSONObject o=new JSONObject(); int active=scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA'",null); int pending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='PENDIENTE'",null); int sending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ENVIANDO'",null);
-        o.put("configurado",configured()); o.put("servicioActivo",serviceActive); o.put("servicioCreado",serviceActive); o.put("servicioForeground",JSONObject.NULL); o.put("servicioForegroundSolicitado",TrackingForegroundService.isForegroundPromotionRequested()); o.put("seguimientosActivos",active); o.put("seguimientosFinalizando",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='FINALIZANDO'",null)); o.put("posicionesPendientes",pending); o.put("pendientes",pending); o.put("posicionesEnviando",sending); o.put("enviando",sending); o.put("posicionesConfirmadasRecientes",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA' AND updated_ms>?",new String[]{String.valueOf(System.currentTimeMillis()-86400000)})); o.put("errorCredencial",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ERROR_CREDENCIAL'",null)); o.put("migracionCompletada",currentMigrationFlag()==1); o.put("migracionCompleta",currentMigrationFlag()==1); o.put("intervaloMs",intervalMs()); o.put("distanciaMetros",distanceM()); o.put("versionEsquema",3); o.put("modoPolitica",policyMode()); o.put("healthActual",lastText("SELECT current_health FROM tracking_runtime_state WHERE id=1")); o.put("reasonsActuales",lastText("SELECT current_health_reasons FROM tracking_runtime_state WHERE id=1")); putTime(o,"ultimoCallbackUbicacionUtc","SELECT last_location_callback_ms FROM tracking_runtime_state WHERE id=1"); putTime(o,"ultimaCapturaUtc","SELECT MAX(captured_ms) FROM location_capture"); putTime(o,"ultimaPersistenciaUtc","SELECT MAX(created_ms) FROM position_outbox"); putTime(o,"ultimoEnvioUtc","SELECT MAX(updated_ms) FROM position_outbox WHERE attempts>0 OR state='CONFIRMADA'"); o.put("ultimoResultadoEnvio",lastText("SELECT state FROM position_outbox ORDER BY updated_ms DESC LIMIT 1")); o.put("proveedor",lastText("SELECT provider FROM location_capture ORDER BY captured_ms DESC LIMIT 1")); return o;
+        o.put("configurado",configured()); o.put("servicioActivo",serviceActive); o.put("servicioCreado",serviceActive); o.put("servicioForeground",JSONObject.NULL); o.put("servicioForegroundSolicitado",TrackingForegroundService.isForegroundPromotionRequested()); o.put("seguimientosActivos",active); o.put("seguimientosFinalizando",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='FINALIZANDO'",null)); o.put("posicionesPendientes",pending); o.put("pendientes",pending); o.put("posicionesEnviando",sending); o.put("enviando",sending); o.put("posicionesConfirmadasRecientes",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA' AND updated_ms>?",new String[]{String.valueOf(System.currentTimeMillis()-86400000)})); o.put("errorCredencial",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ERROR_CREDENCIAL'",null)); o.put("migracionCompletada",currentMigrationFlag()==1); o.put("migracionCompleta",currentMigrationFlag()==1); o.put("intervaloMs",intervalMs()); o.put("distanciaMetros",distanceM()); o.put("versionEsquema",4); o.put("modoPolitica",policyMode()); o.put("healthActual",lastText("SELECT current_health FROM tracking_runtime_state WHERE id=1")); o.put("reasonsActuales",lastText("SELECT current_health_reasons FROM tracking_runtime_state WHERE id=1")); putTime(o,"ultimoCallbackUbicacionUtc","SELECT last_location_callback_ms FROM tracking_runtime_state WHERE id=1"); putTime(o,"ultimaCapturaUtc","SELECT MAX(captured_ms) FROM location_capture"); putTime(o,"ultimaPersistenciaUtc","SELECT MAX(created_ms) FROM position_outbox"); putTime(o,"ultimoEnvioUtc","SELECT MAX(updated_ms) FROM position_outbox WHERE attempts>0 OR state='CONFIRMADA'"); o.put("ultimoResultadoEnvio",lastText("SELECT state FROM position_outbox ORDER BY updated_ms DESC LIMIT 1")); o.put("proveedor",lastText("SELECT provider FROM location_capture ORDER BY captured_ms DESC LIMIT 1")); return o;
     }
     synchronized JSONObject stats(boolean serviceActive) throws JSONException { JSONObject o=state(serviceActive); o.put("capturas",scalar("SELECT COUNT(*) FROM location_capture",null)); o.put("confirmadas",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA'",null)); o.put("eventosTecnicos",scalar("SELECT COUNT(*) FROM technical_event",null)); return o; }
 

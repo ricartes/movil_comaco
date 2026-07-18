@@ -13,6 +13,10 @@ const monitor = read(javaDir + 'TrackingHealthMonitor.java');
 const store = read(javaDir + 'TrackingStore.java');
 const service = read(javaDir + 'TrackingForegroundService.java');
 const policyUi = read('www/js/Services/TrackingPolicyService.js');
+const bootstrap = read('www/js/Services/SeguimientoBootstrap.js');
+const facade = read('www/js/Helper/gpsTracking.js');
+const bridge = read('plugins-local/cordova-plugin-comaco-tracking/www/ComacoTracking.js');
+const pluginXml = read('plugins-local/cordova-plugin-comaco-tracking/plugin.xml');
 const principal = read('www/js/Vistas/Principal.js');
 const packageJson = read('package.json');
 
@@ -103,4 +107,124 @@ test('POWER_POLICY_DIAGNOSTIC registra todos los determinantes sin datos sensibl
         assert.match(plugin, new RegExp('"' + field + '"'));
     }
     assert.doesNotMatch(plugin.slice(plugin.indexOf('diagnosticDetail'), plugin.indexOf('static void publishHealth')), /TOKEN|LATITUD|LONGITUD|token/i);
+});
+
+test('API de remediacion expone las cuatro acciones requeridas y usa el inspector', () => {
+    for (const action of ['getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy']) {
+        assert.match(plugin, new RegExp('case "' + action + '"'));
+        assert.match(bridge, new RegExp(action + ':'));
+    }
+    assert.match(plugin, /inspector\.requestBatteryOptimizationExemption\(\)/);
+    assert.match(plugin, /inspector\.openPowerRestrictionSettings\(\)/);
+    assert.match(plugin, /result = inspect\("power_policy_recheck"/);
+});
+
+test('Settings solo se abre desde el toque explicito Configurar ahora', () => {
+    const assistant = policyUi.slice(
+        policyUi.indexOf('function TRACKING_POLICY_mostrarRemediacion'),
+        policyUi.indexOf('async function TRACKING_POLICY_procesarResultado'));
+    assert.match(assistant, /text: "Configurar ahora"[\s\S]*onClick:[\s\S]*requestBatteryOptimizationExemption/);
+    assert.match(assistant, /onClick:[\s\S]*openPowerRestrictionSettings/);
+    assert.doesNotMatch(bootstrap, /openPowerRestrictionSettings|requestBatteryOptimizationExemption/);
+    assert.doesNotMatch(plugin.slice(0, plugin.indexOf('private void run')), /openPowerRestrictionSettings\(\)|requestBatteryOptimizationExemption\(\)/);
+});
+
+test('solicitud de exclusion usa API publica, package URI y permiso manifiesto', () => {
+    assert.match(pluginXml, /android\.permission\.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS/);
+    assert.match(inspector, /Settings\.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS/);
+    assert.match(inspector, /Uri\.parse\("package:" \+ context\.getPackageName\(\)\)/);
+    assert.ok(inspector.indexOf('isIgnoringBatteryOptimizations') < inspector.indexOf('Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS'));
+    assert.match(inspector, /request\.resolveActivity\(context\.getPackageManager\(\)\)/);
+});
+
+test('exclusion ya concedida no vuelve a abrir el dialogo', () => {
+    const request = inspector.slice(
+        inspector.indexOf('JSONObject requestBatteryOptimizationExemption'),
+        inspector.indexOf('private JSONObject openFirstResolvable'));
+    assert.match(request, /isIgnoringBatteryOptimizations[\s\S]*alreadyGranted", true[\s\S]*return result/);
+    assert.ok(request.indexOf('alreadyGranted", true') < request.indexOf('context.startActivity(request)'));
+});
+
+test('configuracion publica aplica orden de fallbacks y captura fallos seguros', () => {
+    const settings = inspector.slice(
+        inspector.indexOf('JSONObject openPowerRestrictionSettings'),
+        inspector.indexOf('@SuppressWarnings'));
+    const ordered = [
+        'ACTION_APPLICATION_DETAILS_SETTINGS',
+        'ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
+        'ACTION_BATTERY_SAVER_SETTINGS',
+        'ACTION_SETTINGS'
+    ];
+    for (let i = 1; i < ordered.length; i++) {
+        assert.ok(settings.indexOf(ordered[i - 1]) < settings.indexOf(ordered[i]));
+    }
+    assert.match(settings, /resolveActivity\(packageManager\)/);
+    assert.match(settings, /ActivityNotFoundException \| SecurityException/);
+    assert.doesNotMatch(settings, /ComponentName|Class\.forName|reflection|motorola|xiaomi|samsung|huawei/i);
+});
+
+test('restriccion activa prioriza detalles de aplicacion', () => {
+    const actions = inspector.slice(
+        inspector.indexOf('JSONArray remediationActions'),
+        inspector.indexOf('String remediationStep'));
+    assert.match(actions, /if \(backgroundRestricted\)[\s\S]*OPEN_APPLICATION_SETTINGS/);
+    assert.match(policyUi, /diagnostico\.backgroundRestricted !== true[\s\S]*requestBatteryOptimizationExemption/);
+});
+
+test('retorno desde Settings publica CHECKING y ejecuta un unico recheck', () => {
+    const recheck = policyUi.slice(
+        policyUi.indexOf('async function TRACKING_POLICY_revalidarRetornoSettings'),
+        policyUi.indexOf('function TRACKING_POLICY_suscribir'));
+    assert.match(recheck, /TRACKING_POLICY_marcarChecking\("retorno_settings"\)/);
+    assert.equal((recheck.match(/recheckPowerPolicy\(/g) || []).length, 1);
+    assert.match(recheck, /TRACKING_POLICY_actualizarEstado\(diagnostico\)/);
+    assert.doesNotMatch(recheck, /reconciliarEstadoGpsNativo|sincronizarSeguimientos|solicitarDrenaje/);
+    assert.match(bootstrap, /if \(!retornoSettings\)[\s\S]*reconciliarEstadoGpsNativo/);
+});
+
+test('presentacion reutiliza el snapshot actual sin una segunda inspeccion', () => {
+    const runStart = plugin.indexOf('private void run');
+    const presented = plugin.slice(
+        plugin.indexOf('case "presentPowerRemediation"', runStart),
+        plugin.indexOf('default:', plugin.indexOf('case "presentPowerRemediation"', runStart)));
+    assert.match(presented, /args\.optJSONObject\(0\)/);
+    assert.doesNotMatch(presented, /inspect\(/);
+    assert.match(policyUi, /presentPowerRemediation\(diagnostico\)/);
+    assert.match(bridge, /presentPowerRemediation: function \(diagnostic\) \{ return invoke\("presentPowerRemediation", diagnostic \|\| \{\}\); \}/);
+});
+
+test('recheck reemplaza estado actual y recuperacion se emite solo en transicion true a false', () => {
+    assert.match(plugin, /result = inspect\("power_policy_recheck"/);
+    assert.match(store, /return previous==1&&!backgroundRestricted/);
+    assert.match(plugin, /POWER_RESTRICTION_RECOVERED/);
+    assert.equal((plugin.match(/"POWER_RESTRICTION_RECOVERED"/g) || []).length, 1);
+    assert.doesNotMatch(inspector, /current_background_restricted|last_policy_decision/);
+});
+
+test('remediacion no repromueve FGS ni altera GPS u outbox', () => {
+    const remediation = plugin.slice(
+        plugin.indexOf('private JSONObject performRemediationAction'),
+        plugin.indexOf('private String powerEventDetail'));
+    assert.doesNotMatch(inspector + remediation, /startForeground|TrackingForegroundService\.start|requestLocationUpdates|position_outbox|capture\(/);
+    assert.doesNotMatch(monitor, /startForeground|TrackingForegroundService\.start/);
+});
+
+test('eventos de remediacion usan solo campos tecnicos permitidos', () => {
+    for (const event of ['POWER_REMEDIATION_PRESENTED','POWER_REMEDIATION_ACTION','POWER_SETTINGS_OPENED','POWER_SETTINGS_OPEN_FAILED','POWER_POLICY_RECHECKED','POWER_RESTRICTION_RECOVERED']) {
+        assert.match(plugin, new RegExp(event));
+    }
+    const detail = plugin.slice(plugin.indexOf('private String powerEventDetail'), plugin.indexOf('private boolean currentOverrideUsed'));
+    for (const field of ['action','manufacturer','backgroundRestricted','ignoringBatteryOptimizations','health','blockers','warnings','success','errorClass']) {
+        assert.match(detail, new RegExp('"' + field + '"'));
+    }
+    assert.doesNotMatch(detail, /latitude|longitude|token|exception\.getMessage/i);
+});
+
+test('distancia GPS configurada y predeterminada es cinco metros sin callbacks artificiales', () => {
+    assert.match(facade, /DISTANCIA_METROS: 5/);
+    assert.match(store, /optDouble\("DISTANCIA_METROS", 5d\)/);
+    assert.match(store, /return c\.moveToFirst\(\)\?c\.getFloat\(0\):5f/);
+    assert.match(service, /requestLocationUpdates\([\s\S]*store\.intervalMs\(\),[\s\S]*store\.distanceM\(\)/);
+    assert.match(service, /REQUEST_UPDATES[\s\S]*distanceM=" \+[\s\S]*store\.distanceM\(\)/);
+    assert.doesNotMatch(service, /lastKnownLocation|new Location\(|simulate|artificial/i);
 });
