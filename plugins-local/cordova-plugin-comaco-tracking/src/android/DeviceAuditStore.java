@@ -34,6 +34,27 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
     private final CredentialCipher cipher =
             new CredentialCipher("comaco_device_audit_token_v1");
 
+    static final class InstallationCredential {
+        final String installationId;
+        String token;
+
+        InstallationCredential(String installationId, String token) {
+            this.installationId = installationId;
+            this.token = token;
+        }
+
+        void clear() {
+            token = null;
+        }
+
+        JSONObject toJson() throws Exception {
+            JSONObject result = new JSONObject();
+            result.put("ID_INSTALACION", installationId);
+            result.put("TOKEN_INSTALACION", token);
+            return result;
+        }
+    }
+
     static final class Event {
         String id;
         Long userId;
@@ -387,6 +408,24 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
                         "AND token_cipher IS NOT NULL AND token_iv IS NOT NULL", null)) {
             return cursor.moveToFirst();
         }
+    }
+
+    synchronized InstallationCredential installationCredential() throws Exception {
+        byte[] encrypted;
+        byte[] iv;
+        String installationId;
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT installation_id,token_cipher,token_iv FROM audit_state WHERE id=1", null)) {
+            if (!cursor.moveToFirst() || cursor.isNull(0) || cursor.isNull(1) || cursor.isNull(2)) {
+                return null;
+            }
+            installationId = cursor.getString(0);
+            encrypted = cursor.getBlob(1);
+            iv = cursor.getBlob(2);
+        }
+        String token = cipher.decrypt(encrypted, iv);
+        if (token == null || token.trim().isEmpty()) return null;
+        return new InstallationCredential(installationId, token.trim());
     }
 
     synchronized JSONObject state() throws Exception {

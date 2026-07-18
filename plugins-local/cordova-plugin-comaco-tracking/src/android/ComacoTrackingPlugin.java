@@ -67,6 +67,7 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             case "solicitarDrenajeAuditoria":
             case "descartarAuditoria":
             case "obtenerEstadoAuditoria":
+            case "obtenerCredencialInstalacion":
                 cordova.getThreadPool().execute(() -> run(action, args, callback));
                 return true;
             default:
@@ -217,6 +218,10 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                     ensureDeviceAudit();
                     result = deviceAudit.state();
                     break;
+                case "obtenerCredencialInstalacion":
+                    ensureDeviceAudit();
+                    result = deviceAudit.installationCredential();
+                    break;
                 default:
                     throw new IllegalArgumentException("Accion no soportada.");
             }
@@ -236,7 +241,8 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
 
     private static boolean isAuditAction(String action) {
         return action != null && (action.contains("Auditoria")
-                || "auditarConfiguracion".equals(action));
+                || "auditarConfiguracion".equals(action)
+                || "obtenerCredencialInstalacion".equals(action));
     }
 
     private void ensureDeviceAudit() {

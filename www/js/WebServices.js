@@ -1457,37 +1457,52 @@ function enviar_guias_proveedor(bandera, callback) {
 
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V2';
+        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_Guia_V3';
 
         DATOS_seleccionar_gde_proveedor_por_enviar("0", function (result) {
             if (result == -1) {
                 typeof callback == "function" && callback(0);
             } else {
                 var myJsonString = JSON.stringify(result);
-                $.ajax({
-                    type: "POST",
-                    url: ruta,
-                    contetType: 'application/json; charset:ISO-8859-1',
-                    data: {
-                        guia_proveedor: myJsonString, uuid: Obtener_dato_local("uid") || "",
-                        versionApp: Obtener_dato_local("version_app") || ""
-                    },
-                    dataType: 'xml',
-                    success: function (data) {
-                        procesarGuiasAceptadasRecibeGuiaV2(data, callback);
-                    },
+                var idUsuario = Number(Obtener_dato_local("id_usuario_activo") || 0);
+                if (typeof ComacoTracking === "undefined"
+                    || typeof ComacoTracking.obtenerCredencialInstalacion !== "function"
+                    || !Number.isInteger(idUsuario) || idUsuario <= 0) {
+                    typeof callback == "function" && callback(-1);
+                    return;
+                }
 
-                    error: function (err) {
-                        // handle your error logic here
-                        typeof callback == "function" && callback(-1);
+                ComacoTracking.obtenerCredencialInstalacion().then(function (credencial) {
+                    if (!credencial || !credencial.ID_INSTALACION || !credencial.TOKEN_INSTALACION) {
+                        throw new Error("CREDENCIAL_INSTALACION_NO_DISPONIBLE");
                     }
-
-                    /*error: function (err) 
-                    {
-                          alert("error"+err);
-              // handle your error logic here
-                          
-                    }*/
+                    var tokenInstalacion = credencial.TOKEN_INSTALACION;
+                    $.ajax({
+                        type: "POST",
+                        url: ruta,
+                        contetType: 'application/json; charset:ISO-8859-1',
+                        data: {
+                            guia_proveedor: myJsonString,
+                            uuid: Obtener_dato_local("uid") || "",
+                            versionApp: Obtener_dato_local("version_app") || "",
+                            idInstalacion: credencial.ID_INSTALACION,
+                            tokenInstalacion: tokenInstalacion,
+                            idUsuario: idUsuario
+                        },
+                        dataType: 'xml',
+                        success: function (data) {
+                            procesarGuiasAceptadasRecibeGuiaV2(data, callback);
+                        },
+                        error: function () {
+                            typeof callback == "function" && callback(-1);
+                        },
+                        complete: function () {
+                            tokenInstalacion = null;
+                            credencial.TOKEN_INSTALACION = null;
+                        }
+                    });
+                }).catch(function () {
+                    typeof callback == "function" && callback(-1);
                 });
 
             }

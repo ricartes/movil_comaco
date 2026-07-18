@@ -34,7 +34,7 @@ function unwrapAsmx(value) {
 
 test('1 serialización nativa conserva exactamente el contrato JavaScript', () => {
     const input = request.entrada;
-    assert.deepEqual(Object.keys(input), ['ID_UNICO_SEGUIMIENTO', 'UUID_DISPOSITIVO', 'TOKEN_SEGUIMIENTO', 'VERSION_APP', 'POSICIONES']);
+    assert.deepEqual(Object.keys(input), ['ID_UNICO_SEGUIMIENTO', 'UUID_DISPOSITIVO', 'TOKEN_SEGUIMIENTO', 'VERSION_APP', 'ID_INSTALACION', 'TOKEN_INSTALACION', 'POSICIONES']);
     for (const key of Object.keys(input)) assert.match(uploader, new RegExp('"' + key + '"'));
     assert.match(uploader, /wrapper\.put\("entrada",input\)/);
 });
@@ -204,7 +204,7 @@ test('28 token no aparece en eventos o llamadas Log', () => {
 });
 
 test('29 implementación browser expone toda la API sin romper build', () => {
-    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy','presentPowerRemediation','prepararAuditoriaLogin','confirmarAuditoriaLoginOnline','registrarAuditoriaLogin','auditarConfiguracion','solicitarDrenajeAuditoria','descartarAuditoria','obtenerEstadoAuditoria','suscribirEstadoSalud']) {
+    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy','presentPowerRemediation','prepararAuditoriaLogin','confirmarAuditoriaLoginOnline','registrarAuditoriaLogin','auditarConfiguracion','solicitarDrenajeAuditoria','descartarAuditoria','obtenerEstadoAuditoria','obtenerCredencialInstalacion','suscribirEstadoSalud']) {
         assert.match(browser, new RegExp(action + ':'));
         assert.match(bridge, new RegExp(action + ':'));
     }

@@ -9,6 +9,7 @@ var diagnostico = {
 };
 var estado = { configurado: false, servicioActivo: false, seguimientosActivos: 0, pendientes: 0, plataforma: "browser", decision: diagnostico.decision, enforcement: diagnostico.enforcement, policyDiagnostic: diagnostico };
 var auditoria = { ID_INSTALACION: "00000000-0000-4000-8000-000000000001", PENDIENTES: 0 };
+var credencialInstalacion = { ID_INSTALACION: auditoria.ID_INSTALACION, TOKEN_INSTALACION: "browser-only-token" };
 function ok(value) { return Promise.resolve(value); }
 function eventId() { return "00000000-0000-4000-8000-" + String(Date.now()).padStart(12, "0").slice(-12); }
 var api = {
@@ -47,6 +48,7 @@ var api = {
     solicitarDrenajeAuditoria: function () { return ok(auditoria); },
     descartarAuditoria: function () { auditoria.PENDIENTES = Math.max(0, auditoria.PENDIENTES - 1); return ok(auditoria); },
     obtenerEstadoAuditoria: function () { return ok(auditoria); },
+    obtenerCredencialInstalacion: function () { return ok(credencialInstalacion); },
     suscribirEstadoSalud: function () { return undefined; }
 };
 module.exports = api;

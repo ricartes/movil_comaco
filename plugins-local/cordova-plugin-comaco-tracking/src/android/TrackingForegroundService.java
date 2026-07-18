@@ -47,6 +47,7 @@ public final class TrackingForegroundService extends Service implements Location
     private boolean foregroundPromoted = false;
     private TrackingStore store;
     private TrackingUploader uploader;
+    private DeviceAuditStore installationIdentityStore;
     private LocationManager locations;
     private ConnectivityManager connectivity;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -129,7 +130,13 @@ public final class TrackingForegroundService extends Service implements Location
         store = new TrackingStore(getApplicationContext());
         startedWithPolicyOverride = store.lastStartUserOverrideUsed();
         store.recordServiceCreated(UUID.randomUUID().toString());
-        uploader = new TrackingUploader(store, () -> {
+        try {
+            installationIdentityStore = new DeviceAuditStore(getApplicationContext());
+        } catch (RuntimeException exception) {
+            store.event("GPS_IDENTITY_UNAVAILABLE", exception.getClass().getSimpleName());
+            installationIdentityStore = null;
+        }
+        uploader = new TrackingUploader(store, installationIdentityStore, () -> {
             if (handler != null) {
                 handler.post(this::afterDrain);
             }
@@ -172,6 +179,11 @@ public final class TrackingForegroundService extends Service implements Location
             store.event(
                     "SERVICE_COMMAND",
                     reason == null ? "sin_motivo" : reason);
+        }
+
+        if (installationIdentityStore != null) {
+            installationIdentityStore.close();
+            installationIdentityStore = null;
         }
 
         refresh();

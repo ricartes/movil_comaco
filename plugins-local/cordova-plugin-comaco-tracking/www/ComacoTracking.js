@@ -33,6 +33,7 @@ module.exports = {
     solicitarDrenajeAuditoria: function (motivo) { return invoke("solicitarDrenajeAuditoria", { motivo: motivo || "manual" }); },
     descartarAuditoria: function (idEvento) { return invoke("descartarAuditoria", { ID_EVENTO: idEvento }); },
     obtenerEstadoAuditoria: function () { return invoke("obtenerEstadoAuditoria"); },
+    obtenerCredencialInstalacion: function () { return invoke("obtenerCredencialInstalacion"); },
     suscribirEstadoSalud: function (onUpdate, onError) {
         exec(onUpdate, onError, "ComacoTracking", "suscribirEstadoSalud", []);
     }

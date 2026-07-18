@@ -144,6 +144,18 @@ final class DeviceAuditCoordinator {
         return auditStore.state();
     }
 
+    JSONObject installationCredential() throws Exception {
+        DeviceAuditStore.InstallationCredential credential = auditStore.installationCredential();
+        if (credential == null) {
+            throw new IllegalStateException("CREDENCIAL_INSTALACION_NO_DISPONIBLE");
+        }
+        try {
+            return credential.toJson();
+        } finally {
+            credential.clear();
+        }
+    }
+
     void close() {
         uploader.close();
         auditStore.close();

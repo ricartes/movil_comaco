@@ -24,13 +24,20 @@ import android.os.SystemClock;
 final class TrackingUploader {
     private static final Set<String> CREDENTIAL_CODES = new HashSet<>(Arrays.asList(
             "CREDENCIAL_NO_AUTORIZADA", "CREDENCIAL_REVOCADA", "CREDENCIAL_EXPIRADA",
-            "DISPOSITIVO_NO_AUTORIZADO", "SEGUIMIENTO_NO_ACTIVO"));
+            "DISPOSITIVO_NO_AUTORIZADO", "SEGUIMIENTO_NO_ACTIVO",
+            "CREDENCIAL_INSTALACION_INVALIDA", "CREDENCIAL_INSTALACION_NO_AUTORIZADA",
+            "DISPOSITIVO_REVOCADO", "DEVICE_TRACKING_MISMATCH"));
     private final TrackingStore store;
+    private final DeviceAuditStore identityStore;
     private final Runnable onFinished;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean draining = new AtomicBoolean(false);
 
-    TrackingUploader(TrackingStore store, Runnable onFinished) { this.store=store; this.onFinished=onFinished; }
+    TrackingUploader(TrackingStore store, DeviceAuditStore identityStore, Runnable onFinished) {
+        this.store=store;
+        this.identityStore=identityStore;
+        this.onFinished=onFinished;
+    }
 
     void drain(String reason) {
         if (!draining.compareAndSet(false,true)) {
@@ -72,7 +79,14 @@ final class TrackingUploader {
     }
 
     private void uploadOnce(TrackingStore.UploadBatch batch) throws Exception {
-        JSONObject request = request(batch);
+        DeviceAuditStore.InstallationCredential credential = null;
+        JSONObject request;
+        try {
+            credential = identityStore == null ? null : identityStore.installationCredential();
+            request = request(batch, credential);
+        } finally {
+            if (credential != null) credential.clear();
+        }
         HttpsURLConnection connection=null;
         long started=SystemClock.elapsedRealtime();
         try {
@@ -96,11 +110,21 @@ final class TrackingUploader {
     }
 
     static JSONObject request(TrackingStore.UploadBatch batch) throws Exception {
+        return request(batch, null);
+    }
+
+    static JSONObject request(
+            TrackingStore.UploadBatch batch,
+            DeviceAuditStore.InstallationCredential credential) throws Exception {
         JSONObject input=new JSONObject();
         input.put("ID_UNICO_SEGUIMIENTO",batch.trackingId);
         input.put("UUID_DISPOSITIVO",batch.deviceUuid);
         input.put("TOKEN_SEGUIMIENTO",batch.token);
         input.put("VERSION_APP",batch.appVersion==null?"":batch.appVersion);
+        if (credential != null) {
+            input.put("ID_INSTALACION", credential.installationId);
+            input.put("TOKEN_INSTALACION", credential.token);
+        }
         JSONArray positions=new JSONArray();
         for(TrackingStore.OutboxItem p:batch.items){
             JSONObject o=new JSONObject(); o.put("UUID_POSICION",p.uuidPosition);

@@ -160,7 +160,7 @@ test('inicialización idempotente conserva un único intervalo de diez segundos'
     assert.equal(Array.from(escenario.intervalos.values())[0].demora, 10000);
 });
 
-test('solicitud inmediata en primer plano alcanza Recibe_Guia_V2 sin background', async () => {
+test('solicitud inmediata en primer plano alcanza Recibe_Guia_V3 sin background', async () => {
     const escenario = crearEscenario();
     escenario.contexto.cicloEnvioAutomaticoDatos = function () {
         return escenario.contexto.EnvioAutomatico_segundo_plano(1, 1);
@@ -326,6 +326,18 @@ test('Recibe_Guia_V2 selecciona guías nuevas I y excluye anulaciones N', () => 
     assert.match(selector, /GDE_ESTADO_MOVIL=\?/);
     assert.match(selector, /Obtener_dato_local\("rut_activo"\), "0", "I"/);
     assert.doesNotMatch(selector, /"N"|IN\s*\(\?,\?\)/);
+});
+
+test('envio de guia usa identidad autenticada de instalacion', () => {
+    const inicio = webServices.indexOf('function enviar_guias_proveedor');
+    const fin = webServices.indexOf('function enviar_evidencias_proveedor', inicio);
+    const cuerpo = webServices.slice(inicio, fin);
+    assert.match(cuerpo, /Recibe_Guia_V3/);
+    assert.match(cuerpo, /obtenerCredencialInstalacion/);
+    assert.match(cuerpo, /idInstalacion:/);
+    assert.match(cuerpo, /tokenInstalacion:/);
+    assert.match(cuerpo, /idUsuario:/);
+    assert.doesNotMatch(cuerpo, /Recibe_Guia_V2/);
 });
 
 test('una guía ya enviada conserva exclusivamente el endpoint de anulación', () => {

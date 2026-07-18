@@ -64,6 +64,20 @@ test('lotes mantienen orden cronológico y máximo 50', () => {
     assert.match(store, /if \(!accepted\.contains\(event\.id\)\)/);
 });
 
+test('identidad de instalacion se reutiliza sin acoplar los uploaders', () => {
+    const trackingUploader = read(java + 'TrackingUploader.java');
+    assert.match(store, /InstallationCredential/);
+    assert.match(store, /cipher\.decrypt/);
+    assert.match(trackingUploader, /ID_INSTALACION/);
+    assert.match(trackingUploader, /TOKEN_INSTALACION/);
+    assert.match(trackingUploader, /credential\.clear\(\)/);
+    assert.doesNotMatch(trackingUploader, /DeviceAuditUploader|audit_outbox/);
+    assert.match(webservices, /Recibe_Guia_V3/);
+    assert.match(webservices, /obtenerCredencialInstalacion/);
+    assert.match(webservices, /idUsuario: idUsuario/);
+    assert.match(webservices, /credencial\.TOKEN_INSTALACION = null/);
+});
+
 test('JobScheduler recupera el outbox con red sin usar el servicio GPS', () => {
     const job = read(java + 'DeviceAuditJobService.java');
     assert.match(job, /NETWORK_TYPE_ANY/);
