@@ -23,7 +23,9 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
         try {
             deviceAudit = new DeviceAuditCoordinator(
                     cordova.getContext().getApplicationContext(), store, inspector);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
+            Log.i("ComacoTracking", "[AUDIT][AUDIT_BACKOFF] reason=coordinator_init_"
+                    + exception.getClass().getSimpleName());
             deviceAudit = null;
         }
     }
@@ -81,7 +83,9 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                     if (deviceAudit != null) {
                         try {
                             deviceAudit.configure(args.getJSONObject(0));
-                        } catch (Exception ignored) {
+                        } catch (Exception exception) {
+                            Log.i("ComacoTracking", "[AUDIT][AUDIT_BACKOFF] reason=configure_"
+                                    + exception.getClass().getSimpleName());
                             // La auditorÃ­a nunca bloquea la configuraciÃ³n ni el tracking GPS.
                         }
                     }
@@ -220,6 +224,9 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
         } catch (Exception exception) {
             if (!isAuditAction(action)) {
                 store.event("PUENTE_ERROR", action + ":" + exception.getClass().getSimpleName());
+            } else {
+                Log.i("ComacoTracking", "[AUDIT][AUDIT_BACKOFF] reason=bridge_"
+                        + action + "_" + exception.getClass().getSimpleName());
             }
             callback.error(new JSONObject(java.util.Collections.singletonMap(
                     "codigo",

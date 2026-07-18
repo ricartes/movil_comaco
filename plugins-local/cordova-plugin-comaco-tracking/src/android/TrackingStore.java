@@ -100,6 +100,11 @@ final class TrackingStore extends SQLiteOpenHelper {
             throw new IllegalArgumentException("URL_SERVICIO debe usar HTTPS.");
         }
         while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+        String previousBase = null;
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT base_url FROM tracking_config WHERE id=1", null)) {
+            if (cursor.moveToFirst() && !cursor.isNull(0)) previousBase = cursor.getString(0);
+        }
         ContentValues v = new ContentValues();
         v.put("id", 1); v.put("base_url", base);
         v.put("interval_ms", bounded(input.optLong("INTERVALO_MS", 1000), 1000, 60000, "INTERVALO_MS"));
@@ -113,8 +118,20 @@ final class TrackingStore extends SQLiteOpenHelper {
         v.put("app_version", input.optString("VERSION_APP", ""));
         v.put("updated_ms", System.currentTimeMillis());
         getWritableDatabase().insertWithOnConflict("tracking_config", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+        if (previousBase != null && !previousBase.equals(base)) {
+            expeditePending("url_changed");
+        }
         event("CONFIGURED", null);
         return state(false);
+    }
+
+    synchronized void expeditePending(String reason) {
+        ContentValues values = new ContentValues();
+        values.put("next_retry_ms", 0);
+        values.put("updated_ms", System.currentTimeMillis());
+        int count = getWritableDatabase().update(
+                "position_outbox", values, "state='PENDIENTE'", null);
+        event("GPS_BACKOFF", "reason=expedited_" + reason + " positions=" + count);
     }
 
     private int currentMigrationFlag() {
@@ -208,9 +225,10 @@ final class TrackingStore extends SQLiteOpenHelper {
             }
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
-        event("LOCATION","provider="+location.getProvider()+" accuracy="+(location.hasAccuracy()?Math.round(location.getAccuracy()):"na")+" ageMs="+Math.max(0,System.currentTimeMillis()-location.getTime()));
-        event("DB_COMMIT","positions="+generated);
-        if(generated>0) event("OUTBOX_CREATED","positions="+generated);
+        event("GPS_CAPTURE","provider="+location.getProvider()+" accuracy="+(location.hasAccuracy()?Math.round(location.getAccuracy()):"na")+" ageMs="+Math.max(0,System.currentTimeMillis()-location.getTime()));
+        event("GPS_DB_COMMIT","positions="+generated);
+        if(generated>0) event("GPS_OUTBOX_CREATED","positions="+generated);
+        logPendingCount();
         return generated;
     }
 
@@ -238,11 +256,13 @@ final class TrackingStore extends SQLiteOpenHelper {
         SQLiteDatabase db=getWritableDatabase(); long now=System.currentTimeMillis(); db.beginTransaction();
         try { for(OutboxItem p:sent) if(accepted.contains(p.uuidPosition)) db.execSQL("UPDATE position_outbox SET state='CONFIRMADA',sending_since_ms=NULL,updated_ms=?,last_error=NULL WHERE uuid_position=?",new Object[]{now,p.uuidPosition}); db.setTransactionSuccessful(); } finally { db.endTransaction(); }
         completeFinalizations();
+        logPendingCount();
     }
 
     synchronized void fail(List<OutboxItem> sent, String code, boolean credentialError) {
         long now=System.currentTimeMillis(); SQLiteDatabase db=getWritableDatabase(); db.beginTransaction();
         try { for(OutboxItem p:sent) { int attempts=attempts(p.uuidPosition)+1; long backoff=Math.min(60L*60L*1000L,15000L*(1L<<Math.min(attempts-1,8))); db.execSQL("UPDATE position_outbox SET state=?,attempts=?,next_retry_ms=?,sending_since_ms=NULL,updated_ms=?,last_error=? WHERE uuid_position=?",new Object[]{credentialError?CREDENTIAL_ERROR:PENDING,attempts,now+backoff,now,safe(code),p.uuidPosition}); } db.setTransactionSuccessful(); } finally { db.endTransaction(); }
+        logPendingCount();
     }
 
     synchronized void releaseUnacknowledged(List<OutboxItem> sent, Set<String> accepted) { List<OutboxItem> missing=new ArrayList<>(); for(OutboxItem p:sent) if(!accepted.contains(p.uuidPosition)) missing.add(p); fail(missing,"ACK_INCOMPLETO",false); }
@@ -385,6 +405,7 @@ final class TrackingStore extends SQLiteOpenHelper {
 
     synchronized void event(String type,String detail){ writeEvent(type,detail,180); }
     synchronized void diagnosticEvent(String type,String detail){ writeEvent(type,detail,3500); }
+    private void logPendingCount(){event("GPS_PENDING_COUNT","pending="+scalar("SELECT COUNT(*) FROM position_outbox WHERE state='PENDIENTE'",null)+" sending="+scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ENVIANDO'",null));}
     private void writeEvent(String type,String detail,int maxDetail){String safeType=safe(type);String safeDetail=safe(detail,maxDetail);String prefix=(safeType.startsWith("SCREEN_")?"[APP]":"[GPS_NATIVE]")+"["+safeType+"]";Log.i("ComacoTracking",prefix+" utc="+iso(System.currentTimeMillis())+" elapsed="+SystemClock.elapsedRealtime()+" pid="+android.os.Process.myPid()+(safeDetail==null?"":" "+safeDetail));ContentValues v=new ContentValues();v.put("event_type",safeType);v.put("detail",safeDetail);v.put("created_ms",System.currentTimeMillis());getWritableDatabase().insert("technical_event",null,v);}
 
     private void completeFinalizations(){ SQLiteDatabase db=getWritableDatabase(); db.execSQL("UPDATE active_tracking SET status='FINAL',token_cipher=NULL,token_iv=NULL,updated_ms=? WHERE status='FINALIZANDO' AND NOT EXISTS (SELECT 1 FROM position_outbox o WHERE o.tracking_id=active_tracking.tracking_id AND o.state NOT IN ('CONFIRMADA','FINAL'))",new Object[]{System.currentTimeMillis()}); }

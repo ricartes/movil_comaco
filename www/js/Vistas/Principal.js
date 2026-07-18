@@ -10,7 +10,7 @@ var usuario_activo;
 
 
 //var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-var url_server_nuevo = "https://67b7-2800-300-6231-bc0-a8d5-2441-1c67-f3c1.ngrok-free.app";
+var url_server_nuevo = "https://2a53-2800-300-6231-bc0-f05f-b17-77ae-45be.ngrok-free.app";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
@@ -479,10 +479,9 @@ function inicializarProgramadorEnvioDatos() {
                 if (typeof AUDITORIA_auditarConfiguracion === "function") {
                     AUDITORIA_auditarConfiguracion("conexion_recuperada").catch(function () {});
                 }
-            } else {
-                if (typeof AUDITORIA_solicitarDrenaje === "function") {
-                    AUDITORIA_solicitarDrenaje("conexion_recuperada").catch(function () {});
-                }
+            }
+            if (typeof AUDITORIA_solicitarDrenaje === "function") {
+                AUDITORIA_solicitarDrenaje("conexion_recuperada").catch(function () {});
             }
         }, false);
         listenerOnlineEnvioDatosRegistrado = true;

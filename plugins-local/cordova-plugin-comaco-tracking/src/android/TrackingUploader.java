@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import android.os.SystemClock;
+
 final class TrackingUploader {
     private static final Set<String> CREDENTIAL_CODES = new HashSet<>(Arrays.asList(
             "CREDENCIAL_NO_AUTORIZADA", "CREDENCIAL_REVOCADA", "CREDENCIAL_EXPIRADA",
@@ -31,34 +33,39 @@ final class TrackingUploader {
     TrackingUploader(TrackingStore store, Runnable onFinished) { this.store=store; this.onFinished=onFinished; }
 
     void drain(String reason) {
-        if (!draining.compareAndSet(false,true)) return;
+        if (!draining.compareAndSet(false,true)) {
+            store.event("GPS_DRAIN_SKIPPED", "reason=single_flight trigger=" + reason);
+            return;
+        }
         executor.execute(() -> {
-            store.event("DRENAJE_INICIADO", reason);
+            store.event("GPS_DRAIN_BEGIN", "trigger=" + reason);
             try {
                 long drainCutoffMs=System.currentTimeMillis();
                 for (int i=0;i<20;i++) {
                     TrackingStore.UploadBatch batch=store.claimBatch(drainCutoffMs);
                     if(batch==null||batch.items.isEmpty()) break;
+                    store.event("GPS_BATCH_SELECTED", "positions=" + batch.items.size());
                     if(!upload(batch)) break;
                 }
             } catch(Exception e) {
-                store.event("DRENAJE_ERROR", e.getClass().getSimpleName());
+                store.event("GPS_BACKOFF", "reason=" + errorCode(e));
             } finally {
                 draining.set(false);
-                store.event("DRENAJE_FINALIZADO", reason);
+                store.event("GPS_DRAIN_END", "trigger=" + reason);
                 if(onFinished!=null) onFinished.run();
             }
         });
     }
 
     private boolean upload(TrackingStore.UploadBatch batch) {
-        store.event("HTTP_BEGIN","positions="+batch.items.size());
+        store.event("GPS_HTTP_BEGIN","positions="+batch.items.size()+" endpoint="+batch.endpoint);
         for(int attempt=0;attempt<=batch.shortRetries;attempt++){
-            try { uploadOnce(batch); store.event("HTTP_ACK","positions="+batch.items.size()); return true; }
-            catch(CredentialFailure e){store.fail(batch.items,e.code,true);store.event("HTTP_ERROR","credential="+e.code);return false;}
+            try { uploadOnce(batch); store.event("GPS_ACK","positions="+batch.items.size()); return true; }
+            catch(CredentialFailure e){store.fail(batch.items,e.code,true);store.event("GPS_REJECTED","reason="+e.code);return false;}
             catch(Exception e){
-                if(attempt<batch.shortRetries){store.event("HTTP_SHORT_RETRY","attempt="+(attempt+1));continue;}
-                store.fail(batch.items,e.getClass().getSimpleName(),false);store.event("HTTP_ERROR",e.getClass().getSimpleName());return false;
+                String code=errorCode(e);
+                if(attempt<batch.shortRetries){store.event("GPS_BACKOFF","reason=short_retry code="+code+" attempt="+(attempt+1));continue;}
+                store.fail(batch.items,code,false);store.event("GPS_REJECTED","reason="+code);return false;
             }
         }
         return false;
@@ -67,6 +74,7 @@ final class TrackingUploader {
     private void uploadOnce(TrackingStore.UploadBatch batch) throws Exception {
         JSONObject request = request(batch);
         HttpsURLConnection connection=null;
+        long started=SystemClock.elapsedRealtime();
         try {
             connection=(HttpsURLConnection)new URL(batch.endpoint).openConnection();
             connection.setRequestMethod("POST");
@@ -81,6 +89,7 @@ final class TrackingUploader {
             int status=connection.getResponseCode();
             InputStream stream=status>=200&&status<300?connection.getInputStream():connection.getErrorStream();
             String body=read(stream);
+            store.event("GPS_HTTP_RESULT","status="+status+" durationMs="+(SystemClock.elapsedRealtime()-started));
             if(status<200||status>=300) throw new IllegalStateException("HTTP_"+status);
             acknowledge(batch,body);
         } finally { if(connection!=null)connection.disconnect(); }
@@ -128,5 +137,10 @@ final class TrackingUploader {
 
     private static void nullable(JSONObject o,String key,Double value)throws Exception{o.put(key,value==null?JSONObject.NULL:value);}
     private static String read(InputStream stream)throws Exception{if(stream==null)return "";StringBuilder s=new StringBuilder();try(BufferedReader r=new BufferedReader(new InputStreamReader(stream,StandardCharsets.UTF_8))){String line;while((line=r.readLine())!=null)s.append(line);}return s.toString();}
+    private static String errorCode(Exception exception) {
+        String message=exception.getMessage();
+        if(message!=null&&message.matches("[A-Z0-9_\\-]{1,80}")) return message;
+        return exception.getClass().getSimpleName();
+    }
     private static final class CredentialFailure extends Exception { final String code; CredentialFailure(String code){super(code);this.code=code;} }
 }

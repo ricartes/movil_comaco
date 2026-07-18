@@ -14,6 +14,7 @@ const inspector = read(java + 'PowerPolicyInspector.java');
 const plugin = read(java + 'ComacoTrackingPlugin.java');
 const pluginXml = read('plugins-local/cordova-plugin-comaco-tracking/plugin.xml');
 const webservices = read('www/js/WebServices.js');
+const gpsTracking = read('www/js/Helper/gpsTracking.js');
 const principal = read('www/js/Vistas/Principal.js');
 const tables = read('www/js/Datos/Tablas.js');
 const schemaVersions = read('www/js/Datos/migraciones/Versiones.js');
@@ -49,7 +50,11 @@ test('token de instalación se cifra con alias independiente', () => {
     assert.match(store, /comaco_device_audit_token_v1/);
     assert.match(store, /cipher\.encrypt/);
     assert.doesNotMatch(store, /token TEXT|token_clear/);
-    assert.doesNotMatch([store, uploader, coordinator].join('\n'), /Log\./);
+    const sources = [store, uploader, coordinator].join('\n');
+    const logCalls = sources.match(/(?:Log\.[a-z]+|logEvent)\([\s\S]*?\);/g) || [];
+    for (const call of logCalls) {
+        assert.doesNotMatch(call, /batch\.token|token_cipher|token_iv|TOKEN_INSTALACION/);
+    }
 });
 
 test('lotes mantienen orden cronológico y máximo 50', () => {
@@ -110,6 +115,36 @@ test('fallas de auditoría no escriben el health de tracking', () => {
     const run = plugin.indexOf('private void run');
     const configure = plugin.slice(plugin.indexOf('case "configurar"', run), plugin.indexOf('case "sincronizarSeguimientos"', run));
     assert.match(configure, /try \{/);
-    assert.match(configure, /catch \(Exception ignored\)/);
+    assert.match(configure, /catch \(Exception exception\)/);
+    assert.match(configure, /AUDIT_BACKOFF/);
     assert.doesNotMatch(uploader, /DEGRADED|TrackingHealthMonitor|position_outbox/);
+});
+
+test('URL compilada vigente reemplaza SQLite obsoleto y puede reconfigurarse', () => {
+    const compiled = gpsTracking.indexOf('typeof url_server_nuevo');
+    const persisted = gpsTracking.indexOf('result && result.PAG_VALOR');
+    assert.ok(compiled >= 0 && compiled < persisted);
+    assert.match(gpsTracking, /SEGUIMIENTO_configuracionNativaUrl === urlNormalizada/);
+    assert.match(gpsTracking, /SEGUIMIENTO_configuracionNativaUrl = urlNormalizada/);
+    assert.match(gpsTracking, /AUDITORIA_solicitarDrenaje[\s\S]*configurarSeguimientoNativo\(\)/);
+});
+
+test('instrumentacion conserva codigo HTTP sin registrar credenciales', () => {
+    assert.match(uploader, /AUDIT_HTTP_RESULT/);
+    assert.match(uploader, /AUDIT_DRAIN_END/);
+    assert.match(uploader, /errorCode\(exception\)/);
+    assert.doesNotMatch(uploader, /logEvent\([^;]*(?:batch\.token|Authorization)/);
+});
+
+test('cambio de URL y recuperacion de red adelantan sin borrar auditorias', () => {
+    assert.match(store, /!previousBase\.equals\(baseUrl\)[\s\S]*expeditePending\("url_changed"\)/);
+    assert.match(coordinator, /"conexion_recuperada"\.equals\(reason\)[\s\S]*expeditePending\("network_available"\)/);
+    const expedite = store.slice(store.indexOf('void expeditePending'), store.indexOf('synchronized void saveSnapshot'));
+    assert.match(expedite, /state='PENDIENTE'/);
+    assert.doesNotMatch(expedite, /delete\(/);
+    const job = read(java + 'DeviceAuditJobService.java');
+    assert.match(job, /JOB_ID_RECOVERY[\s\S]*expeditePending\("job_network"\)/);
+    const finished = job.slice(job.indexOf('uploader = new DeviceAuditUploader'), job.indexOf('public boolean onStopJob'));
+    assert.doesNotMatch(finished, /schedule\(getApplicationContext\(\)\)/);
+    assert.match(finished, /jobFinished\(params,[\s\S]*retryable\)/);
 });

@@ -84,6 +84,11 @@ final class DeviceAuditCoordinator {
         JSONObject snapshot = collect("login_exitoso");
         DeviceAuditStore.Event event = auditStore.enqueueLogin(
                 snapshot, loginType, userId, userKey, networkAvailable(), null);
+        if ("OFFLINE".equalsIgnoreCase(loginType)) {
+            auditStore.logEvent("AUDIT_LOGIN_OFFLINE_SUCCESS", "id="
+                    + event.id.substring(0, Math.min(8, event.id.length()))
+                    + " userIdAvailable=" + (userId != null));
+        }
         if (auditStore.canUpload()) {
             DeviceAuditJobService.schedule(context);
             uploader.drain("login_local");
@@ -118,9 +123,19 @@ final class DeviceAuditCoordinator {
     }
 
     JSONObject drain(String reason) throws Exception {
+        boolean online = networkAvailable();
+        if (online) {
+            auditStore.logEvent("AUDIT_NETWORK_AVAILABLE", "trigger=" + reason);
+        }
+        if ("conexion_recuperada".equals(reason)) {
+            auditStore.expeditePending("network_available");
+        }
         if (auditStore.canUpload()) {
             DeviceAuditJobService.schedule(context);
             uploader.drain(reason);
+        } else {
+            auditStore.logEvent("AUDIT_DRAIN_SKIPPED",
+                    "reason=credential_unavailable trigger=" + reason);
         }
         return auditStore.state();
     }

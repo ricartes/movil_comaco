@@ -47,6 +47,10 @@ public final class DeviceAuditJobService extends JobService {
     public synchronized boolean onStartJob(JobParameters params) {
         if (store != null) return false;
         store = new DeviceAuditStore(getApplicationContext());
+        store.logEvent("AUDIT_NETWORK_AVAILABLE", "trigger=job jobId=" + params.getJobId());
+        if (params.getJobId() == JOB_ID_RECOVERY) {
+            store.expeditePending("job_network");
+        }
         if (params.getJobId() == JOB_ID_DAILY) {
             TrackingStore trackingStore = new TrackingStore(getApplicationContext());
             try {
@@ -54,7 +58,9 @@ public final class DeviceAuditJobService extends JobService {
                 store.enqueueConfiguration(
                         inspector.inspect(trackingStore, "reporte_24h", false),
                         null, null, true);
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                store.logEvent("AUDIT_BACKOFF", "reason=daily_snapshot_"
+                        + exception.getClass().getSimpleName());
                 // La auditorÃ­a periÃ³dica no altera el tracking ni su health.
             } finally {
                 trackingStore.close();
@@ -63,7 +69,6 @@ public final class DeviceAuditJobService extends JobService {
         uploader = new DeviceAuditUploader(store, () -> {
             boolean pending = store != null && store.hasPending();
             boolean retryable = pending && store != null && store.canUpload();
-            if (retryable) schedule(getApplicationContext());
             if (uploader != null) {
                 uploader.close();
                 uploader = null;

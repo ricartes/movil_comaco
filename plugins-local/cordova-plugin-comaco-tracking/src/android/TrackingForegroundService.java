@@ -236,6 +236,7 @@ public final class TrackingForegroundService extends Service implements Location
     private final Runnable periodicDrain = new Runnable() {
         @Override
         public void run() {
+            store.event("GPS_DRAIN_TICK", "intervalMs=" + UPLOAD_INTERVAL_MS);
             uploader.drain("periodico");
             if (handler != null)
                 handler.postDelayed(this, UPLOAD_INTERVAL_MS);
@@ -245,7 +246,7 @@ public final class TrackingForegroundService extends Service implements Location
     private synchronized void requestLocations() {
         if (locationUpdatesRegistered) {
             store.event(
-                    "REQUEST_UPDATES_SKIPPED",
+                    "GPS_REQUEST_UPDATES_SKIPPED",
                     "reason=already_registered");
             return;
         }
@@ -276,7 +277,7 @@ public final class TrackingForegroundService extends Service implements Location
             locationRegistrationGeneration = registrationGeneration;
 
             store.event(
-                    "REQUEST_UPDATES",
+                    "GPS_REQUEST_UPDATES",
                     "provider=gps intervalMs=" +
                             store.intervalMs() +
                             " distanceM=" +
@@ -360,6 +361,7 @@ public final class TrackingForegroundService extends Service implements Location
             @Override
             public void onAvailable(@NonNull Network network) {
                 store.event("NETWORK_AVAILABLE", null);
+                store.expeditePending("network_available");
                 if (uploader != null)
                     uploader.drain("red_disponible");
             }

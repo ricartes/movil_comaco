@@ -3,6 +3,8 @@ package io.gestionasi.comaco.tracking;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.os.SystemClock;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,19 +37,32 @@ final class DeviceAuditUploader {
     }
 
     void drain(String reason) {
-        if (closed.get()) return;
-        if (!draining.compareAndSet(false, true)) return;
+        if (closed.get()) {
+            store.logEvent("AUDIT_DRAIN_SKIPPED", "reason=closed trigger=" + reason);
+            return;
+        }
+        if (!draining.compareAndSet(false, true)) {
+            store.logEvent("AUDIT_DRAIN_SKIPPED", "reason=single_flight trigger=" + reason);
+            return;
+        }
         executor.execute(() -> {
+            store.logEvent("AUDIT_DRAIN_BEGIN", "trigger=" + reason);
             try {
                 for (int i = 0; i < 20; i++) {
                     DeviceAuditStore.Batch batch = store.claimBatch();
-                    if (batch == null || batch.events.isEmpty()) break;
+                    if (batch == null || batch.events.isEmpty()) {
+                        store.logEvent("AUDIT_BATCH_SELECTED", "count=0");
+                        break;
+                    }
                     if (!upload(batch)) break;
                 }
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                store.logEvent("AUDIT_BACKOFF", "reason=" + errorCode(exception));
                 // El uploader de auditorías nunca modifica el health ni el outbox GPS.
             } finally {
                 draining.set(false);
+                store.logEvent("AUDIT_DRAIN_END", "trigger=" + reason
+                        + " pending=" + store.pendingCount());
                 if (!closed.get() && onFinished != null) onFinished.run();
             }
         });
@@ -63,7 +78,10 @@ final class DeviceAuditUploader {
             uploadOnce(batch);
             return true;
         } catch (Exception exception) {
-            store.fail(batch.events, exception.getMessage());
+            String code = errorCode(exception);
+            store.logEvent("AUDIT_REJECTED", "count=" + batch.events.size()
+                    + " reason=" + code);
+            store.fail(batch.events, code);
             return false;
         } finally {
             batch.token = null;
@@ -72,6 +90,7 @@ final class DeviceAuditUploader {
 
     private void uploadOnce(DeviceAuditStore.Batch batch) throws Exception {
         HttpsURLConnection connection = null;
+        long started = SystemClock.elapsedRealtime();
         try {
             URL url = new URL(batch.endpoint);
             if (!"https".equalsIgnoreCase(url.getProtocol())) {
@@ -85,6 +104,8 @@ final class DeviceAuditUploader {
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("Authorization", "Bearer " + batch.token);
+            store.logEvent("AUDIT_HTTP_BEGIN", "count=" + batch.events.size()
+                    + " endpoint=" + batch.endpoint);
             byte[] body = batch.request().toString().getBytes(StandardCharsets.UTF_8);
             connection.setFixedLengthStreamingMode(body.length);
             try (OutputStream output = connection.getOutputStream()) {
@@ -95,6 +116,8 @@ final class DeviceAuditUploader {
                     ? connection.getInputStream()
                     : connection.getErrorStream();
             String responseBody = read(stream);
+            store.logEvent("AUDIT_HTTP_RESULT", "status=" + status + " durationMs="
+                    + (SystemClock.elapsedRealtime() - started));
             if (status < 200 || status >= 300) throw new IllegalStateException("HTTP_" + status);
             acknowledge(batch, responseBody);
         } finally {
@@ -114,11 +137,15 @@ final class DeviceAuditUploader {
         Set<String> sent = new HashSet<>();
         for (DeviceAuditStore.Event event : batch.events) sent.add(event.id);
         Set<String> accepted = new HashSet<>();
-        collectIds(response.optJSONArray("ID_EVENTOS_ACEPTADOS"), sent, accepted);
-        collectIds(response.optJSONArray("ID_EVENTOS_DUPLICADOS"), sent, accepted);
+        int acceptedCount = collectIds(
+                response.optJSONArray("ID_EVENTOS_ACEPTADOS"), sent, accepted);
+        int duplicateCount = collectIds(
+                response.optJSONArray("ID_EVENTOS_DUPLICADOS"), sent, accepted);
 
         String serverState = response.optString("ESTADO_DISPOSITIVO", null);
         store.confirm(accepted, batch.events, serverState);
+        store.logEvent("AUDIT_ACCEPTED", "count=" + acceptedCount);
+        store.logEvent("AUDIT_DUPLICATE", "count=" + duplicateCount);
 
         if (accepted.size() != sent.size()) {
             List<DeviceAuditStore.Event> rejected = new ArrayList<>();
@@ -132,15 +159,18 @@ final class DeviceAuditUploader {
         }
     }
 
-    private static void collectIds(JSONArray values, Set<String> sent, Set<String> accepted)
+    private static int collectIds(JSONArray values, Set<String> sent, Set<String> accepted)
             throws Exception {
-        if (values == null) return;
+        if (values == null) return 0;
+        int count = 0;
         for (int i = 0; i < values.length(); i++) {
             String id = values.getString(i);
             if (!sent.contains(id) || !accepted.add(id)) {
                 throw new IllegalStateException("ACK_AUDITORIA_INVALIDO");
             }
+            count++;
         }
+        return count;
     }
 
     private static String read(InputStream stream) throws Exception {
@@ -152,5 +182,11 @@ final class DeviceAuditUploader {
             while ((line = reader.readLine()) != null) value.append(line);
         }
         return value.toString();
+    }
+
+    private static String errorCode(Exception exception) {
+        String message = exception.getMessage();
+        if (message != null && message.matches("[A-Z0-9_\\-]{1,80}")) return message;
+        return exception.getClass().getSimpleName();
     }
 }

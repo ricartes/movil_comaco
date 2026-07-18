@@ -1,11 +1,15 @@
 // Fachada deliberadamente delgada: la captura, persistencia y transmisión viven en Android.
 var SEGUIMIENTO_configuracionNativaPromesa = null;
+var SEGUIMIENTO_configuracionNativaUrl = null;
 
 function SEGUIMIENTO_obtenerDireccionServidor() {
     return new Promise(function (resolve, reject) {
         DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result) {
-            if (result && result.PAG_VALOR) resolve(String(result.PAG_VALOR));
-            else if (typeof url_server_nuevo === "string" && url_server_nuevo) resolve(url_server_nuevo);
+            // Principal.js reemplaza este parámetro al arrancar. El bootstrap técnico
+            // puede ejecutarse antes de que termine ese callback, por lo que la URL
+            // compilada vigente debe prevalecer sobre un valor SQLite obsoleto.
+            if (typeof url_server_nuevo === "string" && url_server_nuevo) resolve(url_server_nuevo);
+            else if (result && result.PAG_VALOR) resolve(String(result.PAG_VALOR));
             else reject(new Error("No existe DIRECCION_SERVIDOR para configurar el seguimiento nativo."));
         });
     });
@@ -19,24 +23,41 @@ function SEGUIMIENTO_pluginNativo() {
 }
 
 function configurarSeguimientoNativo() {
-    if (SEGUIMIENTO_configuracionNativaPromesa) return SEGUIMIENTO_configuracionNativaPromesa;
-    SEGUIMIENTO_configuracionNativaPromesa = SEGUIMIENTO_obtenerDireccionServidor().then(function (baseUrl) {
-        return SEGUIMIENTO_pluginNativo().configurar({
-            URL_SERVICIO: baseUrl,
-            UUID_DISPOSITIVO: (window.device && device.uuid) || Obtener_dato_local("uid") || "browser",
-            VERSION_APP: Obtener_dato_local("version_app") || "",
-            INTERVALO_MS: 1000,
-            DISTANCIA_METROS: 0,
-            TAMANO_LOTE: 50,
-            TIMEOUT_HTTP_MS: 15000,
-            REINTENTOS_CORTOS: 3,
-            VERSION_ESQUEMA: 1
+    return SEGUIMIENTO_obtenerDireccionServidor().then(function (baseUrl) {
+        var urlNormalizada = String(baseUrl).replace(/\/+$/, "");
+        if (SEGUIMIENTO_configuracionNativaPromesa &&
+            SEGUIMIENTO_configuracionNativaUrl === urlNormalizada) {
+            return SEGUIMIENTO_configuracionNativaPromesa;
+        }
+
+        var configuracionAnterior = SEGUIMIENTO_configuracionNativaPromesa || Promise.resolve();
+        var nuevaConfiguracion = configuracionAnterior.catch(function () {
+            // Permite recuperar una configuración fallida sin mantener la promesa
+            // anterior rechazada como bloqueo permanente.
+        }).then(function () {
+            return SEGUIMIENTO_pluginNativo().configurar({
+                URL_SERVICIO: urlNormalizada,
+                UUID_DISPOSITIVO: (window.device && device.uuid) || Obtener_dato_local("uid") || "browser",
+                VERSION_APP: Obtener_dato_local("version_app") || "",
+                INTERVALO_MS: 1000,
+                DISTANCIA_METROS: 0,
+                TAMANO_LOTE: 50,
+                TIMEOUT_HTTP_MS: 15000,
+                REINTENTOS_CORTOS: 3,
+                VERSION_ESQUEMA: 1
+            });
         });
-    }).catch(function (error) {
-        SEGUIMIENTO_configuracionNativaPromesa = null;
-        throw error;
+
+        SEGUIMIENTO_configuracionNativaUrl = urlNormalizada;
+        SEGUIMIENTO_configuracionNativaPromesa = nuevaConfiguracion;
+        return nuevaConfiguracion.catch(function (error) {
+            if (SEGUIMIENTO_configuracionNativaPromesa === nuevaConfiguracion) {
+                SEGUIMIENTO_configuracionNativaPromesa = null;
+                SEGUIMIENTO_configuracionNativaUrl = null;
+            }
+            throw error;
+        });
     });
-    return SEGUIMIENTO_configuracionNativaPromesa;
 }
 
 function SEGUIMIENTO_registrarCredencialesNativas(credenciales) {
@@ -180,5 +201,7 @@ function AUDITORIA_auditarConfiguracion(motivo) {
 
 function AUDITORIA_solicitarDrenaje(motivo) {
     if (typeof ComacoTracking === "undefined") return Promise.resolve();
-    return ComacoTracking.solicitarDrenajeAuditoria(motivo || "javascript");
+    return configurarSeguimientoNativo().then(function () {
+        return ComacoTracking.solicitarDrenajeAuditoria(motivo || "javascript");
+    });
 }

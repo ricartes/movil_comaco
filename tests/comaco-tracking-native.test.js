@@ -273,3 +273,23 @@ test('39 servicio registra el callback real antes de persistir la captura', () =
     const changed = service.slice(service.indexOf('onLocationChanged'), service.indexOf('onProviderDisabled'));
     assert.ok(changed.indexOf('recordLocationCallback') < changed.indexOf('store.capture'));
 });
+
+test('40 instrumentacion GPS cubre captura, ciclo, HTTP, ACK y backoff', () => {
+    for (const event of [
+        'GPS_REQUEST_UPDATES', 'GPS_CAPTURE', 'GPS_DB_COMMIT', 'GPS_OUTBOX_CREATED',
+        'GPS_PENDING_COUNT',
+        'GPS_DRAIN_TICK', 'GPS_DRAIN_BEGIN', 'GPS_DRAIN_SKIPPED',
+        'GPS_BATCH_SELECTED', 'GPS_HTTP_BEGIN', 'GPS_HTTP_RESULT', 'GPS_ACK',
+        'GPS_REJECTED', 'GPS_BACKOFF', 'GPS_DRAIN_END'
+    ]) assert.match(nativeSources, new RegExp(event));
+    assert.match(uploader, /errorCode\(e\)/);
+    assert.match(uploader, /HTTP_"\+status/);
+});
+
+test('41 cambio de URL y NetworkCallback adelantan pendientes sin eliminarlos', () => {
+    assert.match(store, /!previousBase\.equals\(base\)[\s\S]*expeditePending\("url_changed"\)/);
+    assert.match(service, /onAvailable[\s\S]*expeditePending\("network_available"\)[\s\S]*drain\("red_disponible"\)/);
+    const expedite = store.slice(store.indexOf('void expeditePending'), store.indexOf('private int currentMigrationFlag'));
+    assert.match(expedite, /state='PENDIENTE'/);
+    assert.doesNotMatch(expedite, /delete\(/);
+});

@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.SystemClock;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -113,11 +115,28 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
             throw new IllegalArgumentException("AUDITORIA_REQUIERE_HTTPS");
         }
         while (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        String previousBase = null;
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT base_url FROM audit_state WHERE id=1", null)) {
+            if (cursor.moveToFirst() && !cursor.isNull(0)) previousBase = cursor.getString(0);
+        }
         ContentValues values = new ContentValues();
         values.put("base_url", baseUrl);
         values.put("updated_ms", System.currentTimeMillis());
         getWritableDatabase().update("audit_state", values, "id=1", null);
+        if (previousBase != null && !previousBase.equals(baseUrl)) {
+            expeditePending("url_changed");
+        }
         return state();
+    }
+
+    synchronized void expeditePending(String reason) {
+        ContentValues values = new ContentValues();
+        values.put("next_retry_ms", 0);
+        values.put("updated_ms", System.currentTimeMillis());
+        int count = getWritableDatabase().update(
+                "audit_outbox", values, "state='PENDIENTE'", null);
+        logEvent("AUDIT_BACKOFF", "reason=expedited_" + reason + " count=" + count);
     }
 
     synchronized void saveSnapshot(JSONObject snapshot) throws Exception {
@@ -140,8 +159,13 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
                 || "AUTOMATICO".equals(normalized))) {
             throw new IllegalArgumentException("TIPO_LOGIN_INVALIDO");
         }
-        return insertEvent(snapshot, "LOGIN", normalized, userId, userKey,
+        Event event = insertEvent(snapshot, "LOGIN", normalized, userId, userKey,
                 hadInternet, requestedId);
+        logEvent("AUDIT_EVENT_CREATED", "id=" + shortId(event.id)
+                + " type=LOGIN loginType=" + normalized);
+        logEvent("AUDIT_DB_COMMIT", "id=" + shortId(event.id) + " state=PENDIENTE");
+        logEvent("AUDIT_PENDING_COUNT", "count=" + pendingCount());
+        return event;
     }
 
     synchronized Event enqueueConfiguration(
@@ -243,6 +267,8 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
             iv = cursor.getBlob(3);
         }
         batch.token = cipher.decrypt(encrypted, iv);
+        logEvent("AUDIT_TOKEN_AVAILABLE", "available=true installation="
+                + shortId(batch.installationId));
 
         db.beginTransaction();
         try (Cursor cursor = db.rawQuery(
@@ -277,7 +303,9 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
         } finally {
             db.endTransaction();
         }
-        return batch.events.isEmpty() ? null : batch;
+        if (batch.events.isEmpty()) return null;
+        logEvent("AUDIT_BATCH_SELECTED", "count=" + batch.events.size());
+        return batch;
     }
 
     synchronized void confirm(Set<String> accepted, List<Event> sent, String serverState) {
@@ -304,6 +332,8 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
         } finally {
             db.endTransaction();
         }
+        logEvent("AUDIT_ACCEPTED", "count=" + accepted.size());
+        logEvent("AUDIT_PENDING_COUNT", "count=" + pendingCount());
     }
 
     synchronized void fail(List<Event> events, String error) {
@@ -327,6 +357,8 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
             values.put("last_error", safeError(error));
             db.update("audit_outbox", values, "id_event=?", new String[]{event.id});
         }
+        logEvent("AUDIT_BACKOFF", "count=" + events.size() + " reason=" + safeError(error));
+        logEvent("AUDIT_PENDING_COUNT", "count=" + pendingCount());
     }
 
     synchronized boolean hasPending() {
@@ -334,6 +366,19 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
                 "SELECT 1 FROM audit_outbox WHERE state IN ('PENDIENTE','ENVIANDO') LIMIT 1", null)) {
             return cursor.moveToFirst();
         }
+    }
+
+    synchronized int pendingCount() {
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM audit_outbox WHERE state IN ('PENDIENTE','ENVIANDO')", null)) {
+            return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+        }
+    }
+
+    void logEvent(String event, String detail) {
+        Log.i("ComacoTracking", "[AUDIT][" + event + "] utc="
+                + iso(System.currentTimeMillis()) + " elapsed=" + SystemClock.elapsedRealtime()
+                + (detail == null ? "" : " " + detail));
     }
 
     synchronized boolean canUpload() {
@@ -471,5 +516,10 @@ final class DeviceAuditStore extends SQLiteOpenHelper {
         if (error == null) return "ERROR_AUDITORIA";
         String value = error.replaceAll("[^A-Za-z0-9_\\-]", "_");
         return value.substring(0, Math.min(value.length(), 100));
+    }
+
+    private static String shortId(String value) {
+        if (value == null) return "none";
+        return value.substring(0, Math.min(8, value.length()));
     }
 }
