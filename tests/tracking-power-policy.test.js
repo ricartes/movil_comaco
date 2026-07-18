@@ -220,10 +220,13 @@ test('eventos de remediacion usan solo campos tecnicos permitidos', () => {
     assert.doesNotMatch(detail, /latitude|longitude|token|exception\.getMessage/i);
 });
 
-test('distancia GPS configurada y predeterminada es cinco metros sin callbacks artificiales', () => {
-    assert.match(facade, /DISTANCIA_METROS: 5/);
-    assert.match(store, /optDouble\("DISTANCIA_METROS", 5d\)/);
-    assert.match(store, /return c\.moveToFirst\(\)\?c\.getFloat\(0\):5f/);
+test('GPS usa la politica de maximo detalle de un segundo y cero metros sin callbacks artificiales', () => {
+    assert.match(facade, /INTERVALO_MS: 1000/);
+    assert.match(facade, /DISTANCIA_METROS: 0/);
+    assert.match(store, /optLong\("INTERVALO_MS", 1000\), 1000, 60000/);
+    assert.match(store, /optDouble\("DISTANCIA_METROS", 0d\)/);
+    assert.match(store, /scalarLong\("SELECT interval_ms FROM tracking_config WHERE id=1",null,1000\)/);
+    assert.match(store, /return c\.moveToFirst\(\)\?c\.getFloat\(0\):0f/);
     assert.match(service, /requestLocationUpdates\([\s\S]*store\.intervalMs\(\),[\s\S]*store\.distanceM\(\)/);
     assert.match(service, /REQUEST_UPDATES[\s\S]*distanceM=" \+[\s\S]*store\.distanceM\(\)/);
     assert.doesNotMatch(service, /lastKnownLocation|new Location\(|simulate|artificial/i);

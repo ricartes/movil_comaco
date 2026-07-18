@@ -102,8 +102,8 @@ final class TrackingStore extends SQLiteOpenHelper {
         while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         ContentValues v = new ContentValues();
         v.put("id", 1); v.put("base_url", base);
-        v.put("interval_ms", bounded(input.optLong("INTERVALO_MS", 5000), 5000, 60000, "INTERVALO_MS"));
-        v.put("distance_m", boundedDouble(input.optDouble("DISTANCIA_METROS", 5d), 0d, 1000d, "DISTANCIA_METROS"));
+        v.put("interval_ms", bounded(input.optLong("INTERVALO_MS", 1000), 1000, 60000, "INTERVALO_MS"));
+        v.put("distance_m", boundedDouble(input.optDouble("DISTANCIA_METROS", 0d), 0d, 1000d, "DISTANCIA_METROS"));
         v.put("batch_size", (int) bounded(input.optLong("TAMANO_LOTE", 50), 1, 200, "TAMANO_LOTE"));
         v.put("timeout_ms", (int) bounded(input.optLong("TIMEOUT_HTTP_MS", 15000), 5000, 120000, "TIMEOUT_HTTP_MS"));
         v.put("max_short_retries", (int) bounded(input.optLong("REINTENTOS_CORTOS", 3), 0, 10, "REINTENTOS_CORTOS"));
@@ -214,11 +214,11 @@ final class TrackingStore extends SQLiteOpenHelper {
         return generated;
     }
 
-    synchronized UploadBatch claimBatch() throws Exception {
+    synchronized UploadBatch claimBatch(long createdBeforeOrAtMs) throws Exception {
         long now = System.currentTimeMillis();
         getWritableDatabase().execSQL("UPDATE position_outbox SET state='PENDIENTE',sending_since_ms=NULL,updated_ms=? WHERE state='ENVIANDO' AND sending_since_ms<?", new Object[]{now, now-300000});
         String trackingId = null; int limit = 50;
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND a.status IN ('ACTIVA','FINALIZANDO') ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND o.created_ms<=? AND a.status IN ('ACTIVA','FINALIZANDO') ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now),String.valueOf(createdBeforeOrAtMs)})) {
             if (c.moveToFirst()) { trackingId=c.getString(0); limit=c.getInt(1); }
         }
         if (trackingId == null) return null;
@@ -228,7 +228,7 @@ final class TrackingStore extends SQLiteOpenHelper {
             batch.mobileId=c.getString(0); batch.deviceUuid=c.getString(1); batch.token=cipher.decrypt(c.getBlob(2),c.getBlob(3)); batch.endpoint=c.getString(4)+"/Webserviceproveedor.asmx/Recibe_Posiciones_Seguimiento"; batch.appVersion=c.getString(5); batch.timeoutMs=c.getInt(6); batch.shortRetries=c.getInt(7);
         }
         List<String> ids = new ArrayList<>();
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT uuid_position,mobile_id,sequence,date_utc,latitude,longitude,accuracy,speed,bearing,altitude,mocked,origin FROM position_outbox WHERE tracking_id=? AND state='PENDIENTE' AND next_retry_ms<=? ORDER BY created_ms LIMIT ?", new String[]{trackingId,String.valueOf(now),String.valueOf(limit)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT uuid_position,mobile_id,sequence,date_utc,latitude,longitude,accuracy,speed,bearing,altitude,mocked,origin FROM position_outbox WHERE tracking_id=? AND state='PENDIENTE' AND next_retry_ms<=? AND created_ms<=? ORDER BY created_ms LIMIT ?", new String[]{trackingId,String.valueOf(now),String.valueOf(createdBeforeOrAtMs),String.valueOf(limit)})) {
             while(c.moveToNext()) { OutboxItem p=new OutboxItem(); p.uuidPosition=c.getString(0); p.trackingId=trackingId; p.mobileId=c.getString(1); p.sequence=c.isNull(2)?null:c.getLong(2); p.dateUtc=c.getString(3); p.latitude=c.getDouble(4); p.longitude=c.getDouble(5); p.accuracy=dbl(c,6); p.speed=dbl(c,7); p.bearing=dbl(c,8); p.altitude=dbl(c,9); p.mocked=c.getInt(10)==1; p.origin=c.getString(11); batch.items.add(p); ids.add(p.uuidPosition); }
         }
         markSending(ids,now); return batch;
@@ -249,8 +249,8 @@ final class TrackingStore extends SQLiteOpenHelper {
 
     synchronized boolean hasWork() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','FINALIZANDO')",null)>0 || scalar("SELECT COUNT(*) FROM position_outbox WHERE state IN ('PENDIENTE','ENVIANDO')",null)>0; }
     synchronized boolean hasActive() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA'",null)>0; }
-    synchronized long intervalMs() { return scalarLong("SELECT interval_ms FROM tracking_config WHERE id=1",null,5000); }
-    synchronized float distanceM() { try(Cursor c=getReadableDatabase().rawQuery("SELECT distance_m FROM tracking_config WHERE id=1",null)){ return c.moveToFirst()?c.getFloat(0):5f; } }
+    synchronized long intervalMs() { return scalarLong("SELECT interval_ms FROM tracking_config WHERE id=1",null,1000); }
+    synchronized float distanceM() { try(Cursor c=getReadableDatabase().rawQuery("SELECT distance_m FROM tracking_config WHERE id=1",null)){ return c.moveToFirst()?c.getFloat(0):0f; } }
     synchronized boolean configured() { return scalar("SELECT COUNT(*) FROM tracking_config WHERE id=1",null)==1; }
     synchronized boolean migrationComplete() { return currentMigrationFlag()==1; }
 

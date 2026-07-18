@@ -137,6 +137,24 @@ test('19 recuperación de red solicita drenaje', () => {
     assert.match(service, /onAvailable.*uploader\.drain\("red_disponible"\)/s);
 });
 
+test('19b captura y uploader están desacoplados con lotes cada cinco segundos', () => {
+    const callback = service.slice(service.indexOf('public void onLocationChanged'), service.indexOf('public void onProviderDisabled'));
+    assert.match(service, /UPLOAD_INTERVAL_MS = 5000L/);
+    assert.match(service, /handler\.postDelayed\(periodicDrain, UPLOAD_INTERVAL_MS\)/);
+    assert.match(service, /handler\.postDelayed\(this, UPLOAD_INTERVAL_MS\)/);
+    assert.doesNotMatch(callback, /uploader\.drain/);
+    assert.match(callback, /store\.capture\(location\)/);
+});
+
+test('19c cada drenaje usa un corte estable y se detiene tras un lote fallido', () => {
+    assert.match(uploader, /long drainCutoffMs=System\.currentTimeMillis\(\)/);
+    assert.match(uploader, /store\.claimBatch\(drainCutoffMs\)/);
+    assert.match(uploader, /if\(!upload\(batch\)\) break/);
+    assert.match(store, /claimBatch\(long createdBeforeOrAtMs\)/);
+    assert.match(store, /o\.created_ms<=\?/);
+    assert.match(store, /created_ms<=\?/);
+});
+
 test('20 logout no finaliza ni detiene el seguimiento', () => {
     const logout = principal.slice(principal.indexOf('function logout()'), principal.indexOf('async function ok_login'));
     assert.doesNotMatch(logout, /finalizarSeguimientoNativo|TrackingForegroundService|detenerProgramadorEnvioSeguimiento/);

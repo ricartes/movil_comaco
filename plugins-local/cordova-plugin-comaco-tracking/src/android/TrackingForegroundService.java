@@ -36,6 +36,7 @@ import java.util.UUID;
 public final class TrackingForegroundService extends Service implements LocationListener {
     private static final String CHANNEL_ID = "comaco_tracking_location";
     private static final int NOTIFICATION_ID = 47021;
+    private static final long UPLOAD_INTERVAL_MS = 5000L;
     private boolean locationUpdatesRegistered = false;
     private String locationRegistrationGeneration = null;
     private long lastFixElapsedRealtimeNanos = Long.MIN_VALUE;
@@ -191,7 +192,7 @@ public final class TrackingForegroundService extends Service implements Location
             requestLocations();
 
             handler.removeCallbacks(periodicDrain);
-            handler.postDelayed(periodicDrain, 15000);
+            handler.postDelayed(periodicDrain, UPLOAD_INTERVAL_MS);
             return;
         }
 
@@ -201,7 +202,7 @@ public final class TrackingForegroundService extends Service implements Location
             updateNotification("Enviando posiciones pendientes");
 
             handler.removeCallbacks(periodicDrain);
-            handler.postDelayed(periodicDrain, 30000);
+            handler.postDelayed(periodicDrain, UPLOAD_INTERVAL_MS);
             return;
         }
 
@@ -237,7 +238,7 @@ public final class TrackingForegroundService extends Service implements Location
         public void run() {
             uploader.drain("periodico");
             if (handler != null)
-                handler.postDelayed(this, 30000);
+                handler.postDelayed(this, UPLOAD_INTERVAL_MS);
         }
     };
 
@@ -331,11 +332,10 @@ public final class TrackingForegroundService extends Service implements Location
             lastFixElapsedRealtimeNanos = fixElapsedRealtimeNanos;
         }
 
-        int generated = store.capture(location);
+        store.capture(location);
 
-        if (generated > 0) {
-            uploader.drain("nueva_captura");
-        }
+        // La captura solo persiste en SQLite. El uploader se ejecuta con una
+        // cadencia independiente para agrupar varias posiciones por solicitud.
     }
 
     @Override

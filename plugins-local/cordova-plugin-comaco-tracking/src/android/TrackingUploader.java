@@ -35,10 +35,11 @@ final class TrackingUploader {
         executor.execute(() -> {
             store.event("DRENAJE_INICIADO", reason);
             try {
+                long drainCutoffMs=System.currentTimeMillis();
                 for (int i=0;i<20;i++) {
-                    TrackingStore.UploadBatch batch=store.claimBatch();
+                    TrackingStore.UploadBatch batch=store.claimBatch(drainCutoffMs);
                     if(batch==null||batch.items.isEmpty()) break;
-                    upload(batch);
+                    if(!upload(batch)) break;
                 }
             } catch(Exception e) {
                 store.event("DRENAJE_ERROR", e.getClass().getSimpleName());
@@ -50,16 +51,17 @@ final class TrackingUploader {
         });
     }
 
-    private void upload(TrackingStore.UploadBatch batch) {
+    private boolean upload(TrackingStore.UploadBatch batch) {
         store.event("HTTP_BEGIN","positions="+batch.items.size());
         for(int attempt=0;attempt<=batch.shortRetries;attempt++){
-            try { uploadOnce(batch); store.event("HTTP_ACK","positions="+batch.items.size()); return; }
-            catch(CredentialFailure e){store.fail(batch.items,e.code,true);store.event("HTTP_ERROR","credential="+e.code);return;}
+            try { uploadOnce(batch); store.event("HTTP_ACK","positions="+batch.items.size()); return true; }
+            catch(CredentialFailure e){store.fail(batch.items,e.code,true);store.event("HTTP_ERROR","credential="+e.code);return false;}
             catch(Exception e){
                 if(attempt<batch.shortRetries){store.event("HTTP_SHORT_RETRY","attempt="+(attempt+1));continue;}
-                store.fail(batch.items,e.getClass().getSimpleName(),false);store.event("HTTP_ERROR",e.getClass().getSimpleName());return;
+                store.fail(batch.items,e.getClass().getSimpleName(),false);store.event("HTTP_ERROR",e.getClass().getSimpleName());return false;
             }
         }
+        return false;
     }
 
     private void uploadOnce(TrackingStore.UploadBatch batch) throws Exception {
