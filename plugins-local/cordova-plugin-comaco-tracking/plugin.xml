@@ -50,6 +50,10 @@
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/TrackingBootReceiver.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/PowerPolicyInspector.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/TrackingHealthMonitor.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/TrackingStore.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/CredentialCipher.java"

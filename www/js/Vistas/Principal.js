@@ -700,52 +700,8 @@ document.addEventListener("deviceready", async function () {
         const validacion = await validarRequisitosTrackingCordova();
 
         console.log("[LOGIN] validación previa:", validacion);
-
-        if (!validacion.gpsActivo) {
-            app.dialog.confirm(
-                "La ubicación del dispositivo está desactivada. ¿Desea activarla ahora?",
-                "GPS desactivado",
-                function () {
-                    solicitarActivarGPS();
-                }
-            );
-            return;
-        }
-
-        if (!validacion.permisoUbicacion) {
-            app.dialog.alert(
-                "La aplicación no tiene permiso de ubicación. Debes concederlo para continuar.",
-                "Permiso requerido"
-            );
-            return;
-        }
-
-        if (!validacion.permisoBackground) {
-            app.dialog.alert(
-                "La aplicación requiere permiso de ubicación en segundo plano para capturar trazabilidad continua.",
-                "Permiso requerido"
-            );
-            return;
-        }
-
-        if (!validacion.permisoNotificaciones) {
-            app.dialog.alert(
-                "La aplicación requiere permiso de notificaciones para mantener activo el servicio de rastreo.",
-                "Permiso requerido"
-            );
-            return;
-        }
-
-        const bateriaOk = await validarOptimizacionBateria();
-        if (!bateriaOk) {
-            return;
-        }
-
-        const motorolaOk = await validarRestriccionesMotorola();
-        if (!motorolaOk) {
-            return;
-        }
-
+        // El login no inicia trazabilidad. El preflight nativo se conserva,
+        // pero WARN solo exige una decision al momento real de iniciar el servicio.
         login();
 
     });
@@ -824,7 +780,7 @@ document.addEventListener("deviceready", async function () {
     }
 
     await validarTrackingAlInicio();
-    await validarOptimizacionBateria();
+    await TRACKING_POLICY_revisar("inicio_interactivo");
 
 
 
@@ -1323,163 +1279,5 @@ function obtener_informacion_movil() {
     }
 }
 
-
-function verificarOptimizacionBateria() {
-    return ComacoTracking.obtenerEstado().then(function (estado) {
-        return { status: true, ignorandoOptimizacion: estado.optimizacionBateriaIgnorada === true };
-    }).catch(function () {
-        return { status: false, ignorandoOptimizacion: false };
-    });
-}
-
-function abrirConfiguracionOptimizacionBateria() {
-    try {
-        if (
-            cordova.plugins &&
-            cordova.plugins.PowerOptimization &&
-            typeof cordova.plugins.PowerOptimization.RequestOptimizationsMenu === "function"
-        ) {
-            cordova.plugins.PowerOptimization.RequestOptimizationsMenu();
-            console.log("[BATTERY] Abriendo configuración de optimización de batería");
-            return;
-        }
-
-        if (
-            cordova.plugins &&
-            cordova.plugins.diagnostic &&
-            typeof cordova.plugins.diagnostic.switchToSettings === "function"
-        ) {
-            cordova.plugins.diagnostic.switchToSettings(
-                function () {
-                    console.log("[BATTERY] Abriendo configuración general");
-                },
-                function (error) {
-                    console.error("[BATTERY] No se pudo abrir configuración general:", error);
-                }
-            );
-        }
-    } catch (e) {
-        console.error("[BATTERY] Error al abrir configuración de batería:", e);
-    }
-}
-
-
-async function validarRestriccionesMotorola() {
-    return new Promise((resolve) => {
-        app.dialog.confirm(
-            "En dispositivos Motorola debes desactivar también la opción que detiene las apps tras el bloqueo, además de quitar la optimización de batería. ¿Desea abrir la configuración ahora?",
-            "Configuración requerida",
-            function () {
-                abrirConfiguracionOptimizacionBateria();
-
-                setTimeout(function () {
-                    app.dialog.confirm(
-                        "¿Ya desactivaste la optimización de batería y la opción de detener apps tras el bloqueo?",
-                        "Confirmar configuración",
-                        function () {
-                            resolve(true);
-                        },
-                        function () {
-                            resolve(false);
-                        }
-                    );
-                }, 1500);
-            },
-            function () {
-                resolve(false);
-            }
-        );
-    });
-}
-
-
-function verificarOptimizacionBateriaPowerOptimization() {
-    return new Promise((resolve) => {
-        try {
-            const plugin = cordova?.plugins?.PowerOptimization;
-
-            if (!plugin || typeof plugin.IsIgnoringBatteryOptimizations !== "function") {
-                console.warn("[BATTERY] PowerOptimization plugin no disponible.");
-                resolve({
-                    status: false,
-                    ignorandoOptimizacion: false
-                });
-                return;
-            }
-
-            plugin.IsIgnoringBatteryOptimizations()
-                .then((result) => {
-                    console.log("[BATTERY] IsIgnoringBatteryOptimizations:", result);
-                    resolve({
-                        status: true,
-                        ignorandoOptimizacion: !!result
-                    });
-                })
-                .catch((error) => {
-                    console.error("[BATTERY] Error verificando optimización:", error);
-                    resolve({
-                        status: false,
-                        ignorandoOptimizacion: false,
-                        error
-                    });
-                });
-        } catch (e) {
-            console.error("[BATTERY] Excepción verificando optimización:", e);
-            resolve({
-                status: false,
-                ignorandoOptimizacion: false,
-                error: e
-            });
-        }
-    });
-}
-
-function abrirConfiguracionOptimizacionBateriaPowerOptimization() {
-    try {
-        const plugin = cordova?.plugins?.PowerOptimization;
-
-        if (!plugin || typeof plugin.RequestOptimizations !== "function") {
-            console.warn("[BATTERY] RequestOptimizations no disponible.");
-            solicitarAbrirConfiguracionApp();
-            return;
-        }
-
-        plugin.RequestOptimizations();
-        console.log("[BATTERY] Abriendo pantalla de optimización de batería");
-    } catch (e) {
-        console.error("[BATTERY] Error abriendo optimización de batería:", e);
-        solicitarAbrirConfiguracionApp();
-    }
-}
-
-async function validarOptimizacionBateria() {
-    const resultado = await verificarOptimizacionBateriaPowerOptimization();
-
-    // Si no se pudo validar automáticamente, por ahora bloqueamos igual
-    // y enviamos al usuario a configuración.
-    if (!resultado.status) {
-        app.dialog.confirm(
-            "No fue posible validar automáticamente la optimización de batería. Para asegurar el rastreo continuo, debe revisar esta configuración. ¿Desea abrirla ahora?",
-            "Optimización de batería requerida",
-            function () {
-                abrirConfiguracionOptimizacionBateriaPowerOptimization();
-            }
-        );
-        return false;
-    }
-
-    if (!resultado.ignorandoOptimizacion) {
-        app.dialog.confirm(
-            "Para iniciar sesión y mantener el rastreo continuo en segundo plano, debe desactivar la optimización de batería para esta aplicación. ¿Desea abrir la configuración ahora?",
-            "Optimización de batería requerida",
-            function () {
-                abrirConfiguracionOptimizacionBateriaPowerOptimization();
-            }
-        );
-        return false;
-    }
-
-    return true;
-}
 
 app.init();

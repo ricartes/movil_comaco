@@ -12,6 +12,8 @@ const uploader = read(javaDir + 'TrackingUploader.java');
 const service = read(javaDir + 'TrackingForegroundService.java');
 const plugin = read(javaDir + 'ComacoTrackingPlugin.java');
 const boot = read(javaDir + 'TrackingBootReceiver.java');
+const inspector = read(javaDir + 'PowerPolicyInspector.java');
+const healthMonitor = read(javaDir + 'TrackingHealthMonitor.java');
 const pluginXml = read('plugins-local/cordova-plugin-comaco-tracking/plugin.xml');
 const bridge = read('plugins-local/cordova-plugin-comaco-tracking/www/ComacoTracking.js');
 const browser = read('plugins-local/cordova-plugin-comaco-tracking/src/browser/ComacoTracking.js');
@@ -21,7 +23,7 @@ const principal = read('www/js/Vistas/Principal.js');
 const request = JSON.parse(read('tests/fixtures/seguimiento-request.json'));
 const success = JSON.parse(read('tests/fixtures/seguimiento-response-success.json'));
 const functionalError = JSON.parse(read('tests/fixtures/seguimiento-response-functional-error.json'));
-const nativeSources = [store, uploader, service, plugin, boot].join('\n');
+const nativeSources = [store, uploader, service, plugin, boot, inspector, healthMonitor].join('\n');
 
 function unwrapAsmx(value) {
     let result = Object.prototype.hasOwnProperty.call(value, 'd') ? value.d : value;
@@ -146,11 +148,13 @@ test('21 finalizar una guía usa su ID y no cambia otras', () => {
 });
 
 test('22 sin guías ni pendientes el servicio se detiene', () => {
-    assert.match(service, /if\(!store\.hasWork\(\)\)\{stopSelf\(\)/);
+    assert.match(service, /active=false work=false/);
+    assert.match(service, /stopSelf\(\)/);
 });
 
 test('23 boot con seguimiento activo inicia el servicio', () => {
-    assert.match(boot, /store\.configured\(\)&&store\.hasWork\(\)/);
+    assert.match(boot, /store\.hasActive\(\) \|\| store\.hasWork\(\)/);
+    assert.match(boot, /SERVICE_START_AWAITING_POLICY_OVERRIDE/);
     assert.match(pluginXml, /android\.intent\.action\.BOOT_COMPLETED/);
 });
 
@@ -182,7 +186,7 @@ test('28 token no aparece en eventos o llamadas Log', () => {
 });
 
 test('29 implementación browser expone toda la API sin romper build', () => {
-    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde']) {
+    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','suscribirEstadoSalud']) {
         assert.match(browser, new RegExp(action + ':'));
         assert.match(bridge, new RegExp(action + ':'));
     }
@@ -211,4 +215,43 @@ test('32 manifiesto declara un único servicio foreground de location', () => {
 test('33 no existe watchdog destructivo de treinta segundos', () => {
     assert.doesNotMatch(nativeSources, /killProcess|System\.exit|Runtime\.getRuntime\(\)\.exit/);
     assert.doesNotMatch(service, /sin_ubicacion|watchdog/i);
+});
+
+test('34 el inspector separa restricción, allowlist, bucket, permisos y foreground', () => {
+    for (const field of ['backgroundRestricted','ignoringBatteryOptimizations','standbyBucket','fineLocation','backgroundLocation','postNotifications','foregroundObserved','lastCallbackUtc']) {
+        assert.match(inspector, new RegExp('"' + field + '"'));
+    }
+});
+
+test('35 DTO de política contiene decisión y enforcement simultáneamente', () => {
+    for (const field of ['normalTrackingAllowed','wouldBlockInEnforceMode','blockers','warnings','userOverrideUsed']) {
+        assert.match(inspector, new RegExp('"' + field + '"'));
+    }
+    assert.match(inspector, /result\.put\("decision", decision\)/);
+    assert.match(inspector, /result\.put\("enforcement", enforcement\)/);
+});
+
+test('36 WARN es el modo persistente inicial y exige continuación explícita', () => {
+    assert.match(store, /policy_mode TEXT NOT NULL DEFAULT 'WARN'/);
+    assert.match(inspector, /return WARN/);
+    assert.match(plugin, /SERVICE_START_AWAITING_POLICY_OVERRIDE/);
+    assert.match(plugin, /TRACKING_STARTED_WITH_POLICY_WARNING/);
+});
+
+test('37 ENFORCE bloquea y OBSERVE permite sin alterar el diagnóstico', () => {
+    assert.match(plugin, /"ENFORCE"\.equals\(mode\).*blockers/s);
+    assert.match(plugin, /SERVICE_START_BLOCKED_POLICY/);
+    assert.match(inspector, /enforcementMode == EnforcementMode\.OBSERVE/);
+    assert.match(inspector, /if \(wouldBlockInEnforceMode\) diagnosticMode = "BLOCKED"/);
+});
+
+test('38 monitor de salud solo observa y nunca re-promueve el servicio', () => {
+    assert.match(healthMonitor, /FGS_OBSERVED_LOST/);
+    assert.match(healthMonitor, /LOCATION_CALLBACK_STALE/);
+    assert.doesNotMatch(healthMonitor, /startForeground|TrackingForegroundService\.start|setPolicyMode/);
+});
+
+test('39 servicio registra el callback real antes de persistir la captura', () => {
+    const changed = service.slice(service.indexOf('onLocationChanged'), service.indexOf('onProviderDisabled'));
+    assert.ok(changed.indexOf('recordLocationCallback') < changed.indexOf('store.capture'));
 });

@@ -40,8 +40,10 @@ function configurarSeguimientoNativo() {
 }
 
 function SEGUIMIENTO_registrarCredencialesNativas(credenciales) {
-    return configurarSeguimientoNativo().then(function () {
-        return SEGUIMIENTO_pluginNativo().sincronizarSeguimientos(credenciales || []);
+    return configurarSeguimientoNativo().then(async function () {
+        var resultado = await SEGUIMIENTO_pluginNativo().sincronizarSeguimientos(credenciales || []);
+        await TRACKING_POLICY_procesarResultado(resultado, "registro_seguimiento");
+        return resultado;
     });
 }
 
@@ -49,22 +51,31 @@ function reconciliarEstadoGpsNativo() {
     return configurarSeguimientoNativo().then(async function () {
         var credenciales = typeof listarCredencialesSeguimientoActivas === "function"
             ? await listarCredencialesSeguimientoActivas() : [];
-        await SEGUIMIENTO_pluginNativo().sincronizarSeguimientos(credenciales);
-        await SEGUIMIENTO_pluginNativo().solicitarDrenaje("reconciliacion");
+        var sincronizacion = await SEGUIMIENTO_pluginNativo().sincronizarSeguimientos(credenciales);
+        var continuar = await TRACKING_POLICY_procesarResultado(sincronizacion, "reconciliacion");
+        if (continuar) {
+            var drenaje = await SEGUIMIENTO_pluginNativo().solicitarDrenaje("reconciliacion");
+            await TRACKING_POLICY_procesarResultado(drenaje, "reconciliacion_drenaje");
+        }
         var estado = await SEGUIMIENTO_pluginNativo().obtenerEstado();
         return estado.servicioActivo === true || estado.seguimientosActivos > 0;
     });
 }
 
 function finalizarSeguimientoNativo(idUnicoSeguimiento) {
-    return configurarSeguimientoNativo().then(function () {
-        return SEGUIMIENTO_pluginNativo().finalizarSeguimiento(idUnicoSeguimiento);
+    return configurarSeguimientoNativo().then(async function () {
+        var resultado = await SEGUIMIENTO_pluginNativo().finalizarSeguimiento(idUnicoSeguimiento);
+        await TRACKING_POLICY_procesarResultado(resultado, "finalizacion");
+        return resultado;
     });
 }
 
 function solicitarDrenajeSeguimientoNativo(motivo) {
-    return configurarSeguimientoNativo().then(function () {
-        return SEGUIMIENTO_pluginNativo().solicitarDrenaje(motivo || "javascript");
+    return configurarSeguimientoNativo().then(async function () {
+        var razon = motivo || "javascript";
+        var resultado = await SEGUIMIENTO_pluginNativo().solicitarDrenaje(razon);
+        await TRACKING_POLICY_procesarResultado(resultado, razon);
+        return resultado;
     });
 }
 
@@ -81,6 +92,21 @@ function SEGUIMIENTO_diagnosticoPromesa(nombre, argumentos, valorPredeterminado)
 }
 
 async function validarRequisitosTrackingCordova() {
+    if (typeof ComacoTracking !== "undefined"
+            && typeof ComacoTracking.obtenerDiagnosticoPolitica === "function") {
+        var nativo = await ComacoTracking.obtenerDiagnosticoPolitica("preflight_interactivo");
+        return {
+            ok: nativo.decision.normalTrackingAllowed,
+            gpsActivo: nativo.location.deviceLocationEnabled,
+            permisoUbicacion: nativo.permissions.fineLocation,
+            permisoBackground: nativo.permissions.backgroundLocation,
+            permisoNotificaciones: nativo.permissions.postNotifications,
+            backgroundRestricted: nativo.powerPolicy.backgroundRestricted,
+            decision: nativo.decision,
+            enforcement: nativo.enforcement,
+            policyDiagnostic: nativo
+        };
+    }
     var diagnostic = window.cordova && cordova.plugins && cordova.plugins.diagnostic;
     if (!diagnostic) {
         return { ok: true, gpsActivo: true, permisoUbicacion: true, permisoBackground: true, permisoNotificaciones: true };

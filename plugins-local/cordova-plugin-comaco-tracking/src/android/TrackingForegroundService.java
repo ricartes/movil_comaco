@@ -21,18 +21,23 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
 
+import org.json.JSONObject;
+
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.UUID;
 
 public final class TrackingForegroundService extends Service implements LocationListener {
     private static final String CHANNEL_ID = "comaco_tracking_location";
     private static final int NOTIFICATION_ID = 47021;
     private boolean locationUpdatesRegistered = false;
+    private String locationRegistrationGeneration = null;
     private long lastFixElapsedRealtimeNanos = Long.MIN_VALUE;
     private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
 
@@ -47,12 +52,33 @@ public final class TrackingForegroundService extends Service implements Location
     private BroadcastReceiver screenReceiver;
     private HandlerThread thread;
     private Handler handler;
+    private TrackingHealthMonitor healthMonitor;
+    private boolean startedWithPolicyOverride = false;
 
     static boolean isRunning() {
         return RUNNING.get();
     }
 
+    static boolean isForegroundPromotionRequested() {
+        TrackingForegroundService current = INSTANCE;
+        return current != null && current.foregroundPromoted;
+    }
+
+    static boolean areLocationUpdatesRegistered() {
+        TrackingForegroundService current = INSTANCE;
+        return current != null && current.locationUpdatesRegistered;
+    }
+
+    static boolean wasCurrentStartOverrideUsed() {
+        TrackingForegroundService current = INSTANCE;
+        return current != null && current.startedWithPolicyOverride;
+    }
+
     public static void start(Context context, String reason) {
+        start(context, reason, false);
+    }
+
+    public static void start(Context context, String reason, boolean userOverrideUsed) {
         Context appContext = context.getApplicationContext();
 
         TrackingForegroundService current = INSTANCE;
@@ -67,6 +93,7 @@ public final class TrackingForegroundService extends Service implements Location
                 TrackingForegroundService.class);
 
         intent.putExtra("reason", reason);
+        intent.putExtra("policyOverrideUsed", userOverrideUsed);
 
         try {
             ContextCompat.startForegroundService(
@@ -99,6 +126,8 @@ public final class TrackingForegroundService extends Service implements Location
         ensureForegroundOnce(
                 "Servicio de seguimiento activo");
         store = new TrackingStore(getApplicationContext());
+        startedWithPolicyOverride = store.lastStartUserOverrideUsed();
+        store.recordServiceCreated(UUID.randomUUID().toString());
         uploader = new TrackingUploader(store, () -> {
             if (handler != null) {
                 handler.post(this::afterDrain);
@@ -107,6 +136,11 @@ public final class TrackingForegroundService extends Service implements Location
         thread = new HandlerThread("comaco-tracking-location");
         thread.start();
         handler = new Handler(thread.getLooper());
+        healthMonitor = new TrackingHealthMonitor(
+                store,
+                new PowerPolicyInspector(getApplicationContext()),
+                handler);
+        healthMonitor.start();
         locations = (LocationManager) getSystemService(LOCATION_SERVICE);
         store.event("START_FOREGROUND", "foreground=true");
         registerConnectivity();
@@ -126,6 +160,12 @@ public final class TrackingForegroundService extends Service implements Location
         String reason = intent == null
                 ? "sticky"
                 : intent.getStringExtra("reason");
+
+        if (intent != null) {
+            startedWithPolicyOverride = intent.getBooleanExtra(
+                    "policyOverrideUsed",
+                    startedWithPolicyOverride);
+        }
 
         if (store != null) {
             store.event(
@@ -212,10 +252,17 @@ public final class TrackingForegroundService extends Service implements Location
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            store.clearLocationRegistration();
             store.event("PERMISO_UBICACION_FALTANTE", null);
+            publishCurrentHealth("location_permission_missing");
             return;
         }
 
+        String registrationGeneration = UUID.randomUUID().toString();
+        store.recordLocationRegistration(
+                registrationGeneration,
+                System.currentTimeMillis(),
+                SystemClock.elapsedRealtime());
         try {
             locations.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
@@ -225,6 +272,7 @@ public final class TrackingForegroundService extends Service implements Location
                     thread.getLooper());
 
             locationUpdatesRegistered = true;
+            locationRegistrationGeneration = registrationGeneration;
 
             store.event(
                     "REQUEST_UPDATES",
@@ -232,12 +280,16 @@ public final class TrackingForegroundService extends Service implements Location
                             store.intervalMs() +
                             " distanceM=" +
                             store.distanceM());
+            publishCurrentHealth("location_registration");
         } catch (Exception exception) {
             locationUpdatesRegistered = false;
+            locationRegistrationGeneration = null;
+            store.clearLocationRegistration();
 
             store.event(
                     "GPS_NO_DISPONIBLE",
                     exception.getClass().getSimpleName());
+            publishCurrentHealth("location_registration_error");
         }
     }
 
@@ -253,11 +305,18 @@ public final class TrackingForegroundService extends Service implements Location
         } catch (SecurityException ignored) {
         } finally {
             locationUpdatesRegistered = false;
+            locationRegistrationGeneration = null;
+            if (store != null) store.clearLocationRegistration();
         }
     }
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
+        store.recordLocationCallback(
+                System.currentTimeMillis(),
+                SystemClock.elapsedRealtime(),
+                locationRegistrationGeneration);
+        publishCurrentHealth("location_callback");
         long fixElapsedRealtimeNanos = location.getElapsedRealtimeNanos();
 
         if (fixElapsedRealtimeNanos > 0 &&
@@ -282,11 +341,13 @@ public final class TrackingForegroundService extends Service implements Location
     @Override
     public void onProviderDisabled(@NonNull String provider) {
         store.event("GPS_DESACTIVADO", provider);
+        publishCurrentHealth("provider_disabled");
     }
 
     @Override
     public void onProviderEnabled(@NonNull String provider) {
         store.event("GPS_ACTIVADO", provider);
+        publishCurrentHealth("provider_enabled");
     }
 
     @Override
@@ -396,6 +457,20 @@ public final class TrackingForegroundService extends Service implements Location
         foregroundPromoted = true;
     }
 
+    private void publishCurrentHealth(String reason) {
+        if (store == null) return;
+        try {
+            JSONObject snapshot = new PowerPolicyInspector(getApplicationContext()).inspect(
+                    store,
+                    reason,
+                    startedWithPolicyOverride);
+            store.applyHealthSnapshot(snapshot);
+            ComacoTrackingPlugin.publishHealth(snapshot);
+        } catch (Exception exception) {
+            store.event("HEALTH_UPDATE_ERROR", exception.getClass().getSimpleName());
+        }
+    }
+
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         store.event("TASK_REMOVED", "foreground=true");
@@ -411,6 +486,11 @@ public final class TrackingForegroundService extends Service implements Location
             INSTANCE = null;
         }
 
+        if (healthMonitor != null) {
+            healthMonitor.stop();
+            healthMonitor = null;
+        }
+
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }
@@ -418,6 +498,7 @@ public final class TrackingForegroundService extends Service implements Location
         removeLocations();
 
         if (store != null) {
+            store.recordServiceDestroyed();
             store.event(
                     "SERVICE_DESTROY",
                     "foreground=false");
@@ -425,7 +506,23 @@ public final class TrackingForegroundService extends Service implements Location
             store.close();
             store = null;
         }
-        
+
+        if (connectivity != null && networkCallback != null) {
+            try {
+                connectivity.unregisterNetworkCallback(networkCallback);
+            } catch (RuntimeException ignored) {
+            }
+        }
+        if (screenReceiver != null) {
+            try {
+                unregisterReceiver(screenReceiver);
+            } catch (RuntimeException ignored) {
+            }
+        }
+        if (thread != null) {
+            thread.quitSafely();
+            thread = null;
+        }
 
         stopForeground(STOP_FOREGROUND_REMOVE);
 

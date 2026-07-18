@@ -16,5 +16,12 @@ module.exports = {
     solicitarDrenaje: function (motivo) { return invoke("solicitarDrenaje", { motivo: motivo || "manual" }); },
     importarPosicionesLegacy: function (items) { return invoke("importarPosicionesLegacy", items || []); },
     verificarMigracion: function (esperado) { return invoke("verificarMigracion", esperado || {}); },
-    detenerSiCorresponde: function () { return invoke("detenerSiCorresponde"); }
+    detenerSiCorresponde: function () { return invoke("detenerSiCorresponde"); },
+    obtenerDiagnosticoPolitica: function (motivo) { return invoke("obtenerDiagnosticoPolitica", { motivo: motivo || "preflight" }); },
+    configurarModoPolitica: function (mode) { return invoke("configurarModoPolitica", { mode: mode }); },
+    continuarInicioConAdvertencia: function (motivo) { return invoke("continuarInicioConAdvertencia", { motivo: motivo || "continuacion_explicita" }); },
+    abrirConfiguracionPolitica: function (destino) { return invoke("abrirConfiguracionPolitica", { destino: destino || "APP_DETAILS" }); },
+    suscribirEstadoSalud: function (onUpdate, onError) {
+        exec(onUpdate, onError, "ComacoTracking", "suscribirEstadoSalud", []);
+    }
 };

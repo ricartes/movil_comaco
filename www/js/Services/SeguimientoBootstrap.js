@@ -41,7 +41,8 @@ function inicializarSeguimientoBootstrap() {
         if (typeof comprobarActualizarEsquema === "function") await comprobarActualizarEsquema();
         await configurarSeguimientoNativo();
         var migracion = await SEGUIMIENTO_migrarLegacyANativo();
-        await ComacoTracking.solicitarDrenaje("inicio_o_resume");
+        var inicio = await ComacoTracking.solicitarDrenaje("inicio_o_resume");
+        await TRACKING_POLICY_procesarResultado(inicio, "inicio_o_resume");
         var estado = await ComacoTracking.obtenerEstado();
         console.log("[TRACKING][NATIVE_READY] activos=" + estado.seguimientosActivos + " pendientes=" + estado.pendientes + " legacy=" + migracion.posiciones);
         return true;
@@ -56,6 +57,7 @@ function inicializarSeguimientoBootstrap() {
 async function SEGUIMIENTO_alResumeTecnico() {
     try {
         await inicializarSeguimientoBootstrap();
+        await TRACKING_POLICY_revisar("resume");
         await reconciliarEstadoGpsNativo();
     } catch (error) {
         console.error("No fue posible reconciliar el seguimiento técnico nativo.");
