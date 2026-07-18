@@ -1,0 +1,420 @@
+﻿
+  07-17 18:41:14.778  1106  3520 I cc_set_allowlist: [0,9,0]
+  07-17 18:41:14.778  1106  3520 I cc_current_allowlist: [0,9]
+  07-17 18:41:14.779  1106  3520 I cc_update_options: [0,0]
+  07-17 18:41:14.799  1106  3011 I sysui_multi_action: [757,1721,758,4,908,com.google.android.as/com.google.android.apps.miphone.aiai.app.AiAiAugmentedAutofillService,1722,8]
+> 07-17 18:41:14.809  1106  1182 I am_create_service: [0,197243390,.TrackingForegroundService,10304,28198]
+  07-17 18:41:14.821  1106  4645 I sysui_multi_action: [757,1721,758,4,908,com.google.android.as/com.google.android.apps.miphone.aiai.app.AiAiAugmentedAutofillService,1722,8]
+  07-17 18:41:14.821  1106  4645 I cc_current_allowlist: [0,9]
+  07-17 18:41:14.822  1106  4645 I cc_set_allowlist: [0,9,0]
+  07-17 18:41:14.822  1106  4645 I cc_current_allowlist: [0,9]
+  07-17 18:41:14.822  1106  4645 I cc_update_options: [0,0]
+  07-17 18:41:14.828  1106  3520 I cc_current_allowlist: [0,9]
+  07-17 18:41:14.829  1106  3520 I cc_set_allowlist: [0,9,0]
+  07-17 18:41:14.829  1106  3520 I cc_current_allowlist: [0,9]
+  07-17 18:41:14.829  1106  3520 I cc_update_options: [0,0]
+  07-17 18:41:14.831  1106  1182 I cc_current_allowlist: [0,9]
+  07-17 18:41:15.138 28198 28198 I wm_on_resume_called: [124531508,io.gestionasi.gfe_comaco.MainActivity,RESUME_ACTIVITY,4]
+  07-17 18:41:15.198  1106  1129 I input_focus: [Focus request 9ad07a3 io.gestionasi.gfe_comaco/io.gestionasi.gfe_comaco.MainActivity,reason=UpdateInputWindows]
+  07-17 18:41:15.208 28198 28198 I viewroot_draw_event: [VRI[MainActivity],Canceling draw. cancelDueToPreDrawListener=true cancelDueToSync=false]
+  07-17 18:41:15.209 28198 28198 I wm_on_top_resumed_gained_called: [124531508,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+> 07-17 18:41:15.221  1106  4255 I am_foreground_service_start: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,0,0,0,1,UNKNOWN,8]
+  07-17 18:41:15.270  1106  4645 I am_create_service: [0,77682712,.GoogleAccountAuthenticatorService,10185,18862]
+  07-17 18:41:15.275  1106  1106 I am_destroy_service: [0,77682712,18862]
+  07-17 18:41:15.888  1369  1369 D RILJ    : [3249]> GET_CELL_INFO_LIST [PHONE0]
+  07-17 18:41:15.889   691   691 D RILC    : getCellInfoList: serial 3249
+  07-17 18:41:15.889   691   738 D RIL_REQ_THDS: dequeue msg
+  07-17 18:41:15.889   691   738 D RIL_REQ_THDS: handleMessage 109
+  07-17 18:41:15.889   691   738 D RIL     : onRequest: GET_CELL_INFO_LIST radioState = RADIO_ON
+  07-17 18:41:15.894   691   738 D RIL     : totalNumber = 2, notSCGFlag = 1
+  07-17 18:41:15.895   691   738 D RIL     : lineForBandwidth : 5, lineForBand : 7, lineForMultiband : 0,0,0,0,0,0,0,0
+  07-17 18:41:15.895   691   738 D RIL     : server cell bandwidth is 20000
+  07-17 18:41:54.439  1106  1209 I commit_sys_config_file: [settings-0-0,9]
+  07-17 18:41:54.445  1391  1434 I jank_cuj_events_end_request: [55,1784328114444918000,83889187961649,83865532688668]
+  07-17 18:41:54.651  1106  1161 I wm_pause_activity: [0,124531508,io.gestionasi.gfe_comaco/.MainActivity,userLeaving=false,sleep]
+  07-17 18:41:54.652 28198 28198 I wm_on_top_resumed_lost_called: [124531508,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+> 07-17 18:41:54.660  1106  1138 I am_foreground_service_stop: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,1,1,39439,1,STOP_FOREGROUND,8]
+  07-17 18:41:54.663  1106  1213 I am_compact: [23988,com.google.android.apps.wellbeing,ANON,247172,175880,70472,42224,-61012,-4132,-56880,56752,523,FULL,82811147,900,15,415608,-20024]
+  07-17 18:41:54.674 28198 28198 I wm_on_paused_called: [124531508,io.gestionasi.gfe_comaco.MainActivity,performPause,8]
+  07-17 18:41:54.677  1106  3788 I wm_add_to_stopping: [0,124531508,io.gestionasi.gfe_comaco/.MainActivity,completePauseLocked]
+  07-17 18:41:54.681  1106  1128 I wm_stop_activity: [0,124531508,io.gestionasi.gfe_comaco/.MainActivity]
+  07-17 18:41:54.681  1106  1125 I sysui_multi_action: [757,803,799,window_time_0,802,40]
+  07-17 18:41:54.682  1106  1129 I input_focus: [Requesting to set focus to null window,reason=UpdateInputWindows]
+  07-17 18:41:54.690  1106  1200 I am_create_service: [0,132176007,.PhoneskyJobServiceMain,10192,23734]
+  07-17 18:41:54.704  1369  1853 D SatelliteController: handleCmdUpdateNtnSignalStrengthReporting: ignore request, satellite is disabled
+  07-17 18:41:54.711 28198 28198 I wm_on_stop_called: [124531508,io.gestionasi.gfe_comaco.MainActivity,STOP_ACTIVITY_ITEM,2]
+  07-17 18:41:54.716  1106  1213 I am_compact: [27871,com.android.keychain,ANON,66596,51616,14212,42832,-3808,0,-3808,3760,50,SOME,0,905,19,435632,-844]
+  07-17 20:13:17.612  1106  1129 I wm_wallpaper_surface: [0,0,null]
+  07-17 20:13:17.648  1106  3119 I wm_restart_activity: [0,138828015,352,io.gestionasi.gfe_comaco/.MainActivity]
+  07-17 20:13:17.652  1106  3119 I wm_set_resumed_activity: [0,io.gestionasi.gfe_comaco/.MainActivity,realStartActivityLocked - onActivityStateChanged]
+  07-17 20:13:17.661 32230 32230 I auditd  : type=1400 audit(0.0:15904): avc:  denied  { read } for  comm="RenderThread" name="large_page_conf" dev="sysfs" ino=60997 scontext=u:r:untrusted_app:s0:c48,c257,c512,c768 tcontext=u:object_r:sysfs:s0 tclass=file permissive=0 app=io.gestionasi.gfe_comaco
+> 07-17 20:13:17.699  1106  3119 I am_create_service: [0,59278507,.TrackingForegroundService,10304,32230]
+  07-17 20:13:17.723  1106  1213 I am_freeze: [31042,android.process.acore]
+  07-17 20:13:17.737  1106  1165 I commit_sys_config_file: [package-user-0,5]
+  07-17 20:13:17.797  1106  1213 I am_compact: [31042,android.process.acore,ANON,78140,57972,19372,43840,-6412,-112,-6300,6236,74,SOME,0,945,19,408136,-524]
+  07-17 20:13:17.845  1106  1213 I am_freeze: [16265,com.google.android.gms]
+  07-17 20:13:17.846  1106  1213 I am_freeze: [27618,com.google.android.adservices.api]
+  07-17 20:13:17.862  1106  3119 I am_uid_running: 99048
+  07-17 20:13:17.883  1106  1139 I am_proc_start: [0,32270,99048,com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0,,{io.gestionasi.gfe_comaco/org.chromium.content.app.SandboxedProcessService0:0}]
+  07-17 20:13:17.909  1106  6171 I am_proc_bound: [0,32270,com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0]
+  07-17 20:13:17.935  1106  3119 I am_uid_active: 99048
+  07-17 20:13:17.936  1106  3119 I am_create_service: [0,197931537,.SandboxedProcessService0:0,99048,32270]
+  07-17 20:13:18.146 32230 32230 I wm_on_resume_called: [138828015,io.gestionasi.gfe_comaco.MainActivity,RESUME_ACTIVITY,3]
+  07-17 20:13:18.229  1106  1129 I input_focus: [Focus request 89711c3 io.gestionasi.gfe_comaco/io.gestionasi.gfe_comaco.MainActivity,reason=UpdateInputWindows]
+  07-17 20:13:18.242 32230 32230 I viewroot_draw_event: [VRI[MainActivity],Canceling draw. cancelDueToPreDrawListener=true cancelDueToSync=false]
+  07-17 20:13:18.243 32230 32230 I wm_on_top_resumed_gained_called: [138828015,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+> 07-17 20:13:18.256  1106  6171 I am_foreground_service_start: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,0,0,0,1,UNKNOWN,8]
+  07-17 20:13:18.392  1106  6171 I am_create_service: [0,67997943,.GoogleAccountAuthenticatorService,10185,18862]
+  07-17 20:13:18.397  1106  3119 I am_create_service: [0,61606530,.CheckinApiService,10185,16265]
+  07-17 20:13:18.401  1106  1106 I am_destroy_service: [0,67997943,18862]
+  07-17 20:13:18.897  1369  1369 D RILJ    : [3355]> GET_CELL_INFO_LIST [PHONE0]
+  07-17 20:13:18.897   691   691 D RILC    : getCellInfoList: serial 3355
+  07-17 20:13:18.897   691   738 D RIL_REQ_THDS: dequeue msg
+  07-17 20:13:18.897   691   738 D RIL_REQ_THDS: handleMessage 109
+  07-17 20:13:18.897   691   738 D RIL     : onRequest: GET_CELL_INFO_LIST radioState = RADIO_ON
+  07-17 20:13:18.902   691   738 D RIL     : totalNumber = 2, notSCGFlag = 1
+  07-17 20:13:18.903   691   738 D RIL     : lineForBandwidth : 5, lineForBand : 7, lineForMultiband : 0,0,0,0,0,0,0,0
+  07-17 20:13:40.281  1106  1209 I commit_sys_config_file: [settings-0-0,9]
+  07-17 20:13:40.299  1391  1434 I jank_cuj_events_end_request: [55,1784333620298641000,89395041685972,84893647674394]
+  07-17 20:13:40.499 32230 32230 I wm_on_top_resumed_lost_called: [138828015,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+  07-17 20:13:40.499  1106  1161 I wm_pause_activity: [0,138828015,io.gestionasi.gfe_comaco/.MainActivity,userLeaving=false,sleep]
+> 07-17 20:13:40.511  1106  1138 I am_foreground_service_stop: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,1,1,22254,1,STOP_FOREGROUND,8]
+  07-17 20:13:40.516 32230 32230 I wm_on_paused_called: [138828015,io.gestionasi.gfe_comaco.MainActivity,performPause,6]
+  07-17 20:13:40.517  1106  3119 I wm_add_to_stopping: [0,138828015,io.gestionasi.gfe_comaco/.MainActivity,completePauseLocked]
+  07-17 20:13:40.519  1106  1125 I sysui_multi_action: [757,803,799,window_time_0,802,23]
+  07-17 20:13:40.520  1106  1128 I wm_stop_activity: [0,138828015,io.gestionasi.gfe_comaco/.MainActivity]
+  07-17 20:13:40.521  1106  1129 I input_focus: [Requesting to set focus to null window,reason=UpdateInputWindows]
+  07-17 20:13:40.528 32230 32230 I wm_on_stop_called: [138828015,io.gestionasi.gfe_comaco.MainActivity,STOP_ACTIVITY_ITEM,2]
+  07-17 20:13:40.549  1369  1369 D SSCtr   : onDeviceIdleStateChanged isDeviceIdle=true
+  07-17 20:13:40.556  1369  1369 D RILJ    : [3357]> SEND_DEVICE_STATE 2:true [PHONE0]
+  07-17 20:13:40.556   691   691 D RILC    : sendDeviceState: serial 3357
+  07-17 20:13:40.556   691   691 D RILC    : sendDeviceState: calling screen state 0
+  07-17 20:14:54.285  1106  1129 I wm_wallpaper_surface: [0,0,null]
+  07-17 20:14:54.288  1106  1183 I wm_restart_activity: [0,45430036,353,io.gestionasi.gfe_comaco/.MainActivity]
+  07-17 20:14:54.290  1106  1183 I wm_set_resumed_activity: [0,io.gestionasi.gfe_comaco/.MainActivity,realStartActivityLocked - onActivityStateChanged]
+  07-17 20:14:54.297 32753 32753 I auditd  : type=1400 audit(0.0:15930): avc:  denied  { read } for  comm="RenderThread" name="large_page_conf" dev="sysfs" ino=60997 scontext=u:r:untrusted_app:s0:c48,c257,c512,c768 tcontext=u:object_r:sysfs:s0 tclass=file permissive=0 app=io.gestionasi.gfe_comaco
+> 07-17 20:14:54.342  1106  1183 I am_create_service: [0,141946828,.TrackingForegroundService,10304,32753]
+  07-17 20:14:54.478  1106  1183 I am_uid_running: 99049
+  07-17 20:14:54.497  1106  1139 I am_proc_start: [0,349,99049,com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0,,{io.gestionasi.gfe_comaco/org.chromium.content.app.SandboxedProcessService0:0}]
+  07-17 20:14:54.527  1106  3011 I am_proc_bound: [0,349,com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0]
+  07-17 20:14:54.548  1106  1183 I am_uid_active: 99049
+  07-17 20:14:54.548  1106  1183 I am_create_service: [0,20220617,.SandboxedProcessService0:0,99049,349]
+  07-17 20:14:54.564  1106  3011 I am_create_service: [0,162434767,.GmsBoundBrokerService,10185,16265]
+  07-17 20:14:54.663 32753 32753 I wm_on_create_called: [45430036,io.gestionasi.gfe_comaco.MainActivity,performCreate,327]
+  07-17 20:14:54.674 32753 32753 I wm_on_start_called: [45430036,io.gestionasi.gfe_comaco.MainActivity,handleStartActivity,0]
+  07-17 20:14:54.680 32753 32753 I wm_on_resume_called: [45430036,io.gestionasi.gfe_comaco.MainActivity,RESUME_ACTIVITY,3]
+  07-17 20:14:54.734  1106  1129 I input_focus: [Focus request ebdc5f9 io.gestionasi.gfe_comaco/io.gestionasi.gfe_comaco.MainActivity,reason=UpdateInputWindows]
+  07-17 20:14:54.745 32753 32753 I viewroot_draw_event: [VRI[MainActivity],Canceling draw. cancelDueToPreDrawListener=true cancelDueToSync=false]
+  07-17 20:14:54.746 32753 32753 I wm_on_top_resumed_gained_called: [45430036,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+> 07-17 20:14:54.756  1106  3767 I am_foreground_service_start: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,0,0,0,1,UNKNOWN,8]
+  07-17 20:14:54.760  1106  1106 I notification_enqueue: [10304,32753,io.gestionasi.gfe_comaco,47021,NULL,0,Notification(channel=comaco_tracking_location shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE|FOREGROUND_SERVICE color=0x00000000 category=service vis=PRIVATE),0]
+  07-17 20:14:54.809  1106  3011 I am_create_service: [0,121980472,.GoogleAccountAuthenticatorService,10185,18862]
+  07-17 20:14:54.813  1106  1106 I am_destroy_service: [0,121980472,18862]
+  07-17 20:14:54.963  1106  1106 I sysui_multi_action: [757,1501,758,1,793,203,794,0,795,203,796,47021,806,io.gestionasi.gfe_comaco,857,comaco_tracking_location,858,2,947,0,1500,0,1641,service,1688,1]
+  07-17 20:14:54.963  1106  1106 I sysui_multi_action: [757,804,799,note_interruptive,801,0,802,1]
+  07-17 20:14:55.373  1369  1369 D RILJ    : [3411]> GET_CELL_INFO_LIST [PHONE0]
+  07-17 20:14:55.374   691   691 D RILC    : getCellInfoList: serial 3411
+  07-17 20:14:55.374   691   736 D RIL_REQ_THDS: dequeue msg
+  07-17 20:14:55.374   691   736 D RIL_REQ_THDS: handleMessage 109
+  07-17 20:14:55.374   691   736 D RIL     : onRequest: GET_CELL_INFO_LIST radioState = RADIO_ON
+  07-17 20:15:07.422  1106  1209 I commit_sys_config_file: [settings-0-0,4]
+  07-17 20:15:07.519  1391  1434 I jank_cuj_events_end_request: [55,1784333707519004000,89482262047986,84980868036139]
+  07-17 20:15:07.663 24239 24255 I jank_cuj_events_end_request: [78,1784333707663428000,89482406471717,84981012459947]
+  07-17 20:15:07.669  1106  1128 I wm_stop_activity: [0,45430036,io.gestionasi.gfe_comaco/.MainActivity]
+> 07-17 20:15:07.672  1106  1138 I am_foreground_service_stop: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,0,0,12916,1,STOP_FOREGROUND,8]
+  07-17 20:15:07.681  1106  1106 I notification_enqueue: [10304,32753,io.gestionasi.gfe_comaco,47021,NULL,0,Notification(channel=comaco_tracking_location shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE|NO_CLEAR color=0x00000000 category=service vis=PRIVATE),1]
+  07-17 20:15:07.704 32753 32753 I viewroot_draw_event: [VRI[MainActivity],Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility]
+  07-17 20:15:07.738 32753 32753 I wm_on_stop_called: [45430036,io.gestionasi.gfe_comaco.MainActivity,STOP_ACTIVITY_ITEM,2]
+  07-17 20:15:09.039  1106  1291 I storage_state: [41217664-9172-527a-b3d5-edabb50a7d69,0,0,233562976256,247416750080]
+  07-17 20:15:09.175  1106  1138 I am_uid_idle: 10255
+  07-17 20:15:09.857  1106  1183 I am_destroy_service: [0,162434767,16265]
+  07-17 20:15:12.139   636  1598 I liblog  : 75
+  07-17 20:15:12.139   636  1598 I liblog  : 4
+  07-17 20:15:12.139   636  1598 I liblog  : 2
+  07-17 20:15:12.139   636  1598 I liblog  : 2
+  07-17 20:53:42.752  5790  5806 D vulkan  : searching for layers in '/data/app/~~6LLWlJdWH1KVEcDgiKzI-g==/io.gestionasi.gfe_comaco-mfqKX2ePVAM8vrFIE6D1dA==/base.apk!/lib/arm64-v8a'
+  07-17 20:53:42.753  5790  5790 I auditd  : type=1400 audit(0.0:16080): avc:  denied  { read } for  comm="RenderThread" name="large_page_conf" dev="sysfs" ino=60997 scontext=u:r:untrusted_app:s0:c48,c257,c512,c768 tcontext=u:object_r:sysfs:s0 tclass=file permissive=0 app=io.gestionasi.gfe_comaco
+  07-17 20:53:42.753  5790  5790 W RenderThread: type=1400 audit(0.0:16080): avc:  denied  { read } for  name="large_page_conf" dev="sysfs" ino=60997 scontext=u:r:untrusted_app:s0:c48,c257,c512,c768 tcontext=u:object_r:sysfs:s0 tclass=file permissive=0 app=io.gestionasi.gfe_comaco
+  07-17 20:53:42.762  5790  5790 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+> 07-17 20:53:42.774  5790  5805 I ComacoTracking: [GPS_NATIVE][BOOT] utc=2026-07-18T00:53:42.744Z elapsed=91797517 pid=5790 android.intent.action.BOOT_COMPLETED
+> 07-17 20:53:42.789  1106  2991 I ActivityManager: Background started FGS: Allowed [callingPackage: io.gestionasi.gfe_comaco; callingUid: 10304; uidState: TOP ; uidBFSL: [BFSL]; intent: Intent { cmp=io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService (has extras) }; code:PROC_STATE_TOP; tempAllowListReason:<,reasonCode:SYSTEM_ALLOW_LISTED,duration:9223372036854775807,callingUid:-1>; targetSdkVersion:34; callerTargetSdkVersion:34; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+> 07-17 20:53:42.791  1106  2991 I am_create_service: [0,93149700,.TrackingForegroundService,10304,5790]
+  07-17 20:53:42.793  1106  2991 I BroadcastQueue: BOOT_COMPLETED_BROADCAST_COMPLETION_LATENCY_REPORTED action:android.intent.action.BOOT_COMPLETED dispatchLatency:0 completeLatency:116 dispatchRealLatency:0 completeRealLatency:116 receiversSize:1 userId:0 userType:android.os.usertype.full.SYSTEM
+  07-17 20:53:42.793  1106  2991 D BroadcastQueue: Receiver ResolveInfo{1846a22 io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingBootReceiver m=0x108000 userHandle=UserHandle{0}} finished with BroadcastRecord{ab689d android.intent.action.BOOT_COMPLETED/u0} took 115ms
+  07-17 20:53:42.802 24239 24255 I jank_cuj_events_end_request: [8,1784336022802346000,91797545387215,87296151375021]
+  07-17 20:53:42.803  1391  1431 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#210) android.os.BinderProxy@50c0053@0
+  07-17 20:53:42.806  1106  1125 V WindowManager: Finish Transition (#210): created at 07-17 20:53:42.546 collect-started=0.067ms request-sent=8.254ms started=21.492ms ready=61.259ms sent=65.404ms finished=257.369ms
+  07-17 20:53:42.808  1391  1431 V WindowManagerShell: Track 0 became idle
+  07-17 20:53:42.808  1391  1431 V WindowManagerShell: All active transition animations finished
+  07-17 20:53:42.809  1106  1721 W UserManagerService: Requested status bar icon for non-badged user 0
+  07-17 20:53:42.811  1106  1721 W UserManagerService: Requested status bar icon for non-badged user 0
+  07-17 20:53:42.812 24239 24239 D VRI[CustomizationPanelLauncher]: visibilityChanged oldVisibility=true newVisibility=false
+  07-17 20:53:43.223  5790  5790 D PluginManager: startupPlugins: put - VerifyAutomaticDateTimeZone
+  07-17 20:53:43.223  5790  5790 D PluginManager: startupPlugins: put - Geolocation
+  07-17 20:53:43.223  5790  5790 D PluginManager: startupPlugins: put - PluginMockLocation
+  07-17 20:53:43.223  5790  5790 D PluginManager: startupPlugins: put - PowerOptimization
+> 07-17 20:53:43.223  5790  5790 D PluginManager: startupPlugins: put - ComacoTracking
+  07-17 20:53:43.223  5790  5790 D Diagnostic: initialize()
+  07-17 20:53:43.226  5790  5790 D PluginManager: getPlugin - put: Diagnostic
+  07-17 20:53:43.226  5790  5790 D Diagnostic_Location: initialize()
+  07-17 20:53:43.229  5790  5790 D PluginManager: getPlugin - put: Diagnostic_Location
+  07-17 20:53:43.229  5790  5790 D Diagnostic_Bluetooth: initialize()
+  07-17 20:53:43.237  5790  5790 D PluginManager: getPlugin - put: Diagnostic_Bluetooth
+  07-17 20:53:43.237  5790  5790 D Diagnostic_Wifi: initialize()
+  07-17 20:53:43.237  5790  5790 D PluginManager: getPlugin - put: Diagnostic_Wifi
+  07-17 20:53:43.237  5790  5790 D Diagnostic_Camera: initialize()
+  07-17 20:53:43.237  5790  5790 D PluginManager: getPlugin - put: Diagnostic_Camera
+  07-17 20:53:43.374   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 return ok!
+  07-17 20:53:43.376  5790  5790 I viewroot_draw_event: [VRI[MainActivity],Canceling draw. cancelDueToPreDrawListener=true cancelDueToSync=false]
+  07-17 20:53:43.376  5790  5790 I wm_on_top_resumed_gained_called: [51713757,io.gestionasi.gfe_comaco.MainActivity,topStateChangedWhenResumed]
+  07-17 20:53:43.377  5790  5790 W Choreographer: Already have a pending vsync event.  There should only be one at a time.
+> 07-17 20:53:43.393  1106  1184 I am_foreground_service_start: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,0,0,0,1,UNKNOWN,8]
+  07-17 20:53:43.396  1106  1138 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:43.398  1106  1138 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:53:43.399  5790  5790 I ComacoTracking: [GPS_NATIVE][START_FOREGROUND] utc=2026-07-18T00:53:43.398Z elapsed=91798142 pid=5790 foreground=true
+  07-17 20:53:43.406  1106  1184 D ConnectivityService: requestNetwork for uid/pid:10304/5790 activeRequest: null callbackRequest: 2265 [NetworkRequest [ REQUEST id=2266, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10304 RequestorUid: 10304 RequestorPkg: io.gestionasi.gfe_comaco UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOST
+  07-17 20:53:43.409  1106  1256 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=2266, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10304 RequestorUid: 10304 RequestorPkg: io.gestionasi.gfe_comaco UnderlyingNetworks: Null] ]
+  07-17 20:53:43.409  1106  1256 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=2266, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10304 RequestorUid: 10304 RequestorPkg: io.gestionasi.gfe_comaco UnderlyingNetworks: Null] ]
+  07-17 20:53:43.409  1106  1256 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=2266, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10304 RequestorUid: 10304 RequestorPkg: io.gestionasi.gfe_comaco UnderlyingNetworks: Null] ]
+  07-17 20:53:43.409  1106  1256 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=2266, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10304 RequestorUid: 10304 RequestorPkg: io.gestionasi.gfe_comaco UnderlyingNetworks: Null] ]
+  07-17 20:53:43.409  1106  1273 D ConnectivityService: NetReassign [2266 : null ÔåÆ 108] [c 0] [a 1] [i 1]
+> 07-17 20:53:43.409  5790  5790 I ComacoTracking: [GPS_NATIVE][SERVICE_CREATE] utc=2026-07-18T00:53:43.408Z elapsed=91798152 pid=5790 foreground=true
+> 07-17 20:53:43.413  5790  5790 I ComacoTracking: [GPS_NATIVE][SERVICE_COMMAND] utc=2026-07-18T00:53:43.412Z elapsed=91798156 pid=5790 boot
+> 07-17 20:53:43.417  5790  5904 I ComacoTracking: [GPS_NATIVE][NETWORK_AVAILABLE] utc=2026-07-18T00:53:43.415Z elapsed=91798160 pid=5790
+> 07-17 20:53:43.420  5790  5790 I ComacoTracking: [GPS_NATIVE][SERVICE_REFRESH] utc=2026-07-18T00:53:43.419Z elapsed=91798163 pid=5790 active=true work=true
+> 07-17 20:53:43.424  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_INICIADO] utc=2026-07-18T00:53:43.421Z elapsed=91798167 pid=5790 red_disponible
+> 07-17 20:53:43.428  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_FINALIZADO] utc=2026-07-18T00:53:43.427Z elapsed=91798171 pid=5790 red_disponible
+  07-17 20:53:43.428  5790  5902 W libc    : Access denied finding property "persist.vendor.gpu.ionmemtrack"
+> 07-17 20:53:43.431  5790  5903 I ComacoTracking: [GPS_NATIVE][UPLOAD_FINISHED] utc=2026-07-18T00:53:43.430Z elapsed=91798174 pid=5790 active=true work=true
+  07-17 20:53:43.432  1106  1184 D LocationManagerService: gps provider added registration from 10304/io.gestionasi.gfe_comaco/4A6A8CB7 -> Request[@+5s0ms HIGH_ACCURACY, minUpdateDistance=5.0, WorkSource{10304 io.gestionasi.gfe_comaco}]
+  07-17 20:53:43.437  1106  1749 D UniActivityTaskManagerServiceExt: mUatms.mHomeProcess = ProcessRecord{a84fd30 24239:com.motorola.launcher3/u0a117}
+  07-17 20:53:43.437  1106  1125 D GnssLocationProvider: setRequest ProviderRequest[@+5s0ms, HIGH_ACCURACY, WorkSource{10304 io.gestionasi.gfe_comaco}]
+  07-17 20:53:43.438  1106  1125 D GnssLocationProvider: startNavigating
+  07-17 20:53:43.441  1391  1391 D StatusBarIconController: setIconVisibility(), slot:location, visibility:true, tag:0, holder:StatusBarIconHolder(type=ICON tag=0 visible=false)
+  07-17 20:53:43.441  1106  1184 D PowerHALManager: powerhalmanager sendHint!!!
+> 07-17 20:53:43.441  5790  5790 I ComacoTracking: [GPS_NATIVE][REQUEST_UPDATES] utc=2026-07-18T00:53:43.439Z elapsed=91798184 pid=5790 provider=gps intervalMs=5000 distanceM=5.0
+  07-17 20:53:43.441   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:43.441   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:43.441   630   630 D PowerHAL: sendHint got hintSession:0xb4000074280225a0 
+  07-17 20:53:43.441   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=2: mTgid: 1391, mUid: 10245
+  07-17 20:53:43.441   630   630 D PowerHAL: enter case CPU_LOAD_RESET, and uclampMin_High=600
+  07-17 20:53:43.442   630   630 D PowerHAL: sendHint got hintSession:0xb4000074280225a0 return ok!
+  07-17 20:53:43.442  1106  1184 D PowerHALManager: powerhalmanager sendHint!!!
+  07-17 20:53:43.441   618   618 D vendor.sprd.hardware.memtrack-service: get_ion_memtrack_memory:start!
+  07-17 20:53:43.442   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:43.442   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:44.726   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 
+  07-17 20:53:44.726   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=0: mTgid: 5790, mUid: 10304
+  07-17 20:53:44.726   630   630 D PowerHAL: enter case CPU_LOAD_UP, and uclampMin_High=600
+  07-17 20:53:44.727   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 return ok!
+> 07-17 20:53:44.730  5790  5864 D PluginManager: getPlugin - put: ComacoTracking
+> 07-17 20:53:44.731  5790  5864 I ComacoTracking: [CORDOVA_ACTION] action=configurar
+> 07-17 20:53:44.735  5790  5915 I ComacoTracking: [GPS_NATIVE][CONFIGURED] utc=2026-07-18T00:53:44.734Z elapsed=91799478 pid=5790
+  07-17 20:53:44.752  1106  1184 D PowerHALManager: powerhalmanager sendHint!!!
+  07-17 20:53:44.752   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:44.752   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:44.752   630   630 D PowerHAL: sendHint got hintSession:0xb400007428023680 
+  07-17 20:53:44.752   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=0: mTgid: 1391, mUid: 10245
+  07-17 20:53:44.753   630   630 D PowerHAL: enter case CPU_LOAD_UP, and uclampMin_High=600
+  07-17 20:53:44.753   630   630 D PowerHAL: sendHint got hintSession:0xb400007428023680 return ok!
+  07-17 20:53:44.769  1106  2991 D PowerHALManager: powerhalmanager sendHint!!!
+  07-17 20:53:44.769   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:44.769   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:44.788  5790  5790 I chromium: [INFO:CONSOLE:177] "database already open: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (177)
+  07-17 20:53:44.788  5790  5790 I chromium: [INFO:CONSOLE:85] "DB opened: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (85)
+  07-17 20:53:44.794  5790  5790 I chromium: [INFO:CONSOLE:177] "database already open: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (177)
+  07-17 20:53:44.796  5790  5790 I chromium: [INFO:CONSOLE:85] "DB opened: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (85)
+> 07-17 20:53:44.799  5790  5864 I ComacoTracking: [CORDOVA_ACTION] action=sincronizarSeguimientos
+> 07-17 20:53:44.801  5790  5903 I ComacoTracking: [GPS_NATIVE][SERVICE_REFRESH] utc=2026-07-18T00:53:44.800Z elapsed=91799544 pid=5790 sincronizacion
+> 07-17 20:53:44.812  5790  5903 I ComacoTracking: [GPS_NATIVE][SERVICE_REFRESH] utc=2026-07-18T00:53:44.811Z elapsed=91799555 pid=5790 active=true work=true
+> 07-17 20:53:44.813  5790  5903 I ComacoTracking: [GPS_NATIVE][REQUEST_UPDATES_SKIPPED] utc=2026-07-18T00:53:44.813Z elapsed=91799556 pid=5790 reason=already_registered
+  07-17 20:53:44.827  1106  2991 D PowerHALManager: powerhalmanager sendHint!!!
+  07-17 20:53:44.828   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:44.828   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:44.828   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 
+  07-17 20:53:44.828   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=0: mTgid: 5790, mUid: 10304
+  07-17 20:53:44.828   630   630 D PowerHAL: enter case CPU_LOAD_UP, and uclampMin_High=600
+  07-17 20:53:44.828   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 return ok!
+> 07-17 20:53:44.850  5790  5864 I ComacoTracking: [CORDOVA_ACTION] action=verificarMigracion
+  07-17 20:53:44.858  5790  5790 I chromium: [INFO:CONSOLE:177] "database already open: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (177)
+  07-17 20:53:44.858  5790  5790 I chromium: [INFO:CONSOLE:85] "DB opened: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (85)
+> 07-17 20:53:44.874  5790  5864 I ComacoTracking: [CORDOVA_ACTION] action=solicitarDrenaje
+> 07-17 20:53:44.877  5790  5903 I ComacoTracking: [GPS_NATIVE][SERVICE_REFRESH] utc=2026-07-18T00:53:44.876Z elapsed=91799620 pid=5790 inicio_o_resume
+> 07-17 20:53:44.884  5790  5903 I ComacoTracking: [GPS_NATIVE][SERVICE_REFRESH] utc=2026-07-18T00:53:44.884Z elapsed=91799627 pid=5790 active=true work=true
+> 07-17 20:53:44.887  5790  5903 I ComacoTracking: [GPS_NATIVE][REQUEST_UPDATES_SKIPPED] utc=2026-07-18T00:53:44.887Z elapsed=91799630 pid=5790 reason=already_registered
+> 07-17 20:53:44.906  5790  5864 I ComacoTracking: [CORDOVA_ACTION] action=obtenerEstado
+  07-17 20:53:44.929  1106  2991 D PowerHALManager: powerhalmanager sendHint!!!
+  07-17 20:53:44.930   630   630 D PowerHAL: enter VendorPower::sendHint
+  07-17 20:53:44.930   630   630 D PowerHAL: sendHint enter sendHint if():
+  07-17 20:53:44.930   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 
+  07-17 20:53:44.930   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=0: mTgid: 5790, mUid: 10304
+  07-17 20:53:44.930   630   630 D PowerHAL: enter case CPU_LOAD_UP, and uclampMin_High=600
+  07-17 20:53:44.930  5790  5790 I chromium: [INFO:CONSOLE:46] "[TRACKING][NATIVE_READY] activos=2 pendientes=0 legacy=0", source: file:///android_asset/www/js/Services/SeguimientoBootstrap.js (46)
+  07-17 20:53:44.930   630   630 D PowerHAL: sendHint got hintSession:0xb400007428022d80 return ok!
+  07-17 20:53:44.930  5790  5790 I chromium: [INFO:CONSOLE:177] "database already open: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (177)
+  07-17 20:53:44.931  5790  5790 I chromium: [INFO:CONSOLE:177] "database already open: bd.db", source: file:///android_asset/www/plugins/cordova-sqlite-spatialite-evplus-ext-common-free/www/SQLitePlugin.js (177)
+  07-17 20:53:55.495  1106  4255 D LocationManagerService: passive provider location send to 10185/com.google.android.gms[fused_location_provider]/26556313
+  07-17 20:53:55.496  1106  1184 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:55.498  1106  1184 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:55.498  1106  4255 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:53:55.506  5790  5903 I ComacoTracking: [GPS_NATIVE][LOCATION] utc=2026-07-18T00:53:55.505Z elapsed=91810249 pid=5790 provider=gps accuracy=2 ageMs=324
+> 07-17 20:53:55.508  5790  5903 I ComacoTracking: [GPS_NATIVE][DB_COMMIT] utc=2026-07-18T00:53:55.507Z elapsed=91810251 pid=5790 positions=2
+> 07-17 20:53:55.509  5790  5903 I ComacoTracking: [GPS_NATIVE][OUTBOX_CREATED] utc=2026-07-18T00:53:55.508Z elapsed=91810252 pid=5790 positions=2
+> 07-17 20:53:55.510  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_INICIADO] utc=2026-07-18T00:53:55.509Z elapsed=91810253 pid=5790 nueva_captura
+  07-17 20:53:55.510  1106  4255 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:55.554   399   399 E TrustyKeymaster: succeeded to send cmd (4) to com.android.trusty.keymaster with rc(310). errno: Success
+  07-17 20:53:55.555   399   399 E TrustyKeymaster: Getting response size (28)
+  07-17 20:53:55.560   399   399 E TrustyKeymaster: succeeded to send cmd (8) to com.android.trusty.keymaster with rc(87). errno: Success
+  07-17 20:53:55.561   399   399 E TrustyKeymaster: Getting response size (71)
+  07-17 20:53:55.562   399   399 E TrustyKeymaster: succeeded to send cmd (12) to com.android.trusty.keymaster with rc(32). errno: Success
+  07-17 20:53:55.563   399   399 E TrustyKeymaster: Getting response size (24)
+> 07-17 20:53:55.568  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_BEGIN] utc=2026-07-18T00:53:55.567Z elapsed=91810311 pid=5790 positions=1
+  07-17 20:53:56.258   636  1473 D GNSSMGT : gps_getParaData: enter, pPacket[0x73b06b78e6]
+  07-17 20:53:56.258   636  1473 D GNSSMGT : gps_getParaData: subType[0x29]
+  07-17 20:53:56.258   636  1473 D GNSSMGT : gps_getParaData: lte glonass request is received
+  07-17 20:53:56.258   636  1473 D GNSSMGT : parse_glonasslte_request: receive length[16], sav mask[0x80], leapyear[8], daynumber[930], tod[14036]
+  07-17 20:53:56.258   636  1587 D GNSSMGT : agps_msg_thread: read cmd is 21
+  07-17 20:53:56.258   636  1587 D GNSSMGT : prepareGloLteRequest: enter
+  07-17 20:53:56.258   636  1587 D GNSSMGT : prepareGloLteRequest: predict Glonass sav SlotNum is 8
+  07-17 20:53:56.258   636  1587 D LIBGPS_LTE: svid=8,Mjd=61239,week=2427,tow=521636.000000,dMjd=0.037454
+  07-17 20:53:56.258   636  1587 D LIBGPS_LTE: Glo ephIndex=17607,mjd0=61053,delta_mjd=2.635417 
+  07-17 20:53:56.258   636  1587 E LIBGPS_LTE: SF_getGloEphPoints slotNum 8, ret 0
+  07-17 20:53:57.261   636  1587 D GNSSMGT : prepareGloLteRequest: predict Glonass sav SlotNum is 8
+  07-17 20:53:57.261   636  1587 D LIBGPS_LTE: svid=8,Mjd=61239,week=2427,tow=521636.000000,dMjd=0.037454
+  07-17 20:53:57.261   636  1587 D LIBGPS_LTE: Glo ephIndex=17607,mjd0=61053,delta_mjd=2.635417 
+  07-17 20:53:57.261   636  1587 E LIBGPS_LTE: SF_getGloEphPoints slotNum 8, ret 0
+> 07-17 20:53:57.338  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_ACK] utc=2026-07-18T00:53:57.338Z elapsed=91812081 pid=5790 positions=1
+  07-17 20:53:57.347   399   399 E TrustyKeymaster: succeeded to send cmd (4) to com.android.trusty.keymaster with rc(310). errno: Success
+  07-17 20:53:57.348   399   399 E TrustyKeymaster: Getting response size (28)
+  07-17 20:53:57.349   399   399 E TrustyKeymaster: succeeded to send cmd (8) to com.android.trusty.keymaster with rc(87). errno: Success
+  07-17 20:53:57.350   399   399 E TrustyKeymaster: Getting response size (71)
+  07-17 20:53:57.351   399   399 E TrustyKeymaster: succeeded to send cmd (12) to com.android.trusty.keymaster with rc(32). errno: Success
+  07-17 20:53:57.352   399   399 E TrustyKeymaster: Getting response size (24)
+> 07-17 20:53:57.355  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_BEGIN] utc=2026-07-18T00:53:57.354Z elapsed=91812098 pid=5790 positions=1
+  07-17 20:53:57.357   636  1473 D GNSSMGT : gps_getData: ellipse subtype is received
+  07-17 20:53:57.449   636  1473 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:6, gpstow:0
+  07-17 20:53:57.449   636  1473 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 0, sv_constellation_total = 3, num_svs = 6
+  07-17 20:53:57.449   636  1473 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+  07-17 20:53:57.449   636  1473 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 1, sv_constellation_total = 3, num_svs = 7
+  07-17 20:53:57.450   636  1473 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:2, gpstow:0
+  07-17 20:53:57.450   636  1473 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 2, sv_constellation_total = 3, num_svs = 9
+  07-17 20:53:57.452  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:57.455  1106  1125 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:57.456  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:57.510   636  1473 D GNSSMGT : gps_handleFlashType: gps save flash information
+  07-17 20:53:57.510   636  1473 D GNSSMGT : gpsSaveEph2Ram: Rec packet [T:0x9, SubT:0x1F]: cnt=0x4C02
+  07-17 20:53:57.511  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:57.512  1106  4255 D LocationManagerService: passive provider location send to 10185/com.google.android.gms[fused_location_provider]/8CD5BAC5
+> 07-17 20:53:57.512  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_ACK] utc=2026-07-18T00:53:57.512Z elapsed=91812255 pid=5790 positions=1
+  07-17 20:53:57.513  1106  4255 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:53:57.514  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_FINALIZADO] utc=2026-07-18T00:53:57.513Z elapsed=91812257 pid=5790 nueva_captura
+  07-17 20:53:57.515  1106  4255 D LocationManagerService: passive provider location send to 10185/com.google.android.gms[fused_location_provider]/26556313
+  07-17 20:53:57.516  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:53:57.516  5790  5903 I ComacoTracking: [GPS_NATIVE][UPLOAD_FINISHED] utc=2026-07-18T00:53:57.515Z elapsed=91812259 pid=5790 active=true work=true
+  07-17 20:53:57.516  1106  4255 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:57.607   630   687 D PowerHAL: PowerSessionManager::enableSystemTopAppBoost!!
+  07-17 20:53:58.268   636  1473 D GNSSMGT : gps_getParaData: enter, pPacket[0x73b06b78e6]
+  07-17 20:53:58.268   636  1473 D GNSSMGT : gps_getParaData: subType[0x29]
+  07-17 20:53:58.268   636  1473 D GNSSMGT : gps_getParaData: lte glonass request is received
+  07-17 20:53:58.268   636  1473 D GNSSMGT : parse_glonasslte_request: receive length[16], sav mask[0x80], leapyear[8], daynumber[930], tod[14038]
+  07-17 20:53:58.269   636  1587 D GNSSMGT : agps_msg_thread: read cmd is 21
+  07-17 20:53:58.269   636  1587 D GNSSMGT : prepareGloLteRequest: enter
+  07-17 20:53:58.269   636  1587 D GNSSMGT : prepareGloLteRequest: predict Glonass sav SlotNum is 8
+  07-17 20:53:58.269   636  1587 D LIBGPS_LTE: svid=8,Mjd=61239,week=2427,tow=521638.000000,dMjd=0.037477
+  07-17 20:53:59.528  1106  3788 D LocationManagerService: passive provider location send to 10185/com.google.android.gms[fused_location_provider]/26556313
+  07-17 20:53:59.529  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:59.529  1106  3788 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:53:59.529  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:53:59.894  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_INICIADO] utc=2026-07-18T00:53:59.893Z elapsed=91814637 pid=5790 periodico
+> 07-17 20:53:59.897  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_FINALIZADO] utc=2026-07-18T00:53:59.897Z elapsed=91814640 pid=5790 periodico
+> 07-17 20:53:59.899  5790  5903 I ComacoTracking: [GPS_NATIVE][UPLOAD_FINISHED] utc=2026-07-18T00:53:59.898Z elapsed=91814642 pid=5790 active=true work=true
+  07-17 20:54:00.000  1106  1219 D AlarmManager: waitForAlarm result:8currentTime=1784336040000, elapsedRealtime=91814743
+  07-17 20:54:00.001  1106  1219 V AlarmManager: Received TIME_TICK alarm; rescheduling
+  07-17 20:54:00.001  1106  1219 V AlarmManager: set(null) : type=3 listener=com.android.server.alarm.AlarmManagerService$2@579496f listenerTag=TIME_TICK workSource=null callingPackage=android callingUid=1000 triggerAtTime=91874743 win=0 tElapsed=91874743 maxElapsed=91874743 interval=0 flags=0x9
+  07-17 20:54:00.002  1106  1219 D AlarmManagerService: set alarm to kernel: 91825043000000, type=2
+  07-17 20:54:00.002  1106  1219 D AlarmManagerService: set alarm to kernel: 91819177000000, type=3
+  07-17 20:54:00.003  1106  1219 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.006  1106  1219 D AlarmManager: sending alarm.type = 3, action = null, alarm = Alarm{8cf377e type 3 origWhen 91814743 whenElapsed 91814743 android}, cn = null, operation = null, listener=com.android.server.alarm.AlarmManagerService$2@579496f, listenerTag=TIME_TICK, workSource=null
+  07-17 20:54:00.006  1106  1219 D AlarmManagerService: set alarm to kernel: 91825043000000, type=2
+  07-17 20:54:00.006  1106  1219 D AlarmManagerService: set alarm to kernel: 91819177000000, type=3
+  07-17 20:54:00.014  1106  1106 V BroadcastQueue: Enqueuing BroadcastRecord{c9734df android.intent.action.TIME_TICK/u-1} ordered=false from uid 1000 pid 1106 for 3 receivers
+  07-17 20:54:00.516  1106  1125 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.517  1106  1125 D LocationManagerService: passive provider location send to 10185/com.google.android.gms[fused_location_provider]/26556313
+  07-17 20:54:00.518  1106  1125 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.519  1106  2764 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:54:00.519  5790  5903 I ComacoTracking: [GPS_NATIVE][LOCATION] utc=2026-07-18T00:54:00.518Z elapsed=91815262 pid=5790 provider=gps accuracy=5 ageMs=337
+  07-17 20:54:00.520  1106  3788 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:54:00.520  5790  5903 I ComacoTracking: [GPS_NATIVE][DB_COMMIT] utc=2026-07-18T00:54:00.520Z elapsed=91815263 pid=5790 positions=2
+  07-17 20:54:00.522  1106  3788 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:54:00.522  5790  5903 I ComacoTracking: [GPS_NATIVE][OUTBOX_CREATED] utc=2026-07-18T00:54:00.521Z elapsed=91815265 pid=5790 positions=2
+> 07-17 20:54:00.523  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_INICIADO] utc=2026-07-18T00:54:00.523Z elapsed=91815266 pid=5790 nueva_captura
+  07-17 20:54:00.523  1106  3788 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.528  1106  3788 I LocationManagerService: incoming location: locationResult [[Location[fused -37****** , -73******  hAcc=11.557 et=+1d1h30m15s247ms alt=87.4000015258789 vAcc=1.097098 vel=2.8826234 sAcc=0.35000345 bear=160.38573 bAcc=42.987045]]]
+  07-17 20:54:00.528 18862 18943 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+  07-17 20:54:00.529 18862 18943 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+  07-17 20:54:00.530 18862 18943 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+  07-17 20:54:00.530   636  1473 D GNSSMGT : gps_handleFlashType: gps save flash information
+  07-17 20:54:00.530   636  1473 D GNSSMGT : gpsSaveEph2Ram: Rec packet [T:0x9, SubT:0x1F]: cnt=0x4C05
+  07-17 20:54:00.530  1106  3788 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.531   399   399 E TrustyKeymaster: succeeded to send cmd (4) to com.android.trusty.keymaster with rc(310). errno: Success
+  07-17 20:54:00.532  1106  3788 D LocationManagerService: fused provider location send to 10304/io.gestionasi.gfe_comaco/04548C92
+  07-17 20:54:00.539   399   399 E TrustyKeymaster: succeeded to send cmd (12) to com.android.trusty.keymaster with rc(32). errno: Success
+  07-17 20:54:00.539  1106  6558 D PowerManagerServiceEx: isScreenOnBlockedLocked
+  07-17 20:54:00.539   399   399 E TrustyKeymaster: Getting response size (24)
+  07-17 20:54:00.540  1106  6558 D PowerManagerServiceEx: isScreenOnBlockedLocked
+> 07-17 20:54:00.545  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_BEGIN] utc=2026-07-18T00:54:00.544Z elapsed=91815288 pid=5790 positions=1
+  07-17 20:54:00.686   636  1473 D GNSSMGT : GNSS_LIBGPS_TEST_SUBTYPE: length[1] buf[0] = 00
+> 07-17 20:54:00.713  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_ACK] utc=2026-07-18T00:54:00.712Z elapsed=91815456 pid=5790 positions=1
+  07-17 20:54:00.723   399   399 E TrustyKeymaster: succeeded to send cmd (4) to com.android.trusty.keymaster with rc(310). errno: Success
+  07-17 20:54:00.724   399   399 E TrustyKeymaster: Getting response size (28)
+  07-17 20:54:00.726   399   399 E TrustyKeymaster: succeeded to send cmd (8) to com.android.trusty.keymaster with rc(87). errno: Success
+  07-17 20:54:00.727   399   399 E TrustyKeymaster: Getting response size (71)
+  07-17 20:54:00.728   399   399 E TrustyKeymaster: succeeded to send cmd (12) to com.android.trusty.keymaster with rc(32). errno: Success
+  07-17 20:54:00.728   399   399 E TrustyKeymaster: Getting response size (24)
+> 07-17 20:54:00.735  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_BEGIN] utc=2026-07-18T00:54:00.734Z elapsed=91815478 pid=5790 positions=1
+> 07-17 20:54:00.897  5790  5905 I ComacoTracking: [GPS_NATIVE][HTTP_ACK] utc=2026-07-18T00:54:00.896Z elapsed=91815640 pid=5790 positions=1
+> 07-17 20:54:00.901  5790  5905 I ComacoTracking: [GPS_NATIVE][DRENAJE_FINALIZADO] utc=2026-07-18T00:54:00.899Z elapsed=91815644 pid=5790 nueva_captura
+> 07-17 20:54:00.903  5790  5903 I ComacoTracking: [GPS_NATIVE][UPLOAD_FINISHED] utc=2026-07-18T00:54:00.903Z elapsed=91815646 pid=5790 active=true work=true
+  07-17 20:54:01.267   636  1473 D GNSSMGT : gps_getParaData: enter, pPacket[0x73b06b78e6]
+  07-17 20:54:01.268   636  1473 D GNSSMGT : gps_getParaData: subType[0x29]
+  07-17 20:54:01.268   636  1473 D GNSSMGT : gps_getParaData: lte glonass request is received
+  07-17 20:54:01.268   636  1473 D GNSSMGT : parse_glonasslte_request: receive length[16], sav mask[0x80], leapyear[8], daynumber[930], tod[14040]
+  07-17 20:54:01.268   636  1587 D GNSSMGT : agps_msg_thread: read cmd is 21
+  07-17 20:54:01.268   636  1587 D GNSSMGT : prepareGloLteRequest: enter
+  07-17 20:54:01.268   636  1587 D GNSSMGT : prepareGloLteRequest: predict Glonass sav SlotNum is 8
+  07-17 20:54:01.268   636  1587 D LIBGPS_LTE: svid=8,Mjd=61239,week=2427,tow=521640.000000,dMjd=0.037500
+  07-17 20:54:01.268   636  1587 D LIBGPS_LTE: Glo ephIndex=17607,mjd0=61053,delta_mjd=2.635417 
+  07-17 20:54:01.268   636  1587 E LIBGPS_LTE: SF_getGloEphPoints slotNum 8, ret 0
+  07-17 20:54:04.738   630   630 D PowerHAL: PowerHintSession sendHint hintSession and hint=2: mTgid: 24239, mUid: 10117
+  07-17 20:54:04.738   630   630 D PowerHAL: enter case CPU_LOAD_RESET, and uclampMin_High=600
+  07-17 20:54:04.738   630   630 D PowerHAL: sendHint got hintSession:0xb4000074280235f0 return ok!
+  07-17 20:54:04.740  5790  5790 D CordovaActivity: Paused the activity.
+> 07-17 20:54:04.740  5790  5790 I ComacoTracking: [PLUGIN_LIFECYCLE] onPause
+  07-17 20:54:04.741  5790  5790 I wm_on_paused_called: [51713757,io.gestionasi.gfe_comaco.MainActivity,performPause,2]
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: Foreground UID status:
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: UID: 10117 is in foreground: true
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: UID: 10245 is in foreground: true
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: UID: 10252 is in foreground: false
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: UID: 10270 is in foreground: true
+  07-17 20:54:04.741  2241  3809 D ForegroundUtils: UID: 10304 is in foreground: true
+  07-17 20:54:04.742  1106  1229 I InputReader: processEventsLocked: type=21 Count=9 code=0 value=1 deviceId=10 when=7249546189000
+  07-17 20:54:04.744   646   646 D vendor.sprd.hardware.vibrator-service: camera is close status
+  07-17 20:54:04.744   646   646 D vendor.sprd.hardware.vibrator-service: vibra_off
+  07-17 20:54:05.176  1106  3017 W UserManagerService: Requested status bar icon for non-badged user 0
+  07-17 20:54:05.177  1106  3017 W UserManagerService: Requested status bar icon for non-badged user 0
+  07-17 20:54:05.178   659   659 I SurfaceFlinger: updating visibility visibleForInput:0, Snapshot{TraversalPath{.id = 2285}b7b8ab4 ActivityRecordInputSink io.gestionasi.gfe_comaco/.MainActivity#2285 isVisible=0 {hidden by parent or layer flag} changes=Hierarchy | Visibility | AffectsChildren | FrameRate layerStack=0 geomLayerBounds={0,0,2400,1080} geomLayerTransform={tx=0,ty=288}} input{(NO_INPUT_CHANNEL | NOT_FOCUSABLE | NOT_TOUCHABLE) replaceTouchableRegionWithCrop touchableRegion={0,0,0,0}}
+  07-17 20:54:05.187  5790  5790 I viewroot_draw_event: [VRI[MainActivity],Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility]
+> 07-17 20:54:05.189  1106  1138 I am_foreground_service_stop: [0,io.gestionasi.gfe_comaco/io.gestionasi.comaco.tracking.TrackingForegroundService,1,PROC_STATE_TOP,34,34,1,1,21796,1,STOP_FOREGROUND,8]
+  07-17 20:54:05.193  5790  5790 D CordovaActivity: Stopped the activity.
+  07-17 20:54:05.193  5790  5790 I wm_on_stop_called: [51713757,io.gestionasi.gfe_comaco.MainActivity,STOP_ACTIVITY_ITEM,2]
+  07-17 20:54:05.199   630   630 D PowerHAL: PowerHintSession hintSession pause tid: 5790, uid: 10304
+  07-17 20:54:05.201  1106  1879 D LocationManagerService: fused provider removed registration from 10304/io.gestionasi.gfe_comaco/04548C92
+  07-17 20:54:05.202   630   685 D PowerHAL: ##Timing deboost
+  07-17 20:54:05.202   630   685 D PowerHAL: Enter common_set: enable:0, duration: 0, /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq: 
+  07-17 20:54:05.202   630   685 D PowerHAL: Enter set_cluster_freqs_max_min: 
+  07-17 20:54:05.202   630   685 D PowerHAL: ##Timing deboost
+  07-17 20:54:05.202   630   685 D PowerHAL: Enter common_set: enable:0, duration: 0, /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq: 
+  07-17 20:54:05.202   630   685 D PowerHAL: Enter set_cluster_freqs_max_min: 
+
+
+
