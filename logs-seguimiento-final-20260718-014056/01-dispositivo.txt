@@ -1,3 +1,0 @@
-﻿List of devices attached
-ZE223JNJ85             device product:manila_gn model:moto_g35_5G device:manila transport_id:9
-

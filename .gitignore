@@ -16,6 +16,7 @@ plugins/
 # Cordova temporary files
 .cordova/
 cordova/
+typings/
 www/cordova.js
 www/cordova_plugins.js
 www/plugins/
@@ -41,6 +42,7 @@ captures/
 
 # Local Android config
 local.properties
+/build.json
 
 # =========================
 # iOS generated
@@ -67,6 +69,30 @@ Thumbs.db
 # =========================
 logs/
 *.log
+
+# =========================
+# Local diagnostics / generated test evidence
+# =========================
+diagnostics/
+logs-seguimiento-*/
+coverage/
+.nyc_output/
+test-results/
+*.tap
+junit*.xml
+
+# Android/GPS investigation captures generated at repository root
+/bd_app.db
+/www/bd_app.db
+/www/bd/bd_app.db
+/appops-*.txt
+/busqueda-*.txt
+/cadena-detencion-*.txt
+/eventos-fgs-*.txt
+/fgs-*.txt
+/foreground-*.txt
+/prueba-*.txt
+/restriccion-*.txt
 
 # =========================
 # Environment / secrets
