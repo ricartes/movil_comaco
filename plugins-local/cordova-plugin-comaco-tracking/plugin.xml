@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    id="cordova-plugin-comaco-tracking" version="1.0.1">
+    id="cordova-plugin-comaco-tracking" version="1.1.0">
     <name>ComacoTracking</name>
     <description>Seguimiento GPS nativo y durable para COMACO.</description>
     <js-module src="www/ComacoTracking.js" name="ComacoTracking">
@@ -37,6 +37,9 @@
                 android:exported="false"
                 android:stopWithTask="false"
                 android:foregroundServiceType="location" />
+            <service android:name="io.gestionasi.comaco.tracking.DeviceAuditJobService"
+                android:exported="false"
+                android:permission="android.permission.BIND_JOB_SERVICE" />
             <receiver android:name="io.gestionasi.comaco.tracking.TrackingBootReceiver"
                 android:enabled="true" android:exported="true">
                 <intent-filter>
@@ -60,6 +63,16 @@
         <source-file src="src/android/CredentialCipher.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/TrackingUploader.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/DeviceAuditCanonicalizer.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/DeviceAuditStore.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/DeviceAuditUploader.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/DeviceAuditCoordinator.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/DeviceAuditJobService.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
     </platform>
     <platform name="browser">

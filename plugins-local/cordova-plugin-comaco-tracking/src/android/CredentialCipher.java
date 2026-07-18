@@ -12,7 +12,16 @@ import javax.crypto.spec.GCMParameterSpec;
 
 final class CredentialCipher {
     private static final String STORE = "AndroidKeyStore";
-    private static final String ALIAS = "comaco_tracking_token_v1";
+    private static final String DEFAULT_ALIAS = "comaco_tracking_token_v1";
+    private final String alias;
+
+    CredentialCipher() {
+        this(DEFAULT_ALIAS);
+    }
+
+    CredentialCipher(String alias) {
+        this.alias = alias;
+    }
 
     static final class Encrypted {
         final byte[] value;
@@ -23,11 +32,11 @@ final class CredentialCipher {
     private SecretKey key() throws Exception {
         KeyStore store = KeyStore.getInstance(STORE);
         store.load(null);
-        if (store.containsAlias(ALIAS)) {
-            return ((KeyStore.SecretKeyEntry) store.getEntry(ALIAS, null)).getSecretKey();
+        if (store.containsAlias(alias)) {
+            return ((KeyStore.SecretKeyEntry) store.getEntry(alias, null)).getSecretKey();
         }
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, STORE);
-        generator.init(new KeyGenParameterSpec.Builder(ALIAS,
+        generator.init(new KeyGenParameterSpec.Builder(alias,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)

@@ -2,8 +2,7 @@
 
 async function actualizaGuardaCambiosEsquema(version) {
     try {
-        await DATOS_ejecutaSecuenciaQuery(version.queries);
-        await DATOS_guardaHistoricoCambios(version.versionNumber);
+        await DATOS_aplicaMigracionVersionada(version);
         return 1;
     } catch (error) {
         console.error('Error en actualizaGuardaCambiosEsquema:', error);
@@ -19,16 +18,17 @@ function comprobarActualizarEsquema() {
             await DATOS_crearTablaMigracion();
             const versionActual = await DATOS_ultimaVersion() || 0;
         
-            const updates = versionesEsquema
-                .filter(version => versionActual < version.versionNumber)
-                .map(version => actualizaGuardaCambiosEsquema(version));
+            const updates = versionesEsquema.filter(
+                version => versionActual < version.versionNumber
+            );
 
-            const results = await Promise.all(updates);
-            if (results.includes(0)) {
-                reject(new Error('Algunas actualizaciones fallaron'));
-            } else {
-                resolve(1);
+            for (const version of updates) {
+                const resultado = await actualizaGuardaCambiosEsquema(version);
+                if (resultado !== 1) {
+                    throw new Error('FallÃ³ la actualizaciÃ³n de esquema ' + version.versionNumber);
+                }
             }
+            resolve(1);
         } catch (error) {
             reject(error);
         }

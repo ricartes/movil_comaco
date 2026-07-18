@@ -26,6 +26,13 @@ module.exports = {
     requestBatteryOptimizationExemption: function () { return invoke("requestBatteryOptimizationExemption"); },
     recheckPowerPolicy: function () { return invoke("recheckPowerPolicy"); },
     presentPowerRemediation: function (diagnostic) { return invoke("presentPowerRemediation", diagnostic || {}); },
+    prepararAuditoriaLogin: function (input) { return invoke("prepararAuditoriaLogin", input || {}); },
+    confirmarAuditoriaLoginOnline: function (input) { return invoke("confirmarAuditoriaLoginOnline", input || {}); },
+    registrarAuditoriaLogin: function (input) { return invoke("registrarAuditoriaLogin", input || {}); },
+    auditarConfiguracion: function (input) { return invoke("auditarConfiguracion", input || {}); },
+    solicitarDrenajeAuditoria: function (motivo) { return invoke("solicitarDrenajeAuditoria", { motivo: motivo || "manual" }); },
+    descartarAuditoria: function (idEvento) { return invoke("descartarAuditoria", { ID_EVENTO: idEvento }); },
+    obtenerEstadoAuditoria: function () { return invoke("obtenerEstadoAuditoria"); },
     suscribirEstadoSalud: function (onUpdate, onError) {
         exec(onUpdate, onError, "ComacoTracking", "suscribirEstadoSalud", []);
     }

@@ -2,36 +2,86 @@
 var ruta_respaldos = 'http://gestiona-002-site3.atempurl.com/Webserviceproveedor.asmx/';
 var nombre_ruta_fotos = "fotos";
 function login_web(u, callback) {
-
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
-        ruta = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/Login_Proveedor';
+        var base = result_param.PAG_VALOR + '/Webserviceproveedor.asmx/';
+        var preparar = typeof AUDITORIA_prepararLogin === "function"
+            ? AUDITORIA_prepararLogin("ONLINE", u.user)
+            : Promise.resolve(null);
 
-        (function ($) {
+        preparar.then(function (auditoriaPreparada) {
+            if (!auditoriaPreparada) {
+                login_web_legacy(base, u, callback);
+                return;
+            }
             $.ajax({
                 type: "POST",
-                url: ruta,
-                contetType: 'application/json; charset=utf-8',
-                data: { usuario: u.user, password: u.password },
-                dataType: 'xml',
+                url: base + 'Login_Proveedor_V2',
+                contentType: 'application/json; charset=utf-8',
+                data: JSON.stringify({
+                    usuario: u.user,
+                    password: u.password,
+                    auditoria: auditoriaPreparada
+                }),
+                dataType: 'json',
+                timeout: 15000,
                 success: function (data) {
-                    //alert(data);
-                    $(data).find('CL_Usuario_Movil ').each(function () {
-                        u.rut = $(this).find('USER_RUT').text();
-                        u.nombre = $(this).find('USER_NOMBRE').text();
-                        u.apellido = $(this).find('USER_APELLIDO').text();
-                        u.id_emp = $(this).find('USER_ID_EMP').text();
-                        u.estado = $(this).find('USER_ESTADO').text();
+                    var respuesta = data && Object.prototype.hasOwnProperty.call(data, "d") ? data.d : data;
+                    if (typeof respuesta === "string") respuesta = JSON.parse(respuesta);
+                    if (!respuesta || respuesta.EXITO !== true) {
+                        AUDITORIA_descartarLoginPreparado(auditoriaPreparada).catch(function () {});
+                        u.estado = 0;
                         typeof callback == "function" && callback(u);
-                    });
+                        return;
+                    }
+                    u.rut = respuesta.USER_RUT;
+                    u.nombre = respuesta.USER_NOMBRE;
+                    u.apellido = respuesta.USER_APELLIDO;
+                    u.id_emp = respuesta.USER_ID_EMP;
+                    u.id_usuario = respuesta.ID_USUARIO;
+                    u.estado = 1;
+                    u.tipo_login_auditoria = "ONLINE";
+                    u.auditoria_login_gestionada = true;
+                    AUDITORIA_confirmarLoginOnline(auditoriaPreparada, respuesta, u.user)
+                        .catch(function () {});
+                    typeof callback == "function" && callback(u);
                 },
-                error: function (err) {
-                    typeof callback == "function" && callback(-1);
+                error: function () {
+                    AUDITORIA_descartarLoginPreparado(auditoriaPreparada)
+                        .catch(function () {})
+                        .finally(function () {
+                            login_web_legacy(base, u, callback);
+                        });
                 }
             });
-        })(jQuery);
+        }).catch(function () {
+            login_web_legacy(base, u, callback);
+        });
     });
+}
 
-
+function login_web_legacy(base, u, callback) {
+    $.ajax({
+        type: "POST",
+        url: base + 'Login_Proveedor',
+        data: { usuario: u.user, password: u.password },
+        dataType: 'xml',
+        success: function (data) {
+            $(data).find('CL_Usuario_Movil ').each(function () {
+                u.id_usuario = $(this).find('ID_USUARIO').text();
+                u.rut = $(this).find('USER_RUT').text();
+                u.nombre = $(this).find('USER_NOMBRE').text();
+                u.apellido = $(this).find('USER_APELLIDO').text();
+                u.id_emp = $(this).find('USER_ID_EMP').text();
+                u.estado = $(this).find('USER_ESTADO').text();
+                u.tipo_login_auditoria = "ONLINE";
+                u.auditoria_login_gestionada = false;
+                typeof callback == "function" && callback(u);
+            });
+        },
+        error: function () {
+            typeof callback == "function" && callback(-1);
+        }
+    });
 }
 
 function comprueba_conexion(valor, callback) {

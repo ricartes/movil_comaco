@@ -88,6 +88,13 @@ var version8Esquema = {
     ]
 }
 
+var version9Esquema = {
+    versionNumber: 9,
+    queries: [
+        "ALTER TABLE USUARIO ADD COLUMN USU_ID_SERVIDOR INTEGER"
+    ]
+}
+
 
 //ARRAY DE VERSIONES, CUANDO ESTEN LOS CAMBIOS, SE COLOCA ACA LA VARIABLE
 var versionesEsquema = [
@@ -98,7 +105,8 @@ var versionesEsquema = [
     version5Esquema,
     version6Esquema,
     version7Esquema,
-    version8Esquema
+    version8Esquema,
+    version9Esquema
 ];
 
 

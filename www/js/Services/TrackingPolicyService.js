@@ -109,6 +109,9 @@ function TRACKING_POLICY_mostrarRemediacion(diagnostico, motivo) {
                     TRACKING_POLICY_marcarChecking("recheck_manual");
                     ComacoTracking.recheckPowerPolicy().then(function (actualizado) {
                         TRACKING_POLICY_actualizarEstado(actualizado);
+                        if (typeof AUDITORIA_auditarConfiguracion === "function") {
+                            AUDITORIA_auditarConfiguracion("recheck_manual").catch(function () {});
+                        }
                         var corregido = actualizado.remediationRequired !== true;
                         resolve(corregido);
                         if (!corregido) {
@@ -207,6 +210,9 @@ async function TRACKING_POLICY_revalidarRetornoSettings() {
     TRACKING_POLICY_marcarChecking("retorno_settings");
     var diagnostico = await ComacoTracking.recheckPowerPolicy();
     TRACKING_POLICY_actualizarEstado(diagnostico);
+    if (typeof AUDITORIA_auditarConfiguracion === "function") {
+        AUDITORIA_auditarConfiguracion("retorno_settings").catch(function () {});
+    }
     if (diagnostico.remediationRequired === true) {
         TRACKING_POLICY_mostrarRemediacion(diagnostico, "retorno_settings");
     }

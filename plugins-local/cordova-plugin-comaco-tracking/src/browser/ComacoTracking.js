@@ -8,7 +8,9 @@ var diagnostico = {
     remediationRequired: false, remediationStep: "NONE", remediationActions: [], settingsOpened: false
 };
 var estado = { configurado: false, servicioActivo: false, seguimientosActivos: 0, pendientes: 0, plataforma: "browser", decision: diagnostico.decision, enforcement: diagnostico.enforcement, policyDiagnostic: diagnostico };
+var auditoria = { ID_INSTALACION: "00000000-0000-4000-8000-000000000001", PENDIENTES: 0 };
 function ok(value) { return Promise.resolve(value); }
+function eventId() { return "00000000-0000-4000-8000-" + String(Date.now()).padStart(12, "0").slice(-12); }
 var api = {
     configurar: function () { estado.configurado = true; return ok(estado); },
     sincronizarSeguimientos: function (items) { estado.seguimientosActivos = (items || []).length; return ok(estado); },
@@ -29,6 +31,22 @@ var api = {
     requestBatteryOptimizationExemption: function () { return ok(diagnostico); },
     recheckPowerPolicy: function () { return ok(diagnostico); },
     presentPowerRemediation: function (diagnostic) { return ok(diagnostic || diagnostico); },
+    prepararAuditoriaLogin: function (input) {
+        var event = {
+            ID_EVENTO: eventId(), ID_USUARIO_LOCAL: null, TIPO_EVENTO: "LOGIN",
+            TIPO_LOGIN: (input && input.TIPO_LOGIN) || "ONLINE",
+            FECHA_EVENTO_DISPOSITIVO_UTC: new Date().toISOString(),
+            TENIA_INTERNET: true, CONFIGURACION_JSON: JSON.stringify(diagnostico)
+        };
+        auditoria.PENDIENTES += 1;
+        return ok({ ID_INSTALACION: auditoria.ID_INSTALACION, VERSION_ESQUEMA: 1, EVENTO: event });
+    },
+    confirmarAuditoriaLoginOnline: function () { auditoria.PENDIENTES = Math.max(0, auditoria.PENDIENTES - 1); return ok(auditoria); },
+    registrarAuditoriaLogin: function () { auditoria.PENDIENTES += 1; return ok(auditoria); },
+    auditarConfiguracion: function () { return ok(auditoria); },
+    solicitarDrenajeAuditoria: function () { return ok(auditoria); },
+    descartarAuditoria: function () { auditoria.PENDIENTES = Math.max(0, auditoria.PENDIENTES - 1); return ok(auditoria); },
+    obtenerEstadoAuditoria: function () { return ok(auditoria); },
     suscribirEstadoSalud: function () { return undefined; }
 };
 module.exports = api;

@@ -41,6 +41,7 @@ function configurarSeguimientoNativo() {
 
 function SEGUIMIENTO_registrarCredencialesNativas(credenciales) {
     return configurarSeguimientoNativo().then(async function () {
+        await AUDITORIA_auditarConfiguracion("antes_tracking").catch(function () {});
         var resultado = await SEGUIMIENTO_pluginNativo().sincronizarSeguimientos(credenciales || []);
         await TRACKING_POLICY_procesarResultado(resultado, "registro_seguimiento");
         return resultado;
@@ -128,3 +129,56 @@ function solicitarActivarGPS() {
 }
 
 function inicializarGpsDiagnosticHandler() { return true; }
+
+function AUDITORIA_prepararLogin(tipoLogin, userKey) {
+    return configurarSeguimientoNativo().then(function () {
+        return SEGUIMIENTO_pluginNativo().prepararAuditoriaLogin({
+            TIPO_LOGIN: tipoLogin || "ONLINE",
+            USER_KEY: userKey || ""
+        });
+    });
+}
+
+function AUDITORIA_confirmarLoginOnline(preparada, respuesta, userKey) {
+    if (!preparada || !preparada.EVENTO || !respuesta) return Promise.resolve();
+    return SEGUIMIENTO_pluginNativo().confirmarAuditoriaLoginOnline({
+        ID_EVENTO: preparada.EVENTO.ID_EVENTO,
+        ID_USUARIO: respuesta.ID_USUARIO,
+        USER_KEY: userKey || "",
+        TOKEN_INSTALACION: respuesta.TOKEN_INSTALACION || "",
+        AUDITORIA_CONFIRMADA: respuesta.AUDITORIA_CONFIRMADA === true,
+        ESTADO_DISPOSITIVO: respuesta.ESTADO_DISPOSITIVO || ""
+    });
+}
+
+function AUDITORIA_descartarLoginPreparado(preparada) {
+    if (!preparada || !preparada.EVENTO) return Promise.resolve();
+    return SEGUIMIENTO_pluginNativo().descartarAuditoria(preparada.EVENTO.ID_EVENTO);
+}
+
+function AUDITORIA_registrarLoginLocal(usuario, tipoLogin) {
+    return configurarSeguimientoNativo().then(function () {
+        var idServidor = usuario && (usuario.id_usuario || usuario.ID_USUARIO);
+        return SEGUIMIENTO_pluginNativo().registrarAuditoriaLogin({
+            ID_USUARIO: idServidor ? Number(idServidor) : null,
+            USER_KEY: usuario && usuario.user ? usuario.user : "",
+            TIPO_LOGIN: tipoLogin || "OFFLINE"
+        });
+    });
+}
+
+function AUDITORIA_auditarConfiguracion(motivo) {
+    var idUsuario = Number(Obtener_dato_local("id_usuario_activo") || 0);
+    return configurarSeguimientoNativo().then(function () {
+        return SEGUIMIENTO_pluginNativo().auditarConfiguracion({
+            ID_USUARIO: idUsuario > 0 ? idUsuario : null,
+            USER_KEY: Obtener_dato_local("user_activo") || "",
+            MOTIVO: motivo || "configuracion"
+        });
+    });
+}
+
+function AUDITORIA_solicitarDrenaje(motivo) {
+    if (typeof ComacoTracking === "undefined") return Promise.resolve();
+    return ComacoTracking.solicitarDrenajeAuditoria(motivo || "javascript");
+}

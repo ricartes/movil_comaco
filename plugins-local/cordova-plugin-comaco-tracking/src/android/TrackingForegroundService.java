@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.UUID;
 
 public final class TrackingForegroundService extends Service implements LocationListener {
-    private static final String CHANNEL_ID = "comaco_tracking_location";
+    static final String CHANNEL_ID = "comaco_tracking_location";
     private static final int NOTIFICATION_ID = 47021;
     private static final long UPLOAD_INTERVAL_MS = 5000L;
     private boolean locationUpdatesRegistered = false;

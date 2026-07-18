@@ -22,6 +22,79 @@ function DATOS_ultimaVersion() {
     });
 }
 
+function DATOS_aplicaMigracionVersionada(version) {
+    const db = window.sqlitePlugin.openDatabase({
+        name: "bd.db",
+        location: "default",
+        androidDatabaseImplementation: "system"
+    });
+
+    return new Promise((resolve, reject) => {
+        db.transaction(
+            function (tr) {
+                function abortarTransaccion() {
+                    return true;
+                }
+
+                function registrarVersion() {
+                    tr.executeSql(
+                        "INSERT INTO version_history (versionNumber, migratedAt) VALUES (?, ?)",
+                        [version.versionNumber, new Date()],
+                        function () {},
+                        abortarTransaccion
+                    );
+                }
+
+                function ejecutarConsultas(index) {
+                    if (index >= version.queries.length) {
+                        registrarVersion();
+                        return;
+                    }
+                    tr.executeSql(
+                        version.queries[index].trim(),
+                        [],
+                        function () {
+                            ejecutarConsultas(index + 1);
+                        },
+                        abortarTransaccion
+                    );
+                }
+
+                if (version.versionNumber !== 9) {
+                    ejecutarConsultas(0);
+                    return;
+                }
+
+                tr.executeSql(
+                    "PRAGMA table_info(USUARIO)",
+                    [],
+                    function (tr, rs) {
+                        var existeIdUsuarioServidor = false;
+                        for (var i = 0; i < rs.rows.length; i++) {
+                            if (String(rs.rows.item(i).name).toUpperCase() === "USU_ID_SERVIDOR") {
+                                existeIdUsuarioServidor = true;
+                                break;
+                            }
+                        }
+                        if (existeIdUsuarioServidor) {
+                            registrarVersion();
+                        } else {
+                            ejecutarConsultas(0);
+                        }
+                    },
+                    abortarTransaccion
+                );
+            },
+            function (error) {
+                reject(error);
+            },
+            function () {
+                resolve();
+            }
+        );
+    });
+}
+
 
 function DATOS_guardaHistoricoCambios(versionNumber) {
     const db = window.sqlitePlugin.openDatabase({

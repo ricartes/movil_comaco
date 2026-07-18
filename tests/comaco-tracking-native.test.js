@@ -204,7 +204,7 @@ test('28 token no aparece en eventos o llamadas Log', () => {
 });
 
 test('29 implementación browser expone toda la API sin romper build', () => {
-    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy','presentPowerRemediation','suscribirEstadoSalud']) {
+    for (const action of ['configurar','sincronizarSeguimientos','registrarSeguimiento','finalizarSeguimiento','obtenerEstado','obtenerEstadisticas','solicitarDrenaje','importarPosicionesLegacy','verificarMigracion','detenerSiCorresponde','obtenerDiagnosticoPolitica','configurarModoPolitica','continuarInicioConAdvertencia','abrirConfiguracionPolitica','getPowerPolicyStatus','openPowerRestrictionSettings','requestBatteryOptimizationExemption','recheckPowerPolicy','presentPowerRemediation','prepararAuditoriaLogin','confirmarAuditoriaLoginOnline','registrarAuditoriaLogin','auditarConfiguracion','solicitarDrenajeAuditoria','descartarAuditoria','obtenerEstadoAuditoria','suscribirEstadoSalud']) {
         assert.match(browser, new RegExp(action + ':'));
         assert.match(bridge, new RegExp(action + ':'));
     }
@@ -225,7 +225,7 @@ test('31 runtime no llama plugins anteriores', () => {
 });
 
 test('32 manifiesto declara un único servicio foreground de location', () => {
-    assert.equal((pluginXml.match(/<service /g) || []).length, 1);
+    assert.equal((pluginXml.match(/android:foregroundServiceType="location"/g) || []).length, 1);
     assert.match(pluginXml, /android:foregroundServiceType="location"/);
     assert.equal((nativeSources.match(/class TrackingForegroundService/g) || []).length, 1);
 });

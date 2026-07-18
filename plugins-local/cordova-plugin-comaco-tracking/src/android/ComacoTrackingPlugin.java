@@ -12,6 +12,7 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
     private static volatile ComacoTrackingPlugin instance;
     private TrackingStore store;
     private PowerPolicyInspector inspector;
+    private DeviceAuditCoordinator deviceAudit;
     private volatile CallbackContext healthSubscription;
 
     @Override
@@ -19,6 +20,12 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
         instance = this;
         store = new TrackingStore(cordova.getContext().getApplicationContext());
         inspector = new PowerPolicyInspector(cordova.getContext());
+        try {
+            deviceAudit = new DeviceAuditCoordinator(
+                    cordova.getContext().getApplicationContext(), store, inspector);
+        } catch (RuntimeException ignored) {
+            deviceAudit = null;
+        }
     }
 
     @Override
@@ -51,6 +58,13 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             case "requestBatteryOptimizationExemption":
             case "recheckPowerPolicy":
             case "presentPowerRemediation":
+            case "prepararAuditoriaLogin":
+            case "confirmarAuditoriaLoginOnline":
+            case "registrarAuditoriaLogin":
+            case "auditarConfiguracion":
+            case "solicitarDrenajeAuditoria":
+            case "descartarAuditoria":
+            case "obtenerEstadoAuditoria":
                 cordova.getThreadPool().execute(() -> run(action, args, callback));
                 return true;
             default:
@@ -64,6 +78,13 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             switch (action) {
                 case "configurar":
                     store.configure(args.getJSONObject(0));
+                    if (deviceAudit != null) {
+                        try {
+                            deviceAudit.configure(args.getJSONObject(0));
+                        } catch (Exception ignored) {
+                            // La auditorÃ­a nunca bloquea la configuraciÃ³n ni el tracking GPS.
+                        }
+                    }
                     result = stateWithPolicy(inspect("configuracion", false));
                     break;
                 case "sincronizarSeguimientos":
@@ -162,16 +183,57 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                     if (result == null) result = new JSONObject();
                     store.diagnosticEvent("POWER_REMEDIATION_PRESENTED", powerEventDetail("PRESENT", result, null));
                     break;
+                case "prepararAuditoriaLogin":
+                    ensureDeviceAudit();
+                    result = deviceAudit.prepareLogin(args.optJSONObject(0));
+                    break;
+                case "confirmarAuditoriaLoginOnline":
+                    ensureDeviceAudit();
+                    result = deviceAudit.confirmOnline(args.optJSONObject(0));
+                    break;
+                case "registrarAuditoriaLogin":
+                    ensureDeviceAudit();
+                    result = deviceAudit.recordLocalLogin(args.optJSONObject(0));
+                    break;
+                case "auditarConfiguracion":
+                    ensureDeviceAudit();
+                    result = deviceAudit.collectConfiguration(args.optJSONObject(0));
+                    break;
+                case "solicitarDrenajeAuditoria":
+                    ensureDeviceAudit();
+                    result = deviceAudit.drain(args.optJSONObject(0) == null
+                            ? "manual"
+                            : args.optJSONObject(0).optString("motivo", "manual"));
+                    break;
+                case "descartarAuditoria":
+                    ensureDeviceAudit();
+                    result = deviceAudit.discard(args.optJSONObject(0));
+                    break;
+                case "obtenerEstadoAuditoria":
+                    ensureDeviceAudit();
+                    result = deviceAudit.state();
+                    break;
                 default:
                     throw new IllegalArgumentException("Accion no soportada.");
             }
             callback.success(result);
         } catch (Exception exception) {
-            store.event("PUENTE_ERROR", action + ":" + exception.getClass().getSimpleName());
+            if (!isAuditAction(action)) {
+                store.event("PUENTE_ERROR", action + ":" + exception.getClass().getSimpleName());
+            }
             callback.error(new JSONObject(java.util.Collections.singletonMap(
                     "codigo",
-                    "TRACKING_NATIVE_ERROR")).toString());
+                    isAuditAction(action) ? "DEVICE_AUDIT_ERROR" : "TRACKING_NATIVE_ERROR")).toString());
         }
+    }
+
+    private static boolean isAuditAction(String action) {
+        return action != null && (action.contains("Auditoria")
+                || "auditarConfiguracion".equals(action));
+    }
+
+    private void ensureDeviceAudit() {
+        if (deviceAudit == null) throw new IllegalStateException("DEVICE_AUDIT_UNAVAILABLE");
     }
 
     private JSONObject ensureService(String reason, boolean explicitContinue) throws Exception {
@@ -369,6 +431,10 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
         if (store != null) {
             store.close();
             store = null;
+        }
+        if (deviceAudit != null) {
+            deviceAudit.close();
+            deviceAudit = null;
         }
         healthSubscription = null;
         if (instance == this) instance = null;

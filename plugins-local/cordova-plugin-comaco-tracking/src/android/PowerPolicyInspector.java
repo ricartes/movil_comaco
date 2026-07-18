@@ -2,20 +2,26 @@ package io.gestionasi.comaco.tracking;
 
 import android.Manifest;
 import android.app.ActivityManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.usage.UsageStatsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ActivityNotFoundException;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -55,6 +61,9 @@ final class PowerPolicyInspector {
                 ? (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE)
                 : null;
         LocationManager location = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        ConnectivityManager connectivity = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NotificationManager notificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         boolean backgroundRestricted = Build.VERSION.SDK_INT >= 28
                 && activity != null
@@ -77,6 +86,15 @@ final class PowerPolicyInspector {
         boolean notificationsApplicable = Build.VERSION.SDK_INT >= 33;
         boolean notifications = !notificationsApplicable || granted(Manifest.permission.POST_NOTIFICATIONS);
         boolean locationEnabled = isLocationEnabled(location);
+        Boolean gpsProviderEnabled = providerEnabled(location, LocationManager.GPS_PROVIDER);
+        Boolean networkProviderEnabled = providerEnabled(location, LocationManager.NETWORK_PROVIDER);
+        boolean foregroundServiceApplicable = Build.VERSION.SDK_INT >= 28;
+        boolean foregroundServicePermission = !foregroundServiceApplicable
+                || granted(Manifest.permission.FOREGROUND_SERVICE);
+        boolean foregroundServiceLocationApplicable = Build.VERSION.SDK_INT >= 34;
+        boolean foregroundServiceLocationPermission = !foregroundServiceLocationApplicable
+                || granted(Manifest.permission.FOREGROUND_SERVICE_LOCATION);
+        boolean powerSaveMode = power != null && power.isPowerSaveMode();
 
         boolean logicalActive = store.hasActive();
         boolean serviceCreated = TrackingForegroundService.isRunning();
@@ -215,6 +233,11 @@ final class PowerPolicyInspector {
         device.put("model", Build.MODEL);
         device.put("androidRelease", Build.VERSION.RELEASE);
         device.put("sdkInt", Build.VERSION.SDK_INT);
+        device.put("securityPatch", Build.VERSION.SDK_INT >= 23
+                ? Build.VERSION.SECURITY_PATCH
+                : "API_NO_DISPONIBLE");
+
+        JSONObject application = applicationInfo();
 
         JSONObject policy = new JSONObject();
         policy.put("backgroundRestricted", backgroundRestricted);
@@ -229,6 +252,8 @@ final class PowerPolicyInspector {
             bucket.put("name", standbyBucketName(standbyBucket));
         }
         policy.put("standbyBucket", bucket);
+        policy.put("powerSaveMode", powerSaveMode);
+        policy.put("lowPowerStandby", lowPowerStandby(power));
 
         JSONObject permissions = new JSONObject();
         permissions.put("coarseLocation", coarse);
@@ -237,9 +262,34 @@ final class PowerPolicyInspector {
         permissions.put("backgroundLocation", background);
         permissions.put("postNotificationsApplicable", notificationsApplicable);
         permissions.put("postNotifications", notifications);
+        permissions.put("coarseLocationStatus", permissionStatus(true, coarse, true));
+        permissions.put("fineLocationStatus", permissionStatus(true, fine, true));
+        permissions.put("backgroundLocationStatus",
+                permissionStatus(backgroundApplicable, background, backgroundApplicable));
+        permissions.put("postNotificationsStatus",
+                permissionStatus(notificationsApplicable, notifications, notificationsApplicable));
+        permissions.put("foregroundService",
+                permissionState(foregroundServiceApplicable, foregroundServicePermission, foregroundServiceApplicable));
+        permissions.put("foregroundServiceLocation",
+                permissionState(foregroundServiceLocationApplicable,
+                        foregroundServiceLocationPermission, foregroundServiceLocationApplicable));
+        permissions.put("backgroundLocationRequired", backgroundApplicable);
+        permissions.put("coarseLocationDetail", permissionState(true, coarse, true));
+        permissions.put("fineLocationDetail", permissionState(true, fine, true));
+        permissions.put("backgroundLocationDetail",
+                permissionState(backgroundApplicable, background, backgroundApplicable));
+        permissions.put("postNotificationsDetail",
+                permissionState(notificationsApplicable, notifications, notificationsApplicable));
 
         JSONObject locationState = new JSONObject();
         locationState.put("deviceLocationEnabled", locationEnabled);
+        locationState.put("gpsProviderEnabled",
+                gpsProviderEnabled == null ? "API_NO_DISPONIBLE" : gpsProviderEnabled);
+        locationState.put("networkProviderEnabled",
+                networkProviderEnabled == null ? "API_NO_DISPONIBLE" : networkProviderEnabled);
+        locationState.put("precisionMode", fine
+                ? "PRECISA"
+                : (coarse ? "APROXIMADA" : "DENEGADA"));
         locationState.put("updatesRegistered", updatesRegistered);
         locationState.put("registrationGeneration", registrationGeneration == null ? JSONObject.NULL : registrationGeneration);
         locationState.put("registrationStartedUtc", registrationStartedMs > 0 ? TrackingStore.iso(registrationStartedMs) : JSONObject.NULL);
@@ -270,9 +320,12 @@ final class PowerPolicyInspector {
         result.put("capturedAtUtc", TrackingStore.iso(System.currentTimeMillis()));
         result.put("reason", reason == null ? "diagnostico" : reason);
         result.put("device", device);
+        result.put("application", application);
         result.put("powerPolicy", policy);
         result.put("permissions", permissions);
         result.put("location", locationState);
+        result.put("network", networkState(connectivity));
+        result.put("notifications", notificationState(notificationManager));
         result.put("tracking", tracking);
         result.put("decision", decision);
         result.put("enforcement", enforcement);
@@ -296,6 +349,95 @@ final class PowerPolicyInspector {
         result.put("settingsOpened", false);
         result.put("checkedAtUtc", result.getString("capturedAtUtc"));
         return result;
+    }
+
+    private JSONObject applicationInfo() throws Exception {
+        JSONObject result = new JSONObject();
+        PackageManager manager = context.getPackageManager();
+        PackageInfo packageInfo = manager.getPackageInfo(context.getPackageName(), 0);
+        ApplicationInfo app = context.getApplicationInfo();
+        result.put("packageName", context.getPackageName());
+        result.put("versionName", packageInfo.versionName == null ? "" : packageInfo.versionName);
+        result.put("versionCode", Build.VERSION.SDK_INT >= 28
+                ? packageInfo.getLongVersionCode()
+                : packageInfo.versionCode);
+        result.put("targetSdkVersion", app.targetSdkVersion);
+        return result;
+    }
+
+    private JSONObject lowPowerStandby(PowerManager power) throws Exception {
+        JSONObject result = new JSONObject();
+        if (Build.VERSION.SDK_INT < 33 || power == null) {
+            result.put("status", "API_NO_DISPONIBLE");
+            result.put("enabled", "API_NO_DISPONIBLE");
+            result.put("exempt", "API_NO_DISPONIBLE");
+            return result;
+        }
+        result.put("status", "DISPONIBLE");
+        result.put("enabled", power.isLowPowerStandbyEnabled());
+        result.put("exempt", power.isExemptFromLowPowerStandby());
+        return result;
+    }
+
+    private JSONObject networkState(ConnectivityManager connectivity) throws Exception {
+        JSONObject network = new JSONObject();
+        JSONObject dataSaver = new JSONObject();
+        if (Build.VERSION.SDK_INT < 24 || connectivity == null) {
+            dataSaver.put("status", "API_NO_DISPONIBLE");
+        } else {
+            int status = connectivity.getRestrictBackgroundStatus();
+            if (status == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED) {
+                dataSaver.put("status", "ENABLED");
+            } else if (status == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_WHITELISTED) {
+                dataSaver.put("status", "WHITELISTED");
+            } else {
+                dataSaver.put("status", "DISABLED");
+            }
+            dataSaver.put("code", status);
+        }
+        network.put("dataSaver", dataSaver);
+        return network;
+    }
+
+    private JSONObject notificationState(NotificationManager manager) throws Exception {
+        JSONObject result = new JSONObject();
+        boolean appEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled();
+        result.put("applicationEnabled", permissionState(true, appEnabled, true));
+
+        JSONObject channelState = new JSONObject();
+        channelState.put("id", TrackingForegroundService.CHANNEL_ID);
+        if (Build.VERSION.SDK_INT < 26 || manager == null) {
+            channelState.put("exists", false);
+            channelState.put("importance", "API_NO_DISPONIBLE");
+            channelState.put("enabled", permissionState(false, true, false));
+        } else {
+            NotificationChannel channel =
+                    manager.getNotificationChannel(TrackingForegroundService.CHANNEL_ID);
+            boolean exists = channel != null;
+            int importance = exists ? channel.getImportance() : NotificationManager.IMPORTANCE_LOW;
+            channelState.put("exists", exists);
+            channelState.put("importance", importance);
+            channelState.put("enabled", permissionState(true,
+                    !exists || importance != NotificationManager.IMPORTANCE_NONE, true));
+        }
+        result.put("foregroundServiceChannel", channelState);
+        return result;
+    }
+
+    private JSONObject permissionState(boolean applicable, boolean granted, boolean required)
+            throws Exception {
+        JSONObject result = new JSONObject();
+        result.put("applicable", applicable);
+        result.put("required", required);
+        result.put("status", applicable
+                ? (granted ? "CONCEDIDO" : "DENEGADO")
+                : "API_NO_DISPONIBLE");
+        return result;
+    }
+
+    private String permissionStatus(boolean applicable, boolean granted, boolean required) {
+        if (!applicable) return "API_NO_DISPONIBLE";
+        return granted ? "CONCEDIDO" : "DENEGADO";
     }
 
     JSONObject openSettings(String destination) throws Exception {
@@ -426,6 +568,16 @@ final class PowerPolicyInspector {
                     || location.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         } catch (RuntimeException ignored) {
             return false;
+        }
+    }
+
+    private Boolean providerEnabled(LocationManager location, String provider) {
+        if (location == null) return null;
+        try {
+            return location.getAllProviders().contains(provider)
+                    && location.isProviderEnabled(provider);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

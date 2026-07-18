@@ -476,6 +476,13 @@ function inicializarProgramadorEnvioDatos() {
         document.addEventListener("online", function () {
             if (ENVIO_DATOS_sesionInteractivaValida()) {
                 solicitarEnvioAutomaticoDatos("conexion_recuperada", true);
+                if (typeof AUDITORIA_auditarConfiguracion === "function") {
+                    AUDITORIA_auditarConfiguracion("conexion_recuperada").catch(function () {});
+                }
+            } else {
+                if (typeof AUDITORIA_solicitarDrenaje === "function") {
+                    AUDITORIA_solicitarDrenaje("conexion_recuperada").catch(function () {});
+                }
             }
         }, false);
         listenerOnlineEnvioDatosRegistrado = true;
@@ -731,6 +738,9 @@ document.addEventListener("deviceready", async function () {
                 Guardar_dato_local("user_activo", result.user);
                 Guardar_dato_local("rut_activo", result.rut);
                 Guardar_dato_local("empresa_activo", result.id_emp);
+                if (result.id_usuario) {
+                    Guardar_dato_local("id_usuario_activo", result.id_usuario);
+                }
                 inicializarProgramadorEnvioDatos();
                 solicitarEnvioAutomaticoDatos("login", true);
                 if (seguimientoSqliteLista && typeof inicializarProgramadorEnvioSeguimiento === "function") {
@@ -1080,9 +1090,31 @@ function login() {
                 //alert("login movil")
                 login_movil(us, function (contador) {
                     if (contador > 0) {
-                        guarda_ultimo_login(us, async function (res) {
-                            logeado = 1;
-                            await ok_login(us);
+                        datos_usuario(us, function (usuarioLocal) {
+                            usuarioLocal.tipo_login_auditoria = "OFFLINE";
+                            var finalizarLoginLocal = function () {
+                                guarda_ultimo_login(usuarioLocal, async function () {
+                                    logeado = 1;
+                                    await ok_login(usuarioLocal);
+                                });
+                            };
+                            if (checkConnection() == "No network connection") {
+                                finalizarLoginLocal();
+                                return;
+                            }
+                            login_web(us, function (usuarioServidor) {
+                                if (usuarioServidor && usuarioServidor !== -1
+                                        && usuarioServidor.estado == 1) {
+                                    guarda_id_usuario_servidor(usuarioServidor, async function () {
+                                        guarda_ultimo_login(usuarioServidor, async function () {
+                                            logeado = 1;
+                                            await ok_login(usuarioServidor);
+                                        });
+                                    });
+                                } else {
+                                    finalizarLoginLocal();
+                                }
+                            });
                         });
                     } else {
                         if (contador != -1) {
@@ -1149,6 +1181,7 @@ async function ejecutarLogoutConfirmado() {
     Borrar_dato_local("user_activo");
     Borrar_dato_local("rut_activo");
     Borrar_dato_local("empresa_activo");
+    Borrar_dato_local("id_usuario_activo");
     console.log("[LOGOUT][SESION_ELIMINADA]");
 
     // El login se abre antes de cualquier operación de trazabilidad o red.
@@ -1184,6 +1217,16 @@ async function ejecutarLogoutConfirmado() {
 async function ok_login(usuario) {
     usuario_activo = usuario;
     var ls = app.loginScreen.create({ el: ".login-screen" });
+
+    if (usuario.auditoria_login_gestionada !== true &&
+        typeof AUDITORIA_registrarLoginLocal === "function") {
+        Promise.resolve().then(function () {
+            return AUDITORIA_registrarLoginLocal(
+                usuario,
+                usuario.tipo_login_auditoria || "OFFLINE"
+            );
+        }).catch(function () {});
+    }
 
     (async () => {
         let datos = await generarDataTrazabilidad(
