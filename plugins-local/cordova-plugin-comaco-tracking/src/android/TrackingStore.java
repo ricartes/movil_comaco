@@ -177,6 +177,78 @@ final class TrackingStore extends SQLiteOpenHelper {
         event("TRACK_FINALIZING", null);
     }
 
+    synchronized void beginFinalizationPreparation(String trackingId) {
+        String id = uuidValue(trackingId, "ID_UNICO_SEGUIMIENTO");
+        String status = text(
+                "SELECT status FROM active_tracking WHERE tracking_id=?",
+                new String[]{id});
+        if ("PAUSADA_FINALIZACION".equals(status)) return;
+        if (!"ACTIVA".equals(status)) throw new IllegalStateException("SEGUIMIENTO_NO_ACTIVO");
+        ContentValues values = new ContentValues();
+        values.put("status", "PAUSADA_FINALIZACION");
+        values.put("updated_ms", System.currentTimeMillis());
+        int updated = getWritableDatabase().update(
+                "active_tracking", values, "tracking_id=? AND status='ACTIVA'", new String[]{id});
+        if (updated != 1) throw new IllegalStateException("SEGUIMIENTO_NO_ACTIVO");
+        event("TRACK_FINALIZATION_PAUSED", "tracking=" + partial(id));
+    }
+
+    synchronized void cancelFinalizationPreparation(String trackingId) {
+        String id = uuidValue(trackingId, "ID_UNICO_SEGUIMIENTO");
+        ContentValues values = new ContentValues();
+        values.put("status", "ACTIVA");
+        values.put("updated_ms", System.currentTimeMillis());
+        int updated = getWritableDatabase().update(
+                "active_tracking", values,
+                "tracking_id=? AND status='PAUSADA_FINALIZACION'", new String[]{id});
+        event("TRACK_FINALIZATION_RESUMED", "tracking=" + partial(id) + " updated=" + updated);
+    }
+
+    synchronized void recoverStaleFinalizationPreparations(long maxAgeMs) {
+        long cutoff = System.currentTimeMillis() - Math.max(30000L, maxAgeMs);
+        ContentValues values = new ContentValues();
+        values.put("status", "ACTIVA");
+        values.put("updated_ms", System.currentTimeMillis());
+        int updated = getWritableDatabase().update(
+                "active_tracking", values,
+                "status='PAUSADA_FINALIZACION' AND updated_ms<?",
+                new String[]{String.valueOf(cutoff)});
+        if (updated > 0) event("TRACK_FINALIZATION_STALE_RECOVERED", "trackings=" + updated);
+    }
+
+    synchronized void expediteTrackingPending(String trackingId, String reason) {
+        String id = uuidValue(trackingId, "ID_UNICO_SEGUIMIENTO");
+        ContentValues values = new ContentValues();
+        values.put("next_retry_ms", 0);
+        values.put("updated_ms", System.currentTimeMillis());
+        int count = getWritableDatabase().update(
+                "position_outbox", values,
+                "tracking_id=? AND state='PENDIENTE'", new String[]{id});
+        event("GPS_BACKOFF", "reason=expedited_" + safe(reason) + " positions=" + count);
+    }
+
+    synchronized JSONObject finalizationPreparationState(String trackingId) throws JSONException {
+        String id = uuidValue(trackingId, "ID_UNICO_SEGUIMIENTO");
+        String status = text(
+                "SELECT status FROM active_tracking WHERE tracking_id=?",
+                new String[]{id});
+        if (status == null) throw new IllegalStateException("SEGUIMIENTO_NO_EXISTE");
+        int withoutAck = scalar(
+                "SELECT COUNT(*) FROM position_outbox WHERE tracking_id=? AND state NOT IN ('CONFIRMADA','FINAL')",
+                new String[]{id});
+        JSONObject result = new JSONObject();
+        result.put("ID_UNICO_SEGUIMIENTO", id);
+        result.put("ESTADO", status);
+        result.put("POSICIONES_SIN_ACK", withoutAck);
+        result.put("POSICIONES_PENDIENTES", scalar(
+                "SELECT COUNT(*) FROM position_outbox WHERE tracking_id=? AND state='PENDIENTE'",
+                new String[]{id}));
+        result.put("POSICIONES_ENVIANDO", scalar(
+                "SELECT COUNT(*) FROM position_outbox WHERE tracking_id=? AND state='ENVIANDO'",
+                new String[]{id}));
+        return result;
+    }
+
     synchronized int importLegacy(JSONArray items) throws Exception {
         SQLiteDatabase db = getWritableDatabase(); int imported = 0; long now = System.currentTimeMillis();
         db.beginTransaction();
@@ -236,7 +308,7 @@ final class TrackingStore extends SQLiteOpenHelper {
         long now = System.currentTimeMillis();
         getWritableDatabase().execSQL("UPDATE position_outbox SET state='PENDIENTE',sending_since_ms=NULL,updated_ms=? WHERE state='ENVIANDO' AND sending_since_ms<?", new Object[]{now, now-300000});
         String trackingId = null; int limit = 50;
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND o.created_ms<=? AND a.status IN ('ACTIVA','FINALIZANDO') ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now),String.valueOf(createdBeforeOrAtMs)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND o.created_ms<=? AND a.status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO') ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now),String.valueOf(createdBeforeOrAtMs)})) {
             if (c.moveToFirst()) { trackingId=c.getString(0); limit=c.getInt(1); }
         }
         if (trackingId == null) return null;
@@ -267,7 +339,7 @@ final class TrackingStore extends SQLiteOpenHelper {
 
     synchronized void releaseUnacknowledged(List<OutboxItem> sent, Set<String> accepted) { List<OutboxItem> missing=new ArrayList<>(); for(OutboxItem p:sent) if(!accepted.contains(p.uuidPosition)) missing.add(p); fail(missing,"ACK_INCOMPLETO",false); }
 
-    synchronized boolean hasWork() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','FINALIZANDO')",null)>0 || scalar("SELECT COUNT(*) FROM position_outbox WHERE state IN ('PENDIENTE','ENVIANDO')",null)>0; }
+    synchronized boolean hasWork() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO')",null)>0 || scalar("SELECT COUNT(*) FROM position_outbox WHERE state IN ('PENDIENTE','ENVIANDO')",null)>0; }
     synchronized boolean hasActive() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA'",null)>0; }
     synchronized long intervalMs() { return scalarLong("SELECT interval_ms FROM tracking_config WHERE id=1",null,1000); }
     synchronized float distanceM() { try(Cursor c=getReadableDatabase().rawQuery("SELECT distance_m FROM tracking_config WHERE id=1",null)){ return c.moveToFirst()?c.getFloat(0):0f; } }
@@ -415,6 +487,7 @@ final class TrackingStore extends SQLiteOpenHelper {
     private int scalar(String sql,String[] args){return (int)scalarLong(sql,args,0);}
     private long scalarLong(String sql,String[] args,long fallback){try(Cursor c=getReadableDatabase().rawQuery(sql,args)){return c.moveToFirst()?c.getLong(0):fallback;}}
     private String lastText(String sql){try(Cursor c=getReadableDatabase().rawQuery(sql,null)){return c.moveToFirst()&&!c.isNull(0)?c.getString(0):null;}}
+    private String text(String sql,String[] args){try(Cursor c=getReadableDatabase().rawQuery(sql,args)){return c.moveToFirst()&&!c.isNull(0)?c.getString(0):null;}}
     private void putTime(JSONObject o,String key,String sql)throws JSONException{try(Cursor c=getReadableDatabase().rawQuery(sql,null)){o.put(key,c.moveToFirst()&&!c.isNull(0)?iso(c.getLong(0)):JSONObject.NULL);}}
     private static String safe(String value){return safe(value,180);}
     private static String safe(String value,int max){if(value==null)return null;return value.length()>max?value.substring(0,max):value;}
@@ -424,6 +497,8 @@ final class TrackingStore extends SQLiteOpenHelper {
     private static double boundedDouble(double value,double min,double max,String name){if(!Double.isFinite(value)||value<min||value>max)throw new IllegalArgumentException(name+" fuera de rango.");return value;}
     private static String required(JSONObject o,String key)throws JSONException{String v=o.getString(key).trim();if(v.isEmpty()||"null".equalsIgnoreCase(v)||"undefined".equalsIgnoreCase(v))throw new JSONException(key+" es obligatorio.");return v;}
     private static String uuid(JSONObject o,String key)throws JSONException{String v=required(o,key);UUID.fromString(v);return v;}
+    private static String uuidValue(String value,String name){String v=value==null?"":value.trim();if(v.isEmpty())throw new IllegalArgumentException(name+" es obligatorio.");UUID.fromString(v);return v;}
+    private static String partial(String value){return value==null?"":value.substring(0,Math.min(8,value.length()));}
     private static Double nullable(JSONObject o,String key)throws JSONException{return !o.has(key)||o.isNull(key)?null:o.getDouble(key);}
     private static boolean valid(Location l){return l!=null&&Double.isFinite(l.getLatitude())&&Double.isFinite(l.getLongitude())&&l.getLatitude()>=-90&&l.getLatitude()<=90&&l.getLongitude()>=-180&&l.getLongitude()<=180;}
     static String iso(long time){java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",Locale.US);f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));return f.format(new java.util.Date(time));}

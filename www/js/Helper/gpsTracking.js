@@ -92,6 +92,27 @@ function finalizarSeguimientoNativo(idUnicoSeguimiento) {
     });
 }
 
+function prepararFinalizacionSeguimientoNativo(idUnicoSeguimiento, timeoutMs) {
+    return configurarSeguimientoNativo().then(async function () {
+        var resultado = await SEGUIMIENTO_pluginNativo().prepararFinalizacionSeguimiento(
+            idUnicoSeguimiento,
+            timeoutMs || 15000
+        );
+        await TRACKING_POLICY_procesarResultado(resultado, "preparacion_finalizacion");
+        return resultado;
+    });
+}
+
+function cancelarPreparacionFinalizacionSeguimientoNativo(idUnicoSeguimiento) {
+    return configurarSeguimientoNativo().then(async function () {
+        var resultado = await SEGUIMIENTO_pluginNativo().cancelarPreparacionFinalizacionSeguimiento(
+            idUnicoSeguimiento
+        );
+        await TRACKING_POLICY_procesarResultado(resultado, "cancelacion_preparacion_finalizacion");
+        return resultado;
+    });
+}
+
 function solicitarDrenajeSeguimientoNativo(motivo) {
     return configurarSeguimientoNativo().then(async function () {
         var razon = motivo || "javascript";

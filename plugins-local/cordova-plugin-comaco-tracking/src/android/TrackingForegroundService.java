@@ -76,6 +76,19 @@ public final class TrackingForegroundService extends Service implements Location
         return current != null && current.startedWithPolicyOverride;
     }
 
+    static boolean requestImmediateDrain(String reason) {
+        TrackingForegroundService current = INSTANCE;
+        if (current == null || !RUNNING.get() || current.handler == null || current.uploader == null) {
+            return false;
+        }
+        current.handler.post(() -> {
+            if (RUNNING.get() && current.uploader != null) {
+                current.uploader.drain(reason == null ? "manual" : reason);
+            }
+        });
+        return true;
+    }
+
     public static void start(Context context, String reason) {
         start(context, reason, false);
     }
@@ -192,6 +205,7 @@ public final class TrackingForegroundService extends Service implements Location
     }
 
     private void refresh() {
+        store.recoverStaleFinalizationPreparations(60000L);
         boolean active = store.hasActive();
         boolean work = store.hasWork();
 

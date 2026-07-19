@@ -10,7 +10,7 @@ var usuario_activo;
 
 
 //var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-var url_server_nuevo = "https://2a53-2800-300-6231-bc0-f05f-b17-77ae-45be.ngrok-free.app";
+var url_server_nuevo = "https://casting-approve-hometown-courts.trycloudflare.com";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance

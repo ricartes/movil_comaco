@@ -1,6 +1,7 @@
 package io.gestionasi.comaco.tracking;
 
 import android.util.Log;
+import android.os.SystemClock;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -45,6 +46,9 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             case "sincronizarSeguimientos":
             case "registrarSeguimiento":
             case "finalizarSeguimiento":
+            case "prepararFinalizacionSeguimiento":
+            case "cancelarPreparacionFinalizacionSeguimiento":
+            case "obtenerBuildInfo":
             case "obtenerEstado":
             case "obtenerEstadisticas":
             case "solicitarDrenaje":
@@ -105,6 +109,49 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                 case "finalizarSeguimiento":
                     store.finalizeTracking(args.getJSONObject(0).getString("ID_UNICO_SEGUIMIENTO"));
                     result = stateWithPolicy(ensureService("finalizacion", false));
+                    break;
+                case "prepararFinalizacionSeguimiento":
+                    result = null;
+                    JSONObject preparationInput = args.getJSONObject(0);
+                    String preparationTrackingId = preparationInput.getString("ID_UNICO_SEGUIMIENTO");
+                    long preparationTimeoutMs = Math.max(
+                            1000L,
+                            Math.min(30000L, preparationInput.optLong("TIMEOUT_MS", 15000L)));
+                    store.beginFinalizationPreparation(preparationTrackingId);
+                    store.expediteTrackingPending(preparationTrackingId, "manual_finalization");
+                    ensureService("preparacion_finalizacion", false);
+                    long preparationDeadline = SystemClock.elapsedRealtime() + preparationTimeoutMs;
+                    JSONObject preparationState;
+                    do {
+                        TrackingForegroundService.requestImmediateDrain("preparacion_finalizacion");
+                        preparationState = store.finalizationPreparationState(preparationTrackingId);
+                        if (preparationState.getInt("POSICIONES_SIN_ACK") == 0) {
+                            preparationState.put("ACK_COMPLETO", true);
+                            preparationState.put("TIMEOUT", false);
+                            result = preparationState;
+                            break;
+                        }
+                        SystemClock.sleep(250L);
+                    } while (SystemClock.elapsedRealtime() < preparationDeadline);
+                    if (result == null) {
+                        preparationState = store.finalizationPreparationState(preparationTrackingId);
+                        preparationState.put("ACK_COMPLETO", false);
+                        preparationState.put("TIMEOUT", true);
+                        result = preparationState;
+                    }
+                    break;
+                case "cancelarPreparacionFinalizacionSeguimiento":
+                    String cancelledTrackingId = args.getJSONObject(0).getString("ID_UNICO_SEGUIMIENTO");
+                    store.cancelFinalizationPreparation(cancelledTrackingId);
+                    result = stateWithPolicy(ensureService("cancelacion_preparacion_finalizacion", false));
+                    break;
+                case "obtenerBuildInfo":
+                    result = new JSONObject();
+                    boolean debug = (cordova.getContext().getApplicationInfo().flags
+                            & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+                    result.put("DEBUG", debug);
+                    result.put("PACKAGE_NAME", cordova.getContext().getPackageName());
+                    result.put("BUILD_TYPE", debug ? "debug" : "release");
                     break;
                 case "obtenerEstado":
                     result = stateWithPolicy(inspect("estado", currentOverrideUsed()));

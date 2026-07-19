@@ -1878,6 +1878,116 @@ function enviarConfirmacionIngresoPlantaWebService(idUnico) {
 }
 
 
+async function enviarConfirmacionIngresoPlantaSeguraWebService(idUnico, opcionesFinalizacion) {
+    const opciones = opcionesFinalizacion || {};
+    const origen = String(opciones.ORIGEN_FINALIZACION || "GEOCERCA").trim().toUpperCase();
+    const motivo = String(opciones.MOTIVO_FINALIZACION || "").trim();
+    const requiereSeguimiento = opciones.REQUIERE_SEGUIMIENTO_ACTIVO === true;
+    let idSeguimiento = null;
+    let preparacionActiva = false;
+    let servidorConfirmado = false;
+    let credencialInstalacion = null;
+
+    try {
+        idSeguimiento = await obtenerIdSeguimientoGuia(idUnico);
+        if (!idSeguimiento && requiereSeguimiento) {
+            throw new Error("La guía no tiene un seguimiento activo asociado.");
+        }
+
+        if (idSeguimiento) {
+            const drenaje = await prepararFinalizacionSeguimientoNativo(idSeguimiento, 15000);
+            preparacionActiva = true;
+            if (!drenaje || drenaje.ACK_COMPLETO !== true || drenaje.POSICIONES_SIN_ACK !== 0) {
+                throw new Error(
+                    "No fue posible confirmar todas las posiciones pendientes. " +
+                    "La guía continuará activa para permitir el reintento."
+                );
+            }
+        }
+
+        const resultParam = await new Promise(function (resolve, reject) {
+            DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result) {
+                if (result && result.PAG_VALOR) resolve(result);
+                else reject(new Error("No se encontró la dirección del servidor."));
+            });
+        });
+
+        let ruta;
+        let cadenaParam;
+        if (!idSeguimiento) {
+            // Compatibilidad para guías antiguas sin seguimiento técnico.
+            ruta = resultParam.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_ConfirmacionIngresoPlanta';
+            cadenaParam =
+                "idUnico=" + encodeURIComponent(idUnico) +
+                "&uuid=" + encodeURIComponent(Obtener_dato_local("uid") || "") +
+                "&versionApp=" + encodeURIComponent(Obtener_dato_local("version_app") || "");
+        } else {
+            credencialInstalacion = await ComacoTracking.obtenerCredencialInstalacion();
+            if (!credencialInstalacion || !credencialInstalacion.ID_INSTALACION ||
+                !credencialInstalacion.TOKEN_INSTALACION) {
+                throw new Error("No existe una credencial válida para esta instalación.");
+            }
+            const idUsuario = parseInt(Obtener_dato_local("id_usuario_activo") || "0");
+            if (!idUsuario) throw new Error("No existe un usuario servidor válido para finalizar.");
+
+            ruta = resultParam.PAG_VALOR + '/Webserviceproveedor.asmx/Recibe_ConfirmacionIngresoPlanta_V2';
+            cadenaParam =
+                "idUnico=" + encodeURIComponent(idUnico) +
+                "&uuid=" + encodeURIComponent(Obtener_dato_local("uid") || "") +
+                "&versionApp=" + encodeURIComponent(Obtener_dato_local("version_app") || "") +
+                "&origenFinalizacion=" + encodeURIComponent(origen) +
+                "&motivoFinalizacion=" + encodeURIComponent(motivo) +
+                "&idInstalacion=" + encodeURIComponent(credencialInstalacion.ID_INSTALACION) +
+                "&tokenInstalacion=" + encodeURIComponent(credencialInstalacion.TOKEN_INSTALACION) +
+                "&idUsuario=" + encodeURIComponent(idUsuario);
+        }
+
+        const response = await axios.post(ruta, cadenaParam, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            timeout: 20000
+        });
+        const respuesta = response ? response.data : null;
+        if (!respuesta || respuesta.STATUS !== true) {
+            if (idSeguimiento) {
+                await cancelarPreparacionFinalizacionSeguimientoNativo(idSeguimiento);
+                preparacionActiva = false;
+            }
+            return respuesta;
+        }
+        servidorConfirmado = true;
+
+        if (idSeguimiento) {
+            await marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+            await finalizarSeguimientoNativo(idSeguimiento);
+            preparacionActiva = false;
+        }
+        return respuesta;
+    } catch (error) {
+        if (!servidorConfirmado && idSeguimiento) {
+            try {
+                await cancelarPreparacionFinalizacionSeguimientoNativo(idSeguimiento);
+                preparacionActiva = false;
+            } catch (resumeError) {
+                console.error(
+                    "[FINALIZACION][REANUDACION_ERROR]",
+                    resumeError && resumeError.message ? resumeError.message : resumeError
+                );
+            }
+        }
+        const errorFinalizacion = new Error(
+            error && error.message ? error.message : "Error al finalizar la guía."
+        );
+        errorFinalizacion.code = error && error.code ? error.code : null;
+        throw errorFinalizacion;
+    } finally {
+        if (credencialInstalacion) {
+            credencialInstalacion.TOKEN_INSTALACION = null;
+            credencialInstalacion = null;
+        }
+    }
+}
+
+
 function enviarAnulacionGuiaWebService(idUnico, motivo) {
     return new Promise((resolve, reject) => {
         DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {

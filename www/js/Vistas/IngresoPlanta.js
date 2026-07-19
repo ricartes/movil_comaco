@@ -41,6 +41,19 @@ $$(document).on('page:init', '.page[data-name="ingreso-planta"]', async function
     gdeSeleccionadaIngresoPlanta = null;
     noEncuentraAlgunaGeocerca = false;
 
+    const modoFinalizacionManual = typeof FINALIZACION_MANUAL_modoActivo !== 'undefined' &&
+        FINALIZACION_MANUAL_modoActivo === true;
+    if (modoFinalizacionManual) {
+        $$('.page[data-name="ingreso-planta"] .navbar .title').text('Finalización excepcional');
+        $$('#advertencia_finalizacion_manual').show();
+        $$('#row_finalizacion_manual').show();
+        $$('#btn_confirma_ingreso_planta').hide();
+    } else {
+        $$('#advertencia_finalizacion_manual').hide();
+        $$('#row_finalizacion_manual').hide();
+        $$('#btn_confirma_ingreso_planta').show();
+    }
+
     refrescarEstadoBotonConfirmar();
     const gdeNoConfirmadas = await DATOS_seleccionarGdeProveedorEnviadasNoConfirmadas();
 
@@ -75,6 +88,10 @@ $$(document).on('page:init', '.page[data-name="ingreso-planta"]', async function
 
     $$('.page[data-name="ingreso-planta"]').on('click', '#btn_confirma_ingreso_planta', function () {
         confirmarIngresoPlanta();
+    });
+
+    $$('.page[data-name="ingreso-planta"]').on('click', '#btn_finaliza_fuera_geocerca', function () {
+        confirmarIngresoPlantaManual();
     });
 
     // Evento change del combo
@@ -652,22 +669,27 @@ function confirmarIngresoPlanta() {
                     return;
                 }
 
-                // 4) Anulación por geocerca solo de la guía seleccionada
-                const resumenGeocerca = await aplicarAnulacionPorGeocercaEnConfirmacion();
+                // 4) La confirmación normal mantiene el control de geocerca.
+                // La ruta excepcional vive en un botón separado y nunca anula.
+                const resumenGeocerca = await evaluarGeocercaConfirmacionIngreso(gdeSeleccionadaIngresoPlanta);
+                if (resumenGeocerca.cierra) {
+                    app.dialog.alert(
+                        resumenGeocerca.mensaje || "La ubicación actual se encuentra fuera de la geocerca.",
+                        "Fuera de geocerca"
+                    );
+                    return;
+                }
 
                 // 5) Enviar al servidor (tu servicio actual; él verá qué GDE se envía)
-                const response = await enviarConfirmacionIngresoPlantaService();
+                const response = await enviarConfirmacionIngresoPlantaService(
+                    gdeSeleccionadaIngresoPlanta,
+                    { ORIGEN_FINALIZACION: "GEOCERCA", MOTIVO_FINALIZACION: "" }
+                );
                 console.log("[INGRESO] Resultado final:", response);
 
                 let mensajeFinal =
                     `Proceso finalizado.\n\n` +
                     `Total: ${response.total}, exitosos: ${response.exitosos}, errores: ${response.erroneos}.`;
-
-                if (resumenGeocerca && resumenGeocerca.anuladas > 0) {
-                    mensajeFinal +=
-                        `\n\nAdicionalmente, ${resumenGeocerca.anuladas} guía(s) ` +
-                        `fueron anuladas por encontrarse fuera de la geocerca.`;
-                }
 
                 app.dialog.alert(
                     mensajeFinal,
@@ -692,6 +714,23 @@ function confirmarIngresoPlanta() {
             }
         }
     );
+}
+
+
+async function evaluarGeocercaConfirmacionIngreso(gde) {
+    if (!gde || !gde.GDE_COD_DESTINO) {
+        return { cierra: true, mensaje: "La guía no tiene destino para validar su geocerca." };
+    }
+    const resGeo = await validarGeocerca(gde.GDE_COD_DESTINO);
+    const resultado = await validarCierreControl(
+        resGeo.validacion,
+        gde.ROWID,
+        constantes.tipoPunto.final,
+        true
+    );
+    resultado.latitud = resGeo.latitud;
+    resultado.longitud = resGeo.longitud;
+    return resultado;
 }
 
 
@@ -902,5 +941,8 @@ function refrescarEstadoBotonConfirmar() {
         permiteIngresoFotografiasIngresoPlanta === true; // no agotó intentos / no marcada para anular
 
     setBotonConfirmarIngresoPlantaHabilitado(puedeConfirmar);
+    if (typeof FINALIZACION_MANUAL_setBotonHabilitado === 'function') {
+        FINALIZACION_MANUAL_setBotonHabilitado(!!gdeSeleccionadaIngresoPlanta);
+    }
 }
 

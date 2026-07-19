@@ -33,7 +33,7 @@ function uploadPhotoPromise(imageURI, id) {
 
 
 
-async function enviarConfirmacionIngresoPlantaService(gdeSeleccionada) {
+async function enviarConfirmacionIngresoPlantaService(gdeSeleccionada, opcionesFinalizacion) {
     let respuesta = {
         detalle: [],
         total: 0,
@@ -115,7 +115,14 @@ async function enviarConfirmacionIngresoPlantaService(gdeSeleccionada) {
 
         console.log("[INGRESO] Enviando GDE seleccionada:", gde.ID_UNICO_MOVIL);
 
-        const response = await enviarConfirmacionIngresoPlantaWebService(gde.ID_UNICO_MOVIL);
+        const opciones = opcionesFinalizacion || {
+            ORIGEN_FINALIZACION: "GEOCERCA",
+            MOTIVO_FINALIZACION: ""
+        };
+        const response = await enviarConfirmacionIngresoPlantaSeguraWebService(
+            gde.ID_UNICO_MOVIL,
+            opciones
+        );
         console.log("[INGRESO] Respuesta WS:", response);
 
         if (response && response.STATUS === true) {
@@ -137,6 +144,8 @@ async function enviarConfirmacionIngresoPlantaService(gdeSeleccionada) {
                     destino: gde?.GDE_COD_DESTINO ?? null,
                     despacho: gde,
                     id_unico_movil_gde: gde?.ID_UNICO_MOVIL ?? null,
+                    origen_finalizacion: opciones.ORIGEN_FINALIZACION || "GEOCERCA",
+                    motivo_finalizacion: opciones.MOTIVO_FINALIZACION || null,
                 }
             );
 

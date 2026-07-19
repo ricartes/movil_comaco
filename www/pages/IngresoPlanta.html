@@ -15,6 +15,11 @@
 
     <div class="page-content" id="contenido">
 
+        <div id="advertencia_finalizacion_manual" class="block color-orange" style="display:none;">
+            <strong>Modo excepcional de prueba</strong>
+            <p>Esta opción finaliza la guía aunque la ubicación actual esté fuera de la geocerca. El motivo quedará registrado.</p>
+        </div>
+
         <div class="block">
             Seleccionar Guía:
             <div class="list">
@@ -68,6 +73,12 @@
         <p class="row">
             <a id="btn_confirma_ingreso_planta" data-view=".view-main"
                 class="col button button-big button-raised button-fill">CONFIRMAR
+            </a>
+        </p>
+
+        <p class="row" id="row_finalizacion_manual" style="display:none;">
+            <a id="btn_finaliza_fuera_geocerca" data-view=".view-main"
+                class="col button button-big button-raised button-fill color-orange">FINALIZAR FUERA DE GEOCERCA
             </a>
         </p>
 
