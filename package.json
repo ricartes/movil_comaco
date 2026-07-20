@@ -69,7 +69,7 @@
         "cordova-plugin-file": "^8.0.0",
         "cordova-plugin-file-transfer": "^2.0.0",
         "cordova-plugin-geolocation": "^5.0.0",
-        "cordova-plugin-insomnia": "github:EddyVerbruggen/cordova-plugin-insomnia",
+        "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
         "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
         "cordova.plugins.diagnostic": "^7.2.3",
         "verify-automatic-date-time-zone": "^1.0.3-dev"
