@@ -62,6 +62,8 @@
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/CredentialCipher.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/TrackingPriorityBatchClaimer.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/TrackingUploader.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/DeviceAuditCanonicalizer.java"

@@ -146,10 +146,11 @@ test('19b captura y uploader están desacoplados con lotes cada cinco segundos',
     assert.match(callback, /store\.capture\(location\)/);
 });
 
-test('19c cada drenaje usa un corte estable y se detiene tras un lote fallido', () => {
-    assert.match(uploader, /long drainCutoffMs=System\.currentTimeMillis\(\)/);
+test('19c cada drenaje usa un corte estable y solo se detiene ante una falla global', () => {
+    assert.match(uploader, /long drainCutoffMs = System\.currentTimeMillis\(\)/);
     assert.match(uploader, /store\.claimBatch\(drainCutoffMs\)/);
-    assert.match(uploader, /if\(!upload\(batch\)\) break/);
+    assert.match(uploader, /if \(outcome == UploadOutcome\.GLOBAL_FAILURE\) break/);
+    assert.match(uploader, /return UploadOutcome\.TRACKING_FAILURE/);
     assert.match(store, /claimBatch\(long createdBeforeOrAtMs\)/);
     assert.match(store, /o\.created_ms<=\?/);
     assert.match(store, /created_ms<=\?/);
