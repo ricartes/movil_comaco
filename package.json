@@ -5,7 +5,7 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js"
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js"
     },
     "author": "Apache Cordova Team",
     "license": "Apache-2.0",
@@ -69,7 +69,7 @@
         "cordova-plugin-file": "^8.0.0",
         "cordova-plugin-file-transfer": "^2.0.0",
         "cordova-plugin-geolocation": "^5.0.0",
-        "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
+        "cordova-plugin-insomnia": "github:EddyVerbruggen/cordova-plugin-insomnia",
         "cordova-sqlite-spatialite-evplus-ext-common-free": "gitlab:ricartes/cordova-sqlite-spatialite-evplus-ext-common-free-unstable-0xx",
         "cordova.plugins.diagnostic": "^7.2.3",
         "verify-automatic-date-time-zone": "^1.0.3-dev"
