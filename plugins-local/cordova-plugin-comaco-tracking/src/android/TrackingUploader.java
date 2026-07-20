@@ -91,8 +91,6 @@ final class TrackingUploader {
                                     + " priority=" + priorityBatch
                                     + " tracking=" + partial(batch.trackingId));
 
-                    // Regla anterior documentada para la prueba histórica: if(!upload(batch)) break.
-                    // Ahora solo se detiene ante fallas globales; una credencial de otra guía no bloquea el ciclo.
                     UploadOutcome outcome = upload(batch);
                     if (outcome == UploadOutcome.GLOBAL_FAILURE) break;
                     if (priorityBatch && outcome == UploadOutcome.TRACKING_FAILURE) priority = null;
