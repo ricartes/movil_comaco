@@ -31,7 +31,7 @@ test('un error propio de una guía no detiene el drenaje de las demás', () => {
     assert.match(uploader, /enum UploadOutcome/);
     assert.match(uploader, /return UploadOutcome\.TRACKING_FAILURE/);
     assert.match(uploader, /if \(outcome == UploadOutcome\.GLOBAL_FAILURE\) break/);
-    assert.match(uploader, /if \(outcome == UploadOutcome\.GLOBAL_FAILURE\) break/);
+    assert.match(uploader, /if \(priorityBatch && outcome == UploadOutcome\.TRACKING_FAILURE\) priority = null/);
 });
 
 test('la finalización usa una ventana coherente y un solo intento HTTP prioritario', () => {
