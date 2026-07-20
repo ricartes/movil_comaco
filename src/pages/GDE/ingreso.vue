@@ -180,7 +180,8 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item :key="`producto-info-${form.producto?.codProducto || 'sin-producto'}-${form.precioProducto?.precio ?? 'sin-precio'}`"
+            <f7-list-item
+                :key="`producto-info-${form.producto?.codProducto || 'sin-producto'}-${form.precioProducto?.precio ?? 'sin-precio'}`"
                 accordion-item accordion-opened title="Información del producto" class="producto-info"
                 ref="productoAccordion" v-if="form.producto && form.precioProducto">
                 <f7-accordion-content>
@@ -203,9 +204,9 @@
                 </select>
             </f7-list-item>
 
-            <f7-list-item v-if="puedeSeleccionarPatenteCamion" :key="`${form.producto?.codProducto}${form.largoProducto ?? 'sin-largo'}`"
-                title="Patente Camion" class="patente-camion" ref="patenteCamion" smart-select
-                :smart-select-params="ssParams">
+            <f7-list-item v-if="puedeSeleccionarPatenteCamion"
+                :key="`${form.producto?.codProducto}${form.largoProducto ?? 'sin-largo'}`" title="Patente Camion"
+                class="patente-camion" ref="patenteCamion" smart-select :smart-select-params="ssParams">
                 <select :key="`sel-pc-${form.producto?.codProducto}-${form.largoProducto}`"
                     :value="form.patenteCamion?.patCamion || ''" @change="handlePatenteCamionChange">
                     <option value="" disabled>
@@ -251,9 +252,8 @@
                 this.form.patenteCamion &&
                 this.form.transportista &&
                 !patenteCamionNoVigente
-            " :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`"
-                title="Patente Carro" class="patente-carro" ref="patenteCarro" smart-select
-                :smart-select-params="ssParams">
+            " :key="`${form.transportista?.rutTransportista}${form.patenteCamion?.patCamion}`" title="Patente Carro"
+                class="patente-carro" ref="patenteCarro" smart-select :smart-select-params="ssParams">
                 <select :key="`sel-pcarro-${form.transportista?.rutTransportista}-${form.patenteCamion?.patCamion}`"
                     :value="form.patenteCarro?.patCarro || ''" @change="handlePatenteCarroChange">
                     <option value="" disabled>Seleccione Patente carro</option>
@@ -309,8 +309,8 @@
 
             <f7-list-item v-if="this.form.carguios.length > 0" :key="`pcarg-${(form.carguios || [])
                 .map((c) => c.rutCarguio)
-                .join(',')}`" :title="`Patentes carguios (Ingrese ${maximoCarguios})`"
-                class="patente-carguio-select" ref="patenteCarguio" smart-select :smart-select-params="ssParams">
+                .join(',')}`" :title="`Patentes carguios (Ingrese ${maximoCarguios})`" class="patente-carguio-select"
+                ref="patenteCarguio" smart-select :smart-select-params="ssParams">
                 <select :key="`sel-pcarg-${(form.carguios || [])
                     .map((c) => c.rutCarguio)
                     .join(',')}`" name="patentes-carguios" multiple :maxlength="maximoCarguios"
@@ -339,8 +339,8 @@
                 this.conductorValido &&
                 this.puedeContinuarDespuesDeCarguio
             " :key="`rodal-${form.predio?.rolPredio || ''}-${(
-                    form.patentesCarguio || []
-                ).join(',')}`" :title="`Rodal`" class="rodal-select" ref="rodal" smart-select
+                form.patentesCarguio || []
+            ).join(',')}`" :title="`Rodal`" class="rodal-select" ref="rodal" smart-select
                 :smart-select-params="ssParams">
                 <select :key="`sel-rodal-${form.predio?.rolPredio || ''}-${(
                     form.patentesCarguio || []
@@ -386,7 +386,13 @@
             </f7-list-item>
         </f7-list>
 
-        <f7-block v-if="form.linea && form.datosGeocerca.validada === true" class="text-align-center">
+        <f7-block v-if="
+            form.cliente &&
+            form.destino &&
+            form.producto &&
+            form.linea &&
+            form.datosGeocerca.validada === true
+        " class="text-align-center">
             <f7-button fill large color="blue" @click="ingresar">
                 Ingresar
             </f7-button>
@@ -922,11 +928,27 @@ export default {
         },
 
         hidratarDestinoDesdeOc(oc) {
-            if (!this.form.destino || !oc) return;
-            if (!this.estaVacio(oc.direccionCliente)) {
-                this.form.destino.direccionDestinoCliente =
-                    oc.direccionCliente;
+            if (!this.form.destino || !oc) {
+                return;
             }
+
+            this.completarSiFalta(
+                this.form.destino,
+                "direccionDestinoCliente",
+                oc.direccionDestinoCliente ?? oc.destinoCliente
+            );
+
+            this.completarSiFalta(
+                this.form.destino,
+                "comunaDestinoCliente",
+                oc.comunaDestinoCliente
+            );
+
+            this.completarSiFalta(
+                this.form.destino,
+                "ciudadDestinoCliente",
+                oc.ciudadDestinoCliente
+            );
         },
 
         hidratarProductoDesdeOc(oc) {
@@ -1501,34 +1523,40 @@ export default {
             if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
-            const nuevoCliente = e.target.value;
-            if (nuevoCliente) {
-                const clienteSeleccionado =
-                    this.clientes.find((p) => p.rutCliente === nuevoCliente) ||
-                    null;
-                this.form.cliente = clienteSeleccionado
-                    ? { ...clienteSeleccionado }
-                    : null;
 
-                if (this.ingresoPorOrdenCompra) {
-                    this.form.destino = null;
-                    this.destinos = [];
-                    this.clearSmartSelect(
-                        ".destino-cliente",
-                        "Seleccione un Destino"
-                    );
-                } else {
-                    this.resetDesde("cliente"); // limpia desde cliente en adelante
-                }
+            const nuevoRutCliente = String(e.target.value ?? "");
 
-                if (!this.ingresoPorOrdenCompra) {
-                    await this.hidratarClienteDesdeOrdenesCompra();
-                }
-                await this.$nextTick();
-                this.mostrarInformacionCliente();
-                await this.cargarDestinosCliente();
-                this.obtenerIndicadorTraslado();
+            const clienteSeleccionado =
+                this.clientes.find(
+                    (cliente) =>
+                        String(cliente.rutCliente) === nuevoRutCliente
+                ) || null;
+
+            // Limpia destino, producto y todas las dependencias posteriores.
+            this.resetDesde("cliente");
+
+            this.form.cliente = clienteSeleccionado
+                ? { ...clienteSeleccionado }
+                : null;
+
+            if (!this.form.cliente) {
+                return;
             }
+
+            if (!this.ingresoPorOrdenCompra) {
+                await this.hidratarClienteDesdeOrdenesCompra();
+            } else {
+                this.hidratarClienteDesdeOc(
+                    this.form.ordenCompraReferencia ??
+                    this.form.ordenCompra
+                );
+            }
+
+            await this.$nextTick();
+
+            this.mostrarInformacionCliente();
+            this.obtenerIndicadorTraslado();
+            await this.cargarDestinosCliente();
         },
 
         async cargarDestinosCliente() {
@@ -1557,9 +1585,14 @@ export default {
                     .get(".destino-cliente .smart-select")
                     .setValueText(this.form.destino.destinoCliente);
                 this.cargarInformacionDestino();
-                if (!this.ingresoPorOrdenCompra) {
-                    this.cargarProductos();
+
+
+                if (!this.aplicandoOc) {
+                    await this.cargarProductos();
                 }
+                /*if (!this.ingresoPorOrdenCompra) {
+                    this.cargarProductos();
+                }*/
             }
         },
 
@@ -1579,22 +1612,38 @@ export default {
             if (!this.aplicandoOc && !this.ingresoPorOrdenCompra) {
                 this.limpiarOrdenCompraSeleccionada();
             }
-            const nuevoDestino = e.target.value;
+
+            const nuevoDestino = String(e.target.value ?? "");
+
             const destinoSeleccionado =
-                this.destinos.find((p) => p.destinoCliente === nuevoDestino) ||
-                null;
+                this.destinos.find(
+                    (destino) =>
+                        String(destino.destinoCliente) === nuevoDestino
+                ) || null;
+
+            // Limpia producto, precio, largo, camión, conductor,
+            // rodal, contratista, línea, etc.
+            this.resetDesde("destino");
+
             this.form.destino = destinoSeleccionado
                 ? { ...destinoSeleccionado }
                 : null;
 
-            await this.$nextTick();
-            if (this.ingresoPorOrdenCompra) {
-                this.cargarInformacionDestino();
+            if (!this.form.destino) {
                 return;
-            } else {
-                this.resetDesde("destino"); // limpia desde destino en adelante
             }
-            await this.hidratarDestinoDesdeOrdenesCompra();
+
+            if (this.ingresoPorOrdenCompra) {
+                this.hidratarDestinoDesdeOc(
+                    this.form.ordenCompraReferencia ??
+                    this.form.ordenCompra
+                );
+            } else {
+                await this.hidratarDestinoDesdeOrdenesCompra();
+            }
+
+            await this.$nextTick();
+
             this.cargarInformacionDestino();
             await this.cargarProductos();
         },
@@ -2207,7 +2256,26 @@ export default {
             }
         },
         async ingresar() {
-            // Un solo preloader para todo el
+            if (!this.form.destino) {
+                f7.dialog.alert(
+                    "Debe seleccionar un destino antes de ingresar la guía.",
+                    "Destino obligatorio"
+                );
+                return false;
+            }
+
+            if (
+                !this.form.destino.destinoCliente ||
+                !this.form.destino.direccionDestinoCliente ||
+                !this.form.destino.comunaDestinoCliente ||
+                !this.form.destino.ciudadDestinoCliente
+            ) {
+                f7.dialog.alert(
+                    "Los datos del destino están incompletos. Seleccione nuevamente el destino.",
+                    "Destino incompleto"
+                );
+                return false;
+            }
 
             if (!this.validarCarguiosYPatentes()) {
                 return false;
