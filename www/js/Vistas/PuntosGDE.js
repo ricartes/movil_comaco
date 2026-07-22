@@ -381,42 +381,37 @@ function guardar_punto_ubicacion(latitud, longitud, argumento, valida_geocerca =
                     );
 
                     if (resultadoQr && resultadoQr.ok) {
-                        let datos = await generarDataTrazabilidad(
-                            TipoAccionTypes.INGRESA_PUNTO_FINAL,
-                            Obtener_dato_local('user_activo'),
-                            {
-                                rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
-                                destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
-                                despacho: gde_actual_puntos_gde,
-                                id_unico_movil_gde: gde_actual_puntos_gde?.ID_UNICO_MOVIL ?? null,
-                                qr: {
-                                    qrId: resultadoQr.qr?.QR_ID ?? null,
-                                    estado: resultadoQr.qr?.ESTADO ?? null,
-                                    yaExistia: resultadoQr.yaExistia === true
-                                },
-                                coordenadaCarga: {
-                                    latitud: latitud,
-                                    longitud: longitud
+                        mostrarQrTrazabilidadPuntoCarga(resultadoQr, latitud, longitud);
+
+                        try {
+                            let datos = await generarDataTrazabilidad(
+                                TipoAccionTypes.INGRESA_PUNTO_FINAL,
+                                Obtener_dato_local('user_activo'),
+                                {
+                                    rol: gde_actual_puntos_gde?.GDE_COD_ORIGEN ?? null,
+                                    destino: gde_actual_puntos_gde?.GDE_COD_DESTINO ?? null,
+                                    despacho: gde_actual_puntos_gde,
+                                    id_unico_movil_gde: gde_actual_puntos_gde?.ID_UNICO_MOVIL ?? null,
+                                    qr: {
+                                        qrId: resultadoQr.qr?.QR_ID ?? null,
+                                        estado: resultadoQr.qr?.ESTADO ?? null,
+                                        yaExistia: resultadoQr.yaExistia === true
+                                    },
+                                    coordenadaCarga: {
+                                        latitud: latitud,
+                                        longitud: longitud
+                                    }
                                 }
-                            }
-                        );
-
-                        await obtenerUbicacionEInsertarLog(
-                            Obtener_dato_local('user_activo'),
-                            datos
-                        );
-
-                        if (resultadoQr.yaExistia) {
-                            app.dialog.alert(
-                                "Punto carga madera registrado. Esta guía ya tenía QR de trazabilidad generado.",
-                                "GFE"
                             );
-                        } else {
-                            app.dialog.alert(
-                                "Punto carga madera registrado y QR de trazabilidad generado correctamente.",
-                                "GFE"
+
+                            await obtenerUbicacionEInsertarLog(
+                                Obtener_dato_local('user_activo'),
+                                datos
                             );
+                        } catch (errorLog) {
+                            console.error("[QR TRAZABILIDAD] Error registrando log de punto carga:", errorLog);
                         }
+
                     } else {
                         app.dialog.alert(
                             (resultadoQr && resultadoQr.mensaje)

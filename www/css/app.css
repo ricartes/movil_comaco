@@ -119,3 +119,25 @@
   border: 0;
   background: #ffffff;
 }
+
+.qr-trazabilidad-punto-carga-popup .page-content {
+  padding-bottom: 24px;
+}
+
+.qr-trazabilidad-popup-qr {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.qr-trazabilidad-popup-qr canvas,
+.qr-trazabilidad-popup-qr img,
+.qr-trazabilidad-popup-qr table {
+  display: block;
+  margin: 0;
+  border: 0;
+  background: #ffffff;
+}
+
+.qr-trazabilidad-popup-datos p {
+  margin: 8px 0;
+}

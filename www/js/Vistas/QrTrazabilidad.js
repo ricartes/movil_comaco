@@ -143,7 +143,7 @@ async function seleccionarGuiaQrTrazabilidad(rowid) {
             return;
         }
 
-        pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO, "real-bd");
+        pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO, "#qrcode_trazabilidad", null, "real-bd");
         $$('#qr_trazabilidad_info').text(textoGuia);
         $$('#qr_trazabilidad_estado').text("Estado: " + (qr.ESTADO || ""));
         $$('#qr_trazabilidad_fecha').text("Fecha generación: " + formatearFechaQrTrazabilidad(qr.FECHA_GENERACION));
@@ -153,9 +153,17 @@ async function seleccionarGuiaQrTrazabilidad(rowid) {
     }
 }
 
-function pintarQrTrazabilidad(textoQr, etiquetaDiagnostico) {
-    var $contenedorQr = $$('#qrcode_trazabilidad');
-    var configuracion = obtenerConfiguracionRenderQrTrazabilidad();
+function pintarQrTrazabilidad(textoQr, contenedor, tamanoOpcional, etiquetaDiagnostico) {
+    var elementoContenedor = resolverContenedorQrTrazabilidad(contenedor);
+    var $contenedorQr;
+    var configuracion = obtenerConfiguracionRenderQrTrazabilidad(tamanoOpcional);
+
+    if (!elementoContenedor) {
+        console.error("[QR TRAZABILIDAD] Contenedor de render no disponible.", contenedor);
+        return null;
+    }
+
+    $contenedorQr = $$(elementoContenedor);
 
     $contenedorQr.html('');
     $contenedorQr.css({
@@ -173,7 +181,7 @@ function pintarQrTrazabilidad(textoQr, etiquetaDiagnostico) {
     textoQr = String(textoQr);
     registrarDiagnosticoTextoQrTrazabilidad(textoQr, etiquetaDiagnostico || "real");
 
-    var qrGenerado = new QRCode("qrcode_trazabilidad", {
+    var qrGenerado = new QRCode(elementoContenedor, {
         text: textoQr,
         width: configuracion.tamano,
         height: configuracion.tamano,
@@ -182,7 +190,7 @@ function pintarQrTrazabilidad(textoQr, etiquetaDiagnostico) {
         correctLevel: QRCode.CorrectLevel.M
     });
 
-    ajustarElementosRenderQrTrazabilidad(configuracion.tamano);
+    ajustarElementosRenderQrTrazabilidad(elementoContenedor, configuracion.tamano);
 
     var modulos = qrGenerado && qrGenerado._oQRCode ? qrGenerado._oQRCode.getModuleCount() : null;
 
@@ -194,10 +202,41 @@ function pintarQrTrazabilidad(textoQr, etiquetaDiagnostico) {
         modulos: modulos,
         pxPorModulo: modulos ? configuracion.tamano / modulos : null
     });
+
+    return qrGenerado;
 }
 
-function obtenerConfiguracionRenderQrTrazabilidad() {
+function resolverContenedorQrTrazabilidad(contenedor) {
+    if (!contenedor) {
+        return null;
+    }
+
+    if (typeof contenedor === "string") {
+        return document.querySelector(contenedor) || document.getElementById(contenedor);
+    }
+
+    if (contenedor.nodeType === 1) {
+        return contenedor;
+    }
+
+    if (contenedor[0] && contenedor[0].nodeType === 1) {
+        return contenedor[0];
+    }
+
+    return null;
+}
+
+function obtenerConfiguracionRenderQrTrazabilidad(tamanoOpcional) {
     var anchoVentana = window.innerWidth || document.documentElement.clientWidth || 360;
+
+    if (Number(tamanoOpcional) > 0) {
+        var tamanoSolicitado = Math.floor(Number(tamanoOpcional));
+
+        return {
+            tamano: tamanoSolicitado,
+            quietZone: Math.max(12, Math.round(tamanoSolicitado * 0.05))
+        };
+    }
 
     if (anchoVentana >= 500) {
         return {
@@ -219,9 +258,7 @@ function obtenerConfiguracionRenderQrTrazabilidad() {
     };
 }
 
-function ajustarElementosRenderQrTrazabilidad(tamano) {
-    var contenedor = document.getElementById("qrcode_trazabilidad");
-
+function ajustarElementosRenderQrTrazabilidad(contenedor, tamano) {
     if (!contenedor) {
         return;
     }
@@ -235,6 +272,65 @@ function ajustarElementosRenderQrTrazabilidad(tamano) {
         elementos[i].style.maxHeight = "none";
         elementos[i].style.backgroundColor = "#ffffff";
     }
+}
+
+function mostrarQrTrazabilidadPuntoCarga(resultadoQr, latitudCapturada, longitudCapturada) {
+    var qr = resultadoQr && resultadoQr.qr ? resultadoQr.qr : null;
+
+    if (!qr || !qr.PAYLOAD_ENCRIPTADO) {
+        throw new Error("El QR generado no contiene PAYLOAD_ENCRIPTADO.");
+    }
+
+    var latitudCarga = qr.LATITUD_CARGA !== null && qr.LATITUD_CARGA !== undefined
+        ? qr.LATITUD_CARGA
+        : latitudCapturada;
+    var longitudCarga = qr.LONGITUD_CARGA !== null && qr.LONGITUD_CARGA !== undefined
+        ? qr.LONGITUD_CARGA
+        : longitudCapturada;
+    var fechaGeneracion = formatearFechaQrTrazabilidad(qr.FECHA_GENERACION);
+    var tamanoQr = Math.max(220, Math.min(420, (window.innerWidth || 360) - 64));
+    var popup = app.popup.create({
+        closeByBackdropClick: true,
+        content:
+            '<div class="popup qr-trazabilidad-punto-carga-popup">' +
+                '<div class="view">' +
+                    '<div class="page">' +
+                        '<div class="navbar"><div class="navbar-inner">' +
+                            '<div class="title">QR Trazabilidad</div>' +
+                            '<div class="right"><a href="#" class="link popup-close">Cerrar</a></div>' +
+                        '</div></div>' +
+                        '<div class="page-content">' +
+                            '<div class="block text-align-center">' +
+                                '<h3>Punto carga madera registrado correctamente</h3>' +
+                                '<div id="qrcode_trazabilidad_punto_carga" class="qr-trazabilidad-popup-qr"></div>' +
+                            '</div>' +
+                            '<div class="block qr-trazabilidad-popup-datos">' +
+                                '<p><strong>Latitud carga:</strong> ' + escapeHtmlQrTrazabilidad(latitudCarga) + '</p>' +
+                                '<p><strong>Longitud carga:</strong> ' + escapeHtmlQrTrazabilidad(longitudCarga) + '</p>' +
+                                '<p><strong>Fecha generación:</strong> ' + escapeHtmlQrTrazabilidad(fechaGeneracion) + '</p>' +
+                            '</div>' +
+                            '<div class="block"><a href="#" class="button button-big button-fill popup-close">CONTINUAR</a></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>',
+        on: {
+            opened: function () {
+                pintarQrTrazabilidad(
+                    qr.PAYLOAD_ENCRIPTADO,
+                    "#qrcode_trazabilidad_punto_carga",
+                    tamanoQr,
+                    resultadoQr.yaExistia === true ? "punto-carga-existente" : "punto-carga-nuevo"
+                );
+            },
+            closed: function () {
+                popup.destroy();
+            }
+        }
+    });
+
+    popup.open();
+    return popup;
 }
 
 function registrarDiagnosticoTextoQrTrazabilidad(textoQr, origen) {
