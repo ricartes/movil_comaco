@@ -49,6 +49,60 @@ function cryptoContext(extra = {}) {
     return context;
 }
 
+function createGuiasAssociationFixture(draft) {
+    let association = null;
+    const draftId = String(draft.ID_UNICO_MOVIL);
+
+    return {
+        install(context) {
+            context.DATOS_seleccionar_gde_por_id_unico = async function (idUnicoMovil) {
+                if (String(idUnicoMovil) !== draftId) {
+                    return null;
+                }
+                return { ...draft };
+            };
+
+            context.DATOS_obtenerAsociacionQrActivaPorGde = async function (idUnicoMovil) {
+                if (!association || String(idUnicoMovil) !== draftId) {
+                    return null;
+                }
+                if (association.ESTADO !== context.QR_ASOCIACION_ESTADO_ACTIVA &&
+                    association.ESTADO !== context.QR_ASOCIACION_ESTADO_PENDIENTE_LIBERACION) {
+                    return null;
+                }
+                return { ...association };
+            };
+
+            context.DATOS_crearAsociacionQrGde = async function (value) {
+                if (String(value.ID_UNICO_MOVIL_GDE) !== draftId) {
+                    throw new Error('La asociación no corresponde al borrador del fixture.');
+                }
+                if (association) {
+                    return { ...association };
+                }
+                association = {
+                    ...value,
+                    ESTADO: context.QR_ASOCIACION_ESTADO_ACTIVA
+                };
+                return { ...association };
+            };
+
+            context.DATOS_solicitarLiberacionQrGde = async function (idUnicoMovil, value) {
+                if (!association || String(idUnicoMovil) !== draftId ||
+                    String(association.ID_UNICO_MOVIL_GDE) !== draftId) {
+                    throw new Error('No existe una asociación activa para el borrador del fixture.');
+                }
+                association = {
+                    ...association,
+                    ...value,
+                    ESTADO: context.QR_ASOCIACION_ESTADO_PENDIENTE_LIBERACION
+                };
+                return { ...association };
+            };
+        }
+    };
+}
+
 function rowsResult(rows) {
     return { length: rows.length, item(index) { return rows[index]; } };
 }
@@ -190,16 +244,17 @@ test('migraciÃ³n 13 de GuÃ­as crea referencias y auditorÃ­a de asociacione
 });
 
 test('GuÃ­as y Trazabilidad comparten el contrato cifrado de asociaciÃ³n y liberaciÃ³n', async () => {
-    const context = cryptoContext({
-        QR_TRAZABILIDAD_GENERAR_RETORNO_HABILITADO: true,
-        QR_TRAZABILIDAD_ALG: 'AES-256-CBC-HS256',
-        QR_ASOCIACION_ESTADO_ACTIVA: 'ACTIVA',
-        QR_ASOCIACION_ESTADO_PENDIENTE_LIBERACION: 'PENDIENTE_LIBERACION',
-        async DATOS_obtenerAsociacionQrActivaPorGde() { return null; },
-        async DATOS_crearAsociacionQrGde(value) { return { ...value, ESTADO: 'ACTIVA' }; },
-        async DATOS_solicitarLiberacionQrGde(id, value) { return { ...context.asociacionGenerada, ...value, ESTADO: 'PENDIENTE_LIBERACION' }; }
+    const context = cryptoContext();
+    const fixture = createGuiasAssociationFixture({
+        ID_UNICO_MOVIL: 'gde-1',
+        GDE_ESTADO_MOVIL: 'B'
     });
+
+    runFile(context, guiasRoot, 'www/js/Datos/QrAsociacionGde.js');
+    runFile(context, guiasRoot, 'www/js/Services/QrTrazabilidadService.js');
     runFile(context, guiasRoot, 'www/js/Services/QrAsociacionGdeService.js');
+    runFile(context, guiasRoot, 'www/js/Common/Constantes.js');
+    fixture.install(context);
     runFile(context, trazabilidadRoot, 'www/js/Services/QrCryptoService.js');
 
     const association = await context.generarORecuperarAsociacionQrGde(
@@ -218,8 +273,6 @@ test('GuÃ­as y Trazabilidad comparten el contrato cifrado de asociaciÃ³n y l
             textoQrOrigen: 'GFEQR1:origen'
         }
     );
-    context.asociacionGenerada = association;
-
     assert.match(association.QR_ASOCIACION_TEXTO, /^GFEQRRET1:/);
     const decodedAssociation = context.desencriptarQrGuias(association.QR_ASOCIACION_TEXTO);
     assert.equal(decodedAssociation.idUnicoMovilGde, 'gde-1');
