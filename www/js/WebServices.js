@@ -1448,12 +1448,34 @@ function procesarGuiasAceptadasRecibeGuiaV2(data, callback) {
 
         typeof callback == "function" && callback(cantidadGuardada > 0 ? 1 : 0);
     }).catch(function (error) {
-        console.error("[ENVIO-DATOS][GUIAS] persistencia_no_completada");
+        console.error(
+            "[ENVIO-DATOS][GUIAS] persistencia_no_completada",
+            error && error.code ? error.code : ""
+        );
+        if (typeof registrarErrorSeguimientoNativo === "function") {
+            registrarErrorSeguimientoNativo(error).catch(function () {});
+        }
         typeof callback == "function" && callback(-1);
     });
 }
 
+var ENVIO_GUIAS_enCurso = false;
+var ENVIO_GUIAS_callbacksPendientes = [];
+
 function enviar_guias_proveedor(bandera, callback) {
+    if (typeof callback === "function") ENVIO_GUIAS_callbacksPendientes.push(callback);
+    if (ENVIO_GUIAS_enCurso) return;
+    ENVIO_GUIAS_enCurso = true;
+    ENVIO_GUIAS_ejecutar(bandera, function (resultado) {
+        ENVIO_GUIAS_enCurso = false;
+        var callbacks = ENVIO_GUIAS_callbacksPendientes.splice(0);
+        callbacks.forEach(function (callbackPendiente) {
+            callbackPendiente(resultado);
+        });
+    });
+}
+
+function ENVIO_GUIAS_ejecutar(bandera, callback) {
 
 
     DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (result_param) {
@@ -1463,6 +1485,25 @@ function enviar_guias_proveedor(bandera, callback) {
             if (result == -1) {
                 typeof callback == "function" && callback(0);
             } else {
+                try {
+                    result.forEach(function (guia) {
+                        SEGUIMIENTO_uuidObligatorio(
+                            guia.ID_UNICO_SEGUIMIENTO,
+                            "ID_UNICO_SEGUIMIENTO"
+                        );
+                        SEGUIMIENTO_fechaUtcObligatoria(
+                            guia.FECHA_INICIO_DISPOSITIVO_UTC,
+                            "FECHA_INICIO_DISPOSITIVO_UTC"
+                        );
+                        if (Object.prototype.hasOwnProperty.call(guia, "TOKEN_SEGUIMIENTO")) {
+                            delete guia.TOKEN_SEGUIMIENTO;
+                        }
+                    });
+                } catch (error) {
+                    console.error("[ENVIO-DATOS][GUIAS] contrato_local_invalido");
+                    typeof callback == "function" && callback(-1);
+                    return;
+                }
                 var myJsonString = JSON.stringify(result);
                 var idUsuario = Number(Obtener_dato_local("id_usuario_activo") || 0);
                 if (typeof ComacoTracking === "undefined"

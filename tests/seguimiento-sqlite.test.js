@@ -126,6 +126,14 @@ const UUID_SEGUIMIENTO_1 = '11111111-1111-4111-8111-111111111111';
 const UUID_SEGUIMIENTO_2 = '22222222-2222-4222-8222-222222222222';
 const UUID_POSICION = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const TOKEN_SEGUIMIENTO = 'A'.repeat(43);
+const FECHA_INICIO_UTC = '2026-07-23T12:00:00.000Z';
+
+function insertarGuiaLocal(db, idGuia, idSeguimiento, estado = 'I') {
+    db.prepare(`INSERT INTO GDE (
+        ID_UNICO_MOVIL, ID_UNICO_SEGUIMIENTO,
+        FECHA_INICIO_DISPOSITIVO_UTC, GDE_ESTADO_MOVIL, ENVIADO
+    ) VALUES (?, ?, ?, ?, 0)`).run(idGuia, idSeguimiento, FECHA_INICIO_UTC, estado);
+}
 
 function respuestaSeguimiento(idGuia, idSeguimiento) {
     return {
@@ -143,6 +151,7 @@ test('instalación nueva crea el esquema real de seguimiento', async () => {
     await contexto.Tablas_crear_tablas();
 
     assert.ok(columnas(db, 'GDE').includes('ID_UNICO_SEGUIMIENTO'));
+    assert.ok(columnas(db, 'GDE').includes('FECHA_INICIO_DISPOSITIVO_UTC'));
     assert.deepEqual(columnas(db, 'SEGUIMIENTO_POSICION_PENDIENTE'), [
         'ID', 'UUID_POSICION', 'ID_UNICO_MOVIL_GDE', 'ID_UNICO_SEGUIMIENTO',
         'SECUENCIA_LOCAL', 'FECHA_DISPOSITIVO_UTC', 'LATITUD', 'LONGITUD',
@@ -170,6 +179,7 @@ test('base existente se migra dos veces sin perder datos', async () => {
     await contexto.DATOS_inicializarSeguimientoSqlite();
 
     assert.equal(columnas(db, 'GDE').filter(nombre => nombre === 'ID_UNICO_SEGUIMIENTO').length, 1);
+    assert.equal(columnas(db, 'GDE').filter(nombre => nombre === 'FECHA_INICIO_DISPOSITIVO_UTC').length, 1);
     const guiaExistente = db.prepare('SELECT ID_UNICO_MOVIL, DATO_EXISTENTE FROM GDE').get();
     assert.equal(guiaExistente.ID_UNICO_MOVIL, 'GUIA-1');
     assert.equal(guiaExistente.DATO_EXISTENTE, 'preservado');
@@ -259,7 +269,7 @@ test('aceptación guarda credencial, seguimiento y ENVIADO en una sola transacci
     crearGdeMinima(db);
     const contexto = cargarContexto(db);
     await contexto.DATOS_inicializarSeguimientoSqlite();
-    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+    insertarGuiaLocal(db, 'GUIA-1', UUID_SEGUIMIENTO_1);
 
     const guardadas = await contexto.guardarGuiasAceptadasConSeguimiento(
         [respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1)],
@@ -280,7 +290,7 @@ test('credencial inválida impide marcar la guía como enviada', async () => {
     crearGdeMinima(db);
     const contexto = cargarContexto(db);
     await contexto.DATOS_inicializarSeguimientoSqlite();
-    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+    insertarGuiaLocal(db, 'GUIA-1', UUID_SEGUIMIENTO_1);
     const respuesta = respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1);
     respuesta.TOKEN_SEGUIMIENTO = '   ';
 
@@ -289,8 +299,34 @@ test('credencial inválida impide marcar la guía como enviada', async () => {
         /TOKEN_SEGUIMIENTO/
     );
     const guia = db.prepare('SELECT ID_UNICO_SEGUIMIENTO, ENVIADO FROM GDE').get();
-    assert.equal(guia.ID_UNICO_SEGUIMIENTO, null);
+    assert.equal(guia.ID_UNICO_SEGUIMIENTO, UUID_SEGUIMIENTO_1);
     assert.equal(guia.ENVIADO, 0);
+    db.close();
+});
+
+test('UUID distinto del servidor conserva seguimiento provisional y diagnóstico recuperable', async () => {
+    const db = new DatabaseSync(':memory:');
+    crearGdeMinima(db);
+    const contexto = cargarContexto(db);
+    await contexto.DATOS_inicializarSeguimientoSqlite();
+    insertarGuiaLocal(db, 'GUIA-1', UUID_SEGUIMIENTO_1);
+
+    await assert.rejects(
+        contexto.guardarGuiasAceptadasConSeguimiento(
+            [respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_2)],
+            ['GUIA-1']
+        ),
+        error => error && error.code === 'SEGUIMIENTO_UUID_RESPUESTA_DIFERENTE'
+    );
+
+    const guia = db.prepare(
+        'SELECT ID_UNICO_SEGUIMIENTO, FECHA_INICIO_DISPOSITIVO_UTC, ENVIADO, GDE_ESTADO_MOVIL FROM GDE'
+    ).get();
+    assert.equal(guia.ID_UNICO_SEGUIMIENTO, UUID_SEGUIMIENTO_1);
+    assert.equal(guia.FECHA_INICIO_DISPOSITIVO_UTC, FECHA_INICIO_UTC);
+    assert.equal(guia.ENVIADO, 0);
+    assert.equal(guia.GDE_ESTADO_MOVIL, 'I');
+    assert.equal(db.prepare('SELECT COUNT(*) AS TOTAL FROM SEGUIMIENTO_CREDENCIAL').get().TOTAL, 0);
     db.close();
 });
 
@@ -299,14 +335,14 @@ test('fallo en una guía intermedia revierte también ENVIADO y credenciales pre
     crearGdeMinima(db);
     const contexto = cargarContexto(db);
     await contexto.DATOS_inicializarSeguimientoSqlite();
-    db.prepare('INSERT INTO GDE (ID_UNICO_MOVIL) VALUES (?)').run('GUIA-1');
+    insertarGuiaLocal(db, 'GUIA-1', UUID_SEGUIMIENTO_1);
 
     await assert.rejects(
         contexto.guardarGuiasAceptadasConSeguimiento([
             respuestaSeguimiento('GUIA-1', UUID_SEGUIMIENTO_1),
             respuestaSeguimiento('GUIA-INEXISTENTE', UUID_SEGUIMIENTO_2)
         ], ['GUIA-1', 'GUIA-INEXISTENTE']),
-        /única guía pendiente/
+        /única guía.*pendiente/
     );
 
     assert.equal(db.prepare('SELECT ENVIADO FROM GDE WHERE ID_UNICO_MOVIL = ?').get('GUIA-1').ENVIADO, 0);
@@ -337,14 +373,14 @@ test('una anulación N no puede aceptarse como guía nueva por Recibe_Guia_V2', 
     crearGdeMinima(db);
     const contexto = cargarContexto(db);
     await contexto.DATOS_inicializarSeguimientoSqlite();
-    db.prepare("INSERT INTO GDE (ID_UNICO_MOVIL, GDE_ESTADO_MOVIL) VALUES (?, 'N')").run('GUIA-ANULADA');
+    insertarGuiaLocal(db, 'GUIA-ANULADA', UUID_SEGUIMIENTO_1, 'N');
 
     await assert.rejects(
         contexto.guardarGuiasAceptadasConSeguimiento(
             [respuestaSeguimiento('GUIA-ANULADA', UUID_SEGUIMIENTO_1)],
             ['GUIA-ANULADA']
         ),
-        /única guía pendiente/
+        /única guía.*pendiente/
     );
 
     assert.equal(db.prepare('SELECT ENVIADO FROM GDE').get().ENVIADO, 0);

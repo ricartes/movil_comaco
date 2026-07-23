@@ -258,26 +258,84 @@ function DATOS_motivo_anulacion_gde(id_gde, motivo, callback) {
 }
 
 
-function DATOS_cambiar_estado_gde(id_gde, valor, callback) {
-    //alert("a guardar gdep");
-
-    //alert("ALTURA_IZQUIERDA: "+GDEP.ALTURA_IZQUIERDA)
-    this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
-    this.db.transaction(function (tr) {
-
-        if (valor == "N") {
-            tr.executeSql("UPDATE GDE SET GDE_ESTADO_MOVIL=?, GDE_ANULADA=1, GDE_FECHA_HORA=datetime('now','localtime') WHERE ROWID=? ", [valor, id_gde], function (tr, rs) {
-                //alert("si guardo");
-                typeof callback == "function" && callback(rs);
-            });
-        } else {
-            tr.executeSql("UPDATE GDE SET GDE_ESTADO_MOVIL=?, GDE_FECHA_HORA=datetime('now','localtime') WHERE ROWID=? ", [valor, id_gde], function (tr, rs) {
-                //alert("si guardo");
-                typeof callback == "function" && callback(rs);
-            });
-        }
+function GDE_notificarSeguimientoDespuesCommit(valor, seguimiento, callback) {
+    var operacion = Promise.resolve();
+    if (valor === "I" && seguimiento &&
+            typeof registrarSeguimientoLocalNativo === "function") {
+        operacion = registrarSeguimientoLocalNativo(seguimiento);
+    } else if (valor === "N" && seguimiento &&
+            typeof cancelarSeguimientoLocalNativo === "function") {
+        operacion = cancelarSeguimientoLocalNativo(seguimiento.ID_UNICO_SEGUIMIENTO);
+    }
+    operacion.catch(function (error) {
+        console.error(
+            "[TRACKING][RECONCILIACION_LOCAL_PENDIENTE]",
+            error && error.message ? error.message : error
+        );
+    }).then(function () {
+        typeof callback == "function" && callback(seguimiento);
     });
+}
 
+function GDE_actualizarEstadoConSeguimiento(id_gde, valor, usaFechaEmision, callback) {
+    var db = window.sqlitePlugin.openDatabase({
+        name: "bd.db",
+        location: "default",
+        androidDatabaseImplementation: 2
+    });
+    var resultado = null;
+    var uuidNuevo = valor === "I" ? SEGUIMIENTO_generarUuid() : null;
+    var fechaInicioNueva = valor === "I" ? new Date().toISOString() : null;
+    var campoFecha = usaFechaEmision ? "GDE_FECHA_EMISION" : "GDE_FECHA_HORA";
+
+    db.transaction(function (tr) {
+        var sql;
+        var parametros;
+        if (valor === "I") {
+            sql = `UPDATE GDE
+                   SET GDE_ESTADO_MOVIL=?,
+                       ${campoFecha}=datetime('now','localtime'),
+                       ID_UNICO_SEGUIMIENTO=COALESCE(NULLIF(TRIM(ID_UNICO_SEGUIMIENTO),''),?),
+                       FECHA_INICIO_DISPOSITIVO_UTC=COALESCE(NULLIF(TRIM(FECHA_INICIO_DISPOSITIVO_UTC),''),?)
+                   WHERE ROWID=?`;
+            parametros = [valor, uuidNuevo, fechaInicioNueva, id_gde];
+        } else if (valor === "N" && !usaFechaEmision) {
+            sql = `UPDATE GDE
+                   SET GDE_ESTADO_MOVIL=?, GDE_ANULADA=1,
+                       ${campoFecha}=datetime('now','localtime')
+                   WHERE ROWID=?`;
+            parametros = [valor, id_gde];
+        } else {
+            sql = `UPDATE GDE
+                   SET GDE_ESTADO_MOVIL=?, ${campoFecha}=datetime('now','localtime')
+                   WHERE ROWID=?`;
+            parametros = [valor, id_gde];
+        }
+
+        tr.executeSql(sql, parametros, function (tr, rs) {
+            if (rs.rowsAffected !== 1) {
+                throw new Error("No se encontró una única guía para actualizar.");
+            }
+            tr.executeSql(
+                `SELECT ID_UNICO_MOVIL AS ID_UNICO_MOVIL_GDE,
+                        ID_UNICO_SEGUIMIENTO,
+                        FECHA_INICIO_DISPOSITIVO_UTC
+                 FROM GDE WHERE ROWID=?`,
+                [id_gde],
+                function (tr, rsGuia) {
+                    if (rsGuia.rows.length === 1) resultado = rsGuia.rows.item(0);
+                }
+            );
+        });
+    }, function (error) {
+        console.error("[GDE][ESTADO_COMMIT_ERROR]", error);
+    }, function () {
+        GDE_notificarSeguimientoDespuesCommit(valor, resultado, callback);
+    });
+}
+
+function DATOS_cambiar_estado_gde(id_gde, valor, callback) {
+    GDE_actualizarEstadoConSeguimiento(id_gde, valor, false, callback);
 }
 
 
@@ -708,25 +766,7 @@ function DATOS_seleccionar_gde_proveedor(id_gde, callback) {
 
 
 function DATOS_cambiar_estado_gde_proveedores(id_gde, valor, callback) {
-    //alert("a guardar gdep");
-
-    //alert("ALTURA_IZQUIERDA: "+GDEP.ALTURA_IZQUIERDA)
-    this.db = window.sqlitePlugin.openDatabase({ name: "bd.db", location: 'default', androidDatabaseImplementation: 2 });
-    this.db.transaction(function (tr) {
-
-        if (valor == "N") {
-            tr.executeSql("UPDATE GDE SET GDE_ESTADO_MOVIL=?, GDE_FECHA_EMISION=datetime('now','localtime') WHERE ROWID=? ", [valor, id_gde], function (tr, rs) {
-                //alert("si guardo");
-                typeof callback == "function" && callback(rs);
-            });
-        } else {
-            tr.executeSql("UPDATE GDE SET GDE_ESTADO_MOVIL=?, GDE_FECHA_EMISION=datetime('now','localtime') WHERE ROWID=? ", [valor, id_gde], function (tr, rs) {
-                //alert("si guardo");
-                typeof callback == "function" && callback(rs);
-            });
-        }
-    });
-
+    GDE_actualizarEstadoConSeguimiento(id_gde, valor, true, callback);
 }
 
 
@@ -816,6 +856,8 @@ function DATOS_seleccionar_gde_proveedor_por_enviar(estado, callback) {
                     gde.GDE_CAPTURA_FOTO_CAMION_VACIO = rs_datos.GDE_CAPTURA_FOTO_CAMION_VACIO;
                     gde.GDE_CONFIRMA_INGRESO_PLANTA = rs_datos.GDE_CONFIRMA_INGRESO_PLANTA;
                     gde.GDE_COD_DESTINO = rs_datos.GDE_COD_DESTINO;
+                    gde.ID_UNICO_SEGUIMIENTO = rs_datos.ID_UNICO_SEGUIMIENTO;
+                    gde.FECHA_INICIO_DISPOSITIVO_UTC = rs_datos.FECHA_INICIO_DISPOSITIVO_UTC;
                     gde.VERSION_APP = Obtener_dato_local("version_app");
                     ar.push(gde);
                 }
