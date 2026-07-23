@@ -28,10 +28,26 @@ patchFile(path.join(androidRoot, "java", "com", "mcc", "cordova", "plugins", "ml
     { from: /\s*shouldShowPermission = shouldShowPermission\s*&& !ActivityCompat\.shouldShowRequestPermissionRationale\(this, Manifest\.permission\.WRITE_EXTERNAL_STORAGE\);/, to: "" }
 ]);
 
-patchFile(path.join(androidRoot, "AndroidManifest.xml"), [
-    { from: 'android:label="Read Barcode"', to: 'android:label="Escanear QR"' },
-    {
-        from: /(?:\r?\n\s*<activity android:label="Escanear QR" android:name="com\.mcc\.cordova\.plugins\.mlkit\.barcode\.scanner\.CaptureActivity" android:theme="@style\/Theme\.AppCompat\.Light\.NoActionBar" \/>){2,}/g,
-        to: '\n        <activity android:label="Escanear QR" android:name="com.mcc.cordova.plugins.mlkit.barcode.scanner.CaptureActivity" android:theme="@style/Theme.AppCompat.Light.NoActionBar" />'
+const manifestPath = path.join(androidRoot, "AndroidManifest.xml");
+
+if (fs.existsSync(manifestPath)) {
+    const original = fs.readFileSync(manifestPath, "utf8");
+    const captureActivityPattern =
+        /\s*<activity\b(?=[^>]*android:name="com\.mcc\.cordova\.plugins\.mlkit\.barcode\.scanner\.CaptureActivity")[^>]*\/>/g;
+    let captureActivityEncontrada = false;
+
+    const patched = original
+        .replace(/android:label="Read Barcode"/g, 'android:label="Escanear QR"')
+        .replace(captureActivityPattern, function (activity) {
+            if (captureActivityEncontrada) {
+                return "";
+            }
+            captureActivityEncontrada = true;
+            return activity;
+        });
+
+    if (patched !== original) {
+        fs.writeFileSync(manifestPath, patched, "utf8");
+        console.log("Patched ML Kit barcode scanner: " + path.relative(root, manifestPath));
     }
-]);
+}
