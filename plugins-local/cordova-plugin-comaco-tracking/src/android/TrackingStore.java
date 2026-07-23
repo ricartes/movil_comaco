@@ -29,7 +29,7 @@ final class TrackingStore extends SQLiteOpenHelper {
     static final String CREDENTIAL_ERROR = "ERROR_CREDENCIAL";
     static final String FINAL = "FINAL";
     private static final String DB_NAME = "comaco_tracking.db";
-    private static final int DB_VERSION = 4;
+    private static final int DB_VERSION = 5;
     private final CredentialCipher cipher = new CredentialCipher();
 
     static final class OutboxItem {
@@ -57,7 +57,7 @@ final class TrackingStore extends SQLiteOpenHelper {
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE tracking_config (id INTEGER PRIMARY KEY CHECK(id=1), base_url TEXT NOT NULL, interval_ms INTEGER NOT NULL, distance_m REAL NOT NULL, batch_size INTEGER NOT NULL, timeout_ms INTEGER NOT NULL, max_short_retries INTEGER NOT NULL, schema_version INTEGER NOT NULL, migration_complete INTEGER NOT NULL DEFAULT 0, device_uuid TEXT NOT NULL, app_version TEXT NOT NULL, updated_ms INTEGER NOT NULL)");
         db.execSQL("CREATE TABLE location_capture (uuid_capture TEXT PRIMARY KEY, captured_ms INTEGER NOT NULL, date_utc TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, accuracy REAL, speed REAL, bearing REAL, altitude REAL, mocked INTEGER NOT NULL, provider TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE active_tracking (tracking_id TEXT PRIMARY KEY, mobile_id TEXT NOT NULL, device_uuid TEXT NOT NULL, token_cipher BLOB, token_iv BLOB, status TEXT NOT NULL, sequence INTEGER NOT NULL DEFAULT 0, created_ms INTEGER NOT NULL, updated_ms INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE active_tracking (tracking_id TEXT PRIMARY KEY, mobile_id TEXT NOT NULL, device_uuid TEXT NOT NULL, device_started_utc TEXT, token_cipher BLOB, token_iv BLOB, status TEXT NOT NULL, sequence INTEGER NOT NULL DEFAULT 0, created_ms INTEGER NOT NULL, updated_ms INTEGER NOT NULL)");
         db.execSQL("CREATE TABLE position_outbox (uuid_position TEXT PRIMARY KEY, uuid_capture TEXT NOT NULL, tracking_id TEXT NOT NULL, mobile_id TEXT NOT NULL, sequence INTEGER, date_utc TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, accuracy REAL, speed REAL, bearing REAL, altitude REAL, mocked INTEGER NOT NULL, origin TEXT NOT NULL, state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_retry_ms INTEGER NOT NULL DEFAULT 0, sending_since_ms INTEGER, created_ms INTEGER NOT NULL, updated_ms INTEGER NOT NULL, last_error TEXT, FOREIGN KEY(uuid_capture) REFERENCES location_capture(uuid_capture))");
         db.execSQL("CREATE INDEX idx_outbox_ready ON position_outbox(state,next_retry_ms,created_ms)");
         db.execSQL("CREATE INDEX idx_outbox_tracking ON position_outbox(tracking_id,state,created_ms)");
@@ -66,11 +66,15 @@ final class TrackingStore extends SQLiteOpenHelper {
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 2) createRuntimeState(db);
-        else if (oldVersion < 3) {
+        if (oldVersion < 2) {
+            createRuntimeState(db);
+        } else if (oldVersion < 3) {
             addCurrentHealthColumns(db);
             addPowerRemediationColumns(db);
         } else if (oldVersion < 4) addPowerRemediationColumns(db);
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE active_tracking ADD COLUMN device_started_utc TEXT");
+        }
     }
 
     private static void createRuntimeState(SQLiteDatabase db) {
@@ -146,6 +150,81 @@ final class TrackingStore extends SQLiteOpenHelper {
         return count;
     }
 
+    synchronized void registerLocalTracking(JSONObject item) throws Exception {
+        String trackingId = uuid(item, "ID_UNICO_SEGUIMIENTO");
+        String mobileId = required(item, "ID_UNICO_MOVIL_GDE");
+        String deviceUuid = required(item, "UUID_DISPOSITIVO");
+        String startedUtc = isoUtc(item, "FECHA_INICIO_DISPOSITIVO_UTC");
+        long now = System.currentTimeMillis();
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            if (scalar(
+                    "SELECT COUNT(*) FROM active_tracking WHERE tracking_id=? OR mobile_id=?",
+                    new String[]{trackingId, mobileId}) > 1) {
+                throw new IllegalStateException("SEGUIMIENTO_LOCAL_DUPLICADO");
+            }
+            try (Cursor c = db.rawQuery(
+                    "SELECT tracking_id,mobile_id,device_uuid,device_started_utc,status FROM active_tracking WHERE tracking_id=? OR mobile_id=?",
+                    new String[]{trackingId, mobileId})) {
+                if (c.moveToFirst()) {
+                    String existingTracking = c.getString(0);
+                    String existingMobile = c.getString(1);
+                    String existingDevice = c.getString(2);
+                    String existingStarted = c.isNull(3) ? null : c.getString(3);
+                    String existingStatus = c.getString(4);
+                    if (!trackingId.equalsIgnoreCase(existingTracking)
+                            || !mobileId.equals(existingMobile)
+                            || !deviceUuid.equals(existingDevice)
+                            || (existingStarted != null && !startedUtc.equals(existingStarted))) {
+                        throw new IllegalStateException("SEGUIMIENTO_LOCAL_CONFLICTO");
+                    }
+                    if ("CANCELADA_LOCAL".equals(existingStatus) || "FINAL".equals(existingStatus)) {
+                        throw new IllegalStateException("SEGUIMIENTO_LOCAL_TERMINAL");
+                    }
+                    if (existingStarted == null) {
+                        ContentValues started = new ContentValues();
+                        started.put("device_started_utc", startedUtc);
+                        started.put("updated_ms", now);
+                        db.update("active_tracking", started, "tracking_id=?", new String[]{trackingId});
+                    }
+                    db.setTransactionSuccessful();
+                    event("TRACK_LOCAL_RECONCILED", "tracking=" + partial(trackingId));
+                    return;
+                }
+            }
+            ContentValues values = new ContentValues();
+            values.put("tracking_id", trackingId);
+            values.put("mobile_id", mobileId);
+            values.put("device_uuid", deviceUuid);
+            values.put("device_started_utc", startedUtc);
+            values.putNull("token_cipher");
+            values.putNull("token_iv");
+            values.put("status", "ACTIVA_LOCAL");
+            values.put("sequence", 0);
+            values.put("created_ms", now);
+            values.put("updated_ms", now);
+            db.insertOrThrow("active_tracking", null, values);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        event("TRACK_LOCAL_REGISTERED", "tracking=" + partial(trackingId));
+    }
+
+    synchronized void cancelLocalTracking(String trackingId) {
+        String id = uuidValue(trackingId, "ID_UNICO_SEGUIMIENTO");
+        ContentValues values = new ContentValues();
+        values.put("status", "CANCELADA_LOCAL");
+        values.put("updated_ms", System.currentTimeMillis());
+        int updated = getWritableDatabase().update(
+                "active_tracking",
+                values,
+                "tracking_id=? AND status='ACTIVA_LOCAL' AND token_cipher IS NULL AND token_iv IS NULL",
+                new String[]{id});
+        event("TRACK_LOCAL_CANCELLED", "tracking=" + partial(id) + " updated=" + updated);
+    }
+
     synchronized void upsertTracking(JSONObject item) throws Exception {
         String trackingId = uuid(item, "ID_UNICO_SEGUIMIENTO");
         String mobileId = required(item, "ID_UNICO_MOVIL_GDE");
@@ -157,17 +236,39 @@ final class TrackingStore extends SQLiteOpenHelper {
         db.beginTransaction();
         try {
             long sequence = 0;
-            try (Cursor c = db.rawQuery("SELECT sequence FROM active_tracking WHERE tracking_id=?", new String[]{trackingId})) {
-                if (c.moveToFirst()) sequence = c.getLong(0);
+            long created = now;
+            String startedUtc = item.has("FECHA_INICIO_DISPOSITIVO_UTC")
+                    && !item.isNull("FECHA_INICIO_DISPOSITIVO_UTC")
+                    ? isoUtc(item, "FECHA_INICIO_DISPOSITIVO_UTC")
+                    : null;
+            try (Cursor c = db.rawQuery(
+                    "SELECT tracking_id,mobile_id,device_uuid,device_started_utc,sequence,created_ms FROM active_tracking WHERE tracking_id=? OR mobile_id=?",
+                    new String[]{trackingId, mobileId})) {
+                if (c.moveToFirst()) {
+                    if (!trackingId.equalsIgnoreCase(c.getString(0))
+                            || !mobileId.equals(c.getString(1))
+                            || !deviceUuid.equals(c.getString(2))) {
+                        diagnosticEvent(
+                                "TRACK_AUTHORIZATION_MISMATCH",
+                                "mobile=" + safe(mobileId) + " local=" + partial(c.getString(0))
+                                        + " server=" + partial(trackingId));
+                        throw new IllegalStateException("SEGUIMIENTO_UUID_RESPUESTA_DIFERENTE");
+                    }
+                    if (!c.isNull(3)) startedUtc = c.getString(3);
+                    sequence = c.getLong(4);
+                    created = c.getLong(5);
+                    if (c.moveToNext()) throw new IllegalStateException("SEGUIMIENTO_DUPLICADO");
+                }
             }
             ContentValues v = new ContentValues();
             v.put("tracking_id", trackingId); v.put("mobile_id", mobileId); v.put("device_uuid", deviceUuid);
+            if (startedUtc == null) v.putNull("device_started_utc"); else v.put("device_started_utc", startedUtc);
             v.put("token_cipher", encrypted.value); v.put("token_iv", encrypted.iv); v.put("status", "ACTIVA");
-            v.put("sequence", sequence); v.put("created_ms", now); v.put("updated_ms", now);
+            v.put("sequence", sequence); v.put("created_ms", created); v.put("updated_ms", now);
             db.insertWithOnConflict("active_tracking", null, v, SQLiteDatabase.CONFLICT_REPLACE);
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
-        event("TRACK_REGISTERED", null);
+        event("TRACK_AUTHORIZED", "tracking=" + partial(trackingId));
     }
 
     synchronized void finalizeTracking(String trackingId) {
@@ -287,7 +388,7 @@ final class TrackingStore extends SQLiteOpenHelper {
         db.beginTransaction();
         try {
             db.insertOrThrow("location_capture", null, captureValues(captureId, iso(location.getTime()), location.getLatitude(), location.getLongitude(), location.hasAccuracy() ? (double)location.getAccuracy() : null, location.hasSpeed() ? (double)location.getSpeed() : null, location.hasBearing() ? (double)location.getBearing() : null, location.hasAltitude() ? location.getAltitude() : null, Build.VERSION.SDK_INT >= 18 && location.isFromMockProvider(), location.getProvider()));
-            try (Cursor c = db.rawQuery("SELECT tracking_id,mobile_id,sequence FROM active_tracking WHERE status='ACTIVA' ORDER BY tracking_id", null)) {
+            try (Cursor c = db.rawQuery("SELECT tracking_id,mobile_id,sequence FROM active_tracking WHERE status IN ('ACTIVA','ACTIVA_LOCAL') ORDER BY tracking_id", null)) {
                 while (c.moveToNext()) {
                     long sequence = c.getLong(2) + 1; String trackingId = c.getString(0);
                     db.execSQL("UPDATE active_tracking SET sequence=?,updated_ms=? WHERE tracking_id=?", new Object[]{sequence,now,trackingId});
@@ -308,7 +409,7 @@ final class TrackingStore extends SQLiteOpenHelper {
         long now = System.currentTimeMillis();
         getWritableDatabase().execSQL("UPDATE position_outbox SET state='PENDIENTE',sending_since_ms=NULL,updated_ms=? WHERE state='ENVIANDO' AND sending_since_ms<?", new Object[]{now, now-300000});
         String trackingId = null; int limit = 50;
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND o.created_ms<=? AND a.status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO') ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now),String.valueOf(createdBeforeOrAtMs)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT o.tracking_id,c.batch_size FROM position_outbox o JOIN tracking_config c ON c.id=1 JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state='PENDIENTE' AND o.next_retry_ms<=? AND o.created_ms<=? AND a.status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO') AND a.token_cipher IS NOT NULL AND a.token_iv IS NOT NULL ORDER BY o.created_ms LIMIT 1", new String[]{String.valueOf(now),String.valueOf(createdBeforeOrAtMs)})) {
             if (c.moveToFirst()) { trackingId=c.getString(0); limit=c.getInt(1); }
         }
         if (trackingId == null) return null;
@@ -339,8 +440,9 @@ final class TrackingStore extends SQLiteOpenHelper {
 
     synchronized void releaseUnacknowledged(List<OutboxItem> sent, Set<String> accepted) { List<OutboxItem> missing=new ArrayList<>(); for(OutboxItem p:sent) if(!accepted.contains(p.uuidPosition)) missing.add(p); fail(missing,"ACK_INCOMPLETO",false); }
 
-    synchronized boolean hasWork() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO')",null)>0 || scalar("SELECT COUNT(*) FROM position_outbox WHERE state IN ('PENDIENTE','ENVIANDO')",null)>0; }
-    synchronized boolean hasActive() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA'",null)>0; }
+    synchronized boolean hasWork() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','ACTIVA_LOCAL','PAUSADA_FINALIZACION','FINALIZANDO')",null)>0 || scalar("SELECT COUNT(*) FROM position_outbox o JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE o.state IN ('PENDIENTE','ENVIANDO') AND a.status IN ('ACTIVA','PAUSADA_FINALIZACION','FINALIZANDO') AND a.token_cipher IS NOT NULL AND a.token_iv IS NOT NULL",null)>0; }
+    synchronized boolean hasActive() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','ACTIVA_LOCAL')",null)>0; }
+    synchronized boolean hasLocalActive() { return scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA_LOCAL'",null)>0; }
     synchronized long intervalMs() { return scalarLong("SELECT interval_ms FROM tracking_config WHERE id=1",null,1000); }
     synchronized float distanceM() { try(Cursor c=getReadableDatabase().rawQuery("SELECT distance_m FROM tracking_config WHERE id=1",null)){ return c.moveToFirst()?c.getFloat(0):0f; } }
     synchronized boolean configured() { return scalar("SELECT COUNT(*) FROM tracking_config WHERE id=1",null)==1; }
@@ -470,8 +572,8 @@ final class TrackingStore extends SQLiteOpenHelper {
     }
 
     synchronized JSONObject state(boolean serviceActive) throws JSONException {
-        JSONObject o=new JSONObject(); int active=scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA'",null); int pending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='PENDIENTE'",null); int sending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ENVIANDO'",null);
-        o.put("configurado",configured()); o.put("servicioActivo",serviceActive); o.put("servicioCreado",serviceActive); o.put("servicioForeground",JSONObject.NULL); o.put("servicioForegroundSolicitado",TrackingForegroundService.isForegroundPromotionRequested()); o.put("seguimientosActivos",active); o.put("seguimientosFinalizando",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='FINALIZANDO'",null)); o.put("posicionesPendientes",pending); o.put("pendientes",pending); o.put("posicionesEnviando",sending); o.put("enviando",sending); o.put("posicionesConfirmadasRecientes",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA' AND updated_ms>?",new String[]{String.valueOf(System.currentTimeMillis()-86400000)})); o.put("errorCredencial",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ERROR_CREDENCIAL'",null)); o.put("migracionCompletada",currentMigrationFlag()==1); o.put("migracionCompleta",currentMigrationFlag()==1); o.put("intervaloMs",intervalMs()); o.put("distanciaMetros",distanceM()); o.put("versionEsquema",4); o.put("modoPolitica",policyMode()); o.put("healthActual",lastText("SELECT current_health FROM tracking_runtime_state WHERE id=1")); o.put("reasonsActuales",lastText("SELECT current_health_reasons FROM tracking_runtime_state WHERE id=1")); putTime(o,"ultimoCallbackUbicacionUtc","SELECT last_location_callback_ms FROM tracking_runtime_state WHERE id=1"); putTime(o,"ultimaCapturaUtc","SELECT MAX(captured_ms) FROM location_capture"); putTime(o,"ultimaPersistenciaUtc","SELECT MAX(created_ms) FROM position_outbox"); putTime(o,"ultimoEnvioUtc","SELECT MAX(updated_ms) FROM position_outbox WHERE attempts>0 OR state='CONFIRMADA'"); o.put("ultimoResultadoEnvio",lastText("SELECT state FROM position_outbox ORDER BY updated_ms DESC LIMIT 1")); o.put("proveedor",lastText("SELECT provider FROM location_capture ORDER BY captured_ms DESC LIMIT 1")); return o;
+        JSONObject o=new JSONObject(); int active=scalar("SELECT COUNT(*) FROM active_tracking WHERE status IN ('ACTIVA','ACTIVA_LOCAL')",null); int pending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='PENDIENTE'",null); int sending=scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ENVIANDO'",null);
+        o.put("configurado",configured()); o.put("servicioActivo",serviceActive); o.put("servicioCreado",serviceActive); o.put("servicioForeground",JSONObject.NULL); o.put("servicioForegroundSolicitado",TrackingForegroundService.isForegroundPromotionRequested()); o.put("seguimientosActivos",active); o.put("seguimientosLocalesPendientes",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA_LOCAL'",null)); o.put("seguimientosEsperandoCredencial",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='ACTIVA_LOCAL' AND (token_cipher IS NULL OR token_iv IS NULL)",null)); o.put("posicionesLocalesAcumuladas",scalar("SELECT COUNT(*) FROM position_outbox o JOIN active_tracking a ON a.tracking_id=o.tracking_id WHERE a.status='ACTIVA_LOCAL' AND o.state='PENDIENTE'",null)); o.put("seguimientosAutorizadosDrenando",scalar("SELECT COUNT(DISTINCT a.tracking_id) FROM active_tracking a JOIN position_outbox o ON o.tracking_id=a.tracking_id WHERE a.status='ACTIVA' AND a.token_cipher IS NOT NULL AND a.token_iv IS NOT NULL AND o.state IN ('PENDIENTE','ENVIANDO')",null)); o.put("seguimientosFinalizando",scalar("SELECT COUNT(*) FROM active_tracking WHERE status='FINALIZANDO'",null)); o.put("posicionesPendientes",pending); o.put("pendientes",pending); o.put("posicionesEnviando",sending); o.put("enviando",sending); o.put("posicionesConfirmadasRecientes",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA' AND updated_ms>?",new String[]{String.valueOf(System.currentTimeMillis()-86400000)})); o.put("errorCredencial",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='ERROR_CREDENCIAL'",null)); o.put("migracionCompletada",currentMigrationFlag()==1); o.put("migracionCompleta",currentMigrationFlag()==1); o.put("intervaloMs",intervalMs()); o.put("distanciaMetros",distanceM()); o.put("versionEsquema",5); o.put("modoPolitica",policyMode()); o.put("healthActual",lastText("SELECT current_health FROM tracking_runtime_state WHERE id=1")); o.put("reasonsActuales",lastText("SELECT current_health_reasons FROM tracking_runtime_state WHERE id=1")); putTime(o,"ultimoCallbackUbicacionUtc","SELECT last_location_callback_ms FROM tracking_runtime_state WHERE id=1"); putTime(o,"ultimaCapturaUtc","SELECT MAX(captured_ms) FROM location_capture"); putTime(o,"ultimaPersistenciaUtc","SELECT MAX(created_ms) FROM position_outbox"); putTime(o,"ultimoEnvioUtc","SELECT MAX(updated_ms) FROM position_outbox WHERE attempts>0 OR state='CONFIRMADA'"); o.put("ultimoResultadoEnvio",lastText("SELECT state FROM position_outbox ORDER BY updated_ms DESC LIMIT 1")); o.put("proveedor",lastText("SELECT provider FROM location_capture ORDER BY captured_ms DESC LIMIT 1")); return o;
     }
     synchronized JSONObject stats(boolean serviceActive) throws JSONException { JSONObject o=state(serviceActive); o.put("capturas",scalar("SELECT COUNT(*) FROM location_capture",null)); o.put("confirmadas",scalar("SELECT COUNT(*) FROM position_outbox WHERE state='CONFIRMADA'",null)); o.put("eventosTecnicos",scalar("SELECT COUNT(*) FROM technical_event",null)); return o; }
 
@@ -497,6 +599,7 @@ final class TrackingStore extends SQLiteOpenHelper {
     private static double boundedDouble(double value,double min,double max,String name){if(!Double.isFinite(value)||value<min||value>max)throw new IllegalArgumentException(name+" fuera de rango.");return value;}
     private static String required(JSONObject o,String key)throws JSONException{String v=o.getString(key).trim();if(v.isEmpty()||"null".equalsIgnoreCase(v)||"undefined".equalsIgnoreCase(v))throw new JSONException(key+" es obligatorio.");return v;}
     private static String uuid(JSONObject o,String key)throws JSONException{String v=required(o,key);UUID.fromString(v);return v;}
+    private static String isoUtc(JSONObject o,String key)throws JSONException{String v=required(o,key);if(!v.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z"))throw new JSONException(key+" debe ser UTC ISO-8601.");return v;}
     private static String uuidValue(String value,String name){String v=value==null?"":value.trim();if(v.isEmpty())throw new IllegalArgumentException(name+" es obligatorio.");UUID.fromString(v);return v;}
     private static String partial(String value){return value==null?"":value.substring(0,Math.min(8,value.length()));}
     private static Double nullable(JSONObject o,String key)throws JSONException{return !o.has(key)||o.isNull(key)?null:o.getDouble(key);}

@@ -34,6 +34,14 @@ async function SEGUIMIENTO_migrarLegacyANativo() {
     return { credenciales: credenciales.length, posiciones: posiciones.length };
 }
 
+async function SEGUIMIENTO_reconciliarProvisionalesLocales() {
+    var seguimientos = await SEGUIMIENTO_listarGuiasLocalesPendientes();
+    for (var i = 0; i < seguimientos.length; i++) {
+        await registrarSeguimientoLocalNativo(seguimientos[i]);
+    }
+    return seguimientos.length;
+}
+
 function inicializarSeguimientoBootstrap() {
     if (SEGUIMIENTO_bootstrapPromesa) return SEGUIMIENTO_bootstrapPromesa;
     SEGUIMIENTO_bootstrapPromesa = (async function () {
@@ -41,10 +49,11 @@ function inicializarSeguimientoBootstrap() {
         if (typeof comprobarActualizarEsquema === "function") await comprobarActualizarEsquema();
         await configurarSeguimientoNativo();
         var migracion = await SEGUIMIENTO_migrarLegacyANativo();
+        var provisionales = await SEGUIMIENTO_reconciliarProvisionalesLocales();
         var inicio = await ComacoTracking.solicitarDrenaje("inicio_o_resume");
         await TRACKING_POLICY_procesarResultado(inicio, "inicio_o_resume");
         var estado = await ComacoTracking.obtenerEstado();
-        console.log("[TRACKING][NATIVE_READY] activos=" + estado.seguimientosActivos + " pendientes=" + estado.pendientes + " legacy=" + migracion.posiciones);
+        console.log("[TRACKING][NATIVE_READY] activos=" + estado.seguimientosActivos + " locales=" + provisionales + " pendientes=" + estado.pendientes + " legacy=" + migracion.posiciones);
         return true;
     })().catch(function (error) {
         SEGUIMIENTO_bootstrapPromesa = null;
@@ -57,6 +66,7 @@ function inicializarSeguimientoBootstrap() {
 async function SEGUIMIENTO_alResumeTecnico() {
     try {
         await inicializarSeguimientoBootstrap();
+        await SEGUIMIENTO_reconciliarProvisionalesLocales();
         var retornoSettings = await TRACKING_POLICY_revalidarRetornoSettings();
         if (!retornoSettings) {
             await TRACKING_POLICY_revisar("resume");

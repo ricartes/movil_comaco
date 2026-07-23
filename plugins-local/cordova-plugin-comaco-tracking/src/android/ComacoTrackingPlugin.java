@@ -45,6 +45,9 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
             case "configurar":
             case "sincronizarSeguimientos":
             case "registrarSeguimiento":
+            case "registrarSeguimientoLocal":
+            case "cancelarSeguimientoLocal":
+            case "registrarErrorTecnico":
             case "finalizarSeguimiento":
             case "prepararFinalizacionSeguimiento":
             case "cancelarPreparacionFinalizacionSeguimiento":
@@ -105,6 +108,34 @@ public final class ComacoTrackingPlugin extends CordovaPlugin {
                 case "registrarSeguimiento":
                     store.upsertTracking(args.getJSONObject(0));
                     result = stateWithPolicy(ensureService("nuevo_seguimiento", false));
+                    break;
+                case "registrarSeguimientoLocal":
+                    store.registerLocalTracking(args.getJSONObject(0));
+                    result = stateWithPolicy(ensureService("nuevo_seguimiento_local", true));
+                    break;
+                case "cancelarSeguimientoLocal":
+                    store.cancelLocalTracking(
+                            args.getJSONObject(0).getString("ID_UNICO_SEGUIMIENTO"));
+                    if (TrackingForegroundService.isRunning()) {
+                        TrackingForegroundService.start(
+                                cordova.getContext(),
+                                "cancelacion_seguimiento_local",
+                                currentOverrideUsed());
+                    }
+                    result = stateWithPolicy(inspect(
+                            "cancelacion_seguimiento_local",
+                            currentOverrideUsed()));
+                    break;
+                case "registrarErrorTecnico":
+                    JSONObject technicalError = args.optJSONObject(0);
+                    store.diagnosticEvent(
+                            technicalError == null
+                                    ? "SEGUIMIENTO_ERROR_TECNICO"
+                                    : technicalError.optString(
+                                            "CODIGO",
+                                            "SEGUIMIENTO_ERROR_TECNICO"),
+                            technicalError == null ? null : technicalError.toString());
+                    result = stateWithPolicy(inspect("error_tecnico", currentOverrideUsed()));
                     break;
                 case "finalizarSeguimiento":
                     store.finalizeTracking(args.getJSONObject(0).getString("ID_UNICO_SEGUIMIENTO"));

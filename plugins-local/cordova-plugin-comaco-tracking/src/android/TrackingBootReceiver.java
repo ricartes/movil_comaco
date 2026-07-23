@@ -40,6 +40,7 @@ public final class TrackingBootReceiver extends BroadcastReceiver {
 
                 boolean debeEjecutarse =
                         store.hasActive() || store.hasWork();
+                boolean seguimientoLocalPendiente = store.hasLocalActive();
 
                 if (store.configured()
                         && store.migrationComplete()
@@ -56,11 +57,16 @@ public final class TrackingBootReceiver extends BroadcastReceiver {
 
                     if (blockers && "ENFORCE".equals(mode)) {
                         store.event("SERVICE_START_BLOCKED_POLICY", "reason=boot " + detail);
-                    } else if (blockers && "WARN".equals(mode)) {
+                    } else if (blockers && "WARN".equals(mode) && !seguimientoLocalPendiente) {
                         // En boot no existe una UI visible para obtener la decision
                         // explicita requerida por WARN. La app reevalua al abrirse.
                         store.event("SERVICE_START_AWAITING_POLICY_OVERRIDE", "reason=boot " + detail);
                     } else {
+                        if (blockers && seguimientoLocalPendiente) {
+                            store.event(
+                                    "TRACKING_STARTED_WITH_POLICY_WARNING",
+                                    "reason=boot_local " + detail);
+                        }
                         store.recordPolicyStart(false, snapshot);
                         TrackingForegroundService.start(
                                 appContext,

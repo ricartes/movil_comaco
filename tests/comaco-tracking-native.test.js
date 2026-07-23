@@ -36,7 +36,7 @@ test('1 serialización nativa conserva exactamente el contrato JavaScript', () =
     const input = request.entrada;
     assert.deepEqual(Object.keys(input), ['ID_UNICO_SEGUIMIENTO', 'UUID_DISPOSITIVO', 'TOKEN_SEGUIMIENTO', 'VERSION_APP', 'ID_INSTALACION', 'TOKEN_INSTALACION', 'POSICIONES']);
     for (const key of Object.keys(input)) assert.match(uploader, new RegExp('"' + key + '"'));
-    assert.match(uploader, /wrapper\.put\("entrada",input\)/);
+    assert.match(uploader, /wrapper\.put\("entrada",\s*input\)/);
 });
 
 test('2 interpretación ASMX acepta d objeto o JSON string y ACK válidos', () => {
@@ -61,12 +61,12 @@ test('5 decimales no se convierten a texto ni enteros', () => {
     const p = request.entrada.POSICIONES[0];
     assert.equal(p.LATITUD, -33.4512345);
     assert.equal(p.PRECISION_METROS, 4.25);
-    assert.match(uploader, /o\.put\("LATITUD",p\.latitude\)/);
+    assert.match(uploader, /o\.put\("LATITUD",\s*p\.latitude\)/);
 });
 
 test('6 almacén permite múltiples seguimientos activos', () => {
     assert.match(store, /active_tracking \(tracking_id TEXT PRIMARY KEY/);
-    assert.match(store, /WHERE status='ACTIVA' ORDER BY tracking_id/);
+    assert.match(store, /WHERE status IN \('ACTIVA','ACTIVA_LOCAL'\) ORDER BY tracking_id/);
 });
 
 test('7 una captura física itera una posición por seguimiento', () => {
@@ -114,7 +114,7 @@ test('14 timeout conserva posiciones y aplica backoff', () => {
 
 test('15 HTTP 200 con fallo funcional no confirma', () => {
     assert.equal(unwrapAsmx(functionalError).EXITO, false);
-    assert.match(uploader, /if\(!response\.optBoolean\("EXITO",false\)\)/);
+    assert.match(uploader, /if\s*\(!response\.optBoolean\("EXITO",\s*false\)\)/);
 });
 
 test('16 respuesta inválida no confirma', () => {
@@ -284,7 +284,7 @@ test('40 instrumentacion GPS cubre captura, ciclo, HTTP, ACK y backoff', () => {
         'GPS_REJECTED', 'GPS_BACKOFF', 'GPS_DRAIN_END'
     ]) assert.match(nativeSources, new RegExp(event));
     assert.match(uploader, /errorCode\(e\)/);
-    assert.match(uploader, /HTTP_"\+status/);
+    assert.match(uploader, /HTTP_"\s*\+\s*status/);
 });
 
 test('41 cambio de URL y NetworkCallback adelantan pendientes sin eliminarlos', () => {
