@@ -10,6 +10,9 @@ module.exports = {
     configurar: function (config) { return invoke("configurar", config); },
     sincronizarSeguimientos: function (items) { return invoke("sincronizarSeguimientos", items || []); },
     registrarSeguimiento: function (item) { return invoke("registrarSeguimiento", item); },
+    registrarSeguimientoLocal: function (item) { return invoke("registrarSeguimientoLocal", item); },
+    cancelarSeguimientoLocal: function (id) { return invoke("cancelarSeguimientoLocal", { ID_UNICO_SEGUIMIENTO: id }); },
+    registrarErrorTecnico: function (error) { return invoke("registrarErrorTecnico", error || {}); },
     finalizarSeguimiento: function (id) { return invoke("finalizarSeguimiento", { ID_UNICO_SEGUIMIENTO: id }); },
     prepararFinalizacionSeguimiento: function (id, timeoutMs) {
         return invoke("prepararFinalizacionSeguimiento", {

@@ -69,6 +69,54 @@ function SEGUIMIENTO_registrarCredencialesNativas(credenciales) {
     });
 }
 
+function registrarSeguimientoLocalNativo(seguimiento) {
+    var item = {
+        ID_UNICO_SEGUIMIENTO: SEGUIMIENTO_uuidObligatorio(
+            seguimiento && seguimiento.ID_UNICO_SEGUIMIENTO,
+            "ID_UNICO_SEGUIMIENTO"
+        ),
+        ID_UNICO_MOVIL_GDE: SEGUIMIENTO_textoObligatorio(
+            seguimiento && seguimiento.ID_UNICO_MOVIL_GDE,
+            "ID_UNICO_MOVIL_GDE"
+        ),
+        UUID_DISPOSITIVO: (window.device && device.uuid) ||
+            Obtener_dato_local("uid") || "browser",
+        FECHA_INICIO_DISPOSITIVO_UTC: SEGUIMIENTO_fechaUtcObligatoria(
+            seguimiento && seguimiento.FECHA_INICIO_DISPOSITIVO_UTC,
+            "FECHA_INICIO_DISPOSITIVO_UTC"
+        )
+    };
+    return configurarSeguimientoNativo().then(async function () {
+        var resultado = await SEGUIMIENTO_pluginNativo().registrarSeguimientoLocal(item);
+        await TRACKING_POLICY_procesarResultado(resultado, "seguimiento_local");
+        return resultado;
+    });
+}
+
+function cancelarSeguimientoLocalNativo(idUnicoSeguimiento) {
+    if (!idUnicoSeguimiento || typeof ComacoTracking === "undefined") {
+        return Promise.resolve(false);
+    }
+    return configurarSeguimientoNativo().then(function () {
+        return SEGUIMIENTO_pluginNativo().cancelarSeguimientoLocal(idUnicoSeguimiento);
+    });
+}
+
+function registrarErrorSeguimientoNativo(error) {
+    if (typeof ComacoTracking === "undefined" ||
+            typeof ComacoTracking.registrarErrorTecnico !== "function") {
+        return Promise.resolve();
+    }
+    return configurarSeguimientoNativo().then(function () {
+        return ComacoTracking.registrarErrorTecnico({
+            CODIGO: error && error.code ? error.code : "SEGUIMIENTO_RESPUESTA_INVALIDA",
+            ID_UNICO_MOVIL_GDE: error && error.ID_UNICO_MOVIL_GDE || "",
+            ID_UNICO_SEGUIMIENTO_LOCAL: error && error.ID_UNICO_SEGUIMIENTO_LOCAL || "",
+            ID_UNICO_SEGUIMIENTO_SERVIDOR: error && error.ID_UNICO_SEGUIMIENTO_SERVIDOR || ""
+        });
+    });
+}
+
 function reconciliarEstadoGpsNativo() {
     return configurarSeguimientoNativo().then(async function () {
         var credenciales = typeof listarCredencialesSeguimientoActivas === "function"

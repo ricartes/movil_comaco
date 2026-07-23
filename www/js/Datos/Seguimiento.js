@@ -56,17 +56,20 @@ function DATOS_inicializarSeguimientoSqlite() {
             tr.executeSql(SEGUIMIENTO_SQL_CREAR_CREDENCIALES);
             tr.executeSql(SEGUIMIENTO_SQL_CREAR_INDICE_CREDENCIALES_ESTADO);
             tr.executeSql("PRAGMA table_info(GDE)", [], function (tr, rs) {
-                var existeColumna = false;
+                var existeIdSeguimiento = false;
+                var existeFechaInicio = false;
 
                 for (var i = 0; i < rs.rows.length; i++) {
-                    if (String(rs.rows.item(i).name).toUpperCase() === "ID_UNICO_SEGUIMIENTO") {
-                        existeColumna = true;
-                        break;
-                    }
+                    var nombreColumna = String(rs.rows.item(i).name).toUpperCase();
+                    if (nombreColumna === "ID_UNICO_SEGUIMIENTO") existeIdSeguimiento = true;
+                    if (nombreColumna === "FECHA_INICIO_DISPOSITIVO_UTC") existeFechaInicio = true;
                 }
 
-                if (!existeColumna) {
+                if (!existeIdSeguimiento) {
                     tr.executeSql("ALTER TABLE GDE ADD COLUMN ID_UNICO_SEGUIMIENTO TEXT NULL");
+                }
+                if (!existeFechaInicio) {
+                    tr.executeSql("ALTER TABLE GDE ADD COLUMN FECHA_INICIO_DISPOSITIVO_UTC TEXT NULL");
                 }
             });
         }, reject, resolve);
@@ -222,7 +225,8 @@ function SEGUIMIENTO_normalizarVinculosGuia(seguimientos) {
             ID_UNICO_SEGUIMIENTO: idSeguimiento,
             UUID_DISPOSITIVO: uuidDispositivo,
             TOKEN_SEGUIMIENTO: tokenSeguimiento,
-            FECHA_EMISION_UTC: seguimiento.FECHA_EMISION_UTC || null
+            FECHA_EMISION_UTC: seguimiento.FECHA_EMISION_UTC || null,
+            FECHA_INICIO_DISPOSITIVO_UTC: seguimiento.FECHA_INICIO_DISPOSITIVO_UTC || null
         };
     });
 }
@@ -241,6 +245,85 @@ function SEGUIMIENTO_confirmarCredencialesNativas(vinculos, cantidadGuardada, re
     }).then(function () {
         resolve(cantidadGuardada);
     });
+}
+
+function SEGUIMIENTO_listarGuiasLocalesPendientes() {
+    return new Promise(function (resolve, reject) {
+        var seguimientos = [];
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            tr.executeSql(
+                `SELECT ID_UNICO_MOVIL AS ID_UNICO_MOVIL_GDE,
+                        ID_UNICO_SEGUIMIENTO,
+                        FECHA_INICIO_DISPOSITIVO_UTC
+                 FROM GDE
+                 WHERE GDE_ESTADO_MOVIL = 'I'
+                   AND ENVIADO = 0
+                   AND ID_UNICO_SEGUIMIENTO IS NOT NULL
+                   AND TRIM(ID_UNICO_SEGUIMIENTO) <> ''
+                   AND FECHA_INICIO_DISPOSITIVO_UTC IS NOT NULL
+                   AND TRIM(FECHA_INICIO_DISPOSITIVO_UTC) <> ''
+                 ORDER BY rowid`,
+                [],
+                function (tr, rs) { seguimientos = SEGUIMIENTO_filas(rs); }
+            );
+        }, reject, function () { resolve(seguimientos); });
+    });
+}
+
+function SEGUIMIENTO_validarVinculosContraGuiasLocales(vinculos) {
+    return new Promise(function (resolve, reject) {
+        var validados = [];
+        SEGUIMIENTO_abrirBaseDatos().transaction(function (tr) {
+            function validarSiguiente(indice) {
+                if (indice >= vinculos.length) return;
+                var vinculo = vinculos[indice];
+                tr.executeSql(
+                    `SELECT ID_UNICO_SEGUIMIENTO, FECHA_INICIO_DISPOSITIVO_UTC
+                     FROM GDE
+                     WHERE ID_UNICO_MOVIL = ?
+                       AND ENVIADO = 0
+                       AND GDE_ESTADO_MOVIL = 'I'
+                     LIMIT 2`,
+                    [vinculo.ID_UNICO_MOVIL_GDE],
+                    function (tr, rs) {
+                        if (rs.rows.length !== 1) {
+                            throw new Error("No se encontró una única guía local pendiente para autorizar.");
+                        }
+                        var guia = rs.rows.item(0);
+                        var idLocal = SEGUIMIENTO_uuidObligatorio(
+                            guia.ID_UNICO_SEGUIMIENTO,
+                            "ID_UNICO_SEGUIMIENTO local"
+                        );
+                        if (idLocal.toLowerCase() !== vinculo.ID_UNICO_SEGUIMIENTO.toLowerCase()) {
+                            var error = new Error(
+                                "El servidor devolvió un ID_UNICO_SEGUIMIENTO distinto del UUID local."
+                            );
+                            error.code = "SEGUIMIENTO_UUID_RESPUESTA_DIFERENTE";
+                            error.ID_UNICO_MOVIL_GDE = vinculo.ID_UNICO_MOVIL_GDE;
+                            error.ID_UNICO_SEGUIMIENTO_LOCAL = idLocal;
+                            error.ID_UNICO_SEGUIMIENTO_SERVIDOR = vinculo.ID_UNICO_SEGUIMIENTO;
+                            throw error;
+                        }
+                        vinculo.ID_UNICO_SEGUIMIENTO = idLocal;
+                        vinculo.FECHA_INICIO_DISPOSITIVO_UTC = SEGUIMIENTO_fechaUtcObligatoria(
+                            guia.FECHA_INICIO_DISPOSITIVO_UTC,
+                            "FECHA_INICIO_DISPOSITIVO_UTC local"
+                        );
+                        validados.push(vinculo);
+                        validarSiguiente(indice + 1);
+                    }
+                );
+            }
+            validarSiguiente(0);
+        }, reject, function () { resolve(validados); });
+    });
+}
+
+function SEGUIMIENTO_autorizarCredencialesNativas(vinculos) {
+    if (typeof SEGUIMIENTO_registrarCredencialesNativas !== "function") {
+        return Promise.resolve();
+    }
+    return SEGUIMIENTO_registrarCredencialesNativas(vinculos);
 }
 
 function guardarIdsSeguimientoGuias(seguimientos) {
@@ -299,7 +382,7 @@ function SEGUIMIENTO_normalizarGuiasAceptadas(idsGuiasAceptadas) {
     });
 }
 
-function guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas) {
+function guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas, yaAutorizadosNativamente) {
     return new Promise(function (resolve, reject) {
         var vinculos;
         var idsAceptados;
@@ -336,6 +419,23 @@ function guardarGuiasAceptadasConSeguimiento(seguimientos, idsGuiasAceptadas) {
             });
         } catch (error) {
             reject(error);
+            return;
+        }
+
+        if (yaAutorizadosNativamente !== true) {
+            SEGUIMIENTO_validarVinculosContraGuiasLocales(vinculosAceptados)
+                .then(function (vinculosValidados) {
+                    return SEGUIMIENTO_autorizarCredencialesNativas(vinculosValidados)
+                        .then(function () {
+                            return guardarGuiasAceptadasConSeguimiento(
+                                vinculosValidados,
+                                idsAceptados,
+                                true
+                            );
+                        });
+                })
+                .then(resolve)
+                .catch(reject);
             return;
         }
 
