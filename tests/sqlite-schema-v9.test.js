@@ -97,6 +97,11 @@ function createVersion8Database(db, withServerUserColumn) {
         USU_USUARIO_SISTEMA TEXT${withServerUserColumn ? ', USU_ID_SERVIDOR INTEGER' : ''}
     )`);
     db.exec('CREATE TABLE version_history(versionNumber INTEGER PRIMARY KEY NOT NULL, migratedAt DATE)');
+    db.exec(`CREATE TABLE QR_TRAZABILIDAD_ORIGEN (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        QR_ID TEXT NOT NULL UNIQUE,
+        ID_UNICO_MOVIL_GDE TEXT NOT NULL UNIQUE
+    )`);
     for (let version = 1; version <= 8; version++) {
         db.prepare('INSERT INTO version_history(versionNumber,migratedAt) VALUES(?,?)')
             .run(version, '2026-01-01T00:00:00.000Z');
@@ -116,7 +121,9 @@ test('base nueva crea USUARIO sin la columna base y la obtiene mediante migraci�
 
     await context.comprobarActualizarEsquema();
     assert.equal(columns(db, 'USUARIO').filter(name => name === 'USU_ID_SERVIDOR').length, 1);
-    assert.equal(maxVersion(db), 9);
+    assert.equal(maxVersion(db), 10);
+    assert.equal(columns(db, 'QR_TRAZABILIDAD_ORIGEN').includes('ASOCIACION_ID'), true);
+    assert.equal(columns(db, 'QR_TRAZABILIDAD_EVENTO_GDE').includes('LIBERACION_ID'), true);
 });
 
 test('base versiÃ³n 8 sin columna ejecuta ALTER y registra versiÃ³n 9', async () => {
@@ -127,7 +134,8 @@ test('base versiÃ³n 8 sin columna ejecuta ALTER y registra versiÃ³n 9', asyn
     await context.comprobarActualizarEsquema();
 
     assert.equal(columns(db, 'USUARIO').includes('USU_ID_SERVIDOR'), true);
-    assert.equal(maxVersion(db), 9);
+    assert.equal(maxVersion(db), 10);
+    assert.equal(columns(db, 'QR_TRAZABILIDAD_ORIGEN').includes('ID_UNICO_MOVIL_GDE_ASOCIADO'), true);
 });
 
 test('base versiÃ³n 8 con columna previa marca versiÃ³n 9 sin repetir ALTER', async () => {
@@ -138,7 +146,7 @@ test('base versiÃ³n 8 con columna previa marca versiÃ³n 9 sin repetir ALTER'
     await context.comprobarActualizarEsquema();
 
     assert.equal(columns(db, 'USUARIO').filter(name => name === 'USU_ID_SERVIDOR').length, 1);
-    assert.equal(maxVersion(db), 9);
+    assert.equal(maxVersion(db), 10);
 });
 
 test('base ya actualizada a versiÃ³n 9 no vuelve a ejecutar la migraciÃ³n', async () => {
@@ -151,7 +159,8 @@ test('base ya actualizada a versiÃ³n 9 no vuelve a ejecutar la migraciÃ³n', 
     await context.comprobarActualizarEsquema();
 
     assert.equal(columns(db, 'USUARIO').filter(name => name === 'USU_ID_SERVIDOR').length, 1);
-    assert.equal(db.prepare('SELECT COUNT(*) count FROM version_history').get().count, 9);
+    assert.equal(db.prepare('SELECT COUNT(*) count FROM version_history').get().count, 10);
+    assert.equal(maxVersion(db), 10);
 });
 
 test('inicializaciÃ³n repetida conserva una sola aplicaciÃ³n de versiÃ³n 9', async () => {
@@ -164,6 +173,7 @@ test('inicializaciÃ³n repetida conserva una sola aplicaciÃ³n de versiÃ³n 9
 
     assert.equal(columns(db, 'USUARIO').filter(name => name === 'USU_ID_SERVIDOR').length, 1);
     assert.equal(db.prepare('SELECT COUNT(*) count FROM version_history WHERE versionNumber=9').get().count, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) count FROM version_history WHERE versionNumber=10').get().count, 1);
 });
 
 test('fallo SQL real revierte la migraciÃ³n y no registra versiÃ³n 9', async () => {

@@ -2,6 +2,7 @@
 
 var guiasQrTrazabilidad = [];
 var guiaQrTrazabilidadSeleccionada = null;
+var qrTrazabilidadOrigenSeleccionado = null;
 
 $$(document).on('page:init', '.page[data-name="qr-trazabilidad"]', function () {
     inicializarQrTrazabilidad();
@@ -17,6 +18,7 @@ $$(document).on('page:init', '.page[data-name="qr-trazabilidad"]', function () {
 function inicializarQrTrazabilidad() {
     guiasQrTrazabilidad = [];
     guiaQrTrazabilidadSeleccionada = null;
+    qrTrazabilidadOrigenSeleccionado = null;
 
     limpiarDetalleQrTrazabilidad();
     $$('#qr_trazabilidad_info').text('Seleccione una guía para visualizar su QR.');
@@ -144,8 +146,10 @@ async function seleccionarGuiaQrTrazabilidad(rowid) {
         }
 
         pintarQrTrazabilidad(qr.PAYLOAD_ENCRIPTADO, "#qrcode_trazabilidad", null, "real-bd");
+        qrTrazabilidadOrigenSeleccionado = qr;
         $$('#qr_trazabilidad_info').text(textoGuia);
         $$('#qr_trazabilidad_estado').text("Estado: " + (qr.ESTADO || ""));
+        pintarEstadoAsociacionQrTrazabilidad(qr);
         $$('#qr_trazabilidad_fecha').text("Fecha generación: " + formatearFechaQrTrazabilidad(qr.FECHA_GENERACION));
     } catch (ex) {
         console.error("[QR TRAZABILIDAD] Error obteniendo QR:", ex);
@@ -429,9 +433,111 @@ function formatearFechaQrTrazabilidad(fechaTexto) {
 }
 
 function limpiarDetalleQrTrazabilidad() {
+    qrTrazabilidadOrigenSeleccionado = null;
     $$('#qrcode_trazabilidad').html('');
     $$('#qr_trazabilidad_estado').text('');
     $$('#qr_trazabilidad_fecha').text('');
+    $$('#qr_trazabilidad_asociacion_datos').html('').css('display', 'none');
+    $$('#qr_trazabilidad_fila_leer_guias').css('display', 'none');
+}
+
+function pintarEstadoAsociacionQrTrazabilidad(qr) {
+    var html = '';
+    $$('#qr_trazabilidad_fila_leer_guias').css('display', 'none');
+
+    if (qr.ESTADO === 'PENDIENTE_VALIDACION') {
+        if (qr.LIBERACION_ID) {
+            html = '<p><strong>Asociación anterior:</strong> LIBERADA</p>' +
+                '<p>Este QR puede asociarse nuevamente para la misma carga física.</p>';
+            $$('#qr_trazabilidad_asociacion_datos').html(html).css('display', 'block');
+        }
+        $$('#qr_trazabilidad_btn_leer_guias').text('LEER QR DE GUÍAS');
+        $$('#qr_trazabilidad_fila_leer_guias').css('display', 'block');
+        return;
+    }
+
+    if (qr.ESTADO === 'ASOCIADO_BORRADOR_GDE') {
+        html = '<p><strong>GDE asociada:</strong> ' + escapeHtmlQrTrazabilidad(qr.ID_UNICO_MOVIL_GDE_ASOCIADO) + '</p>' +
+            '<p><strong>Predio:</strong> ' + escapeHtmlQrTrazabilidad(qr.ROL_PREDIO_VALIDADO) + '</p>' +
+            '<p><strong>Rodal:</strong> ' + escapeHtmlQrTrazabilidad(qr.RODAL_VALIDADO) + '</p>' +
+            (qr.SECCION_VALIDADA ? '<p><strong>Sección:</strong> ' + escapeHtmlQrTrazabilidad(qr.SECCION_VALIDADA) + '</p>' : '') +
+            '<p><strong>AEF:</strong> ' + escapeHtmlQrTrazabilidad(qr.AEF_VALIDADO) + '</p>' +
+            '<p><strong>PM:</strong> ' + escapeHtmlQrTrazabilidad(qr.PM_VALIDADO) + '</p>' +
+            '<p><strong>Resultado:</strong> ' + escapeHtmlQrTrazabilidad(qr.RESULTADO_VALIDACION_GDE) + '</p>' +
+            '<p><strong>Fecha validación:</strong> ' + escapeHtmlQrTrazabilidad(formatearFechaQrTrazabilidad(qr.FECHA_VALIDACION_GDE)) + '</p>' +
+            '<p>Este QR no puede asociarse con otro borrador mientras la asociación siga activa.</p>';
+        $$('#qr_trazabilidad_asociacion_datos').html(html).css('display', 'block');
+        $$('#qr_trazabilidad_btn_leer_guias').text('LEER QR DE LIBERACIÓN');
+        $$('#qr_trazabilidad_fila_leer_guias').css('display', 'block');
+    }
+}
+
+function obtenerLectorQrGuiasTrazabilidad() {
+    if (window.cordova && cordova.plugins && cordova.plugins.mlkit &&
+        cordova.plugins.mlkit.barcodeScanner && typeof cordova.plugins.mlkit.barcodeScanner.scan === 'function') {
+        return { tipo: 'MLKIT', lector: cordova.plugins.mlkit.barcodeScanner };
+    }
+    if (window.cordova && cordova.plugins && cordova.plugins.barcodeScanner &&
+        typeof cordova.plugins.barcodeScanner.scan === 'function') {
+        return { tipo: 'LEGACY', lector: cordova.plugins.barcodeScanner };
+    }
+    return null;
+}
+
+function leerQrGuiasSeleccionado() {
+    if (!qrTrazabilidadOrigenSeleccionado) {
+        app.dialog.alert('Debe seleccionar un viaje con QR de Trazabilidad.', 'GFE');
+        return;
+    }
+
+    var lector = obtenerLectorQrGuiasTrazabilidad();
+    if (!lector) {
+        app.dialog.alert('Lector QR no disponible en este dispositivo.', 'GFE');
+        return;
+    }
+
+    var exito = function (resultado) {
+        if (!resultado || resultado.cancelled === true || !resultado.text) return;
+        procesarLecturaQrGuiasTrazabilidad(resultado.text);
+    };
+    var error = function (detalle) {
+        if (!detalle || detalle.cancelled !== true) {
+            app.dialog.alert('No fue posible leer el QR de Guías.', 'GFE');
+        }
+    };
+
+    if (lector.tipo === 'MLKIT') {
+        lector.lector.scan({
+            barcodeFormats: { QRCode: true },
+            beepOnSuccess: true,
+            vibrateOnSuccess: true,
+            detectorSize: 0.85,
+            rotateCamera: false
+        }, exito, error);
+    } else {
+        lector.lector.scan(exito, error, {
+            preferFrontCamera: false,
+            showFlipCameraButton: true,
+            showTorchButton: true,
+            formats: 'QR_CODE',
+            orientation: 'unspecified',
+            prompt: 'Escanee el QR mostrado por app Guías'
+        });
+    }
+}
+
+async function procesarLecturaQrGuiasTrazabilidad(textoQr) {
+    app.dialog.preloader('Validando QR de Guías...');
+    try {
+        var resultado = await procesarQrGuiasParaOrigen(qrTrazabilidadOrigenSeleccionado, textoQr);
+        app.dialog.close();
+        app.dialog.alert(mensajeResultadoQrGuias(resultado), 'GFE', function () {
+            seleccionarGuiaQrTrazabilidad(guiaQrTrazabilidadSeleccionada.ROWID);
+        });
+    } catch (error) {
+        app.dialog.close();
+        app.dialog.alert(error && error.message ? error.message : 'Error técnico al procesar el QR.', 'GFE');
+    }
 }
 
 function escapeHtmlQrTrazabilidad(valor) {

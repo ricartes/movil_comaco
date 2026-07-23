@@ -55,5 +55,6 @@
     <plugin name="cordova-plugin-vibration" spec="~3.1.1" />
     <plugin name="cordova-plugin-app-version" spec="~0.1.12" />
     <hook src="node_modules/cordova-import-npm/scripts/importNpmPackages.js" type="before_prepare" />
+    <hook src="hooks/patch-mlkit-barcodescanner.js" type="after_prepare" />
     <engine name="browser" spec="^5.0.3" />
 </widget>

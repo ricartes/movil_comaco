@@ -5,12 +5,14 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js"
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js"
     },
     "author": "Apache Cordova Team",
     "license": "Apache-2.0",
     "dependencies": {
         "cordova-browser": "^5.0.3",
+        "cordova-plugin-androidx-adapter": "1.1.3",
+        "cordova-plugin-mcc-mlkit-barcode-scanner": "4.0.2",
         "cordova-epos-plugin": "git+https://github.com/jhonylucas74/epson-cordova.git",
         "cordova-import-npm": "^1.0.33",
         "cordova-plugin-app-version": "^0.1.12",
@@ -35,6 +37,7 @@
             "cordova-plugin-device-motion": {},
             "cordova-pdf-generator": {},
             "cordova-plugin-androidx": {},
+            "cordova-plugin-androidx-adapter": {},
             "cordova-sqlite-spatialite-evplus-ext-common-free": {},
             "cordova-plugin-android-permissions": {},
             "cordova-plugin-camera": {
@@ -50,7 +53,8 @@
                 "GPS_REQUIRED": "true"
             },
             "@ccervantesb/cordova-plugin-mock-location": {},
-            "cordova-plugin-comaco-tracking": {}
+            "cordova-plugin-comaco-tracking": {},
+            "cordova-plugin-mcc-mlkit-barcode-scanner": {}
         },
         "platforms": [
             "browser",
