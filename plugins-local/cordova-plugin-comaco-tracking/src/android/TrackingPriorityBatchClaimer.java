@@ -69,6 +69,13 @@ final class TrackingPriorityBatchClaimer {
     }
 
     TrackingStore.UploadBatch claim(String trackingId, long createdBeforeOrAtMs) throws Exception {
+        return claim(trackingId, createdBeforeOrAtMs, Integer.MAX_VALUE);
+    }
+
+    TrackingStore.UploadBatch claim(
+            String trackingId,
+            long createdBeforeOrAtMs,
+            int maximumItems) throws Exception {
         validateTrackingId(trackingId);
         long now = System.currentTimeMillis();
         TrackingStore.UploadBatch batch = new TrackingStore.UploadBatch();
@@ -97,7 +104,8 @@ final class TrackingPriorityBatchClaimer {
             batch.appVersion = cursor.getString(5);
             batch.timeoutMs = cursor.getInt(6);
             batch.shortRetries = cursor.getInt(7);
-            limit = cursor.getInt(8);
+            int configuredLimit = Math.max(1, cursor.getInt(8));
+            limit = Math.max(1, Math.min(configuredLimit, Math.max(1, maximumItems)));
         }
 
         List<String> ids = new ArrayList<>();
