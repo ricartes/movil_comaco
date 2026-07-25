@@ -8,77 +8,107 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Prepara un corte operativo de seguimiento sin esperar a que el outbox quede vacío.
- * La captura se pausa antes de leer la secuencia final y el uploader existente continúa
- * enviando las posiciones de esa guía en segundo plano.
+ * Gestiona el corte operativo de una guía sin esperar a que el outbox quede vacío.
+ * La captura se detiene primero y el uploader existente continúa trabajando en segundo plano.
  */
 public final class ComacoTrackingFinalizationPlugin extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callback) {
-        if (!"preparar".equals(action)) return false;
-        cordova.getThreadPool().execute(() -> preparar(args, callback));
+        if (!"preparar".equals(action)
+                && !"confirmar".equals(action)
+                && !"cancelar".equals(action)) {
+            return false;
+        }
+        cordova.getThreadPool().execute(() -> run(action, args, callback));
         return true;
     }
 
-    private void preparar(JSONArray args, CallbackContext callback) {
+    private void run(String action, JSONArray args, CallbackContext callback) {
         TrackingStore store = new TrackingStore(
                 cordova.getContext().getApplicationContext());
         try {
             JSONObject input = args.getJSONObject(0);
             String trackingId = input.getString("ID_UNICO_SEGUIMIENTO").trim();
 
-            // Este cambio de estado es el corte: capture() ya no selecciona esta guía.
-            store.beginFinalizationPreparation(trackingId);
+            if ("preparar".equals(action)) {
+                callback.success(preparar(store, trackingId));
+                return;
+            }
 
-            // La misma normalización usada por el drenaje se ejecuta antes de informar
-            // el corte al servidor, para que el conteo de descartes sea definitivo.
-            new TrackingPriorityBatchClaimer(store).prepare(trackingId);
-            store.expediteTrackingPending(trackingId, "async_finalization");
+            if ("confirmar".equals(action)) {
+                store.finalizeTracking(trackingId);
+                store.event(
+                        "TRACK_FINALIZATION_ASYNC_CONFIRMED",
+                        "tracking=" + partial(trackingId));
+                iniciarDrenaje("finalizacion_asincrona_confirmada");
+                callback.success(store.state(TrackingForegroundService.isRunning()));
+                return;
+            }
 
-            JSONObject result = store.finalizationPreparationState(trackingId);
-            long finalSequence = scalarLong(
-                    store,
-                    "SELECT sequence FROM active_tracking WHERE tracking_id=?",
-                    trackingId);
-            long discarded = scalarLong(
-                    store,
-                    "SELECT COUNT(*) FROM position_outbox "
-                            + "WHERE tracking_id=? AND state='FINAL' "
-                            + "AND last_error='DESCARTADA_INVALIDA'",
-                    trackingId);
-
-            result.put("SECUENCIA_FINAL_LOCAL", finalSequence);
-            result.put("CANTIDAD_DESCARTADA_LOCAL", discarded);
-            result.put("FECHA_TERMINO_DISPOSITIVO_UTC",
-                    TrackingStore.iso(System.currentTimeMillis()));
-            result.put("DRENAJE_ASINCRONO", true);
-            result.put("ACK_COMPLETO", result.getInt("POSICIONES_SIN_ACK") == 0);
-            result.put("TIMEOUT", false);
-
+            store.cancelFinalizationPreparation(trackingId);
             store.event(
-                    "TRACK_FINALIZATION_CUTOFF_CREATED",
-                    "tracking=" + partial(trackingId)
-                            + " sequence=" + finalSequence
-                            + " discarded=" + discarded
-                            + " pending=" + result.getInt("POSICIONES_SIN_ACK"));
-
-            TrackingForegroundService.start(
-                    cordova.getContext(),
-                    "finalizacion_asincrona",
-                    false);
-            TrackingForegroundService.requestImmediateDrain("finalizacion_asincrona");
-            callback.success(result);
+                    "TRACK_FINALIZATION_ASYNC_CANCELLED",
+                    "tracking=" + partial(trackingId));
+            callback.success(store.state(TrackingForegroundService.isRunning()));
         } catch (Exception exception) {
             try {
                 store.event(
                         "TRACK_FINALIZATION_CUTOFF_ERROR",
-                        exception.getClass().getSimpleName());
+                        action + ":" + exception.getClass().getSimpleName());
             } catch (Exception ignored) {
             }
             callback.error(error(exception).toString());
         } finally {
             store.close();
         }
+    }
+
+    private JSONObject preparar(TrackingStore store, String trackingId) throws Exception {
+        // Este cambio de estado es el corte: capture() ya no selecciona esta guía.
+        store.beginFinalizationPreparation(trackingId);
+
+        // La misma normalización usada por el drenaje se ejecuta antes de informar
+        // el corte al servidor, para que el conteo de descartes sea definitivo.
+        new TrackingPriorityBatchClaimer(store).prepare(trackingId);
+        store.expediteTrackingPending(trackingId, "async_finalization");
+
+        JSONObject result = store.finalizationPreparationState(trackingId);
+        long finalSequence = scalarLong(
+                store,
+                "SELECT sequence FROM active_tracking WHERE tracking_id=?",
+                trackingId);
+        long discarded = scalarLong(
+                store,
+                "SELECT COUNT(*) FROM position_outbox "
+                        + "WHERE tracking_id=? AND state='FINAL' "
+                        + "AND last_error='DESCARTADA_INVALIDA'",
+                trackingId);
+
+        result.put("SECUENCIA_FINAL_LOCAL", finalSequence);
+        result.put("CANTIDAD_DESCARTADA_LOCAL", discarded);
+        result.put("FECHA_TERMINO_DISPOSITIVO_UTC",
+                TrackingStore.iso(System.currentTimeMillis()));
+        result.put("DRENAJE_ASINCRONO", true);
+        result.put("ACK_COMPLETO", result.getInt("POSICIONES_SIN_ACK") == 0);
+        result.put("TIMEOUT", false);
+
+        store.event(
+                "TRACK_FINALIZATION_CUTOFF_CREATED",
+                "tracking=" + partial(trackingId)
+                        + " sequence=" + finalSequence
+                        + " discarded=" + discarded
+                        + " pending=" + result.getInt("POSICIONES_SIN_ACK"));
+
+        iniciarDrenaje("finalizacion_asincrona");
+        return result;
+    }
+
+    private void iniciarDrenaje(String reason) {
+        TrackingForegroundService.start(
+                cordova.getContext(),
+                reason,
+                false);
+        TrackingForegroundService.requestImmediateDrain(reason);
     }
 
     private static long scalarLong(
