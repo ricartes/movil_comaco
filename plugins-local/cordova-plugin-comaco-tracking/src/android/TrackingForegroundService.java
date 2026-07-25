@@ -6,10 +6,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.BroadcastReceiver;
-import android.content.IntentFilter;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.location.Location;
@@ -24,26 +24,25 @@ import android.os.IBinder;
 import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONObject;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class TrackingForegroundService extends Service implements LocationListener {
     static final String CHANNEL_ID = "comaco_tracking_location";
     private static final int NOTIFICATION_ID = 47021;
     private static final long UPLOAD_INTERVAL_MS = 5000L;
+    private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
+    private static volatile TrackingForegroundService INSTANCE;
+
     private boolean locationUpdatesRegistered = false;
     private String locationRegistrationGeneration = null;
     private long lastFixElapsedRealtimeNanos = Long.MIN_VALUE;
-    private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
-
-    private static volatile TrackingForegroundService INSTANCE;
-
     private boolean foregroundPromoted = false;
     private TrackingStore store;
     private TrackingUploader uploader;
@@ -78,14 +77,24 @@ public final class TrackingForegroundService extends Service implements Location
 
     static boolean requestImmediateDrain(String reason) {
         TrackingForegroundService current = INSTANCE;
-        if (current == null || !RUNNING.get() || current.handler == null || current.uploader == null) {
+        if (current == null || !RUNNING.get() || current.uploader == null) {
             return false;
         }
-        current.handler.post(() -> {
-            if (RUNNING.get() && current.uploader != null) {
-                current.uploader.drain(reason == null ? "manual" : reason);
-            }
-        });
+
+        String trigger = reason == null || reason.trim().isEmpty()
+                ? "manual"
+                : reason.trim();
+
+        if (current.store != null) {
+            current.store.event(
+                    "GPS_IMMEDIATE_DRAIN_REQUESTED",
+                    "trigger=" + trigger);
+        }
+
+        // TrackingUploader ya controla el single-flight y conserva solicitudes
+        // concurrentes. Invocarlo directamente evita que una finalización urgente
+        // quede esperando detrás de callbacks GPS en el Handler del servicio.
+        current.uploader.drain(trigger);
         return true;
     }
 
@@ -95,7 +104,6 @@ public final class TrackingForegroundService extends Service implements Location
 
     public static void start(Context context, String reason, boolean userOverrideUsed) {
         Context appContext = context.getApplicationContext();
-
         TrackingForegroundService current = INSTANCE;
 
         if (current != null && RUNNING.get()) {
@@ -103,25 +111,16 @@ public final class TrackingForegroundService extends Service implements Location
             return;
         }
 
-        Intent intent = new Intent(
-                appContext,
-                TrackingForegroundService.class);
-
+        Intent intent = new Intent(appContext, TrackingForegroundService.class);
         intent.putExtra("reason", reason);
         intent.putExtra("policyOverrideUsed", userOverrideUsed);
 
         try {
-            ContextCompat.startForegroundService(
-                    appContext,
-                    intent);
-
+            ContextCompat.startForegroundService(appContext, intent);
         } catch (RuntimeException exception) {
             TrackingStore store = new TrackingStore(appContext);
-
             try {
-                store.event(
-                        "SERVICE_START_ERROR",
-                        exception.getClass().getSimpleName());
+                store.event("SERVICE_START_ERROR", exception.getClass().getSimpleName());
             } finally {
                 store.close();
             }
@@ -138,8 +137,7 @@ public final class TrackingForegroundService extends Service implements Location
         INSTANCE = this;
         RUNNING.set(true);
         createChannel();
-        ensureForegroundOnce(
-                "Servicio de seguimiento activo");
+        ensureForegroundOnce("Servicio de seguimiento activo");
         store = new TrackingStore(getApplicationContext());
         startedWithPolicyOverride = store.lastStartUserOverrideUsed();
         store.recordServiceCreated(UUID.randomUUID().toString());
@@ -170,18 +168,10 @@ public final class TrackingForegroundService extends Service implements Location
     }
 
     @Override
-    public int onStartCommand(
-            Intent intent,
-            int flags,
-            int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        ensureForegroundOnce("Servicio de seguimiento activo");
 
-        ensureForegroundOnce(
-                "Servicio de seguimiento activo");
-
-        String reason = intent == null
-                ? "sticky"
-                : intent.getStringExtra("reason");
-
+        String reason = intent == null ? "sticky" : intent.getStringExtra("reason");
         if (intent != null) {
             startedWithPolicyOverride = intent.getBooleanExtra(
                     "policyOverrideUsed",
@@ -189,9 +179,7 @@ public final class TrackingForegroundService extends Service implements Location
         }
 
         if (store != null) {
-            store.event(
-                    "SERVICE_COMMAND",
-                    reason == null ? "sin_motivo" : reason);
+            store.event("SERVICE_COMMAND", reason == null ? "sin_motivo" : reason);
         }
 
         if (installationIdentityStore != null) {
@@ -200,7 +188,6 @@ public final class TrackingForegroundService extends Service implements Location
         }
 
         refresh();
-
         return START_STICKY;
     }
 
@@ -209,14 +196,11 @@ public final class TrackingForegroundService extends Service implements Location
         boolean active = store.hasActive();
         boolean work = store.hasWork();
 
-        store.event(
-                "SERVICE_REFRESH",
-                "active=" + active + " work=" + work);
+        store.event("SERVICE_REFRESH", "active=" + active + " work=" + work);
 
         if (active) {
             updateNotification("Seguimiento GPS activo");
             requestLocations();
-
             handler.removeCallbacks(periodicDrain);
             handler.postDelayed(periodicDrain, UPLOAD_INTERVAL_MS);
             return;
@@ -226,35 +210,26 @@ public final class TrackingForegroundService extends Service implements Location
 
         if (work) {
             updateNotification("Enviando posiciones pendientes");
-
             handler.removeCallbacks(periodicDrain);
             handler.postDelayed(periodicDrain, UPLOAD_INTERVAL_MS);
             return;
         }
 
-        store.event(
-                "SERVICE_STOP_EMPTY",
-                "active=false work=false");
-
+        store.event("SERVICE_STOP_EMPTY", "active=false work=false");
         stopSelf();
     }
 
     private void requestRefresh(String reason) {
         Handler currentHandler = handler;
-
         if (currentHandler == null) {
             return;
         }
 
-        currentHandler.post(() -> {
+        currentHandler.postAtFrontOfQueue(() -> {
             if (!RUNNING.get() || store == null) {
                 return;
             }
-
-            store.event(
-                    "SERVICE_REFRESH",
-                    reason == null ? "sin_motivo" : reason);
-
+            store.event("SERVICE_REFRESH", reason == null ? "sin_motivo" : reason);
             refresh();
         });
     }
@@ -264,16 +239,15 @@ public final class TrackingForegroundService extends Service implements Location
         public void run() {
             store.event("GPS_DRAIN_TICK", "intervalMs=" + UPLOAD_INTERVAL_MS);
             uploader.drain("periodico");
-            if (handler != null)
+            if (handler != null) {
                 handler.postDelayed(this, UPLOAD_INTERVAL_MS);
+            }
         }
     };
 
     private synchronized void requestLocations() {
         if (locationUpdatesRegistered) {
-            store.event(
-                    "GPS_REQUEST_UPDATES_SKIPPED",
-                    "reason=already_registered");
+            store.event("GPS_REQUEST_UPDATES_SKIPPED", "reason=already_registered");
             return;
         }
 
@@ -301,22 +275,16 @@ public final class TrackingForegroundService extends Service implements Location
 
             locationUpdatesRegistered = true;
             locationRegistrationGeneration = registrationGeneration;
-
             store.event(
                     "GPS_REQUEST_UPDATES",
-                    "provider=gps intervalMs=" +
-                            store.intervalMs() +
-                            " distanceM=" +
-                            store.distanceM());
+                    "provider=gps intervalMs=" + store.intervalMs()
+                            + " distanceM=" + store.distanceM());
             publishCurrentHealth("location_registration");
         } catch (Exception exception) {
             locationUpdatesRegistered = false;
             locationRegistrationGeneration = null;
             store.clearLocationRegistration();
-
-            store.event(
-                    "GPS_NO_DISPONIBLE",
-                    exception.getClass().getSimpleName());
+            store.event("GPS_NO_DISPONIBLE", exception.getClass().getSimpleName());
             publishCurrentHealth("location_registration_error");
         }
     }
@@ -334,7 +302,9 @@ public final class TrackingForegroundService extends Service implements Location
         } finally {
             locationUpdatesRegistered = false;
             locationRegistrationGeneration = null;
-            if (store != null) store.clearLocationRegistration();
+            if (store != null) {
+                store.clearLocationRegistration();
+            }
         }
     }
 
@@ -347,8 +317,8 @@ public final class TrackingForegroundService extends Service implements Location
         publishCurrentHealth("location_callback");
         long fixElapsedRealtimeNanos = location.getElapsedRealtimeNanos();
 
-        if (fixElapsedRealtimeNanos > 0 &&
-                fixElapsedRealtimeNanos == lastFixElapsedRealtimeNanos) {
+        if (fixElapsedRealtimeNanos > 0
+                && fixElapsedRealtimeNanos == lastFixElapsedRealtimeNanos) {
             store.event(
                     "LOCATION_DUPLICATE_SKIPPED",
                     "elapsedRealtimeNanos=" + fixElapsedRealtimeNanos);
@@ -360,7 +330,6 @@ public final class TrackingForegroundService extends Service implements Location
         }
 
         store.capture(location);
-
         // La captura solo persiste en SQLite. El uploader se ejecuta con una
         // cadencia independiente para agrupar varias posiciones por solicitud.
     }
@@ -388,8 +357,9 @@ public final class TrackingForegroundService extends Service implements Location
             public void onAvailable(@NonNull Network network) {
                 store.event("NETWORK_AVAILABLE", null);
                 store.expeditePending("network_available");
-                if (uploader != null)
+                if (uploader != null) {
                     uploader.drain("red_disponible");
+                }
             }
 
             @Override
@@ -399,8 +369,8 @@ public final class TrackingForegroundService extends Service implements Location
         };
         try {
             connectivity.registerDefaultNetworkCallback(networkCallback);
-        } catch (Exception e) {
-            store.event("RED_CALLBACK_ERROR", e.getClass().getSimpleName());
+        } catch (Exception exception) {
+            store.event("RED_CALLBACK_ERROR", exception.getClass().getSimpleName());
         }
     }
 
@@ -408,39 +378,48 @@ public final class TrackingForegroundService extends Service implements Location
         screenReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()))
+                if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
                     store.event("SCREEN_OFF", null);
-                else if (Intent.ACTION_SCREEN_ON.equals(intent.getAction()))
+                } else if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
                     store.event("SCREEN_ON", null);
+                }
             }
         };
-        IntentFilter f = new IntentFilter();
-        f.addAction(Intent.ACTION_SCREEN_OFF);
-        f.addAction(Intent.ACTION_SCREEN_ON);
-        if (android.os.Build.VERSION.SDK_INT >= 33)
-            registerReceiver(screenReceiver, f, Context.RECEIVER_NOT_EXPORTED);
-        else
-            registerReceiver(screenReceiver, f);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenReceiver, filter);
+        }
     }
 
     private Notification notification(String text) {
         Intent launch = getPackageManager().getLaunchIntentForPackage(getPackageName());
-        PendingIntent pi = launch == null ? null
-                : PendingIntent.getActivity(this, 0, launch,
+        PendingIntent pendingIntent = launch == null
+                ? null
+                : PendingIntent.getActivity(
+                        this,
+                        0,
+                        launch,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(this, CHANNEL_ID).setSmallIcon(getApplicationInfo().icon)
-                .setContentTitle("Control de Origen").setContentText(text).setOngoing(true).setOnlyAlertOnce(true)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE).setPriority(NotificationCompat.PRIORITY_LOW)
-                .setContentIntent(pi).build();
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(getApplicationInfo().icon)
+                .setContentTitle("Control de Origen")
+                .setContentText(text)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setContentIntent(pendingIntent)
+                .build();
     }
 
     private void afterDrain() {
         boolean active = store.hasActive();
         boolean work = store.hasWork();
-
-        store.event(
-                "UPLOAD_FINISHED",
-                "active=" + active + " work=" + work);
+        store.event("UPLOAD_FINISHED", "active=" + active + " work=" + work);
 
         if (!active && !work) {
             stopSelf();
@@ -456,18 +435,20 @@ public final class TrackingForegroundService extends Service implements Location
 
     private void updateNotification(String text) {
         /*
-         * La notificación permanece fija durante toda la
-         * ejecución del servicio. No se vuelve a publicar
-         * ni se vuelve a promover el servicio.
+         * La notificación permanece fija durante toda la ejecución del servicio.
+         * No se vuelve a publicar ni se vuelve a promover el servicio.
          */
     }
 
     private void createChannel() {
         if (android.os.Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel c = new NotificationChannel(CHANNEL_ID, "Seguimiento de ubicación",
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Seguimiento de ubicación",
                     NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("Trazabilidad GPS activa para guías en curso");
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(c);
+            channel.setDescription("Trazabilidad GPS activa para guías en curso");
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE))
+                    .createNotificationChannel(channel);
         }
     }
 
@@ -481,12 +462,13 @@ public final class TrackingForegroundService extends Service implements Location
                 NOTIFICATION_ID,
                 notification(text),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
-
         foregroundPromoted = true;
     }
 
     private void publishCurrentHealth(String reason) {
-        if (store == null) return;
+        if (store == null) {
+            return;
+        }
         try {
             JSONObject snapshot = new PowerPolicyInspector(getApplicationContext()).inspect(
                     store,
@@ -527,10 +509,7 @@ public final class TrackingForegroundService extends Service implements Location
 
         if (store != null) {
             store.recordServiceDestroyed();
-            store.event(
-                    "SERVICE_DESTROY",
-                    "foreground=false");
-
+            store.event("SERVICE_DESTROY", "foreground=false");
             store.close();
             store = null;
         }
@@ -541,19 +520,20 @@ public final class TrackingForegroundService extends Service implements Location
             } catch (RuntimeException ignored) {
             }
         }
+
         if (screenReceiver != null) {
             try {
                 unregisterReceiver(screenReceiver);
             } catch (RuntimeException ignored) {
             }
         }
+
         if (thread != null) {
             thread.quitSafely();
             thread = null;
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE);
-
         super.onDestroy();
     }
 
