@@ -17,7 +17,7 @@
         "cordova-plugin-app-version": "^0.1.12",
         "cordova-plugin-device-motion": "^1.2.5",
         "cordova-plugin-inappbrowser": "^3.1.0",
-        "cordova-plugin-ip-mac-address": "^0.1.0",
+        "cordova-plugin-ip-mac-address": "1.0.1",
         "cordova-plugin-mcc-mlkit-barcode-scanner": "4.0.2",
         "cordova-plugin-network-information": "^2.0.1",
         "cordova-plugin-vibration": "^3.1.1",
