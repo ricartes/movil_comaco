@@ -13,6 +13,9 @@ import java.util.UUID;
  * el backoff de las demás guías.
  */
 final class TrackingPriorityBatchClaimer {
+    private static final String TERMINAL_STATES = "('CONFIRMADA','FINAL')";
+    private static final String INVALID_POSITION_CODE = "DESCARTADA_INVALIDA";
+
     static final class PriorityTracking {
         final String trackingId;
         final long updatedMs;
@@ -50,22 +53,78 @@ final class TrackingPriorityBatchClaimer {
         validateTrackingId(trackingId);
         long now = System.currentTimeMillis();
         SQLiteDatabase db = store.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put("state", TrackingStore.PENDING);
-        values.put("next_retry_ms", 0);
-        values.putNull("sending_since_ms");
-        values.put("updated_ms", now);
-        values.putNull("last_error");
+        int normalized = 0;
+        int discarded;
+        int recovered;
 
-        int recovered = db.update(
-                "position_outbox",
-                values,
-                "tracking_id=? AND state NOT IN ('CONFIRMADA','FINAL')",
-                new String[]{trackingId});
+        db.beginTransaction();
+        try {
+            normalized += normalizeNullable(
+                    db, trackingId, "accuracy",
+                    "accuracy IS NOT NULL AND (accuracy < 0 OR accuracy > 999999.99)", now);
+            normalized += normalizeNullable(
+                    db, trackingId, "speed",
+                    "speed IS NOT NULL AND (speed < 0 OR speed > 99999.999)", now);
+            normalized += normalizeNullable(
+                    db, trackingId, "bearing",
+                    "bearing IS NOT NULL AND (bearing < 0 OR bearing >= 360)", now);
+            normalized += normalizeNullable(
+                    db, trackingId, "altitude",
+                    "altitude IS NOT NULL AND (altitude < -1000 OR altitude > 20000)", now);
 
+            ContentValues normalizedOrigin = new ContentValues();
+            normalizedOrigin.put("origin", "GPS");
+            normalizedOrigin.put("updated_ms", now);
+            normalized += db.update(
+                    "position_outbox",
+                    normalizedOrigin,
+                    "tracking_id=? AND state NOT IN " + TERMINAL_STATES
+                            + " AND (origin IS NULL OR TRIM(origin)='' OR LENGTH(origin)>20)",
+                    new String[]{trackingId});
+
+            ContentValues invalid = new ContentValues();
+            invalid.put("state", TrackingStore.FINAL);
+            invalid.put("last_error", INVALID_POSITION_CODE);
+            invalid.putNull("sending_since_ms");
+            invalid.put("updated_ms", now);
+            discarded = db.update(
+                    "position_outbox",
+                    invalid,
+                    "tracking_id=? AND state NOT IN " + TERMINAL_STATES
+                            + " AND (date_utc IS NULL OR TRIM(date_utc)=''"
+                            + " OR SUBSTR(TRIM(date_utc),-1,1)<>'Z'"
+                            + " OR latitude < -90 OR latitude > 90"
+                            + " OR longitude < -180 OR longitude > 180)",
+                    new String[]{trackingId});
+
+            ContentValues pending = new ContentValues();
+            pending.put("state", TrackingStore.PENDING);
+            pending.put("next_retry_ms", 0);
+            pending.putNull("sending_since_ms");
+            pending.put("updated_ms", now);
+            pending.putNull("last_error");
+            recovered = db.update(
+                    "position_outbox",
+                    pending,
+                    "tracking_id=? AND state NOT IN " + TERMINAL_STATES,
+                    new String[]{trackingId});
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+
+        if (discarded > 0) {
+            store.event(
+                    "GPS_FINALIZATION_INVALID_DISCARDED",
+                    "tracking=" + partial(trackingId) + " positions=" + discarded);
+        }
         store.event(
                 "GPS_FINALIZATION_PRIORITY_PREPARED",
-                "tracking=" + partial(trackingId) + " positions=" + recovered);
+                "tracking=" + partial(trackingId)
+                        + " positions=" + recovered
+                        + " normalized=" + normalized
+                        + " discarded=" + discarded);
     }
 
     TrackingStore.UploadBatch claim(String trackingId, long createdBeforeOrAtMs) throws Exception {
@@ -150,6 +209,22 @@ final class TrackingPriorityBatchClaimer {
         }
         markSending(ids, now);
         return batch;
+    }
+
+    private static int normalizeNullable(
+            SQLiteDatabase db,
+            String trackingId,
+            String column,
+            String invalidCondition,
+            long now) {
+        ContentValues values = new ContentValues();
+        values.putNull(column);
+        values.put("updated_ms", now);
+        return db.update(
+                "position_outbox",
+                values,
+                "tracking_id=? AND state NOT IN " + TERMINAL_STATES + " AND " + invalidCondition,
+                new String[]{trackingId});
     }
 
     private int countNonTerminal(String trackingId) {
