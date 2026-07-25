@@ -86,6 +86,56 @@ function SEGUIMIENTO_registrarEntradasTecnicas() {
 }
 SEGUIMIENTO_registrarEntradasTecnicas();
 
+// La validación normal utiliza únicamente el token técnico. La contraseña local
+// se envía sólo después de que el servidor responde que requiere renovación.
+function CREDENCIAL_instalarValidacionSinPassword() {
+    if (typeof CREDENCIAL_postAsegurar !== "function") return false;
+
+    var postBase = CREDENCIAL_postAsegurar;
+    CREDENCIAL_postAsegurar = function (baseUrl, entrada) {
+        entrada = entrada || {};
+        var passwordRenovacion = String(entrada.password || "");
+        var validacion = {
+            usuario: entrada.usuario || "",
+            password: "",
+            idUsuario: Number(entrada.idUsuario || 0),
+            tokenInstalacion: entrada.tokenInstalacion || "",
+            auditoria: entrada.auditoria
+        };
+
+        return postBase(baseUrl, validacion).then(function (respuesta) {
+            if (!respuesta || respuesta.EXITO === true ||
+                    respuesta.CODIGO !== "CREDENCIAL_REQUIERE_RENOVACION") {
+                passwordRenovacion = "";
+                return respuesta;
+            }
+
+            if (!passwordRenovacion) {
+                passwordRenovacion = "";
+                return respuesta;
+            }
+
+            var renovacion = {
+                usuario: entrada.usuario || "",
+                password: passwordRenovacion,
+                idUsuario: Number(entrada.idUsuario || 0),
+                tokenInstalacion: entrada.tokenInstalacion || "",
+                auditoria: entrada.auditoria
+            };
+
+            return postBase(baseUrl, renovacion).finally(function () {
+                renovacion.password = "";
+                passwordRenovacion = "";
+            });
+        }).catch(function (error) {
+            passwordRenovacion = "";
+            throw error;
+        });
+    };
+
+    return true;
+}
+
 // Login V2 seguro: el callback de sesión se ejecuta únicamente después de que
 // Android confirma que el token devuelto por el servidor quedó cifrado y persistido.
 // Ante una respuesta de red ambigua no se usa el endpoint legacy, porque el servidor
@@ -185,4 +235,5 @@ function CREDENCIAL_instalarLoginSeguro() {
     return true;
 }
 
+CREDENCIAL_instalarValidacionSinPassword();
 CREDENCIAL_instalarLoginSeguro();
