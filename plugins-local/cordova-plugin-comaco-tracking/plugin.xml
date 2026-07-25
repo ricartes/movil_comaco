@@ -19,6 +19,10 @@
                 <param name="android-package"
                     value="io.gestionasi.comaco.tracking.ComacoTrackingPlugin" />
             </feature>
+            <feature name="ComacoTrackingFinalization">
+                <param name="android-package"
+                    value="io.gestionasi.comaco.tracking.ComacoTrackingFinalizationPlugin" />
+            </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.INTERNET" />
@@ -49,6 +53,8 @@
             </receiver>
         </config-file>
         <source-file src="src/android/ComacoTrackingPlugin.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
+        <source-file src="src/android/ComacoTrackingFinalizationPlugin.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
         <source-file src="src/android/TrackingForegroundService.java"
             target-dir="app/src/main/java/io/gestionasi/comaco/tracking" />
