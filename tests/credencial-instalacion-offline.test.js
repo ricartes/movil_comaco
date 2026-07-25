@@ -51,7 +51,10 @@ test('credencial se confirma en Android antes de continuar', () => {
         'function CREDENCIAL_reintentarEnvioGuias'
     );
     const confirm = body.indexOf('await AUDITORIA_confirmarLoginOnline');
-    const verify = body.indexOf('await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion()', confirm);
+    const verify = body.indexOf(
+        'await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion()',
+        confirm
+    );
     assert.ok(confirm >= 0, 'No se confirma el token nativo.');
     assert.ok(verify > confirm, 'No se verifica la persistencia después de confirmarla.');
 });
@@ -60,7 +63,7 @@ test('validación no envía contraseña hasta que el servidor exige renovación'
     const body = section(
         bootstrap,
         'function CREDENCIAL_instalarValidacionSinPassword',
-        '// Login V2 seguro'
+        '// Una validación positiva'
     );
     const firstPassword = body.indexOf('password: ""');
     const renewalCode = body.indexOf('CREDENCIAL_REQUIERE_RENOVACION');
@@ -72,44 +75,62 @@ test('validación no envía contraseña hasta que el servidor exige renovación'
     assert.match(body, /passwordRenovacion = ""/);
 });
 
-test('envío de guías valida y reintenta una sola vez', () => {
-    const retry = section(
-        source,
-        'function CREDENCIAL_reintentarEnvioGuias',
-        'if (CREDENCIAL_enviarGuiasOriginal)'
-    );
-    assert.equal(
-        (retry.match(/CREDENCIAL_enviarGuiasOriginal\(/g) || []).length,
-        2,
-        'El flujo debe tener un intento original y un único reintento.'
-    );
-    const wrapper = section(
-        source,
-        'if (CREDENCIAL_enviarGuiasOriginal)',
-        'if (CREDENCIAL_cargaParametrosOriginal)'
-    );
-    assert.match(wrapper, /CREDENCIAL_asegurarInstalacion\("antes_envio_guias"\)/);
-});
-
-test('login V2 espera persistencia y no cae a legacy ante respuesta ambigua', () => {
+test('validación positiva usa caché por usuario y permite invalidación forzada', () => {
     const body = section(
         bootstrap,
-        'function CREDENCIAL_instalarLoginSeguro',
+        'var CREDENCIAL_ultimaValidacionExitosaMs',
+        '// El envío se repara solamente'
+    );
+    assert.match(body, /CREDENCIAL_VALIDACION_TTL_MS = 30 \* 60 \* 1000/);
+    assert.match(body, /CREDENCIAL_ultimaValidacionUsuario === idUsuarioActual/);
+    assert.match(body, /opciones\.forzarValidacion === true/);
+    assert.match(body, /CODIGO: "CREDENCIAL_CACHE_VIGENTE"/);
+    assert.match(body, /CREDENCIAL_ultimaValidacionExitosaMs = 0/);
+});
+
+test('envío de guías repara solo credencial no autorizada y reintenta una vez', () => {
+    const body = section(
+        bootstrap,
+        'function CREDENCIAL_instalarReparacionSelectivaGuias',
+        'function CREDENCIAL_postLogin'
+    );
+    assert.match(body, /Recibe_Guia_V3/);
+    assert.match(body, /CREDENCIAL_INSTALACION_NO_AUTORIZADA/);
+    assert.match(body, /setTimeout\(function \(\)/);
+    assert.match(body, /forzarValidacion: true/);
+    assert.equal(
+        (body.match(/CREDENCIAL_enviarGuiasOriginal\(/g) || []).length,
+        2,
+        'Debe existir un intento original y un único reintento.'
+    );
+    assert.doesNotMatch(body, /while\s*\(/);
+});
+
+test('login estable reutiliza token y espera persistencia antes del callback', () => {
+    const body = section(
+        bootstrap,
+        'function CREDENCIAL_postLogin',
         'CREDENCIAL_instalarValidacionSinPassword();'
     );
+    assert.match(body, /\/CredencialInstalacion\.asmx\/Login/);
+    assert.match(body, /tokenInstalacion: tokenInstalacion/);
     const confirm = body.indexOf('await AUDITORIA_confirmarLoginOnline');
-    const verify = body.indexOf('await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion()', confirm);
+    const verify = body.indexOf(
+        'await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion()',
+        confirm
+    );
     const successCallback = body.indexOf('callback(u)', verify);
     assert.ok(confirm >= 0, 'El login no espera la confirmación nativa.');
     assert.ok(verify > confirm, 'El login no verifica la persistencia del token.');
-    assert.ok(successCallback > verify, 'El callback de login ocurre antes de verificar el token.');
+    assert.ok(successCallback > verify, 'El callback ocurre antes de verificar el token.');
     assert.doesNotMatch(body, /login_web_legacy/);
-    assert.match(body, /LOGIN_V2_RESPUESTA_AMBIGUA/);
+    assert.match(body, /LOGIN_CREDENCIAL_RESPUESTA_AMBIGUA/);
     assert.match(body, /u\.estado = 0/);
+    assert.match(body, /u\.password = ""/);
 });
 
 test('recuperación no borra guías, auditorías ni posiciones', () => {
-    const recovery = source.slice(source.indexOf('// Recuperación durable'));
+    const recovery = source.slice(source.indexOf('// Recuperación durable')) + bootstrap;
     assert.doesNotMatch(recovery, /delete\s+from/i);
     assert.doesNotMatch(recovery, /DROP\s+TABLE/i);
     assert.doesNotMatch(recovery, /Borrar_dato_local\(/);
