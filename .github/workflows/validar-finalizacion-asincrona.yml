@@ -5,7 +5,6 @@ on:
     paths:
       - 'plugins-local/cordova-plugin-comaco-tracking/**'
       - 'tests/**'
-      - 'package.json'
       - '.github/workflows/validar-finalizacion-asincrona.yml'
   workflow_dispatch:
 
@@ -35,14 +34,19 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Ejecutar contratos históricos por archivo
+      - name: Informar contrato externo
+        shell: bash
+        run: |
+          echo "qr-guias-contract.test.js requiere el checkout hermano movil_comaco_gde y no es autocontenido en este repositorio."
+
+      - name: Ejecutar contratos históricos autocontenidos
         id: contratos
         shell: bash
         run: |
           set +e
           failed=0
           : > failed-tests.txt
-          files=$(node -e "const p=require('./package.json'); console.log(p.scripts.test.split(/\s+/).filter(x=>x.endsWith('.js') && !x.endsWith('finalizacion-asincrona.test.js')).join(' '))")
+          files=$(node -e "const p=require('./package.json'); console.log(p.scripts.test.split(/\s+/).filter(x=>x.endsWith('.js') && !x.endsWith('qr-guias-contract.test.js')).join(' '))")
           for file in $files; do
             output=$(mktemp)
             node --test --experimental-test-isolation=none "$file" >"$output" 2>&1
