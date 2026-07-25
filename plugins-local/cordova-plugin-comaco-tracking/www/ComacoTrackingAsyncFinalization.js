@@ -72,6 +72,7 @@ function instalarFinalizacionAsincrona() {
         }
 
         var servidorConfirmado = false;
+        var solicitudEnviada = false;
         var respuestaServidor = null;
         var credencialInstalacion = null;
 
@@ -106,6 +107,7 @@ function instalarFinalizacionAsincrona() {
             var baseUrl = await SEGUIMIENTO_obtenerDireccionServidor();
             var ruta = String(baseUrl).replace(/\/+$/, "") +
                 "/SeguimientoFinalizacionAsincrona.asmx/Solicitar";
+            solicitudEnviada = true;
             var response = await axios.post(ruta, {
                 idUnico: idUnico,
                 idUnicoSeguimiento: idSeguimiento,
@@ -127,6 +129,7 @@ function instalarFinalizacionAsincrona() {
 
             respuestaServidor = desempaquetarAsmx(response && response.data);
             if (!respuestaServidor || respuestaServidor.STATUS !== true) {
+                // Existe respuesta explícita: el servidor rechazó y es seguro reanudar.
                 await ejecutarNativo("cancelar", idSeguimiento);
                 return respuestaServidor;
             }
@@ -158,12 +161,25 @@ function instalarFinalizacionAsincrona() {
             return respuestaServidor;
         } catch (error) {
             if (!servidorConfirmado) {
-                try {
-                    await ejecutarNativo("cancelar", idSeguimiento);
-                } catch (errorCancelacion) {
-                    console.error("[FINALIZACION_ASINCRONA][CANCELACION_ERROR]", errorCancelacion);
+                if (!solicitudEnviada) {
+                    // La solicitud nunca pudo salir: el servidor no pudo guardar el corte.
+                    try {
+                        await ejecutarNativo("cancelar", idSeguimiento);
+                    } catch (errorCancelacion) {
+                        console.error("[FINALIZACION_ASINCRONA][CANCELACION_ERROR]", errorCancelacion);
+                    }
+                    throw errorNormalizado(error, "Error al finalizar la guía.");
                 }
-                throw errorNormalizado(error, "Error al finalizar la guía.");
+
+                // La solicitud pudo ser procesada aunque se haya perdido la respuesta.
+                // Se conserva PAUSADA_FINALIZACION para que el reintento use el mismo
+                // corte y nunca genere posiciones posteriores a la secuencia informada.
+                var errorIndeterminado = errorNormalizado(
+                    error,
+                    "No fue posible confirmar la respuesta del servidor. Reintente la finalización."
+                );
+                errorIndeterminado.code = "RESPUESTA_FINALIZACION_INDETERMINADA";
+                throw errorIndeterminado;
             }
 
             registrarFalloPosteriorAlExito(error, idSeguimiento);
