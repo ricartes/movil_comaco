@@ -35,7 +35,7 @@ test('la primera preparación recupera cualquier estado no terminal sin tocar ot
 test('la preparación normaliza campos GPS opcionales que el web rechazaría', () => {
     assert.match(priority, /accuracy > 999999\.99/);
     assert.match(priority, /speed > 99999\.999/);
-    assert.match(priority, /bearing >= 360/);
+    assert.match(priority, /bearing > 359\.994/);
     assert.match(priority, /altitude < -1000 OR altitude > 20000/);
     assert.match(priority, /LENGTH\(origin\)>20/);
     assert.match(priority, /values\.putNull\(column\)/);
@@ -47,6 +47,7 @@ test('una posición esencialmente inválida se descarta y deja de bloquear la fi
     assert.match(priority, /latitude < -90 OR latitude > 90/);
     assert.match(priority, /longitude < -180 OR longitude > 180/);
     assert.match(priority, /SUBSTR\(TRIM\(date_utc\),-1,1\)<>'Z'/);
+    assert.match(priority, /STRFTIME\('%s',TRIM\(date_utc\)\) IS NULL/);
     assert.match(priority, /GPS_FINALIZATION_INVALID_DISCARDED/);
 });
 
