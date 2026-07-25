@@ -36,4 +36,7 @@ jobs:
           node-version: '22'
 
       - name: Ejecutar suite completo
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tail -n 140
