@@ -33,6 +33,17 @@ function errorNormalizado(error, mensajePredeterminado) {
     return resultado;
 }
 
+function registrarFalloPosteriorAlExito(error, idSeguimiento) {
+    console.error("[FINALIZACION_ASINCRONA][POST_CONFIRMACION_ERROR]", error);
+    if (typeof registrarErrorSeguimientoNativo === "function") {
+        registrarErrorSeguimientoNativo({
+            code: "FINALIZACION_POST_CONFIRMACION_ERROR",
+            ID_UNICO_SEGUIMIENTO_LOCAL: idSeguimiento,
+            message: error && error.message ? error.message : String(error || "")
+        }).catch(function () {});
+    }
+}
+
 function instalarFinalizacionAsincrona() {
     if (instalado || !window.cordova || cordova.platformId !== "android") return;
     if (typeof window.enviarConfirmacionIngresoPlantaSeguraWebService !== "function") return;
@@ -98,8 +109,8 @@ function instalarFinalizacionAsincrona() {
             var response = await axios.post(ruta, {
                 idUnico: idUnico,
                 idUnicoSeguimiento: idSeguimiento,
-                uuid: Obtener_dato_local("uid") ||
-                    (window.device && device.uuid) || "",
+                uuid: (window.device && device.uuid) ||
+                    Obtener_dato_local("uid") || "",
                 versionApp: Obtener_dato_local("version_app") || "",
                 secuenciaFinalLocal: secuenciaFinal,
                 cantidadDescartadaLocal: descartadas,
@@ -121,22 +132,27 @@ function instalarFinalizacionAsincrona() {
             }
             servidorConfirmado = true;
 
-            // Desde aquí la guía ya terminó operacionalmente. El estado FINALIZANDO
-            // conserva la credencial nativa hasta que el outbox quede sin pendientes.
+            // Desde aquí la descarga ya terminó operacionalmente. Los errores de
+            // mantenimiento local se registran, pero nunca revierten ese éxito.
             try {
                 await ejecutarNativo("confirmar", idSeguimiento);
             } catch (errorConfirmacion) {
-                // Fallback sobre la acción histórica; nunca se reanuda la captura si
-                // el servidor ya confirmó la descarga.
-                if (typeof finalizarSeguimientoNativo === "function") {
+                try {
+                    if (typeof finalizarSeguimientoNativo !== "function") {
+                        throw errorConfirmacion;
+                    }
                     await finalizarSeguimientoNativo(idSeguimiento);
-                } else {
-                    throw errorConfirmacion;
+                } catch (errorFallback) {
+                    registrarFalloPosteriorAlExito(errorFallback, idSeguimiento);
                 }
             }
 
             if (typeof marcarCredencialSeguimiento === "function") {
-                await marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                try {
+                    await marcarCredencialSeguimiento(idSeguimiento, "TERMINAL");
+                } catch (errorCredencialLocal) {
+                    registrarFalloPosteriorAlExito(errorCredencialLocal, idSeguimiento);
+                }
             }
 
             return respuestaServidor;
@@ -147,10 +163,11 @@ function instalarFinalizacionAsincrona() {
                 } catch (errorCancelacion) {
                     console.error("[FINALIZACION_ASINCRONA][CANCELACION_ERROR]", errorCancelacion);
                 }
-            } else if (typeof registrarErrorSeguimientoNativo === "function") {
-                registrarErrorSeguimientoNativo(error).catch(function () {});
+                throw errorNormalizado(error, "Error al finalizar la guía.");
             }
-            throw errorNormalizado(error, "Error al finalizar la guía.");
+
+            registrarFalloPosteriorAlExito(error, idSeguimiento);
+            return respuestaServidor;
         } finally {
             if (credencialInstalacion) {
                 credencialInstalacion.TOKEN_INSTALACION = null;
