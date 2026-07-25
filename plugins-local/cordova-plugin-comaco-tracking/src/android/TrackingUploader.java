@@ -31,7 +31,8 @@ final class TrackingUploader {
     private enum UploadOutcome {
         SUCCESS,
         TRACKING_FAILURE,
-        GLOBAL_FAILURE
+        GLOBAL_FAILURE,
+        PRIORITY_RETRY
     }
 
     private final TrackingStore store;
@@ -94,6 +95,8 @@ final class TrackingUploader {
         try {
             long drainCutoffMs = System.currentTimeMillis();
             TrackingPriorityBatchClaimer.PriorityTracking priority = priorityClaimer.findPriority();
+            int priorityLimit = Integer.MAX_VALUE;
+
             if (priority == null) {
                 preparedFinalizations.clear();
             } else if (preparedFinalizations.add(priority.key())) {
@@ -105,7 +108,10 @@ final class TrackingUploader {
                 boolean priorityBatch = false;
 
                 if (priority != null) {
-                    batch = priorityClaimer.claim(priority.trackingId, drainCutoffMs);
+                    batch = priorityClaimer.claim(
+                            priority.trackingId,
+                            drainCutoffMs,
+                            priorityLimit);
                     if (batch != null && !batch.items.isEmpty()) {
                         priorityBatch = true;
                         // La finalización ya tiene un timeout propio. Un intento HTTP es suficiente
@@ -126,7 +132,17 @@ final class TrackingUploader {
                                 + " priority=" + priorityBatch
                                 + " tracking=" + partial(batch.trackingId));
 
-                UploadOutcome outcome = upload(batch);
+                UploadOutcome outcome = upload(batch, priorityBatch);
+                if (outcome == UploadOutcome.PRIORITY_RETRY) {
+                    int previousLimit = batch.items.size();
+                    priorityLimit = Math.max(1, previousLimit / 2);
+                    store.event(
+                            "GPS_FINALIZATION_BATCH_REDUCED",
+                            "tracking=" + partial(batch.trackingId)
+                                    + " from=" + previousLimit
+                                    + " to=" + priorityLimit);
+                    continue;
+                }
                 if (outcome == UploadOutcome.GLOBAL_FAILURE) break;
                 if (priorityBatch && outcome == UploadOutcome.TRACKING_FAILURE) priority = null;
             }
@@ -137,7 +153,7 @@ final class TrackingUploader {
         }
     }
 
-    private UploadOutcome upload(TrackingStore.UploadBatch batch) {
+    private UploadOutcome upload(TrackingStore.UploadBatch batch, boolean priorityBatch) {
         store.event("GPS_HTTP_BEGIN", "positions=" + batch.items.size() + " endpoint=" + batch.endpoint);
         for (int attempt = 0; attempt <= batch.shortRetries; attempt++) {
             try {
@@ -155,8 +171,32 @@ final class TrackingUploader {
                             "reason=short_retry code=" + code + " attempt=" + (attempt + 1));
                     continue;
                 }
+
                 store.fail(batch.items, code, false);
-                store.event("GPS_REJECTED", "reason=" + code);
+
+                if (priorityBatch
+                        && batch.items.size() > 1
+                        && isSplittablePriorityFailure(code)) {
+                    // Un rechazo funcional HTTP 200 puede deberse al tamaño del lote
+                    // o a una posición histórica específica. Se conserva todo en SQLite,
+                    // se elimina solamente el backoff recién aplicado y se reintenta con
+                    // un lote menor para no bloquear las posiciones válidas.
+                    store.expediteTrackingPending(batch.trackingId, "finalization_split");
+                    store.event(
+                            "GPS_REJECTED",
+                            "reason=" + code
+                                    + " priority=true retry=split positions=" + batch.items.size());
+                    return UploadOutcome.PRIORITY_RETRY;
+                }
+
+                String detail = "reason=" + code
+                        + " priority=" + priorityBatch
+                        + " positions=" + batch.items.size();
+                if (priorityBatch && batch.items.size() == 1) {
+                    detail += " position=" + partial(batch.items.get(0).uuidPosition);
+                    store.event("GPS_FINALIZATION_POSITION_REJECTED", detail);
+                }
+                store.event("GPS_REJECTED", detail);
                 return UploadOutcome.GLOBAL_FAILURE;
             }
         }
@@ -246,7 +286,8 @@ final class TrackingUploader {
         if (!(unwrapped instanceof JSONObject)) throw new IllegalStateException("RESPUESTA_INVALIDA");
         JSONObject response = (JSONObject) unwrapped;
         if (!response.optBoolean("EXITO", false)) {
-            String code = response.optString("CODIGO", "FALLA_FUNCIONAL");
+            String code = response.optString("CODIGO", "").trim();
+            if (code.isEmpty()) code = "FALLA_FUNCIONAL";
             if (CREDENTIAL_CODES.contains(code)) throw new CredentialFailure(code);
             throw new IllegalStateException(code);
         }
@@ -267,6 +308,14 @@ final class TrackingUploader {
         }
         store.confirm(accepted, batch.items);
         if (accepted.size() != sent.size()) store.releaseUnacknowledged(batch.items, accepted);
+    }
+
+    private static boolean isSplittablePriorityFailure(String code) {
+        return "FALLA_FUNCIONAL".equals(code)
+                || "ACK_INVALIDO".equals(code)
+                || "ACK_SIN_POSICIONES".equals(code)
+                || "ACK_INCOMPLETO".equals(code)
+                || "RESPUESTA_INVALIDA".equals(code);
     }
 
     private static void nullable(JSONObject o, String key, Double value) throws Exception {
