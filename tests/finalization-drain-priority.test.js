@@ -21,10 +21,18 @@ test('la guía pausada por finalización obtiene lotes dirigidos antes del drena
     );
 });
 
-test('la primera preparación recupera estados retenidos sin tocar otras guías', () => {
-    assert.match(priority, /state IN \('PENDIENTE','ENVIANDO','ERROR_CREDENCIAL'\)/);
+test('la primera preparación recupera cualquier estado no terminal sin tocar otras guías', () => {
+    assert.match(priority, /state NOT IN \('CONFIRMADA','FINAL'\)/);
     assert.match(priority, /WHERE tracking_id=\?/);
+    assert.match(priority, /values\.put\("next_retry_ms", 0\)/);
     assert.match(uploader, /preparedFinalizations\.add\(priority\.key\(\)\)/);
+});
+
+test('el drenaje prioritario no bloquea posiciones por una fecha local futura', () => {
+    const claim = priority.slice(priority.indexOf('TrackingStore.UploadBatch claim'), priority.indexOf('private int countNonTerminal'));
+    assert.match(claim, /next_retry_ms<=\?/);
+    assert.doesNotMatch(claim, /created_ms<=\?/);
+    assert.match(claim, /GPS_FINALIZATION_PRIORITY_NO_BATCH/);
 });
 
 test('un error propio de una guía no detiene el drenaje de las demás', () => {
