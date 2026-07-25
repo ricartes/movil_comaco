@@ -76,6 +76,21 @@ function FINALIZACION_MANUAL_setBotonHabilitado(habilitar) {
     }
 }
 
+function FINALIZACION_MANUAL_obtenerMensajeError(response) {
+    if (!response || !Array.isArray(response.detalle)) return null;
+
+    for (var i = response.detalle.length - 1; i >= 0; i--) {
+        var detalle = response.detalle[i];
+        if (!detalle) continue;
+        if (detalle.MENSAJE) return detalle.MENSAJE;
+        if (detalle.RESPUESTA_WS && detalle.RESPUESTA_WS.MENSAJE) {
+            return detalle.RESPUESTA_WS.MENSAJE;
+        }
+    }
+
+    return null;
+}
+
 async function confirmarIngresoPlantaManual() {
     if (FINALIZACION_MANUAL_finalizando) return false;
 
@@ -150,11 +165,9 @@ async function confirmarIngresoPlantaManual() {
         );
 
         if (!response || response.exitosos !== 1 || response.erroneos !== 0) {
-            var detalle = response && response.detalle && response.detalle[0];
             throw new Error(
-                detalle && (detalle.MENSAJE || (detalle.RESPUESTA_WS && detalle.RESPUESTA_WS.MENSAJE))
-                    ? (detalle.MENSAJE || detalle.RESPUESTA_WS.MENSAJE)
-                    : "El servidor no confirmó la finalización."
+                FINALIZACION_MANUAL_obtenerMensajeError(response) ||
+                "El servidor no confirmó la finalización."
             );
         }
 
