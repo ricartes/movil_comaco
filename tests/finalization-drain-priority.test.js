@@ -39,6 +39,16 @@ test('la finalización usa una ventana coherente y un solo intento HTTP priorita
     assert.match(uploader, /batch\.shortRetries = 0/);
 });
 
+test('una solicitud concurrente de drenaje se conserva y se ejecuta después del ciclo actual', () => {
+    assert.match(uploader, /AtomicBoolean drainRequested/);
+    assert.match(uploader, /drainRequested\.set\(true\)/);
+    assert.match(uploader, /GPS_DRAIN_QUEUED/);
+    assert.match(uploader, /do \{/);
+    assert.match(uploader, /while \(drainRequested\.get\(\)\)/);
+    assert.match(uploader, /coalesced_after_release/);
+    assert.doesNotMatch(uploader, /GPS_DRAIN_SKIPPED/);
+});
+
 test('el helper Android queda incluido en el plugin Cordova', () => {
     assert.match(plugin, /TrackingPriorityBatchClaimer\.java/);
 });
