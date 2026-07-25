@@ -67,7 +67,7 @@ final class TrackingPriorityBatchClaimer {
                     "speed IS NOT NULL AND (speed < 0 OR speed > 99999.999)", now);
             normalized += normalizeNullable(
                     db, trackingId, "bearing",
-                    "bearing IS NOT NULL AND (bearing < 0 OR bearing >= 360)", now);
+                    "bearing IS NOT NULL AND (bearing < 0 OR bearing > 359.994)", now);
             normalized += normalizeNullable(
                     db, trackingId, "altitude",
                     "altitude IS NOT NULL AND (altitude < -1000 OR altitude > 20000)", now);
@@ -93,6 +93,7 @@ final class TrackingPriorityBatchClaimer {
                     "tracking_id=? AND state NOT IN " + TERMINAL_STATES
                             + " AND (date_utc IS NULL OR TRIM(date_utc)=''"
                             + " OR SUBSTR(TRIM(date_utc),-1,1)<>'Z'"
+                            + " OR STRFTIME('%s',TRIM(date_utc)) IS NULL"
                             + " OR latitude < -90 OR latitude > 90"
                             + " OR longitude < -180 OR longitude > 180)",
                     new String[]{trackingId});
