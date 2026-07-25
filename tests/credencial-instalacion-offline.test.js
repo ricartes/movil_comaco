@@ -56,6 +56,22 @@ test('credencial se confirma en Android antes de continuar', () => {
     assert.ok(verify > confirm, 'No se verifica la persistencia después de confirmarla.');
 });
 
+test('validación no envía contraseña hasta que el servidor exige renovación', () => {
+    const body = section(
+        bootstrap,
+        'function CREDENCIAL_instalarValidacionSinPassword',
+        '// Login V2 seguro'
+    );
+    const firstPassword = body.indexOf('password: ""');
+    const renewalCode = body.indexOf('CREDENCIAL_REQUIERE_RENOVACION');
+    const renewalPassword = body.indexOf('password: passwordRenovacion');
+    assert.ok(firstPassword >= 0, 'La primera validación debe omitir la contraseña.');
+    assert.ok(renewalCode > firstPassword, 'No se evalúa la solicitud explícita de renovación.');
+    assert.ok(renewalPassword > renewalCode, 'La contraseña se usa antes de que el servidor solicite renovación.');
+    assert.match(body, /renovacion\.password = ""/);
+    assert.match(body, /passwordRenovacion = ""/);
+});
+
 test('envío de guías valida y reintenta una sola vez', () => {
     const retry = section(
         source,
@@ -79,7 +95,7 @@ test('login V2 espera persistencia y no cae a legacy ante respuesta ambigua', ()
     const body = section(
         bootstrap,
         'function CREDENCIAL_instalarLoginSeguro',
-        'CREDENCIAL_instalarLoginSeguro();'
+        'CREDENCIAL_instalarValidacionSinPassword();'
     );
     const confirm = body.indexOf('await AUDITORIA_confirmarLoginOnline');
     const verify = body.indexOf('await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion()', confirm);
