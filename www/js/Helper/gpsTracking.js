@@ -274,3 +274,253 @@ function AUDITORIA_solicitarDrenaje(motivo) {
         return ComacoTracking.solicitarDrenajeAuditoria(motivo || "javascript");
     });
 }
+
+// -----------------------------------------------------------------------------
+// Recuperación durable de la credencial de instalación para operación offline.
+// -----------------------------------------------------------------------------
+var CREDENCIAL_asegurarPromesa = null;
+var CREDENCIAL_ultimoFalloMs = 0;
+var CREDENCIAL_REINTENTO_FALLO_MS = 30000;
+var CREDENCIAL_loginWebOriginal = typeof login_web === "function" ? login_web : null;
+var CREDENCIAL_enviarGuiasOriginal = typeof enviar_guias_proveedor === "function"
+    ? enviar_guias_proveedor : null;
+var CREDENCIAL_cargaParametrosOriginal = typeof carga_parametros === "function"
+    ? carga_parametros : null;
+
+function CREDENCIAL_error(codigo, mensaje) {
+    var error = new Error(mensaje || codigo || "ERROR_CREDENCIAL_INSTALACION");
+    error.code = codigo || "ERROR_CREDENCIAL_INSTALACION";
+    return error;
+}
+
+function CREDENCIAL_respuestaAsmx(data) {
+    var respuesta = data && Object.prototype.hasOwnProperty.call(data, "d") ? data.d : data;
+    if (typeof respuesta === "string") respuesta = JSON.parse(respuesta);
+    return respuesta;
+}
+
+function CREDENCIAL_contextoUsuario(opciones) {
+    opciones = opciones || {};
+    return {
+        usuario: String(opciones.usuario || Obtener_dato_local("ultimo_activo") ||
+            Obtener_dato_local("user_activo") || "").trim(),
+        password: String(opciones.password || Obtener_dato_local("ultimo_password") || ""),
+        idUsuario: Number(opciones.idUsuario || Obtener_dato_local("id_usuario_activo") || 0)
+    };
+}
+
+function CREDENCIAL_postAsegurar(baseUrl, entrada) {
+    return new Promise(function (resolve, reject) {
+        $.ajax({
+            type: "POST",
+            url: String(baseUrl).replace(/\/+$/, "") + "/CredencialInstalacion.asmx/Asegurar",
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(entrada),
+            dataType: "json",
+            timeout: 20000,
+            success: function (data) {
+                try {
+                    resolve(CREDENCIAL_respuestaAsmx(data));
+                } catch (error) {
+                    reject(CREDENCIAL_error("RESPUESTA_CREDENCIAL_INVALIDA", error.message));
+                }
+            },
+            error: function (xhr, textStatus) {
+                var detalle = xhr && xhr.responseText ? String(xhr.responseText) : textStatus;
+                reject(CREDENCIAL_error("SERVICIO_CREDENCIAL_NO_DISPONIBLE", detalle));
+            }
+        });
+    });
+}
+
+function CREDENCIAL_asegurarInstalacion(motivo, opciones) {
+    opciones = opciones || {};
+    if (CREDENCIAL_asegurarPromesa) return CREDENCIAL_asegurarPromesa;
+
+    if (checkConnection() === "No network connection") {
+        return Promise.reject(CREDENCIAL_error("SIN_RED", "No hay conexión para validar la credencial."));
+    }
+
+    if (!opciones.ignorarEspera && CREDENCIAL_ultimoFalloMs > 0 &&
+            Date.now() - CREDENCIAL_ultimoFalloMs < CREDENCIAL_REINTENTO_FALLO_MS) {
+        return Promise.reject(CREDENCIAL_error("CREDENCIAL_EN_BACKOFF", "La recuperación está temporalmente en espera."));
+    }
+
+    var contexto = CREDENCIAL_contextoUsuario(opciones);
+    if (!contexto.usuario) {
+        return Promise.reject(CREDENCIAL_error("USUARIO_LOCAL_NO_DISPONIBLE", "No existe un usuario local para validar la instalación."));
+    }
+
+    CREDENCIAL_asegurarPromesa = (async function () {
+        var preparada = null;
+        var credencial = null;
+        var tokenInstalacion = "";
+        try {
+            preparada = await AUDITORIA_prepararLogin("AUTOMATICO", contexto.usuario);
+            try {
+                credencial = await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion();
+                tokenInstalacion = credencial && credencial.TOKEN_INSTALACION
+                    ? String(credencial.TOKEN_INSTALACION) : "";
+            } catch (errorCredencialLocal) {
+                tokenInstalacion = "";
+            }
+
+            var baseUrl = await SEGUIMIENTO_obtenerDireccionServidor();
+            var respuesta = await CREDENCIAL_postAsegurar(baseUrl, {
+                usuario: contexto.usuario,
+                password: contexto.password,
+                idUsuario: contexto.idUsuario,
+                tokenInstalacion: tokenInstalacion,
+                auditoria: preparada
+            });
+
+            if (!respuesta || respuesta.EXITO !== true) {
+                throw CREDENCIAL_error(
+                    respuesta && respuesta.CODIGO,
+                    respuesta && respuesta.MENSAJE
+                );
+            }
+
+            await AUDITORIA_confirmarLoginOnline(preparada, respuesta, contexto.usuario);
+
+            var verificada = await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion();
+            if (!verificada || !verificada.ID_INSTALACION || !verificada.TOKEN_INSTALACION) {
+                throw CREDENCIAL_error(
+                    "CREDENCIAL_NO_PERSISTIDA",
+                    "Android no confirmó la persistencia de la credencial."
+                );
+            }
+
+            CREDENCIAL_ultimoFalloMs = 0;
+            console.log(
+                "[CREDENCIAL][OK] motivo=" + String(motivo || "automatico") +
+                " codigo=" + String(respuesta.CODIGO || "OK")
+            );
+
+            Promise.resolve().then(function () {
+                return AUDITORIA_solicitarDrenaje("credencial_asegurada");
+            }).catch(function () {});
+            Promise.resolve().then(function () {
+                return solicitarDrenajeSeguimientoNativo("credencial_asegurada");
+            }).catch(function () {});
+
+            return respuesta;
+        } catch (error) {
+            CREDENCIAL_ultimoFalloMs = Date.now();
+            if (preparada) {
+                await AUDITORIA_descartarLoginPreparado(preparada).catch(function () {});
+            }
+            console.warn(
+                "[CREDENCIAL][ERROR] motivo=" + String(motivo || "automatico") +
+                " codigo=" + String(error && error.code || "ERROR_CREDENCIAL_INSTALACION")
+            );
+            throw error;
+        } finally {
+            tokenInstalacion = "";
+            contexto.password = "";
+            if (credencial) credencial.TOKEN_INSTALACION = null;
+        }
+    })().finally(function () {
+        CREDENCIAL_asegurarPromesa = null;
+    });
+
+    return CREDENCIAL_asegurarPromesa;
+}
+
+function CREDENCIAL_reintentarEnvioGuias(bandera, callback) {
+    CREDENCIAL_enviarGuiasOriginal(bandera, function (resultado) {
+        if (resultado !== -1 || checkConnection() === "No network connection") {
+            typeof callback === "function" && callback(resultado);
+            return;
+        }
+
+        CREDENCIAL_asegurarInstalacion("reintento_envio_guias", {
+            ignorarEspera: true
+        }).then(function () {
+            CREDENCIAL_enviarGuiasOriginal(bandera, callback);
+        }).catch(function () {
+            typeof callback === "function" && callback(-1);
+        });
+    });
+}
+
+if (CREDENCIAL_enviarGuiasOriginal) {
+    enviar_guias_proveedor = function (bandera, callback) {
+        CREDENCIAL_asegurarInstalacion("antes_envio_guias").then(function () {
+            CREDENCIAL_reintentarEnvioGuias(bandera, callback);
+        }).catch(function () {
+            // La guía continúa pendiente en SQLite. No se borra ni cambia su estado.
+            typeof callback === "function" && callback(-1);
+        });
+    };
+}
+
+if (CREDENCIAL_cargaParametrosOriginal) {
+    carga_parametros = function () {
+        if (checkConnection() === "No network connection") {
+            return CREDENCIAL_cargaParametrosOriginal();
+        }
+
+        CREDENCIAL_asegurarInstalacion("carga_parametros", {
+            ignorarEspera: true
+        }).then(function () {
+            CREDENCIAL_cargaParametrosOriginal();
+        }).catch(function (error) {
+            $$(".link").removeClass("disabled");
+            $$("#btn_carga_parametros").removeClass("disabled");
+            app.dialog.alert(
+                "No fue posible validar la instalación. Los datos locales se conservaron y la sincronización se reintentará automáticamente.",
+                "Sincronización pendiente"
+            );
+            console.warn("[CREDENCIAL][CARGA_PARAMETROS_BLOQUEADA]", error && error.code || "ERROR");
+        });
+    };
+}
+
+if (CREDENCIAL_loginWebOriginal) {
+    login_web = function (u, callback) {
+        CREDENCIAL_loginWebOriginal(u, function (resultado) {
+            if (!resultado || resultado === -1 || resultado.estado != 1) {
+                typeof callback === "function" && callback(resultado);
+                return;
+            }
+
+            CREDENCIAL_asegurarInstalacion("login_online", {
+                usuario: u && u.user,
+                password: u && u.password,
+                idUsuario: resultado.id_usuario || resultado.ID_USUARIO,
+                ignorarEspera: true
+            }).then(function () {
+                resultado.auditoria_login_gestionada = true;
+                typeof callback === "function" && callback(resultado);
+            }).catch(function (error) {
+                // Para usuarios ya existentes Principal.js conserva el login local.
+                // Para una instalación nueva no se completa el login hasta persistir
+                // la credencial, evitando crear una sesión incapaz de sincronizar.
+                resultado.estado = 0;
+                resultado.codigo_credencial = error && error.code || "ERROR_CREDENCIAL_INSTALACION";
+                typeof callback === "function" && callback(resultado);
+            });
+        });
+    };
+}
+
+document.addEventListener("online", function () {
+    CREDENCIAL_asegurarInstalacion("conexion_recuperada", {
+        ignorarEspera: true
+    }).then(function () {
+        if (typeof solicitarEnvioAutomaticoDatos === "function") {
+            solicitarEnvioAutomaticoDatos("conexion_recuperada", true);
+        }
+    }).catch(function () {
+        // El modo offline continúa operativo y las colas permanecen intactas.
+    });
+}, false);
+
+document.addEventListener("resume", function () {
+    if (checkConnection() !== "No network connection") {
+        CREDENCIAL_asegurarInstalacion("resume", {
+            ignorarEspera: true
+        }).catch(function () {});
+    }
+}, false);
