@@ -279,7 +279,7 @@ test('40 instrumentacion GPS cubre captura, ciclo, HTTP, ACK y backoff', () => {
     for (const event of [
         'GPS_REQUEST_UPDATES', 'GPS_CAPTURE', 'GPS_DB_COMMIT', 'GPS_OUTBOX_CREATED',
         'GPS_PENDING_COUNT',
-        'GPS_DRAIN_TICK', 'GPS_DRAIN_BEGIN', 'GPS_DRAIN_SKIPPED',
+        'GPS_DRAIN_TICK', 'GPS_DRAIN_BEGIN', 'GPS_DRAIN_QUEUED',
         'GPS_BATCH_SELECTED', 'GPS_HTTP_BEGIN', 'GPS_HTTP_RESULT', 'GPS_ACK',
         'GPS_REJECTED', 'GPS_BACKOFF', 'GPS_DRAIN_END'
     ]) assert.match(nativeSources, new RegExp(event));
