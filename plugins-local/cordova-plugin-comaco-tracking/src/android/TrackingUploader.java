@@ -295,19 +295,27 @@ final class TrackingUploader {
         if (results == null) throw new IllegalStateException("ACK_SIN_POSICIONES");
         Set<String> sent = new HashSet<>();
         for (TrackingStore.OutboxItem p : batch.items) sent.add(p.uuidPosition);
-        Set<String> accepted = new HashSet<>();
+        Set<String> terminal = new HashSet<>();
+        int discarded = 0;
         for (int i = 0; i < results.length(); i++) {
             JSONObject result = results.getJSONObject(i);
             String id = result.getString("UUID_POSICION");
             String state = result.getString("ESTADO");
-            if (!sent.contains(id)
-                    || !("INSERTADA".equals(state) || "YA_EXISTIA".equals(state))
-                    || !accepted.add(id)) {
+            boolean terminalState = "INSERTADA".equals(state)
+                    || "YA_EXISTIA".equals(state)
+                    || "DESCARTADA_FUERA_CORTE".equals(state);
+            if (!sent.contains(id) || !terminalState || !terminal.add(id)) {
                 throw new IllegalStateException("ACK_INVALIDO");
             }
+            if ("DESCARTADA_FUERA_CORTE".equals(state)) discarded++;
         }
-        store.confirm(accepted, batch.items);
-        if (accepted.size() != sent.size()) store.releaseUnacknowledged(batch.items, accepted);
+        if (discarded > 0) {
+            store.event(
+                    "GPS_POSITION_DISCARDED_AFTER_CUTOFF",
+                    "tracking=" + partial(batch.trackingId) + " positions=" + discarded);
+        }
+        store.confirm(terminal, batch.items);
+        if (terminal.size() != sent.size()) store.releaseUnacknowledged(batch.items, terminal);
     }
 
     private static boolean isSplittablePriorityFailure(String code) {
