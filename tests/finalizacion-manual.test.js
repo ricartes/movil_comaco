@@ -114,6 +114,24 @@ test('finalización manual envía origen y motivo sin usar anulación', async ()
     assert.doesNotMatch(manual, /ControlServiceAnular|Recibe_AnulacionGuia/);
 });
 
+test('el error agregado al final del detalle se muestra al usuario', async () => {
+    const { contexto, ui } = escenarioManual();
+    contexto.FINALIZACION_MANUAL_confirmar = async () => true;
+    contexto.FINALIZACION_MANUAL_solicitarMotivo = async () => 'Prueba drenaje';
+    contexto.enviarConfirmacionIngresoPlantaService = async () => ({
+        total: 1,
+        exitosos: 0,
+        erroneos: 1,
+        detalle: [
+            { ID_UNICO_MOVIL: 'GUIA-7' },
+            { MENSAJE: 'No fue posible confirmar todas las posiciones pendientes.' }
+        ]
+    });
+
+    assert.equal(await contexto.confirmarIngresoPlantaManual(), false);
+    assert.match(ui.alertas.at(-1).mensaje, /No fue posible confirmar todas las posiciones pendientes/i);
+});
+
 test('error servidor informa fallo y conserva la ruta de reintento', async () => {
     const { contexto, ui } = escenarioManual();
     contexto.FINALIZACION_MANUAL_confirmar = async () => true;
