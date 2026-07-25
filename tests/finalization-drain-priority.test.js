@@ -8,6 +8,7 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const android = 'plugins-local/cordova-plugin-comaco-tracking/src/android/';
 const uploader = read(android + 'TrackingUploader.java');
 const priority = read(android + 'TrackingPriorityBatchClaimer.java');
+const service = read(android + 'TrackingForegroundService.java');
 const bridge = read('plugins-local/cordova-plugin-comaco-tracking/www/ComacoTracking.js');
 const plugin = read('plugins-local/cordova-plugin-comaco-tracking/plugin.xml');
 
@@ -55,6 +56,25 @@ test('una solicitud concurrente de drenaje se conserva y se ejecuta después del
     assert.match(uploader, /while \(drainRequested\.get\(\)\)/);
     assert.match(uploader, /coalesced_after_release/);
     assert.doesNotMatch(uploader, /GPS_DRAIN_SKIPPED/);
+});
+
+test('el drenaje urgente invoca directamente al uploader sin depender del handler GPS', () => {
+    const immediate = service.slice(
+        service.indexOf('static boolean requestImmediateDrain'),
+        service.indexOf('public static void start')
+    );
+    assert.match(immediate, /GPS_IMMEDIATE_DRAIN_REQUESTED/);
+    assert.match(immediate, /current\.uploader\.drain\(trigger\)/);
+    assert.doesNotMatch(immediate, /handler\.post/);
+    assert.doesNotMatch(immediate, /handler == null/);
+});
+
+test('la actualización del servicio se antepone a callbacks pendientes durante la finalización', () => {
+    const refresh = service.slice(
+        service.indexOf('private void requestRefresh'),
+        service.indexOf('private final Runnable periodicDrain')
+    );
+    assert.match(refresh, /postAtFrontOfQueue/);
 });
 
 test('el helper Android queda incluido en el plugin Cordova', () => {
