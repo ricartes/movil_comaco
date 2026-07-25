@@ -37,12 +37,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Informar contrato externo
-        shell: bash
-        run: |
-          echo "qr-guias-contract.test.js requiere el checkout hermano movil_comaco_gde y no es autocontenido en este repositorio."
-
-      - name: Ejecutar contratos históricos autocontenidos
+      - name: Ejecutar contratos autocontenidos
         id: contratos
         shell: bash
         run: |
@@ -80,3 +75,60 @@ jobs:
         run: |
           cat failed-tests.txt
           exit 1
+
+  contrato-qr-guias:
+    runs-on: ubuntu-latest
+    env:
+      GDE_REPOSITORY_TOKEN: ${{ secrets.GDE_REPOSITORY_TOKEN }}
+    steps:
+      - name: Obtener aplicación de Trazabilidad
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Detectar credencial del repositorio GDE
+        id: credencial
+        shell: bash
+        run: |
+          if [ -n "${GDE_REPOSITORY_TOKEN:-}" ]; then
+            echo "disponible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "disponible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Obtener aplicación GDE
+        if: steps.credencial.outputs.disponible == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ricartes/movil_comaco_gde
+          ref: desarrollo
+          path: .ci/movil_comaco_gde
+          token: ${{ secrets.GDE_REPOSITORY_TOKEN }}
+          persist-credentials: false
+
+      - name: Preparar ruta histórica del contrato
+        if: steps.credencial.outputs.disponible == 'true'
+        shell: bash
+        run: |
+          destino="$GITHUB_WORKSPACE/../../movil_comaco_gde"
+          rm -rf "$destino"
+          ln -s "$GITHUB_WORKSPACE/.ci/movil_comaco_gde" "$destino"
+          test -f "$destino/www/js/Datos/Migraciones/Versiones.js"
+          test -f "$destino/www/js/Datos/QrAsociacionGde.js"
+          test -f "$destino/www/js/Services/QrTrazabilidadService.js"
+          test -f "$destino/www/js/Services/QrAsociacionGdeService.js"
+
+      - name: Ejecutar contrato QR entre aplicaciones
+        if: steps.credencial.outputs.disponible == 'true'
+        run: >-
+          node --test --experimental-test-isolation=none
+          tests/qr-guias-contract.test.js
+
+      - name: Informar credencial pendiente
+        if: steps.credencial.outputs.disponible != 'true'
+        shell: bash
+        run: |
+          echo "::warning title=Contrato QR no ejecutado::Configura el secreto GDE_REPOSITORY_TOKEN con acceso de solo lectura a ricartes/movil_comaco_gde para ejecutar el test interrepositorio."
