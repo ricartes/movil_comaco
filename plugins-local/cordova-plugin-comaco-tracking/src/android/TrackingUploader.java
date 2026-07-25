@@ -57,9 +57,6 @@ final class TrackingUploader {
         drainRequested.set(true);
 
         if (!draining.compareAndSet(false, true)) {
-            // Una solicitud de finalización puede llegar mientras el drenaje periódico
-            // todavía está enviando. No se descarta: queda coalescida y se ejecutará
-            // inmediatamente al terminar el ciclo actual.
             store.event("GPS_DRAIN_QUEUED",
                     "reason=single_flight trigger=" + latestDrainReason);
             return;
@@ -76,15 +73,10 @@ final class TrackingUploader {
             } while (drainRequested.get());
         } finally {
             draining.set(false);
-
-            // Cierra la carrera entre la última comprobación del bucle y la
-            // liberación del single-flight. Si entró una solicitud en esa ventana,
-            // vuelve a adquirir el worker sin perderla.
             if (drainRequested.get()) {
                 drain("coalesced_after_release");
                 return;
             }
-
             if (onFinished != null) onFinished.run();
         }
     }
@@ -114,8 +106,6 @@ final class TrackingUploader {
                             priorityLimit);
                     if (batch != null && !batch.items.isEmpty()) {
                         priorityBatch = true;
-                        // La finalización ya tiene un timeout propio. Un intento HTTP es suficiente
-                        // para evitar que los reintentos cortos consuman toda la ventana de espera.
                         batch.shortRetries = 0;
                     } else {
                         priority = null;
@@ -177,10 +167,6 @@ final class TrackingUploader {
                 if (priorityBatch
                         && batch.items.size() > 1
                         && isSplittablePriorityFailure(code)) {
-                    // Un rechazo funcional HTTP 200 puede deberse al tamaño del lote
-                    // o a una posición histórica específica. Se conserva todo en SQLite,
-                    // se elimina solamente el backoff recién aplicado y se reintenta con
-                    // un lote menor para no bloquear las posiciones válidas.
                     store.expediteTrackingPending(batch.trackingId, "finalization_split");
                     store.event(
                             "GPS_REJECTED",
@@ -295,19 +281,28 @@ final class TrackingUploader {
         if (results == null) throw new IllegalStateException("ACK_SIN_POSICIONES");
         Set<String> sent = new HashSet<>();
         for (TrackingStore.OutboxItem p : batch.items) sent.add(p.uuidPosition);
-        Set<String> accepted = new HashSet<>();
+        Set<String> terminal = new HashSet<>();
+        int discarded = 0;
+        // Estados terminales compatibles: INSERTADA, YA_EXISTIA y DESCARTADA_FUERA_CORTE.
         for (int i = 0; i < results.length(); i++) {
             JSONObject result = results.getJSONObject(i);
             String id = result.getString("UUID_POSICION");
             String state = result.getString("ESTADO");
-            if (!sent.contains(id)
-                    || !("INSERTADA".equals(state) || "YA_EXISTIA".equals(state))
-                    || !accepted.add(id)) {
+            boolean terminalState = "INSERTADA".equals(state)
+                    || "YA_EXISTIA".equals(state)
+                    || "DESCARTADA_FUERA_CORTE".equals(state);
+            if (!sent.contains(id) || !terminalState || !terminal.add(id)) {
                 throw new IllegalStateException("ACK_INVALIDO");
             }
+            if ("DESCARTADA_FUERA_CORTE".equals(state)) discarded++;
         }
-        store.confirm(accepted, batch.items);
-        if (accepted.size() != sent.size()) store.releaseUnacknowledged(batch.items, accepted);
+        if (discarded > 0) {
+            store.event(
+                    "GPS_POSITION_DISCARDED_AFTER_CUTOFF",
+                    "tracking=" + partial(batch.trackingId) + " positions=" + discarded);
+        }
+        store.confirm(terminal, batch.items);
+        if (terminal.size() != sent.size()) store.releaseUnacknowledged(batch.items, terminal);
     }
 
     private static boolean isSplittablePriorityFailure(String code) {

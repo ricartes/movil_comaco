@@ -1,0 +1,82 @@
+name: Validar finalización asíncrona
+
+on:
+  pull_request:
+    paths:
+      - 'plugins-local/cordova-plugin-comaco-tracking/**'
+      - 'tests/**'
+      - '.github/workflows/validar-finalizacion-asincrona.yml'
+  workflow_dispatch:
+
+jobs:
+  contrato-finalizacion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ejecutar pruebas focalizadas
+        run: >-
+          node --test
+          tests/finalizacion-asincrona.test.js
+          tests/position-cutoff-discard.test.js
+
+  suite-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Informar contrato externo
+        shell: bash
+        run: |
+          echo "qr-guias-contract.test.js requiere el checkout hermano movil_comaco_gde y no es autocontenido en este repositorio."
+
+      - name: Ejecutar contratos históricos autocontenidos
+        id: contratos
+        shell: bash
+        run: |
+          set +e
+          failed=0
+          : > failed-tests.txt
+          files=$(node -e "const p=require('./package.json'); console.log(p.scripts.test.split(/\s+/).filter(x=>x.endsWith('.js') && !x.endsWith('qr-guias-contract.test.js')).join(' '))")
+          for file in $files; do
+            output=$(mktemp)
+            node --test --experimental-test-isolation=none "$file" >"$output" 2>&1
+            code=$?
+            if [ "$code" -ne 0 ]; then
+              {
+                echo "===== $file ====="
+                tail -n 80 "$output"
+                echo
+              } >> failed-tests.txt
+              failed=1
+            fi
+            rm -f "$output"
+          done
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contratos-historicos-fallidos
+          path: failed-tests.txt
+          if-no-files-found: error
+
+      - name: Fallar si existe un contrato incompatible
+        if: steps.contratos.outputs.failed != '0'
+        shell: bash
+        run: |
+          cat failed-tests.txt
+          exit 1
