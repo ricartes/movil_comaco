@@ -20,8 +20,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Ejecutar prueba focalizada
-        run: node --test tests/finalizacion-asincrona.test.js
+      - name: Ejecutar pruebas focalizadas
+        run: >-
+          node --test
+          tests/finalizacion-asincrona.test.js
+          tests/position-cutoff-discard.test.js
 
   suite-node:
     runs-on: ubuntu-latest
