@@ -8,12 +8,17 @@ on:
       - '.github/workflows/validar-finalizacion-asincrona.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   contrato-finalizacion:
     runs-on: ubuntu-latest
     steps:
       - name: Obtener código
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -31,6 +36,8 @@ jobs:
     steps:
       - name: Obtener código
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -78,29 +85,18 @@ jobs:
 
   contrato-qr-guias:
     runs-on: ubuntu-latest
-    env:
-      GDE_REPOSITORY_TOKEN: ${{ secrets.GDE_REPOSITORY_TOKEN }}
     steps:
       - name: Obtener aplicación de Trazabilidad
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Detectar credencial del repositorio GDE
-        id: credencial
-        shell: bash
-        run: |
-          if [ -n "${GDE_REPOSITORY_TOKEN:-}" ]; then
-            echo "disponible=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "disponible=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Obtener aplicación GDE
-        if: steps.credencial.outputs.disponible == 'true'
         uses: actions/checkout@v4
         with:
           repository: ricartes/movil_comaco_gde
@@ -110,7 +106,6 @@ jobs:
           persist-credentials: false
 
       - name: Preparar ruta histórica del contrato
-        if: steps.credencial.outputs.disponible == 'true'
         shell: bash
         run: |
           destino="$GITHUB_WORKSPACE/../../movil_comaco_gde"
@@ -122,13 +117,6 @@ jobs:
           test -f "$destino/www/js/Services/QrAsociacionGdeService.js"
 
       - name: Ejecutar contrato QR entre aplicaciones
-        if: steps.credencial.outputs.disponible == 'true'
         run: >-
           node --test --experimental-test-isolation=none
           tests/qr-guias-contract.test.js
-
-      - name: Informar credencial pendiente
-        if: steps.credencial.outputs.disponible != 'true'
-        shell: bash
-        run: |
-          echo "::warning title=Contrato QR no ejecutado::Configura el secreto GDE_REPOSITORY_TOKEN con acceso de solo lectura a ricartes/movil_comaco_gde para ejecutar el test interrepositorio."
