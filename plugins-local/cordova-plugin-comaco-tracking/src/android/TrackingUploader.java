@@ -39,8 +39,10 @@ final class TrackingUploader {
     private final Runnable onFinished;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean draining = new AtomicBoolean(false);
+    private final AtomicBoolean drainRequested = new AtomicBoolean(false);
     private final TrackingPriorityBatchClaimer priorityClaimer;
     private final Set<String> preparedFinalizations = new HashSet<>();
+    private volatile String latestDrainReason = "manual";
 
     TrackingUploader(TrackingStore store, DeviceAuditStore identityStore, Runnable onFinished) {
         this.store = store;
@@ -50,59 +52,89 @@ final class TrackingUploader {
     }
 
     void drain(String reason) {
+        latestDrainReason = normalizeReason(reason);
+        drainRequested.set(true);
+
         if (!draining.compareAndSet(false, true)) {
-            store.event("GPS_DRAIN_SKIPPED", "reason=single_flight trigger=" + reason);
+            // Una solicitud de finalización puede llegar mientras el drenaje periódico
+            // todavía está enviando. No se descarta: queda coalescida y se ejecutará
+            // inmediatamente al terminar el ciclo actual.
+            store.event("GPS_DRAIN_QUEUED",
+                    "reason=single_flight trigger=" + latestDrainReason);
             return;
         }
-        executor.execute(() -> {
-            store.event("GPS_DRAIN_BEGIN", "trigger=" + reason);
-            try {
-                long drainCutoffMs = System.currentTimeMillis();
-                TrackingPriorityBatchClaimer.PriorityTracking priority = priorityClaimer.findPriority();
-                if (priority == null) {
-                    preparedFinalizations.clear();
-                } else if (preparedFinalizations.add(priority.key())) {
-                    priorityClaimer.prepare(priority.trackingId);
-                }
 
-                for (int i = 0; i < 20; i++) {
-                    TrackingStore.UploadBatch batch;
-                    boolean priorityBatch = false;
+        executor.execute(this::drainLoop);
+    }
 
-                    if (priority != null) {
-                        batch = priorityClaimer.claim(priority.trackingId, drainCutoffMs);
-                        if (batch != null && !batch.items.isEmpty()) {
-                            priorityBatch = true;
-                            // La finalización ya tiene un timeout propio. Un intento HTTP es suficiente
-                            // para evitar que los reintentos cortos consuman toda la ventana de espera.
-                            batch.shortRetries = 0;
-                        } else {
-                            priority = null;
-                            batch = store.claimBatch(drainCutoffMs);
-                        }
+    private void drainLoop() {
+        try {
+            do {
+                drainRequested.set(false);
+                drainOnce(latestDrainReason);
+            } while (drainRequested.get());
+        } finally {
+            draining.set(false);
+
+            // Cierra la carrera entre la última comprobación del bucle y la
+            // liberación del single-flight. Si entró una solicitud en esa ventana,
+            // vuelve a adquirir el worker sin perderla.
+            if (drainRequested.get()) {
+                drain("coalesced_after_release");
+                return;
+            }
+
+            if (onFinished != null) onFinished.run();
+        }
+    }
+
+    private void drainOnce(String reason) {
+        String trigger = normalizeReason(reason);
+        store.event("GPS_DRAIN_BEGIN", "trigger=" + trigger);
+        try {
+            long drainCutoffMs = System.currentTimeMillis();
+            TrackingPriorityBatchClaimer.PriorityTracking priority = priorityClaimer.findPriority();
+            if (priority == null) {
+                preparedFinalizations.clear();
+            } else if (preparedFinalizations.add(priority.key())) {
+                priorityClaimer.prepare(priority.trackingId);
+            }
+
+            for (int i = 0; i < 20; i++) {
+                TrackingStore.UploadBatch batch;
+                boolean priorityBatch = false;
+
+                if (priority != null) {
+                    batch = priorityClaimer.claim(priority.trackingId, drainCutoffMs);
+                    if (batch != null && !batch.items.isEmpty()) {
+                        priorityBatch = true;
+                        // La finalización ya tiene un timeout propio. Un intento HTTP es suficiente
+                        // para evitar que los reintentos cortos consuman toda la ventana de espera.
+                        batch.shortRetries = 0;
                     } else {
+                        priority = null;
                         batch = store.claimBatch(drainCutoffMs);
                     }
-
-                    if (batch == null || batch.items.isEmpty()) break;
-
-                    store.event("GPS_BATCH_SELECTED",
-                            "positions=" + batch.items.size()
-                                    + " priority=" + priorityBatch
-                                    + " tracking=" + partial(batch.trackingId));
-
-                    UploadOutcome outcome = upload(batch);
-                    if (outcome == UploadOutcome.GLOBAL_FAILURE) break;
-                    if (priorityBatch && outcome == UploadOutcome.TRACKING_FAILURE) priority = null;
+                } else {
+                    batch = store.claimBatch(drainCutoffMs);
                 }
-            } catch (Exception e) {
-                store.event("GPS_BACKOFF", "reason=" + errorCode(e));
-            } finally {
-                draining.set(false);
-                store.event("GPS_DRAIN_END", "trigger=" + reason);
-                if (onFinished != null) onFinished.run();
+
+                if (batch == null || batch.items.isEmpty()) break;
+
+                store.event("GPS_BATCH_SELECTED",
+                        "positions=" + batch.items.size()
+                                + " priority=" + priorityBatch
+                                + " tracking=" + partial(batch.trackingId));
+
+                UploadOutcome outcome = upload(batch);
+                if (outcome == UploadOutcome.GLOBAL_FAILURE) break;
+                if (priorityBatch && outcome == UploadOutcome.TRACKING_FAILURE) priority = null;
             }
-        });
+        } catch (Exception e) {
+            store.event("GPS_BACKOFF", "reason=" + errorCode(e));
+        } finally {
+            store.event("GPS_DRAIN_END", "trigger=" + trigger);
+        }
     }
 
     private UploadOutcome upload(TrackingStore.UploadBatch batch) {
@@ -255,6 +287,12 @@ final class TrackingUploader {
         String message = exception.getMessage();
         if (message != null && message.matches("[A-Z0-9_\\-]{1,80}")) return message;
         return exception.getClass().getSimpleName();
+    }
+
+    private static String normalizeReason(String reason) {
+        if (reason == null) return "manual";
+        String value = reason.trim();
+        return value.isEmpty() ? "manual" : value;
     }
 
     private static String partial(String value) {
