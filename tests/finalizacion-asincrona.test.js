@@ -52,10 +52,17 @@ test('el puente confirma la guía antes de que termine el drenaje', () => {
     assert.doesNotMatch(bridge, /POSICIONES_SIN_ACK\s*!==\s*0/);
 });
 
-test('un rechazo del servidor reanuda la captura, pero un éxito nunca la reactiva', () => {
+test('un rechazo explícito reanuda captura y un éxito nunca se revierte', () => {
     assert.match(bridge, /if \(!respuestaServidor \|\| respuestaServidor\.STATUS !== true\)/);
     assert.match(bridge, /await ejecutarNativo\("cancelar", idSeguimiento\)/);
-    assert.match(bridge, /if \(!servidorConfirmado\)/);
     assert.match(bridge, /servidorConfirmado = true/);
     assert.match(bridge, /return respuestaServidor/);
+});
+
+test('un timeout ambiguo conserva el mismo corte para un reintento idempotente', () => {
+    assert.match(bridge, /var solicitudEnviada = false/);
+    assert.match(bridge, /solicitudEnviada = true/);
+    assert.match(bridge, /if \(!solicitudEnviada\)/);
+    assert.match(bridge, /RESPUESTA_FINALIZACION_INDETERMINADA/);
+    assert.match(bridge, /Se conserva PAUSADA_FINALIZACION/);
 });
