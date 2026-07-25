@@ -15,9 +15,12 @@ const plugin = read('plugins-local/cordova-plugin-comaco-tracking/plugin.xml');
 test('la guía pausada por finalización obtiene lotes dirigidos antes del drenaje global', () => {
     assert.match(priority, /status='PAUSADA_FINALIZACION'/);
     assert.match(priority, /WHERE tracking_id=\? AND state='PENDIENTE'/);
-    assert.match(uploader, /priorityClaimer\.claim\(priority\.trackingId, drainCutoffMs\)/);
+    assert.match(
+        uploader,
+        /priorityClaimer\.claim\([\s\S]*priority\.trackingId,[\s\S]*drainCutoffMs,[\s\S]*priorityLimit\)/
+    );
     assert.ok(
-        uploader.indexOf('priorityClaimer.claim(priority.trackingId, drainCutoffMs)')
+        uploader.indexOf('priorityClaimer.claim(')
         < uploader.indexOf('store.claimBatch(drainCutoffMs)')
     );
 });
@@ -30,7 +33,10 @@ test('la primera preparación recupera cualquier estado no terminal sin tocar ot
 });
 
 test('el drenaje prioritario no bloquea posiciones por una fecha local futura', () => {
-    const claim = priority.slice(priority.indexOf('TrackingStore.UploadBatch claim'), priority.indexOf('private int countNonTerminal'));
+    const claim = priority.slice(
+        priority.indexOf('TrackingStore.UploadBatch claim'),
+        priority.indexOf('private int countNonTerminal')
+    );
     assert.match(claim, /next_retry_ms<=\?/);
     assert.doesNotMatch(claim, /created_ms<=\?/);
     assert.match(claim, /GPS_FINALIZATION_PRIORITY_NO_BATCH/);
@@ -75,6 +81,20 @@ test('la actualización del servicio se antepone a callbacks pendientes durante 
         service.indexOf('private final Runnable periodicDrain')
     );
     assert.match(refresh, /postAtFrontOfQueue/);
+});
+
+test('un rechazo funcional grande se reintenta en lotes menores sin perder posiciones', () => {
+    assert.match(priority, /maximumItems/);
+    assert.match(priority, /Math\.min\(configuredLimit, Math\.max\(1, maximumItems\)\)/);
+    assert.match(uploader, /PRIORITY_RETRY/);
+    assert.match(uploader, /GPS_FINALIZATION_BATCH_REDUCED/);
+    assert.match(uploader, /expediteTrackingPending\(batch\.trackingId, "finalization_split"\)/);
+    assert.match(uploader, /priorityLimit = Math\.max\(1, previousLimit \/ 2\)/);
+});
+
+test('una respuesta funcional sin código deja un diagnóstico estable', () => {
+    assert.match(uploader, /if \(code\.isEmpty\(\)\) code = "FALLA_FUNCIONAL"/);
+    assert.match(uploader, /GPS_FINALIZATION_POSITION_REJECTED/);
 });
 
 test('el helper Android queda incluido en el plugin Cordova', () => {
