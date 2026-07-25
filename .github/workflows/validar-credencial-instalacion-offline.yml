@@ -1,0 +1,29 @@
+name: Validar credencial offline
+
+on:
+  pull_request:
+    paths:
+      - 'www/js/Helper/gpsTracking.js'
+      - 'www/js/Services/SeguimientoBootstrap.js'
+      - 'tests/credencial-instalacion-offline.test.js'
+      - 'package.json'
+      - '.github/workflows/validar-credencial-instalacion-offline.yml'
+  workflow_dispatch:
+
+jobs:
+  contrato-credencial:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ejecutar contrato focalizado
+        run: node --test tests/credencial-instalacion-offline.test.js
+
+      - name: Ejecutar suite completa
+        run: npm test
