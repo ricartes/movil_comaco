@@ -109,8 +109,8 @@ function instalarFinalizacionAsincrona() {
             var response = await axios.post(ruta, {
                 idUnico: idUnico,
                 idUnicoSeguimiento: idSeguimiento,
-                uuid: (window.device && device.uuid) ||
-                    Obtener_dato_local("uid") || "",
+                uuid: Obtener_dato_local("uid") ||
+                    (window.device && device.uuid) || "",
                 versionApp: Obtener_dato_local("version_app") || "",
                 secuenciaFinalLocal: secuenciaFinal,
                 cantidadDescartadaLocal: descartadas,
