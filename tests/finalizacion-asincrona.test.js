@@ -16,7 +16,7 @@ const store = read(
     'plugins-local/cordova-plugin-comaco-tracking/src/android/TrackingStore.java'
 );
 
- test('el plugin registra la acción y el puente de finalización asíncrona', () => {
+test('el plugin registra la acción y el puente de finalización asíncrona', () => {
     assert.match(plugin, /ComacoTrackingFinalizationPlugin/);
     assert.match(plugin, /ComacoTrackingAsyncFinalization\.js/);
     assert.match(plugin, /<runs\s*\/>/);
@@ -44,6 +44,7 @@ test('el éxito operativo deja el tracking nativo drenando en segundo plano', ()
 test('el puente confirma la guía antes de que termine el drenaje', () => {
     assert.match(bridge, /deviceready/);
     assert.match(bridge, /SeguimientoFinalizacionAsincrona\.asmx\/Solicitar/);
+    assert.match(bridge, /uuid:\s*Obtener_dato_local\("uid"\)/);
     assert.match(bridge, /secuenciaFinalLocal: secuenciaFinal/);
     assert.match(bridge, /cantidadDescartadaLocal: descartadas/);
     assert.match(bridge, /await ejecutarNativo\("confirmar", idSeguimiento\)/);
@@ -56,4 +57,5 @@ test('un rechazo del servidor reanuda la captura, pero un éxito nunca la reacti
     assert.match(bridge, /await ejecutarNativo\("cancelar", idSeguimiento\)/);
     assert.match(bridge, /if \(!servidorConfirmado\)/);
     assert.match(bridge, /servidorConfirmado = true/);
+    assert.match(bridge, /return respuestaServidor/);
 });
