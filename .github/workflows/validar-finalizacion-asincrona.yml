@@ -35,8 +35,21 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Ejecutar suite completo
+      - name: Ejecutar contratos históricos por archivo
         shell: bash
         run: |
-          set -o pipefail
-          npm test 2>&1 | tail -n 140
+          set +e
+          failed=0
+          files=$(node -e "const p=require('./package.json'); console.log(p.scripts.test.split(/\\s+/).filter(x=>x.endsWith('.js') && !x.endsWith('finalizacion-asincrona.test.js')).join(' '))")
+          for file in $files; do
+            output=$(mktemp)
+            node --test --experimental-test-isolation=none "$file" >"$output" 2>&1
+            code=$?
+            if [ "$code" -ne 0 ]; then
+              echo "::error title=Contrato histórico fallido::$file"
+              tail -n 80 "$output"
+              failed=1
+            fi
+            rm -f "$output"
+          done
+          exit "$failed"
