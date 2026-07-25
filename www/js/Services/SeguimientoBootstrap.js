@@ -85,3 +85,104 @@ function SEGUIMIENTO_registrarEntradasTecnicas() {
     }
 }
 SEGUIMIENTO_registrarEntradasTecnicas();
+
+// Login V2 seguro: el callback de sesión se ejecuta únicamente después de que
+// Android confirma que el token devuelto por el servidor quedó cifrado y persistido.
+// Ante una respuesta de red ambigua no se usa el endpoint legacy, porque el servidor
+// pudo haber rotado la credencial. Los usuarios existentes continúan por login local
+// y el coordinador CREDENCIAL_asegurarInstalacion repara la sincronización después.
+function CREDENCIAL_instalarLoginSeguro() {
+    if (typeof login_web !== "function") return false;
+
+    login_web = function (u, callback) {
+        DATOS_seleccionar_Parametro_movil_por_nombre(1, "DIRECCION_SERVIDOR", function (resultParam) {
+            var base = String(resultParam && resultParam.PAG_VALOR || "").replace(/\/+$/, "") +
+                "/Webserviceproveedor.asmx/";
+
+            AUDITORIA_prepararLogin("ONLINE", u.user).then(function (auditoriaPreparada) {
+                $.ajax({
+                    type: "POST",
+                    url: base + "Login_Proveedor_V2",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify({
+                        usuario: u.user,
+                        password: u.password,
+                        auditoria: auditoriaPreparada
+                    }),
+                    dataType: "json",
+                    timeout: 15000,
+                    success: async function (data) {
+                        var respuesta = null;
+                        try {
+                            respuesta = CREDENCIAL_respuestaAsmx(data);
+                            if (!respuesta || respuesta.EXITO !== true) {
+                                await AUDITORIA_descartarLoginPreparado(auditoriaPreparada)
+                                    .catch(function () {});
+                                u.estado = 0;
+                                u.codigo_credencial = respuesta && respuesta.CODIGO ||
+                                    "LOGIN_V2_RECHAZADO";
+                                typeof callback === "function" && callback(u);
+                                return;
+                            }
+
+                            await AUDITORIA_confirmarLoginOnline(
+                                auditoriaPreparada,
+                                respuesta,
+                                u.user
+                            );
+
+                            var credencialPersistida =
+                                await SEGUIMIENTO_pluginNativo().obtenerCredencialInstalacion();
+                            if (!credencialPersistida ||
+                                    !credencialPersistida.ID_INSTALACION ||
+                                    !credencialPersistida.TOKEN_INSTALACION) {
+                                throw CREDENCIAL_error(
+                                    "CREDENCIAL_NO_PERSISTIDA",
+                                    "Android no confirmó la credencial del login."
+                                );
+                            }
+
+                            u.rut = respuesta.USER_RUT;
+                            u.nombre = respuesta.USER_NOMBRE;
+                            u.apellido = respuesta.USER_APELLIDO;
+                            u.id_emp = respuesta.USER_ID_EMP;
+                            u.id_usuario = respuesta.ID_USUARIO;
+                            u.estado = 1;
+                            u.tipo_login_auditoria = "ONLINE";
+                            u.auditoria_login_gestionada = true;
+                            credencialPersistida.TOKEN_INSTALACION = null;
+                            typeof callback === "function" && callback(u);
+                        } catch (error) {
+                            await AUDITORIA_descartarLoginPreparado(auditoriaPreparada)
+                                .catch(function () {});
+                            u.estado = 0;
+                            u.codigo_credencial = error && error.code ||
+                                "ERROR_PERSISTENCIA_CREDENCIAL";
+                            typeof callback === "function" && callback(u);
+                        } finally {
+                            if (respuesta) respuesta.TOKEN_INSTALACION = null;
+                        }
+                    },
+                    error: function () {
+                        AUDITORIA_descartarLoginPreparado(auditoriaPreparada)
+                            .catch(function () {})
+                            .finally(function () {
+                                u.estado = 0;
+                                u.codigo_credencial = "LOGIN_V2_RESPUESTA_AMBIGUA";
+                                typeof callback === "function" && callback(u);
+                            });
+                    }
+                });
+            }).catch(function (error) {
+                u.estado = 0;
+                u.codigo_credencial = error && error.code ||
+                    "AUDITORIA_LOGIN_NO_DISPONIBLE";
+                typeof callback === "function" && callback(u);
+            });
+        });
+    };
+
+    return true;
+}
+
+CREDENCIAL_instalarLoginSeguro();
