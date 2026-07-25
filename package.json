@@ -11,14 +11,14 @@
     "license": "Apache-2.0",
     "dependencies": {
         "cordova-browser": "^5.0.3",
-        "cordova-plugin-androidx-adapter": "1.1.3",
-        "cordova-plugin-mcc-mlkit-barcode-scanner": "4.0.2",
         "cordova-epos-plugin": "git+https://github.com/jhonylucas74/epson-cordova.git",
         "cordova-import-npm": "^1.0.33",
+        "cordova-plugin-androidx-adapter": "1.1.3",
         "cordova-plugin-app-version": "^0.1.12",
         "cordova-plugin-device-motion": "^1.2.5",
         "cordova-plugin-inappbrowser": "^3.1.0",
         "cordova-plugin-ip-mac-address": "^1.0.1",
+        "cordova-plugin-mcc-mlkit-barcode-scanner": "4.0.2",
         "cordova-plugin-network-information": "^2.0.1",
         "cordova-plugin-vibration": "^3.1.1",
         "esm": "^3.2.25",
@@ -53,8 +53,8 @@
                 "GPS_REQUIRED": "true"
             },
             "@ccervantesb/cordova-plugin-mock-location": {},
-            "cordova-plugin-comaco-tracking": {},
-            "cordova-plugin-mcc-mlkit-barcode-scanner": {}
+            "cordova-plugin-mcc-mlkit-barcode-scanner": {},
+            "cordova-plugin-comaco-tracking": {}
         },
         "platforms": [
             "browser",

@@ -10,7 +10,7 @@ var usuario_activo;
 
 
 //var url_server_nuevo = "https://desarrollo-rcartes.ddns.net/origenes";
-var url_server_nuevo = "https://numerous-professor-christopher-aging.trycloudflare.com";
+var url_server_nuevo = "https://license-terrorism-photographers-locate.trycloudflare.com";
 var url_server_desa = "http://gestiona-002-site1.itempurl.com";
 
 // Framework7 App main instance
