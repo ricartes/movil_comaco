@@ -1,5 +1,6 @@
 package io.gestionasi.comaco.tracking;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
@@ -49,20 +50,22 @@ final class TrackingPriorityBatchClaimer {
         validateTrackingId(trackingId);
         long now = System.currentTimeMillis();
         SQLiteDatabase db = store.getWritableDatabase();
-        db.beginTransaction();
-        try {
-            db.execSQL(
-                    "UPDATE position_outbox "
-                            + "SET state='PENDIENTE',next_retry_ms=0,sending_since_ms=NULL,"
-                            + "updated_ms=?,last_error=NULL "
-                            + "WHERE tracking_id=? "
-                            + "AND state IN ('PENDIENTE','ENVIANDO','ERROR_CREDENCIAL')",
-                    new Object[]{now, trackingId});
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
-        store.event("GPS_FINALIZATION_PRIORITY_PREPARED", "tracking=" + partial(trackingId));
+        ContentValues values = new ContentValues();
+        values.put("state", TrackingStore.PENDING);
+        values.put("next_retry_ms", 0);
+        values.putNull("sending_since_ms");
+        values.put("updated_ms", now);
+        values.putNull("last_error");
+
+        int recovered = db.update(
+                "position_outbox",
+                values,
+                "tracking_id=? AND state NOT IN ('CONFIRMADA','FINAL')",
+                new String[]{trackingId});
+
+        store.event(
+                "GPS_FINALIZATION_PRIORITY_PREPARED",
+                "tracking=" + partial(trackingId) + " positions=" + recovered);
     }
 
     TrackingStore.UploadBatch claim(String trackingId, long createdBeforeOrAtMs) throws Exception {
@@ -80,7 +83,12 @@ final class TrackingPriorityBatchClaimer {
                         + "WHERE a.tracking_id=? "
                         + "AND a.status IN ('PAUSADA_FINALIZACION','FINALIZANDO')",
                 new String[]{trackingId})) {
-            if (!cursor.moveToFirst() || cursor.isNull(2) || cursor.isNull(3)) return null;
+            if (!cursor.moveToFirst() || cursor.isNull(2) || cursor.isNull(3)) {
+                store.event(
+                        "GPS_FINALIZATION_PRIORITY_NO_BATCH",
+                        "tracking=" + partial(trackingId) + " reason=credentials_or_status");
+                return null;
+            }
             batch.mobileId = cursor.getString(0);
             batch.deviceUuid = cursor.getString(1);
             batch.token = cipher.decrypt(cursor.getBlob(2), cursor.getBlob(3));
@@ -98,12 +106,11 @@ final class TrackingPriorityBatchClaimer {
                         + "accuracy,speed,bearing,altitude,mocked,origin "
                         + "FROM position_outbox "
                         + "WHERE tracking_id=? AND state='PENDIENTE' "
-                        + "AND next_retry_ms<=? AND created_ms<=? "
+                        + "AND next_retry_ms<=? "
                         + "ORDER BY created_ms LIMIT ?",
                 new String[]{
                         trackingId,
                         String.valueOf(now),
-                        String.valueOf(createdBeforeOrAtMs),
                         String.valueOf(limit)
                 })) {
             while (cursor.moveToNext()) {
@@ -126,9 +133,24 @@ final class TrackingPriorityBatchClaimer {
             }
         }
 
-        if (ids.isEmpty()) return null;
+        if (ids.isEmpty()) {
+            int remaining = countNonTerminal(trackingId);
+            store.event(
+                    "GPS_FINALIZATION_PRIORITY_NO_BATCH",
+                    "tracking=" + partial(trackingId) + " remaining=" + remaining);
+            return null;
+        }
         markSending(ids, now);
         return batch;
+    }
+
+    private int countNonTerminal(String trackingId) {
+        try (Cursor cursor = store.getReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM position_outbox "
+                        + "WHERE tracking_id=? AND state NOT IN ('CONFIRMADA','FINAL')",
+                new String[]{trackingId})) {
+            return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+        }
     }
 
     private void markSending(List<String> ids, long now) {
