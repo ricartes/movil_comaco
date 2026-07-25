@@ -28,14 +28,32 @@ test('la guía pausada por finalización obtiene lotes dirigidos antes del drena
 test('la primera preparación recupera cualquier estado no terminal sin tocar otras guías', () => {
     assert.match(priority, /state NOT IN \('CONFIRMADA','FINAL'\)/);
     assert.match(priority, /WHERE tracking_id=\?/);
-    assert.match(priority, /values\.put\("next_retry_ms", 0\)/);
+    assert.match(priority, /pending\.put\("next_retry_ms", 0\)/);
     assert.match(uploader, /preparedFinalizations\.add\(priority\.key\(\)\)/);
+});
+
+test('la preparación normaliza campos GPS opcionales que el web rechazaría', () => {
+    assert.match(priority, /accuracy > 999999\.99/);
+    assert.match(priority, /speed > 99999\.999/);
+    assert.match(priority, /bearing >= 360/);
+    assert.match(priority, /altitude < -1000 OR altitude > 20000/);
+    assert.match(priority, /LENGTH\(origin\)>20/);
+    assert.match(priority, /values\.putNull\(column\)/);
+});
+
+test('una posición esencialmente inválida se descarta y deja de bloquear la finalización', () => {
+    assert.match(priority, /INVALID_POSITION_CODE = "DESCARTADA_INVALIDA"/);
+    assert.match(priority, /invalid\.put\("state", TrackingStore\.FINAL\)/);
+    assert.match(priority, /latitude < -90 OR latitude > 90/);
+    assert.match(priority, /longitude < -180 OR longitude > 180/);
+    assert.match(priority, /SUBSTR\(TRIM\(date_utc\),-1,1\)<>'Z'/);
+    assert.match(priority, /GPS_FINALIZATION_INVALID_DISCARDED/);
 });
 
 test('el drenaje prioritario no bloquea posiciones por una fecha local futura', () => {
     const claim = priority.slice(
         priority.indexOf('TrackingStore.UploadBatch claim'),
-        priority.indexOf('private int countNonTerminal')
+        priority.indexOf('private static int normalizeNullable')
     );
     assert.match(claim, /next_retry_ms<=\?/);
     assert.doesNotMatch(claim, /created_ms<=\?/);
