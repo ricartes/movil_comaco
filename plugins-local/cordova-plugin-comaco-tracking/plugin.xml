@@ -7,6 +7,10 @@
     <js-module src="www/ComacoTracking.js" name="ComacoTracking">
         <clobbers target="ComacoTracking" />
     </js-module>
+    <js-module src="www/ComacoTrackingAsyncFinalization.js"
+        name="ComacoTrackingAsyncFinalization">
+        <runs />
+    </js-module>
 
     <platform name="android">
         <framework
