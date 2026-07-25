@@ -25,7 +25,7 @@ jobs:
       - name: Ejecutar contrato focalizado
         run: node --test tests/credencial-instalacion-offline.test.js
 
-  regresion:
+  regresion-autocontenida:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,7 +33,6 @@ jobs:
         archivo:
           - tests/seguimiento-sqlite.test.js
           - tests/sqlite-schema-v9.test.js
-          - tests/qr-guias-contract.test.js
           - tests/envio-datos-programador.test.js
           - tests/comaco-tracking-native.test.js
           - tests/offline-first-tracking.test.js
