@@ -1,6 +1,26 @@
 // La clase del plugin compila siempre contra el SDK de Crashlytics.
 // Los plugins Gradle sólo se aplican cuando el google-services.json válido
 // fue copiado al módulo app por el hook after_prepare.
+//
+// Firebase Sessions usa APIs Android de DataStore que en este proyecto Cordova
+// pueden quedar resueltas sólo a los artefactos *-core/KMP. Fijamos aquí los
+// artefactos Android completos para evitar NoClassDefFoundError en runtime.
+def comacoDataStoreVersion = '1.1.7'
+
+dependencies {
+    implementation "androidx.datastore:datastore:${comacoDataStoreVersion}"
+    implementation "androidx.datastore:datastore-preferences:${comacoDataStoreVersion}"
+}
+
+configurations.configureEach {
+    resolutionStrategy.force(
+        "androidx.datastore:datastore:${comacoDataStoreVersion}",
+        "androidx.datastore:datastore-core:${comacoDataStoreVersion}",
+        "androidx.datastore:datastore-preferences:${comacoDataStoreVersion}",
+        "androidx.datastore:datastore-preferences-core:${comacoDataStoreVersion}"
+    )
+}
+
 def comacoGoogleServices = file('google-services.json')
 
 if (comacoGoogleServices.exists()) {
