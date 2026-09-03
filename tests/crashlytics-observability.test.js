@@ -21,9 +21,13 @@ test('plugin Crashlytics mantiene contrato Android 13/Cordova 13', () => {
 
 test('bridge JS sólo expone claves diagnósticas permitidas', () => {
     const source = fs.readFileSync(path.join(pluginRoot, 'www', 'ComacoObservability.js'), 'utf8');
+    const allowedKeys = source.match(/var ALLOWED_KEYS = \{([\s\S]*?)\};/);
 
-    assert.match(source, /ALLOWED_KEYS/);
-    assert.doesNotMatch(source, /rut_activo|ultimo_password|token|latitude|longitude/i);
+    assert.ok(allowedKeys, 'Debe existir la whitelist ALLOWED_KEYS');
+    assert.doesNotMatch(
+        allowedKeys[1],
+        /rut|password|token|uuid|user|latitude|longitude|cliente|guia/i
+    );
     assert.match(source, /JS_UNHANDLED_REJECTION/);
     assert.match(source, /JS_WINDOW_ERROR/);
 });
