@@ -12,14 +12,15 @@ const pluginRoot = path.join(root, 'plugins-local', 'cordova-plugin-comaco-crash
 test('plugin Crashlytics mantiene contrato Android 13/Cordova 13', () => {
     const xml = fs.readFileSync(path.join(pluginRoot, 'plugin.xml'), 'utf8');
     const gradle = fs.readFileSync(path.join(pluginRoot, 'src', 'android', 'comaco-crashlytics.gradle'), 'utf8');
+    const configXml = fs.readFileSync(path.join(root, 'config.xml'), 'utf8');
 
     assert.match(xml, /cordova-android" version=">=13\.0\.0"/);
     assert.match(xml, /firebase-crashlytics:19\.4\.4/);
     assert.doesNotMatch(xml, /firebase-crashlytics:20\./);
-    assert.match(gradle, /androidx\.datastore:datastore:\$\{comacoDataStoreVersion\}/);
-    assert.match(gradle, /androidx\.datastore:datastore-preferences:\$\{comacoDataStoreVersion\}/);
-    assert.match(gradle, /datastore-preferences-core:\$\{comacoDataStoreVersion\}/);
-    assert.match(gradle, /resolutionStrategy\.force/);
+    assert.match(configXml, /GradlePluginKotlinEnabled" value="true"/);
+    assert.match(configXml, /GradlePluginKotlinVersion" value="1\.9\.24"/);
+    assert.doesNotMatch(gradle, /resolutionStrategy\.force/);
+    assert.doesNotMatch(gradle, /androidx\.datastore/);
     assert.match(gradle, /google-services\.json/);
     assert.match(gradle, /com\.google\.firebase\.crashlytics/);
 });
