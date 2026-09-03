@@ -16,6 +16,15 @@
     <allow-navigation href="*" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
     <preference name="android-targetSdkVersion" value="34" />
+    <!--
+        Firebase Sessions depende de librerías AndroidX KMP. AGP 8.3.x puede
+        resolver sus variantes JVM/Desktop en aplicaciones Java-only. Cordova
+        Android 13 soporta Kotlin 1.9.24 de forma nativa; habilitar el plugin
+        Kotlin hace que Gradle seleccione las variantes Android correctas sin
+        alterar la versión de AGP usada por Cordova.
+    -->
+    <preference name="GradlePluginKotlinEnabled" value="true" />
+    <preference name="GradlePluginKotlinVersion" value="1.9.24" />
     <platform name="android">
         <allow-intent href="market:*" />
 
