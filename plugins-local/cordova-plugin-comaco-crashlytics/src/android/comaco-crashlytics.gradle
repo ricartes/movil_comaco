@@ -1,0 +1,21 @@
+// La clase del plugin compila siempre contra el SDK de Crashlytics.
+// Los plugins Gradle sólo se aplican cuando el google-services.json válido
+// fue copiado al módulo app por el hook after_prepare.
+def comacoGoogleServices = file('google-services.json')
+
+if (comacoGoogleServices.exists()) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+
+    android {
+        buildTypes {
+            debug {
+                firebaseCrashlytics {
+                    mappingFileUploadEnabled false
+                }
+            }
+        }
+    }
+} else {
+    logger.lifecycle('[COMACO][CRASHLYTICS] google-services.json ausente: observabilidad Firebase desactivada para este build.')
+}

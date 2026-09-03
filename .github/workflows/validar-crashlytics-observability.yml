@@ -1,0 +1,28 @@
+name: Validar observabilidad Crashlytics
+
+on:
+  pull_request:
+    paths:
+      - 'plugins-local/cordova-plugin-comaco-crashlytics/**'
+      - 'scripts/enable-crashlytics.js'
+      - 'firebase/**'
+      - 'tests/crashlytics-observability.test.js'
+      - '.github/workflows/validar-crashlytics-observability.yml'
+  push:
+    branches:
+      - feature/crashlytics-observability
+    paths:
+      - 'plugins-local/cordova-plugin-comaco-crashlytics/**'
+      - 'scripts/enable-crashlytics.js'
+      - 'tests/crashlytics-observability.test.js'
+
+jobs:
+  contrato:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar contrato de observabilidad
+        run: node --test tests/crashlytics-observability.test.js

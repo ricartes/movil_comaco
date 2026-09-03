@@ -1,0 +1,11 @@
+{
+  "name": "cordova-plugin-comaco-crashlytics",
+  "version": "1.0.0",
+  "description": "Observabilidad Crashlytics acotada para COMACO móvil.",
+  "cordova": {
+    "id": "cordova-plugin-comaco-crashlytics",
+    "platforms": ["android"]
+  },
+  "keywords": ["cordova", "android", "firebase", "crashlytics", "comaco"],
+  "license": "UNLICENSED"
+}

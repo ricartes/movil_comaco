@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="cordova-plugin-comaco-crashlytics"
+    version="1.0.0">
+    <name>ComacoCrashlytics</name>
+    <description>Crashlytics aislado para diagnóstico de COMACO móvil.</description>
+
+    <engines>
+        <engine name="cordova-android" version=">=13.0.0" />
+    </engines>
+
+    <js-module src="www/ComacoObservability.js" name="ComacoObservability">
+        <runs />
+    </js-module>
+
+    <platform name="android">
+        <hook type="after_prepare" src="hooks/after-prepare-android.js" />
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="ComacoCrashlytics">
+                <param name="android-package"
+                    value="io.gestionasi.comaco.observability.ComacoCrashlyticsPlugin" />
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <meta-data android:name="firebase_crashlytics_collection_enabled"
+                android:value="true" />
+        </config-file>
+
+        <framework src="com.google.firebase:firebase-crashlytics:20.0.6" />
+        <framework src="src/android/comaco-crashlytics.gradle"
+            custom="true" type="gradleReference" />
+
+        <source-file src="src/android/ComacoCrashlyticsPlugin.java"
+            target-dir="app/src/main/java/io/gestionasi/comaco/observability" />
+    </platform>
+</plugin>
