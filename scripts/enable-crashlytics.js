@@ -42,15 +42,22 @@ const plugins = packageJson.cordova && packageJson.cordova.plugins
     ? packageJson.cordova.plugins
     : {};
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const isWindows = process.platform === 'win32';
+const npx = isWindows ? 'npx.cmd' : 'npx';
 
 function run(args) {
     const result = spawnSync(npx, args, {
         cwd: PROJECT_ROOT,
-        stdio: 'inherit'
+        stdio: 'inherit',
+        shell: isWindows
     });
+
+    if (result.error) {
+        fail('No se pudo ejecutar ' + npx + ': ' + result.error.message);
+    }
+
     if (result.status !== 0) {
-        process.exit(result.status || 1);
+        fail('El comando "npx ' + args.join(' ') + '" terminó con código ' + String(result.status) + '.');
     }
 }
 
