@@ -14,8 +14,9 @@ test('plugin Crashlytics mantiene contrato Android 13/Cordova 13', () => {
     const gradle = fs.readFileSync(path.join(pluginRoot, 'src', 'android', 'comaco-crashlytics.gradle'), 'utf8');
 
     assert.match(xml, /cordova-android" version=">=13\.0\.0"/);
-    assert.match(xml, /firebase-crashlytics:20\.0\.6/);
-    assert.match(xml, /androidx\.datastore:datastore:1\.1\.7/);
+    assert.match(xml, /firebase-crashlytics:19\.4\.4/);
+    assert.doesNotMatch(xml, /firebase-crashlytics:20\./);
+    assert.doesNotMatch(xml, /androidx\.datastore:datastore:/);
     assert.match(gradle, /google-services\.json/);
     assert.match(gradle, /com\.google\.firebase\.crashlytics/);
 });
