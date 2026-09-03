@@ -10,9 +10,11 @@ La integración está aislada en `plugins-local/cordova-plugin-comaco-crashlytic
 
 - Aplicación Android: `io.gestionasi.gfe_comaco`.
 - Proyecto actual: `cordova-android ^13.0.0`, target SDK 34.
-- Firebase Crashlytics Android SDK: `20.0.6`.
+- Firebase Crashlytics Android SDK: `19.4.4`.
 - Firebase Crashlytics Gradle plugin: `3.0.7`.
 - Google Services Gradle plugin: `4.4.4`.
+
+Se mantiene explícitamente Crashlytics en la última línea estable 19.x. En este proyecto Cordova Android 13, la línea Crashlytics 20.x incorpora Firebase Sessions 3.x y provocó durante las pruebas un `NoClassDefFoundError` fatal al resolver `androidx.datastore.DataStoreFile`. Para una APK diagnóstica de producción se prioriza una combinación estable que no altere el arranque de COMACO.
 
 El plugin no se registra automáticamente hasta disponer de una configuración Firebase real. Esto evita romper builds existentes o introducir una configuración ficticia.
 
@@ -44,7 +46,7 @@ El script:
 
 1. comprueba que `firebase/google-services.json` exista;
 2. valida que incluya `io.gestionasi.gfe_comaco`;
-3. instala `cordova-plugin-comaco-crashlytics` desde `plugins-local`;
+3. refresca `cordova-plugin-comaco-crashlytics` desde `plugins-local`;
 4. ejecuta `cordova prepare android`;
 5. el hook copia el JSON al módulo `platforms/android/app`;
 6. el hook incorpora los classpath de Google Services y Crashlytics al Gradle generado.
@@ -85,7 +87,7 @@ El bridge JavaScript sólo admite una lista cerrada de claves técnicas para red
 
 ## 5. Validar antes de entregar al cliente
 
-Primero compilar e instalar en un dispositivo de prueba propio. Con la app abierta y Cordova inicializado, ejecutar deliberadamente:
+Primero compilar e instalar en un dispositivo de prueba propio. Confirmar antes que la aplicación abre y se mantiene operativa sin crashes introducidos por la instrumentación. Con la app abierta y Cordova inicializado, ejecutar deliberadamente:
 
 ```javascript
 COMACO_OBS.testCrash()
@@ -105,12 +107,13 @@ La aplicación se cerrará. Abrirla nuevamente para permitir el envío del repor
 
 Antes de distribuir:
 
-1. validar el crash controlado en un equipo propio;
-2. confirmar que el build usa el mismo package y firma que la APK instalada en terreno;
-3. aumentar el versionCode si corresponde al mecanismo de actualización usado;
-4. entregar la APK diagnóstica;
-5. pedir al cliente únicamente abrir la aplicación y reproducir el fallo;
-6. revisar Crashlytics por versión, Android 13/API 33 y stacktrace.
+1. validar que COMACO abra normalmente con Crashlytics activo;
+2. validar el crash controlado en un equipo propio;
+3. confirmar que el build usa el mismo package y firma que la APK instalada en terreno;
+4. aumentar el versionCode si corresponde al mecanismo de actualización usado;
+5. entregar la APK diagnóstica;
+6. pedir al cliente únicamente abrir la aplicación y reproducir el fallo;
+7. revisar Crashlytics por versión, Android 13/API 33 y stacktrace.
 
 No corregir el tracking o los permisos hasta obtener el stacktrace real: el crash puede venir de un plugin Cordova, SQLite, WebView, el foreground service u otra etapa del arranque.
 
