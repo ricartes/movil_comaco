@@ -30,14 +30,13 @@
                 android:value="true" />
         </config-file>
 
-        <framework src="com.google.firebase:firebase-crashlytics:20.0.6" />
         <!--
-            firebase-sessions 3.x usa androidx.datastore.DataStoreFile durante
-            el arranque. En Cordova Android 13 esa clase no quedó materializada
-            por la resolución transitiva, por lo que fijamos explícitamente el
-            artefacto Android que la contiene.
+            Se fija la última línea estable 19.x para mantener compatibilidad con
+            Cordova Android 13. Crashlytics 20.x incorpora Firebase Sessions 3.x,
+            cuya inicialización DataStore provoca un NoClassDefFoundError fatal
+            en el runtime actual de COMACO.
         -->
-        <framework src="androidx.datastore:datastore:1.1.7" />
+        <framework src="com.google.firebase:firebase-crashlytics:19.4.4" />
         <framework src="src/android/comaco-crashlytics.gradle"
             custom="true" type="gradleReference" />
 
