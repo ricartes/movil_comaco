@@ -61,12 +61,14 @@ function run(args) {
     }
 }
 
-if (!Object.prototype.hasOwnProperty.call(plugins, PLUGIN_ID)) {
-    console.log('[COMACO][CRASHLYTICS] Instalando plugin local...');
-    run(['cordova', 'plugin', 'add', PLUGIN_PATH, '--save']);
+if (Object.prototype.hasOwnProperty.call(plugins, PLUGIN_ID)) {
+    console.log('[COMACO][CRASHLYTICS] Refrescando plugin local...');
+    run(['cordova', 'plugin', 'rm', PLUGIN_ID]);
 } else {
-    console.log('[COMACO][CRASHLYTICS] Plugin ya registrado.');
+    console.log('[COMACO][CRASHLYTICS] Instalando plugin local...');
 }
+
+run(['cordova', 'plugin', 'add', PLUGIN_PATH, '--save']);
 
 console.log('[COMACO][CRASHLYTICS] Preparando Android...');
 run(['cordova', 'prepare', 'android']);
