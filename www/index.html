@@ -219,13 +219,15 @@
                             <!--<button class="col button button-big button-raised button-fill" style="width:5%; "> +</button>-->
                         </p>
 
-                        <p class="row" id="rowFinalizarFueraGeocercaDebug" style="display:none;">
-                            <a onclick="clickFinalizarFueraGeocerca();" data-view=".view-main"
-                                class="col button button-big button-raised button-fill color-orange"
-                                id="btnFinalizarFueraGeocercaMenu">Finalizar fuera de geocerca
-                            </a>
-                        </p>
-
+                        <!--
+                            Menu entry for the exceptional "finalizar fuera de geocerca" flow
+                            was removed on purpose. The feature itself is intentionally kept:
+                            www/js/Vistas/FinalizacionManual.js, the #btn_finaliza_fuera_geocerca
+                            button in www/pages/IngresoPlanta.html and the FINALIZACION_MANUAL_modoActivo
+                            branches in www/js/Vistas/IngresoPlanta.js are all still in place.
+                            Restoring the flow only requires re-adding a menu entry that calls
+                            clickFinalizarFueraGeocerca(); nothing else needs to be rebuilt.
+                        -->
 
                         <p class="row">
                             <a href="/ListaGuias/" data-view=".view-main"

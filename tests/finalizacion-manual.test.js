@@ -11,6 +11,7 @@ const ingreso = read('www/js/Vistas/IngresoPlanta.js');
 const servicios = read('www/js/Services/EnvioControlService.js');
 const webServices = read('www/js/WebServices.js');
 const index = read('www/index.html');
+const ingresoHtml = read('www/pages/IngresoPlanta.html');
 const plugin = read('plugins-local/cordova-plugin-comaco-tracking/src/android/ComacoTrackingPlugin.java');
 const store = read('plugins-local/cordova-plugin-comaco-tracking/src/android/TrackingStore.java');
 const service = read('plugins-local/cordova-plugin-comaco-tracking/src/android/TrackingForegroundService.java');
@@ -56,11 +57,25 @@ function escenarioManual() {
     return { contexto, ui };
 }
 
-test('opción separada se controla por FLAG_DEBUGGABLE', () => {
-    assert.match(index, /rowFinalizarFueraGeocercaDebug[^>]*display:none/);
+test('la entrada de menú a finalización fuera de geocerca fue retirada', () => {
+    // Se retiró sólo la puerta de entrada desde el menú principal.
+    // Las aserciones apuntan al marcado real (id="..." y onclick="...") y no al
+    // texto suelto, para que un comentario explicativo en index.html no las
+    // haga pasar en verde por el motivo equivocado.
+    assert.doesNotMatch(index, /id="rowFinalizarFueraGeocercaDebug"/);
+    assert.doesNotMatch(index, /id="btnFinalizarFueraGeocercaMenu"/);
+    assert.doesNotMatch(index, /onclick="clickFinalizarFueraGeocerca/);
+});
+
+test('el feature de finalización manual sigue disponible y controlado por FLAG_DEBUGGABLE', () => {
+    // El feature se conserva a propósito: reponer la entrada de menú debe alcanzar
+    // para reactivarlo, sin tener que reconstruir nada.
+    assert.match(index, /js\/Vistas\/FinalizacionManual\.js/);
+    assert.match(manual, /async function clickFinalizarFueraGeocerca/);
     assert.match(manual, /info && info\.DEBUG === true/);
     assert.match(plugin, /ApplicationInfo\.FLAG_DEBUGGABLE/);
-    assert.match(index, /Finalizar fuera de geocerca/i);
+    assert.match(ingresoHtml, /id="btn_finaliza_fuera_geocerca"/);
+    assert.match(ingreso, /confirmarIngresoPlantaManual\(\)/);
 });
 
 test('cancelar la primera confirmación no inicia finalización', async () => {
