@@ -103,3 +103,8 @@ junit*.xml
 *.jks
 *.p12
 *.mobileprovision
+
+# =========================
+# Local agent tooling (machine-specific absolute paths)
+# =========================
+.atl/

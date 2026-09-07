@@ -1,0 +1,64 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Cordova/hybrid mobile app (Framework7 UI, plain global-scope JS under www/js/).
+  Android platform via Gradle; Firebase/Crashlytics integration in progress.
+  Integration branch: desarrollo, in both movil_comaco and movil_comaco_gde.
+  Note: origin/HEAD points at prueba, but that is the remote default pointer,
+  not the branch the team integrates on. Route PRs to desarrollo.
+  Custom local Cordova plugins under plugins-local/.
+  Single project root (repo root); no package-manager workspaces.
+  Testing: Node built-in test runner (node --test), contract-style tests.
+
+strict_tdd: true
+
+testing:
+  projects:
+    - path: "."
+      stack: "Cordova hybrid app (Framework7 + vanilla JS), Node.js tooling scripts, Android/Gradle native layer"
+      test_command: "npm test"
+      test_command_raw: "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/offline-first-tracking.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js tests/credencial-instalacion-offline.test.js"
+      framework: "node:test (Node.js built-in test runner) + node:assert/strict"
+      unit_tests: false
+      integration_tests: true
+      e2e_tests: false
+      coverage_available: false
+      coverage_command: ""
+      linter: null
+      type_checker: null
+      formatter: null
+      known_gap: >-
+        package.json's "test" script omits 3 of 14 files present in tests/:
+        crashlytics-observability.test.js, finalizacion-asincrona.test.js,
+        position-cutoff-discard.test.js. These are exercised only by dedicated
+        GitHub Actions workflows (.github/workflows/validar-*.yml), never by a
+        single local command. No workspace command runs all 14 files together.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes (this app ships to production Android devices)
+    - Call out any change touching plugins-local/, config.xml Gradle prefs, or firebase/ as high risk
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Document Cordova/Android/Gradle version constraints explicitly (cordova-android ^13.0.0, target Android 13+)
+    - Document sequence diagrams for GPS tracking / offline-first flows when touched
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Flag any task that requires updating package.json's "test" script or a .github/workflows/validar-*.yml file
+  apply:
+    guidelines:
+      - Follow existing code patterns (global-scope Framework7 vars in www/js/Vistas/, node:test contract tests in tests/)
+      - New/changed test files MUST be wired into package.json "test" script or an explicit CI workflow — do not leave orphaned test files
+    tdd: true           # RED-GREEN-REFACTOR using `npm test`; see testing.known_gap above — npm test does not yet cover all 14 test files
+    test_command: "npm test"
+  verify:
+    test_command: "npm test"
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+    - Warn if a change modified native Android/Gradle config without a corresponding tests/*.test.js contract update
