@@ -5,7 +5,7 @@
     "description": "Orígnes Comaco",
     "main": "index.js",
     "scripts": {
-        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/offline-first-tracking.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js tests/credencial-instalacion-offline.test.js tests/spatial-sqlite-shim.test.js"
+        "test": "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/offline-first-tracking.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js tests/credencial-instalacion-offline.test.js tests/spatial-sqlite-shim.test.js tests/qr-scan-first-e2e.test.js"
     },
     "author": "Apache Cordova Team",
     "license": "Apache-2.0",

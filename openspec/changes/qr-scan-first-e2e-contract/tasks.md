@@ -36,34 +36,34 @@ Note: CI workflow support for checking out `movil_comaco_gde` alongside `movil_c
 
 ## Phase 2: PR2 — Cross-Repo Harness Foundation
 
-- [ ] 2.1 In `tests/support/qr-e2e-harness.js`, add `crearContextoTrazabilidad()`: own `vm` context + SQLite A + `version8Esquema` schema verbatim (`movil_comaco/www/js/Datos/migraciones/Versiones.js`, 20 cols) + deterministic `obtener_IDUNICO`. This context MUST NOT share JS global scope with the guias context: both repos declare `QR_TRAZABILIDAD_AES_KEY_HEX`/`..._HMAC_KEY_HEX` under identical names, so one shared context lets the second `runFile` overwrite the first's key material, making key drift structurally undetectable.
-- [ ] 2.2 Add `crearContextoGuias()`: a separate, isolated `vm` context + SQLite B + `GDE_GEOCERCA_RODAL` from `version10`+`version12` migrations + `RODAL` catalog table copied verbatim from `movil_comaco_gde/www/js/Datos/Tablas.js:22` (read-only) — it is created there, not by any numbered migration, so a migration-only fixture silently omits it.
-- [ ] 2.3 Add `consultarCatalogoSinOc(db, codigo)`: direct OC-unscoped query `SELECT EMPRESA, TIPO_DOCTO, NRO_OC FROM RODAL WHERE TRIM(UPPER(RODAL)) = ?` against SQLite B — the primary proof for both orphan and OC-boundary scenarios (not a paired re-run under a second OC).
-- [ ] 2.4 Define fixtures `GEOCERCAS`, `CATALOGO`, `PUNTOS`, `OC_A`, `OC_B`, `GDE_BASE` exactly per design: rodal codes `R01`, `R02`, `R03`, `R99` (true orphan, zero catalog rows any OC), `R77` (OC-boundary, one row under `OC_B` only) — no other numbering scheme.
-- [ ] 2.5 Add `guiasDisponible()`: returns `false` when `../../movil_comaco_gde` (read-only) is absent so the e2e file `test.skip`s with an explicit message instead of `ENOENT`.
-- [ ] 2.6 Fixture type convention: `OC_A.numOrden`/`OC_B.numOrden` as JS Numbers matching `RODAL.NRO_OC INTEGER` affinity; add one assertion (e.g. via `PRAGMA table_info(RODAL)`) proving the DAO bind value's type matches the column's declared type.
+- [x] 2.1 In `tests/support/qr-e2e-harness.js`, add `crearContextoTrazabilidad()`: own `vm` context + SQLite A + `version8Esquema` schema verbatim (`movil_comaco/www/js/Datos/migraciones/Versiones.js`, 20 cols) + deterministic `obtener_IDUNICO`. This context MUST NOT share JS global scope with the guias context: both repos declare `QR_TRAZABILIDAD_AES_KEY_HEX`/`..._HMAC_KEY_HEX` under identical names, so one shared context lets the second `runFile` overwrite the first's key material, making key drift structurally undetectable.
+- [x] 2.2 Add `crearContextoGuias()`: a separate, isolated `vm` context + SQLite B + `GDE_GEOCERCA_RODAL` from `version10`+`version12` migrations + `RODAL` catalog table copied verbatim from `movil_comaco_gde/www/js/Datos/Tablas.js:22` (read-only) — it is created there, not by any numbered migration, so a migration-only fixture silently omits it.
+- [x] 2.3 Add `consultarCatalogoSinOc(db, codigo)`: direct OC-unscoped query `SELECT EMPRESA, TIPO_DOCTO, NRO_OC FROM RODAL WHERE TRIM(UPPER(RODAL)) = ?` against SQLite B — the primary proof for both orphan and OC-boundary scenarios (not a paired re-run under a second OC).
+- [x] 2.4 Define fixtures `GEOCERCAS`, `CATALOGO`, `PUNTOS`, `OC_A`, `OC_B`, `GDE_BASE` exactly per design: rodal codes `R01`, `R02`, `R03`, `R99` (true orphan, zero catalog rows any OC), `R77` (OC-boundary, one row under `OC_B` only) — no other numbering scheme.
+- [x] 2.5 Add `guiasDisponible()`: returns `false` when `../../movil_comaco_gde` (read-only) is absent so the e2e file `test.skip`s with an explicit message instead of `ENOENT`.
+- [x] 2.6 Fixture type convention: `OC_A.numOrden`/`OC_B.numOrden` as JS Numbers matching `RODAL.NRO_OC INTEGER` affinity; add one assertion (e.g. via `PRAGMA table_info(RODAL)`) proving the DAO bind value's type matches the column's declared type.
 
 ## Phase 3: PR2 — E2E Scenarios (RED/GREEN pairs)
 
-- [ ] 3.1 RED: create `tests/qr-scan-first-e2e.test.js` — "ciphertext survives round trip": call `generarQrTrazabilidadPorPuntoCarga(gde, coordenadaCarga)` in the trazabilidad context, read `resultado.qr.PAYLOAD_ENCRIPTADO`, pass it into `validarTextoQrTrazabilidad(textoQr)` in the separate guias context — never `validarPayloadQrTrazabilidad` (takes an already-decrypted object, skips decryption). Assert decrypt succeeds AND `payload.latitudCarga === punto.latitud && payload.longitudCarga === punto.longitud`. Expect fail.
-- [ ] 3.2 GREEN: wire 2.1–2.6 so 3.1 passes; add assertion that both contexts' `QR_TRAZABILIDAD_AES_KEY_HEX`/`..._HMAC_KEY_HEX` are equal (unmodified production constants, no injected test keys).
-- [ ] 3.3 RED: happy-path scenario, point (−72.2085,−36.1085) inside geocerca A (`R01`) only, `OC_A`. Assert coordinate-equality then `resolverRodalPorPuntoQr` → `{estado:"RESUELTO", rodal:"R01", nombreRodal:"RODAL 01 QUILLAY"}`. Expect fail.
-- [ ] 3.4 GREEN: make 3.3 pass.
-- [ ] 3.5 RED: zero-match scenario, point (−72.3000,−36.3000) outside all geometry, `OC_A`. Assert `{estado:"SIN_COINCIDENCIA", rodal:null, candidatos:[]}`. Expect fail.
-- [ ] 3.6 GREEN: make 3.5 pass.
-- [ ] 3.7 RED: true-orphan scenario, own fixture, point inside geocerca D (`R99`), `OC_A`. Assert `{estado:"GEOMETRIA_HUERFANA"}` AND `consultarCatalogoSinOc(dbB,'R99')` returns 0 rows (primary proof). Expect fail.
-- [ ] 3.8 GREEN: make 3.7 pass.
-- [ ] 3.9 RED: OC-boundary scenario, own separate fixture, point inside geocerca E (`R77`), `OC_A`. Assert `{estado:"GEOMETRIA_HUERFANA"}` AND `consultarCatalogoSinOc(dbB,'R77')` returns exactly 1 row whose `(EMPRESA,TIPO_DOCTO,NRO_OC)` ≠ `OC_A` (primary proof); plus extra assertion that the same point under `OC_B` → `{estado:"RESUELTO", rodal:"R77"}`. Expect fail.
-- [ ] 3.10 GREEN: make 3.9 pass.
-- [ ] 3.11 RED: ambiguous scenario, point (−72.2020,−36.1020) inside overlapping geocercas A (`R01`) and C (`R03`), `OC_A`. Assert `{estado:"AMBIGUO", rodal:null, candidatos:['R01','R03']}` (order-insensitive). Expect fail.
-- [ ] 3.12 GREEN: make 3.11 pass.
-- [ ] 3.13 Cross-check every `estado` literal used in 3.1–3.12 (`RESUELTO`, `SIN_COINCIDENCIA`, `AMBIGUO`, `GEOMETRIA_HUERFANA`) against `movil_comaco_gde/www/js/Services/GeocercaRodalService.js` (read-only)'s `resolverRodalPorPuntoQr` output — no invented values.
+- [x] 3.1 RED: create `tests/qr-scan-first-e2e.test.js` — "ciphertext survives round trip": call `generarQrTrazabilidadPorPuntoCarga(gde, coordenadaCarga)` in the trazabilidad context, read `resultado.qr.PAYLOAD_ENCRIPTADO`, pass it into `validarTextoQrTrazabilidad(textoQr)` in the separate guias context — never `validarPayloadQrTrazabilidad` (takes an already-decrypted object, skips decryption). Assert decrypt succeeds AND `payload.latitudCarga === punto.latitud && payload.longitudCarga === punto.longitud`. Expect fail.
+- [x] 3.2 GREEN: wire 2.1–2.6 so 3.1 passes; add assertion that both contexts' `QR_TRAZABILIDAD_AES_KEY_HEX`/`..._HMAC_KEY_HEX` are equal (unmodified production constants, no injected test keys).
+- [x] 3.3 RED: happy-path scenario, point (−72.2085,−36.1085) inside geocerca A (`R01`) only, `OC_A`. Assert coordinate-equality then `resolverRodalPorPuntoQr` → `{estado:"RESUELTO", rodal:"R01", nombreRodal:"RODAL 01 QUILLAY"}`. Expect fail.
+- [x] 3.4 GREEN: make 3.3 pass.
+- [x] 3.5 RED: zero-match scenario, point (−72.3000,−36.3000) outside all geometry, `OC_A`. Assert `{estado:"SIN_COINCIDENCIA", rodal:null, candidatos:[]}`. Expect fail.
+- [x] 3.6 GREEN: make 3.5 pass.
+- [x] 3.7 RED: true-orphan scenario, own fixture, point inside geocerca D (`R99`), `OC_A`. Assert `{estado:"GEOMETRIA_HUERFANA"}` AND `consultarCatalogoSinOc(dbB,'R99')` returns 0 rows (primary proof). Expect fail.
+- [x] 3.8 GREEN: make 3.7 pass.
+- [x] 3.9 RED: OC-boundary scenario, own separate fixture, point inside geocerca E (`R77`), `OC_A`. Assert `{estado:"GEOMETRIA_HUERFANA"}` AND `consultarCatalogoSinOc(dbB,'R77')` returns exactly 1 row whose `(EMPRESA,TIPO_DOCTO,NRO_OC)` ≠ `OC_A` (primary proof); plus extra assertion that the same point under `OC_B` → `{estado:"RESUELTO", rodal:"R77"}`. Expect fail.
+- [x] 3.10 GREEN: make 3.9 pass.
+- [x] 3.11 RED: ambiguous scenario, point (−72.2020,−36.1020) inside overlapping geocercas A (`R01`) and C (`R03`), `OC_A`. Assert `{estado:"AMBIGUO", rodal:null, candidatos:['R01','R03']}` (order-insensitive). Expect fail.
+- [x] 3.12 GREEN: make 3.11 pass.
+- [x] 3.13 Cross-check every `estado` literal used in 3.1–3.12 (`RESUELTO`, `SIN_COINCIDENCIA`, `AMBIGUO`, `GEOMETRIA_HUERFANA`) against `movil_comaco_gde/www/js/Services/GeocercaRodalService.js` (read-only)'s `resolverRodalPorPuntoQr` output — no invented values.
 
 ## Phase 4: Wiring & Verification
 
-- [ ] 4.1 Append ` tests/qr-scan-first-e2e.test.js` to `package.json`'s `scripts.test` explicit list (no glob). [FLAGGED: test-script change]
-- [ ] 4.2 Update `openspec/config.yaml`'s `testing.projects[0].test_command_raw` to match. [FLAGGED: test-config change]
-- [ ] 4.3 Run `npm test` with `../../movil_comaco_gde` (read-only) present on `desarrollo`; confirm all scenarios pass with no manual step beyond `npm install`.
-- [ ] 4.4 Run with `../../movil_comaco_gde` (read-only) absent/renamed; confirm `guiasDisponible()` triggers `test.skip` with an explicit message, not `ENOENT`.
-- [ ] 4.5 Confirm zero production changes: `git status`/`git diff` on `movil_comaco` shows only new `tests/` files plus the `package.json`/`config.yaml` wiring edits; `movil_comaco_gde` (read-only) shows zero diff.
-- [ ] 4.6 Confirm `tests/qr-guias-contract.test.js` (read-only) remains byte-identical (no diff).
+- [x] 4.1 Append ` tests/qr-scan-first-e2e.test.js` to `package.json`'s `scripts.test` explicit list (no glob). [FLAGGED: test-script change]
+- [x] 4.2 Update `openspec/config.yaml`'s `testing.projects[0].test_command_raw` to match. [FLAGGED: test-config change]
+- [x] 4.3 Run `npm test` with `../../movil_comaco_gde` (read-only) present on `desarrollo`; confirm all scenarios pass with no manual step beyond `npm install`.
+- [x] 4.4 Run with `../../movil_comaco_gde` (read-only) absent/renamed; confirm `guiasDisponible()` triggers `test.skip` with an explicit message, not `ENOENT`.
+- [x] 4.5 Confirm zero production changes: `git status`/`git diff` on `movil_comaco` shows only new `tests/` files plus the `package.json`/`config.yaml` wiring edits; `movil_comaco_gde` (read-only) shows zero diff.
+- [x] 4.6 Confirm `tests/qr-guias-contract.test.js` (read-only) remains byte-identical (no diff).
