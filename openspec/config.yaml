@@ -18,7 +18,7 @@ testing:
     - path: "."
       stack: "Cordova hybrid app (Framework7 + vanilla JS), Node.js tooling scripts, Android/Gradle native layer"
       test_command: "npm test"
-      test_command_raw: "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/offline-first-tracking.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js tests/credencial-instalacion-offline.test.js"
+      test_command_raw: "node --test --experimental-test-isolation=none tests/seguimiento-sqlite.test.js tests/sqlite-schema-v9.test.js tests/qr-guias-contract.test.js tests/envio-datos-programador.test.js tests/comaco-tracking-native.test.js tests/offline-first-tracking.test.js tests/tracking-power-policy.test.js tests/device-audit.test.js tests/finalizacion-manual.test.js tests/finalization-drain-priority.test.js tests/credencial-instalacion-offline.test.js tests/spatial-sqlite-shim.test.js"
       framework: "node:test (Node.js built-in test runner) + node:assert/strict"
       unit_tests: false
       integration_tests: true
